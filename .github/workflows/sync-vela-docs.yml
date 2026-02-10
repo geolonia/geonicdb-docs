@@ -1,0 +1,67 @@
+name: Sync Vela Docs
+
+on:
+  repository_dispatch:
+    types: [vela-docs-updated]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vela-docs
+        uses: actions/checkout@v4
+
+      - name: Checkout geolonia/vela (docs/ only via sparse-checkout)
+        uses: actions/checkout@v4
+        with:
+          repository: geolonia/vela
+          path: .vela-upstream
+          sparse-checkout: docs
+          sparse-checkout-cone-mode: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run sync-docs
+        run: VELA_REPO_PATH=.vela-upstream pnpm run sync-docs
+
+      - name: Check for changes
+        id: diff
+        run: |
+          git diff --stat
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "docs: sync from vela/docs (${{ github.event.client_payload.sha || 'manual' }})"
+          title: "docs: sync from vela/docs (${{ github.run_id }})"
+          body: |
+            Automated sync of Vela documentation.
+
+            **Trigger**: ${{ github.event_name }}
+            **Vela SHA**: ${{ github.event.client_payload.sha || 'N/A (manual dispatch)' }}
+
+            Changes detected in `docs/ja/` after running `sync-vela-docs.ts`.
+          branch: docs/auto-sync
+          base: master
+          labels: documentation,automated
