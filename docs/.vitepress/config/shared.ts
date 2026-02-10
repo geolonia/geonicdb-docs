@@ -4,6 +4,7 @@ export const shared = defineConfig({
   title: 'Vela OS',
   description: 'FIWARE Orion-compatible Context Broker on AWS Lambda',
 
+  base: '/vela-docs/',
   lastUpdated: true,
   cleanUrls: true,
   ignoreDeadLinks: true,
