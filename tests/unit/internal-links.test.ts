@@ -31,8 +31,8 @@ describe('internal link validation', () => {
 
   it('all internal links point to existing files', () => {
     const broken: string[] = []
-    // Regex for markdown links: [text](link)
-    const linkRegex = /\[([^\]]*)\]\(([^)]+)\)/g
+    // Regex for markdown links: [text](link) — exclude images ![alt](img)
+    const linkRegex = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g
 
     for (const file of allFiles) {
       const content = readFileSync(file, 'utf-8')
