@@ -80,7 +80,7 @@ curl https://api.vela.geolonia.com/version
    - `Fiware-Service`: テナント名
    - `Content-Type`: `application/json`（POST/PATCH/PUT 時）
 3. OpenAPI 仕様をインポートしてリクエストテンプレートを自動生成：
-   ```
+   ```text
    https://api.vela.geolonia.com/openapi.json
    ```
 

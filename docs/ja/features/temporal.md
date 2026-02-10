@@ -106,7 +106,7 @@ Vela OS はストレージの増大を管理するために、テンポラルデ
 
 TTL はテナントレベルで設定されます。保持期間を超えたレコードは MongoDB の TTL インデックスにより自動的にクリーンアップされます。
 
-> **注:** Vela OS SaaS では、TTL は管理者によってテナントレベルで管理されます。TTL 設定の詳細については、[Admin API ドキュメント](/api-reference/admin-api)を参照してください。
+> **注:** Vela OS SaaS では、TTL は管理者によってテナントレベルで管理されます。TTL 設定の詳細については、[Admin API ドキュメント](/ja/api-reference/admin)を参照してください。
 
 ### ユースケース
 

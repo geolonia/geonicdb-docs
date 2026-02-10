@@ -80,7 +80,7 @@ curl https://api.vela.geolonia.com/version
    - `Fiware-Service`: your tenant name
    - `Content-Type`: `application/json` (for POST/PATCH/PUT)
 3. Import the OpenAPI spec for auto-generated request templates:
-   ```
+   ```text
    https://api.vela.geolonia.com/openapi.json
    ```
 

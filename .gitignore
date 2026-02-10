@@ -9,3 +9,5 @@ docs/.vitepress/cache/
 .env.*
 .claude/
 .vela-upstream/
+test-results/
+playwright-report/

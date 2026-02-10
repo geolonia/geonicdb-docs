@@ -123,7 +123,7 @@ The setup script creates these pre-configured tenants:
 
 ## Architecture
 
-```
+```text
 vela-demo-app/
 ├── packages/
 │   ├── shared/              # Shared library

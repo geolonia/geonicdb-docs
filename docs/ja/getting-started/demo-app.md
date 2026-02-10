@@ -123,7 +123,7 @@ pnpm dev
 
 ## アーキテクチャ
 
-```
+```text
 vela-demo-app/
 ├── packages/
 │   ├── shared/              # 共有ライブラリ
