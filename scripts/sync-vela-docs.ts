@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
-import { join, basename } from 'node:path'
+import { join, basename, dirname, relative } from 'node:path'
 
 // ---------------------------------------------------------------------------
 // Vela docs/ → VitePress docs/ja/ sync script
@@ -130,6 +130,56 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   ],
 }
 
+// ---------------------------------------------------------------------------
+// Reverse mapping: source filename (without .md) → primary dest path (for link rewriting)
+// ---------------------------------------------------------------------------
+
+function buildLinkMap(): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const [srcFile, mappings] of Object.entries(MAPPING_TABLE)) {
+    const srcKey = srcFile.replace(/\.md$/i, '')
+    // Use the first mapping entry as the primary destination
+    map[srcKey] = mappings[0].dest
+  }
+  return map
+}
+
+const LINK_MAP = buildLinkMap()
+
+/**
+ * Rewrite internal links that reference other Vela docs files.
+ * Patterns handled:
+ *   ./FILENAME.md  →  relative path to dest
+ *   ./FILENAME     →  relative path to dest
+ *   [text](FILENAME.md)  →  relative path to dest
+ *   [text](FILENAME)     →  relative path to dest
+ *
+ * If target file has no mapping (e.g. API_EN.md which doesn't exist),
+ * the link is converted to plain text to avoid VitePress dead-link errors.
+ */
+function rewriteLinks(content: string, currentDest: string): string {
+  // Match markdown links: [text](target) and [text](target#anchor)
+  return content.replace(
+    /\[([^\]]*)\]\(\.?\/?([A-Z][A-Z0-9_]*(?:\.md)?)(#[^\)]+)?\)/g,
+    (_match, text, target, anchor) => {
+      const targetKey = target.replace(/\.md$/i, '')
+      const destPath = LINK_MAP[targetKey]
+      if (!destPath) {
+        // No mapping found — convert to plain text to avoid dead link
+        return text
+      }
+      // Compute relative path from current file's directory to dest
+      const currentDir = dirname(currentDest)
+      let relPath = relative(currentDir, destPath)
+      // Ensure it starts with ./ for VitePress
+      if (!relPath.startsWith('.') && !relPath.startsWith('/')) {
+        relPath = './' + relPath
+      }
+      return `[${text}](${relPath}${anchor || ''})`
+    }
+  )
+}
+
 // Files that map to the same destination — later source is appended.
 // We track which destinations have already been written to.
 const writtenDests = new Map<string, string>()
@@ -169,13 +219,16 @@ function main() {
       continue
     }
 
-    const srcContent = readFileSync(join(docsDir, srcFile), 'utf-8')
+    const rawContent = readFileSync(join(docsDir, srcFile), 'utf-8')
 
     for (const mapping of mappings) {
       const destPath = join(outputBase, mapping.dest)
       const destDir = join(destPath, '..')
 
       mkdirSync(destDir, { recursive: true })
+
+      // Rewrite internal links for this destination
+      const srcContent = rewriteLinks(rawContent, mapping.dest)
 
       // If this destination was already written by another source, append content
       const existing = writtenDests.get(mapping.dest)
