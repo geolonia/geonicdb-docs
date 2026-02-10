@@ -42,8 +42,15 @@ outline: deep
 | `POST /v2/op/notify` | ✅ | ✅ | 通知受信 |
 | `GET /v2/types` | ✅ | ✅ | タイプ一覧 |
 | `GET /v2/types/{type}` | ✅ | ✅ | タイプ詳細 |
-| サブスクリプション CRUD | ✅ | ✅ | 完全ライフサイクル |
-| 登録 CRUD | ✅ | ✅ | 完全ライフサイクル |
+| `POST /v2/subscriptions` | ✅ | ✅ | サブスクリプション作成 |
+| `GET /v2/subscriptions` | ✅ | ✅ | サブスクリプション一覧 |
+| `GET /v2/subscriptions/{id}` | ✅ | ✅ | サブスクリプション詳細 |
+| `PATCH /v2/subscriptions/{id}` | ✅ | ✅ | サブスクリプション更新 |
+| `DELETE /v2/subscriptions/{id}` | ✅ | ✅ | サブスクリプション削除 |
+| `POST /v2/registrations` | ✅ | ✅ | 登録作成 |
+| `GET /v2/registrations` | ✅ | ✅ | 登録一覧 |
+| `PATCH /v2/registrations/{id}` | ✅ | ✅ | 登録更新 |
+| `DELETE /v2/registrations/{id}` | ✅ | ✅ | 登録削除 |
 | `GET /version` | ✅ | ✅ | バージョン情報 |
 
 ## NGSI-LD API 互換性

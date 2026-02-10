@@ -40,15 +40,19 @@ for block in response.content:
         tool_name = block.name
         tool_input = block.input
 
-        # Execute the tool call against Vela API
-        result = requests.post(
-            f"{VELA_API}/v2/entities",
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            },
-            params={"type": "TemperatureSensor"}
-        )
+        # Map tool name to Vela API endpoint and method
+        if tool_name == "list_entities":
+            result = requests.get(
+                f"{VELA_API}/v2/entities",
+                headers={"Authorization": f"Bearer {API_KEY}"},
+                params=tool_input
+            )
+        elif tool_name == "get_entity":
+            result = requests.get(
+                f"{VELA_API}/v2/entities/{tool_input['id']}",
+                headers={"Authorization": f"Bearer {API_KEY}"}
+            )
+        # Handle other tools similarly...
 
         print(f"Tool: {tool_name}")
         print(f"Input: {json.dumps(tool_input, indent=2)}")

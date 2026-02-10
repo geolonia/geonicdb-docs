@@ -40,15 +40,19 @@ for block in response.content:
         tool_name = block.name
         tool_input = block.input
 
-        # Vela API に対してツール呼び出しを実行
-        result = requests.post(
-            f"{VELA_API}/v2/entities",
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            },
-            params={"type": "TemperatureSensor"}
-        )
+        # ツール名から Vela API エンドポイントとメソッドを決定
+        if tool_name == "list_entities":
+            result = requests.get(
+                f"{VELA_API}/v2/entities",
+                headers={"Authorization": f"Bearer {API_KEY}"},
+                params=tool_input
+            )
+        elif tool_name == "get_entity":
+            result = requests.get(
+                f"{VELA_API}/v2/entities/{tool_input['id']}",
+                headers={"Authorization": f"Bearer {API_KEY}"}
+            )
+        # 他のツールも同様に処理...
 
         print(f"ツール: {tool_name}")
         print(f"入力: {json.dumps(tool_input, indent=2)}")

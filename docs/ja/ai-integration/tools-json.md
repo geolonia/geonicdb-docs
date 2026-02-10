@@ -64,8 +64,10 @@ Vela OS は `tools.json` エンドポイントで **Claude Tool Use** および 
 | `batch` | create, upsert, update, merge, delete, query, purge | 一括操作（最大1,000件） |
 | `temporal` | get, query, create, delete, add_attributes, delete_attribute, merge, modify_instance, delete_instance, batch_create, batch_upsert, batch_delete, batch_query | 時系列データ管理 |
 | `jsonld_contexts` | list, get, create, delete | JSON-LD コンテキスト管理 |
-| `admin` | list, get, create, update, delete, activate, deactivate, change_password | ユーザー・テナント・ポリシー管理 |
+| `admin` | list, get, create, update, delete, activate, deactivate, change_password | ユーザー・テナント・ポリシー管理（認証必須） |
 | `data_models` | list_domains, list_models, get_model | Smart Data Models カタログ閲覧 |
+
+> **注:** `admin` ツールの操作には管理者権限が必要です。適切な認証トークンを使用してください。
 
 ## Claude Tool Use での利用
 

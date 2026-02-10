@@ -64,8 +64,10 @@ Each tool uses an `action` parameter to select the specific operation:
 | `batch` | create, upsert, update, merge, delete, query, purge | Batch operations (up to 1,000 entities) |
 | `temporal` | get, query, create, delete, add_attributes, delete_attribute, merge, modify_instance, delete_instance, batch_create, batch_upsert, batch_delete, batch_query | Time-series data management |
 | `jsonld_contexts` | list, get, create, delete | JSON-LD context management |
-| `admin` | list, get, create, update, delete, activate, deactivate, change_password | User, tenant, and policy management |
+| `admin` | list, get, create, update, delete, activate, deactivate, change_password | User, tenant, and policy management (authentication required) |
 | `data_models` | list_domains, list_models, get_model | Smart Data Models catalog browsing |
+
+> **Note:** The `admin` tools require administrator privileges. Ensure you use an appropriate authentication token.
 
 ## Using with Claude Tool Use
 

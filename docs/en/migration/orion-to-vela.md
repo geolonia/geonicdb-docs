@@ -80,7 +80,7 @@ curl http://orion:1026/v2/subscriptions | jq '.' > subscriptions.json
 curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
-  -d @subscription.json
+  -d @subscriptions.json
 ```
 
 ::: tip Notification URLs
