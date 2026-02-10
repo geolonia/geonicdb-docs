@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: Vela OS
-  text: AWS Lambda 上で動作する FIWARE Orion 互換 Context Broker
+  text: サーバーレス FIWARE Orion 互換 Context Broker
   tagline: AI ネイティブ、サーバーレス、日本標準規格対応
   actions:
     - theme: brand

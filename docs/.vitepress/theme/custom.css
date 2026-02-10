@@ -1,0 +1,16 @@
+.VPHero .main .text {
+  font-size: 28px !important;
+  line-height: 1.3 !important;
+}
+
+@media (min-width: 640px) {
+  .VPHero .main .text {
+    font-size: 32px !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHero .main .text {
+    font-size: 36px !important;
+  }
+}

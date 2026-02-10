@@ -2,6 +2,7 @@ node_modules/
 dist/
 .vitepress/cache/
 .vitepress/dist/
+docs/.vitepress/cache/
 *.log
 .DS_Store
 .env
