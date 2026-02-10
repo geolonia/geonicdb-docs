@@ -201,4 +201,4 @@ Both APIs return the same entity, automatically transformed to the requested for
 - [Installation & Setup](/en/getting-started/installation) — API access details and recommended tools
 - [First Entity Tutorial](/en/getting-started/first-entity) — In-depth CRUD walkthrough with subscriptions
 - [Demo App](/en/getting-started/demo-app) — Explore interactive demo applications
-- [NGSIv2 API Reference](/en/api-reference/ngsiv2) — Full API documentation
+- NGSIv2 API Reference — Full API documentation

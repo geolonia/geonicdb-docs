@@ -150,4 +150,4 @@ Vela OS はマネージド SaaS として利用できます。デプロイ、イ
 
 - [アーキテクチャ](/ja/introduction/architecture) — Vela の構成を理解する
 - [クイックスタート](/ja/introduction/quick-start) — 最初の API コールを試す
-- [Orion から Vela への移行](/ja/migration/orion-to-vela) — ステップバイステップの移行ガイド
+- Orion から Vela への移行 — ステップバイステップの移行ガイド

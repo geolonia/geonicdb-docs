@@ -101,7 +101,7 @@ cp .env.sample .env
 pnpm dev
 ```
 
-http://localhost:5173 をブラウザで開くとランディングページにアクセスできます。
+`http://localhost:5173` をブラウザで開くとランディングページにアクセスできます。
 
 ### 環境変数
 
@@ -147,5 +147,5 @@ vela-demo-app/
 ## 次のステップ
 
 - [クイックスタート](/ja/introduction/quick-start) — 最初の API コールを試す
-- [API リファレンス](/ja/api-reference/ngsiv2) — NGSIv2 API の完全なドキュメント
-- [AI 連携](/ja/ai-integration/overview) — MCP、llms.txt、tools.json について
+- API リファレンス — NGSIv2 API の完全なドキュメント
+- AI 連携 — MCP、llms.txt、tools.json について

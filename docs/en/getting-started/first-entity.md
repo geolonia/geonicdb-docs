@@ -324,7 +324,7 @@ When a Room entity's temperature is updated to a value above 27°C, Vela sends a
 ```
 
 ::: info Notification Channels
-Besides HTTP webhooks, Vela also supports **MQTT** (QoS 0/1/2) and **WebSocket** notifications. See the [Subscriptions](/en/features/subscriptions) page for details.
+Besides HTTP webhooks, Vela also supports **MQTT** (QoS 0/1/2) and **WebSocket** notifications. See the Subscriptions page for details.
 :::
 
 ## Step 5: Delete Entities
@@ -374,6 +374,6 @@ curl -X POST https://api.vela.geolonia.com/v2/op/update \
 ## Next Steps
 
 - [Demo App](/en/getting-started/demo-app) — See Vela in action with interactive demos
-- [NGSIv2 API Reference](/en/api-reference/ngsiv2) — Complete API documentation
-- [Query Language](/en/core-concepts/query-language) — Advanced filtering with q, mq, scopeQ
-- [Subscriptions](/en/features/subscriptions) — HTTP, MQTT, and WebSocket notifications
+- NGSIv2 API Reference — Complete API documentation
+- Query Language — Advanced filtering with q, mq, scopeQ
+- Subscriptions — HTTP, MQTT, and WebSocket notifications

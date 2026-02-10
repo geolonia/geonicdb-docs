@@ -101,7 +101,7 @@ cp .env.sample .env
 pnpm dev
 ```
 
-Open http://localhost:5173 to access the landing page.
+Open `http://localhost:5173` to access the landing page.
 
 ### Environment Variables
 
@@ -147,5 +147,5 @@ vela-demo-app/
 ## Next Steps
 
 - [Quick Start](/en/introduction/quick-start) — Make your first API call
-- [API Reference](/en/api-reference/ngsiv2) — Full NGSIv2 API documentation
-- [AI Integration](/en/ai-integration/overview) — Learn about MCP, llms.txt, and tools.json
+- API Reference — Full NGSIv2 API documentation
+- AI Integration — Learn about MCP, llms.txt, and tools.json

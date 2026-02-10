@@ -324,7 +324,7 @@ Room エンティティの温度が27°Cを超える値に更新されると、V
 ```
 
 ::: info 通知チャネル
-HTTP Webhook の他に、Vela は **MQTT**（QoS 0/1/2）と **WebSocket** 通知もサポートしています。詳細は [サブスクリプション](/ja/features/subscriptions) ページをご覧ください。
+HTTP Webhook の他に、Vela は **MQTT**（QoS 0/1/2）と **WebSocket** 通知もサポートしています。詳細は サブスクリプション ページをご覧ください。
 :::
 
 ## ステップ 5: エンティティの削除
@@ -374,6 +374,6 @@ curl -X POST https://api.vela.geolonia.com/v2/op/update \
 ## 次のステップ
 
 - [デモアプリ](/ja/getting-started/demo-app) — Vela を使ったインタラクティブなデモ
-- [NGSIv2 API リファレンス](/ja/api-reference/ngsiv2) — 完全な API ドキュメント
-- [クエリ言語](/ja/core-concepts/query-language) — q, mq, scopeQ を使った高度なフィルタリング
-- [サブスクリプション](/ja/features/subscriptions) — HTTP、MQTT、WebSocket 通知
+- NGSIv2 API リファレンス — 完全な API ドキュメント
+- クエリ言語 — q, mq, scopeQ を使った高度なフィルタリング
+- サブスクリプション — HTTP、MQTT、WebSocket 通知
