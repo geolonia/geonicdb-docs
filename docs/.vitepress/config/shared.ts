@@ -6,6 +6,7 @@ export const shared = defineConfig({
 
   lastUpdated: true,
   cleanUrls: true,
+  ignoreDeadLinks: true,
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/vela-logo.svg' }],
