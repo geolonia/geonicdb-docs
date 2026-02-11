@@ -20,6 +20,7 @@ This repository hosts the official documentation for **Vela OS**, a serverless F
 - **VitePress** 1.6.x - Static site generator for documentation
 - **TypeScript** - Type-safe development
 - **i18n** - English and Japanese language support
+- **yuuhitsu** - AI-powered translation CLI
 
 ## Getting Started
 
@@ -92,16 +93,19 @@ pnpm test:all
 
 ## Translation
 
-*Note: Translation workflow is planned for future implementation using yuuhitsu.*
+The documentation is available in both English and Japanese. The **yuuhitsu** AI-powered translation CLI is integrated as a dev dependency for maintaining translation consistency.
 
-The documentation is available in both English and Japanese. To translate a document:
+To translate documents:
 
 ```bash
 # Set up your API key in .env
 ANTHROPIC_API_KEY=your_api_key_here
 
-# Translate a document (future feature)
-pnpm translate:ja -- --input docs/en/path/to/file.md
+# Translate a specific English file to Japanese
+pnpm translate:ja -- docs/en/path/to/file.md
+
+# Translate a specific Japanese file to English
+pnpm translate:en -- docs/ja/path/to/file.md
 ```
 
 ## Project Structure
@@ -164,6 +168,9 @@ We welcome contributions! Please follow these guidelines:
 | `pnpm test:all` | Run all tests |
 | `pnpm sync-docs` | Sync documentation from external sources |
 | `pnpm check-links` | Check for broken links |
+| `pnpm translate` | Translate markdown files |
+| `pnpm translate:ja` | Translate English docs to Japanese |
+| `pnpm translate:en` | Translate Japanese docs to English |
 
 ## Learn More
 

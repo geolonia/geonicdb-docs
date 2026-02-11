@@ -20,6 +20,7 @@
 - **VitePress** 1.6.x - ドキュメント用静的サイトジェネレーター
 - **TypeScript** - 型安全な開発環境
 - **i18n** - 英語・日本語の多言語対応
+- **yuuhitsu** - AI翻訳ツール
 
 ## はじめに
 
@@ -92,16 +93,19 @@ pnpm test:all
 
 ## 翻訳
 
-*注: 翻訳ワークフローは yuuhitsu を使用した将来の実装として計画されています。*
+ドキュメントは英語と日本語の両方で提供されています。翻訳の一貫性を保つため、**yuuhitsu** AI翻訳CLIを開発依存関係として統合しています。
 
-ドキュメントは英語と日本語の両方で提供されています。ドキュメントを翻訳するには:
+ドキュメントを翻訳するには:
 
 ```bash
 # .env に API キーを設定
 ANTHROPIC_API_KEY=your_api_key_here
 
-# ドキュメントを翻訳（将来の機能）
-pnpm translate:ja -- --input docs/en/path/to/file.md
+# 英語ファイルを日本語に翻訳
+pnpm translate:ja -- docs/en/path/to/file.md
+
+# 日本語ファイルを英語に翻訳
+pnpm translate:en -- docs/ja/path/to/file.md
 ```
 
 ## プロジェクト構造
@@ -164,6 +168,9 @@ docs/
 | `pnpm test:all` | すべてのテストを実行 |
 | `pnpm sync-docs` | 外部ソースからドキュメントを同期 |
 | `pnpm check-links` | リンク切れをチェック |
+| `pnpm translate` | Markdown ファイルを翻訳 |
+| `pnpm translate:ja` | 英語ドキュメントを日本語に翻訳 |
+| `pnpm translate:en` | 日本語ドキュメントを英語に翻訳 |
 
 ## 詳細情報
 
