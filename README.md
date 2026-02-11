@@ -175,6 +175,8 @@ We welcome contributions! Please follow these guidelines:
 
 ## License
 
-ISC
+MIT License
 
 Copyright (c) 2026 Geolonia Inc.
+
+See [LICENSE](LICENSE) for details.

@@ -175,6 +175,8 @@ docs/
 
 ## ライセンス
 
-ISC
+MIT License
 
 Copyright (c) 2026 Geolonia Inc.
+
+詳細は [LICENSE](LICENSE) をご覧ください。
