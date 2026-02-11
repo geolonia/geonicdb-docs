@@ -17,6 +17,7 @@ function nav(): DefaultTheme.NavItem[] {
     { text: 'API Reference', link: '/en/api-reference/ngsiv2' },
     { text: 'Features', link: '/en/features/subscriptions' },
     { text: 'AI', link: '/en/ai-integration/overview' },
+    { text: 'Changelog', link: '/en/changelog' },
     {
       text: 'GitHub',
       link: 'https://github.com/geolonia/vela',
@@ -107,6 +108,12 @@ function sidebar(): DefaultTheme.Sidebar {
         items: [
           { text: 'Orion to Vela Guide', link: '/en/migration/orion-to-vela' },
           { text: 'Compatibility Matrix', link: '/en/migration/compatibility-matrix' },
+        ],
+      },
+      {
+        text: 'Changelog',
+        items: [
+          { text: 'Changelog', link: '/en/changelog' },
         ],
       },
     ],

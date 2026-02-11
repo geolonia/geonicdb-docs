@@ -30,6 +30,7 @@ function nav(): DefaultTheme.NavItem[] {
     { text: 'API リファレンス', link: '/ja/api-reference/ngsiv2' },
     { text: '機能', link: '/ja/features/subscriptions' },
     { text: 'AI', link: '/ja/ai-integration/overview' },
+    { text: '変更履歴', link: '/ja/changelog' },
     {
       text: 'GitHub',
       link: 'https://github.com/geolonia/vela',
@@ -120,6 +121,12 @@ function sidebar(): DefaultTheme.Sidebar {
         items: [
           { text: 'Orion → Vela ガイド', link: '/ja/migration/orion-to-vela' },
           { text: '互換性マトリックス', link: '/ja/migration/compatibility-matrix' },
+        ],
+      },
+      {
+        text: '変更履歴',
+        items: [
+          { text: '変更履歴', link: '/ja/changelog' },
         ],
       },
     ],
