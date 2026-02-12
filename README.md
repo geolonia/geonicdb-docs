@@ -13,7 +13,7 @@ This repository hosts the official documentation for **Vela OS**, a serverless F
 - **Dual API Support**: Both NGSIv2 and NGSI-LD on a single instance
 - **Japan Standards Ready**: CADDE compatible with provenance tracking
 
-🌐 **Live Documentation**: https://geolonia.github.io/vela-docs/
+🌐 **Live Documentation**: https://docs.vela-os.org/
 
 ## Tech Stack
 
