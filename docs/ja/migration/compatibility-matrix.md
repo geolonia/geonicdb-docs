@@ -1,16 +1,16 @@
 ---
 title: 互換性マトリクス
-description: FIWARE Orion と Vela OS の詳細な互換性マトリクス。NGSIv2、NGSI-LD、地理空間、サブスクリプション、認証 API をカバー。
+description: FIWARE Orion と GeonicDB の詳細な互換性マトリクス。NGSIv2、NGSI-LD、地理空間、サブスクリプション、認証 API をカバー。
 outline: deep
 ---
 
 # 互換性マトリクス
 
-このページでは、**FIWARE Orion**（NGSIv2）/ **Orion-LD**（NGSI-LD）と **Vela OS** の API 互換性を詳細に比較します。
+このページでは、**FIWARE Orion**（NGSIv2）/ **Orion-LD**（NGSI-LD）と **GeonicDB** の API 互換性を詳細に比較します。
 
 ## 概要
 
-| 項目 | Vela OS | FIWARE Orion |
+| 項目 | GeonicDB | FIWARE Orion |
 |------|---------|-------------|
 | **実装言語** | TypeScript / Node.js | C++ |
 | **アーキテクチャ** | サーバーレス（AWS Lambda） | モノリシック（Docker） |
@@ -23,7 +23,7 @@ outline: deep
 
 すべての標準 NGSIv2 エンドポイントを完全サポート:
 
-| エンドポイント | Vela | Orion | 備考 |
+| エンドポイント | GeonicDB | Orion | 備考 |
 |---------------|:----:|:-----:|------|
 | `POST /v2/entities` | ✅ | ✅ | エンティティ作成 |
 | `GET /v2/entities` | ✅ | ✅ | エンティティ一覧 |
@@ -55,22 +55,22 @@ outline: deep
 
 ## NGSI-LD API 互換性
 
-| エンドポイント | Vela | Orion-LD | 備考 |
+| エンドポイント | GeonicDB | Orion-LD | 備考 |
 |---------------|:----:|:--------:|------|
 | エンティティ CRUD | ✅ | ✅ | 作成・取得・更新・削除 |
 | バッチ操作 | ✅ | ✅ | create, upsert, update, delete, query |
 | サブスクリプション CRUD | ✅ | ✅ | 完全ライフサイクル |
 | CSR CRUD | ✅ | ✅ | Context Source Registration |
-| `POST /ngsi-ld/v1/csourceSubscriptions` | ✅ | ❌ | CSR サブスクリプション（Vela のみ） |
+| `POST /ngsi-ld/v1/csourceSubscriptions` | ✅ | ❌ | CSR サブスクリプション（GeonicDB のみ） |
 | Temporal API | ✅ | ⚠️ | Orion-LD では制限あり |
 | JSON-LD コンテキスト管理 | ✅ | ✅ | `/ngsi-ld/v1/jsonldContexts` |
-| EntityMap 操作 | ✅ | ❌ | Vela のみ |
-| スナップショット操作 | ✅ | ❌ | Vela のみ |
-| ベクトルタイル | ✅ | ❌ | Vela のみ |
+| EntityMap 操作 | ✅ | ❌ | GeonicDB のみ |
+| スナップショット操作 | ✅ | ❌ | GeonicDB のみ |
+| ベクトルタイル | ✅ | ❌ | GeonicDB のみ |
 
 ## クエリ機能
 
-| 機能 | Vela | Orion | 備考 |
+| 機能 | GeonicDB | Orion | 備考 |
 |------|:----:|:-----:|------|
 | Simple Query Language（`q`） | ✅ | ✅ | |
 | 比較演算子 | ✅ | ✅ | `==`, `!=`, `<`, `>`, `<=`, `>=` |
@@ -87,7 +87,7 @@ outline: deep
 
 ## 地理空間機能
 
-| 機能 | Vela | Orion | 備考 |
+| 機能 | GeonicDB | Orion | 備考 |
 |------|:----:|:-----:|------|
 | `georel=near` | ✅ | ✅ | Point ジオメトリのみ |
 | `georel=within` | ✅ | ✅ | |
@@ -102,25 +102,25 @@ outline: deep
 
 ## サブスクリプション / 通知機能
 
-| 機能 | Vela | Orion | 備考 |
+| 機能 | GeonicDB | Orion | 備考 |
 |------|:----:|:-----:|------|
 | HTTP Webhook | ✅ | ✅ | |
 | MQTT | ✅ | ✅ | |
-| WebSocket ストリーミング | ✅ | ❌ | Vela のみ |
+| WebSocket ストリーミング | ✅ | ❌ | GeonicDB のみ |
 | カスタムヘッダー | ✅ | ✅ | |
 | カスタムペイロードテンプレート | ✅ | ✅ | マクロ置換対応 |
-| `httpCustom.json` | ❌ | ✅ | Vela で対応予定 |
-| `httpCustom.ngsi` | ❌ | ✅ | Vela で対応予定 |
-| JEXL 式 | ❌ | ✅ | Vela で対応予定 |
+| `httpCustom.json` | ❌ | ✅ | GeonicDB で対応予定 |
+| `httpCustom.ngsi` | ❌ | ✅ | GeonicDB で対応予定 |
+| JEXL 式 | ❌ | ✅ | GeonicDB で対応予定 |
 | スロットリング | ✅ | ✅ | |
 | 有効期限 | ✅ | ✅ | |
 | `onlyChangedAttrs` | ✅ | ✅ | |
 | 順序保証配信 | ✅（SQS FIFO） | ⚠️ | Orion では制限あり |
-| Dead Letter Queue | ✅ | ❌ | Vela のみ |
+| Dead Letter Queue | ✅ | ❌ | GeonicDB のみ |
 
 ## 認証 / 認可
 
-| 機能 | Vela | Orion | 備考 |
+| 機能 | GeonicDB | Orion | 備考 |
 |------|:----:|:-----:|------|
 | 組み込み JWT 認証 | ✅ | ❌ | |
 | RBAC（ロール） | ✅ | ❌ | super_admin, tenant_admin, user |
@@ -130,9 +130,9 @@ outline: deep
 | Wilma PEP Proxy | ⚠️ | ✅ | API 互換（未検証） |
 | マルチテナンシーヘッダー | ✅ | ✅ | Fiware-Service / Fiware-ServicePath |
 
-## Vela 独自機能
+## GeonicDB 独自機能
 
-以下の機能は Vela OS でのみ利用可能です:
+以下の機能は GeonicDB でのみ利用可能です:
 
 | 機能 | 説明 |
 |------|------|
@@ -151,4 +151,4 @@ outline: deep
 
 ## 次のステップ
 
-- [Orion から Vela への移行ガイド](/ja/migration/orion-to-vela) — ステップバイステップの移行手順
+- [Orion から GeonicDB への移行ガイド](/ja/migration/orion-to-geonicdb) — ステップバイステップの移行手順

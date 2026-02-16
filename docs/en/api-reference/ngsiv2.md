@@ -1,21 +1,21 @@
 ---
 title: NGSIv2 API Reference
-description: Complete reference for the Vela OS NGSIv2 REST API — entity CRUD, attribute operations, batch processing, subscriptions, registrations, and entity types.
+description: Complete reference for the GeonicDB NGSIv2 REST API — entity CRUD, attribute operations, batch processing, subscriptions, registrations, and entity types.
 outline: deep
 ---
 
 # NGSIv2 API Reference
 
-This page provides the complete reference for the Vela OS NGSIv2 REST API. All endpoints are available under the SaaS base URL:
+This page provides the complete reference for the GeonicDB NGSIv2 REST API. All endpoints are available under the SaaS base URL:
 
 ```text
-https://api.vela.geolonia.com/v2/
+https://api.geonicdb.geolonia.com/v2/
 ```
 
 Every request must include the `Fiware-Service` header to specify the tenant:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: mytenant"
 ```
 
@@ -52,7 +52,7 @@ Retrieve a list of entities, optionally filtered by type, attribute values, geog
 **Request**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&limit=10&options=count" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&limit=10&options=count" \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -84,7 +84,7 @@ When `options=count` is specified, the response includes a `Fiware-Total-Count` 
 With `options=keyValues`, attributes are returned as simple key-value pairs without type or metadata:
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&options=keyValues" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&options=keyValues" \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -104,7 +104,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&options=keyValues" 
 With `options=geojson` or the `Accept: application/geo+json` header, the response is formatted as a GeoJSON FeatureCollection:
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Store&options=geojson" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Store&options=geojson" \
   -H "Fiware-Service: smartcity"
 ```
 
@@ -135,7 +135,7 @@ Create a new entity. The request body must include `id` and `type`.
 **Request**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -182,7 +182,7 @@ Retrieve a single entity by ID.
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001 \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001 \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -224,7 +224,7 @@ Partially update an entity's attributes. Only the specified attributes are modif
 **Request**
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -270,7 +270,7 @@ Add new attributes to an entity. Existing attributes with the same name are over
 **Request**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -300,7 +300,7 @@ Delete an entity by ID.
 **Request**
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001 \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -328,7 +328,7 @@ Retrieve all attributes of an entity. Unlike `GET /v2/entities/{entityId}`, this
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -366,7 +366,7 @@ Retrieve a single attribute including its type, value, and metadata.
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -397,7 +397,7 @@ Replace a single attribute entirely (type, value, and metadata).
 **Request**
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature \
+curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -425,7 +425,7 @@ Remove a single attribute from an entity.
 **Request**
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/pressure \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/pressure \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -459,7 +459,7 @@ The response `Content-Type` depends on the value type:
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature/value \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature/value \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -493,7 +493,7 @@ The `Content-Type` header determines how the request body is interpreted:
 **Request (text/plain)**
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature/value \
+curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature/value \
   -H "Content-Type: text/plain" \
   -H "Fiware-Service: smartbuilding" \
   -d "25.5"
@@ -502,7 +502,7 @@ curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs
 **Request (application/json)**
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Car:001/attrs/location/value \
+curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Car:001/attrs/location/value \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -d '{"type": "Point", "coordinates": [139.76, 35.68]}'
@@ -555,7 +555,7 @@ Create, update, or delete multiple entities in a single request.
 **Request**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/op/update \
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -608,7 +608,7 @@ Query entities with complex filter criteria. Supports the same filtering capabil
 **Request**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/op/query \
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/query \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -654,7 +654,7 @@ Receive notifications from an external Context Broker. Entities in the notificat
 **Request**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/op/notify \
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/notify \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -680,7 +680,7 @@ curl -X POST https://api.vela.geolonia.com/v2/op/notify \
 
 ## Subscriptions
 
-Subscriptions allow you to receive notifications when entity data changes. Vela supports HTTP, MQTT, and custom HTTP (httpCustom) notification channels.
+Subscriptions allow you to receive notifications when entity data changes. GeonicDB supports HTTP, MQTT, and custom HTTP (httpCustom) notification channels.
 
 ### Create Subscription
 
@@ -691,7 +691,7 @@ POST /v2/subscriptions
 #### HTTP Notification
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -852,7 +852,7 @@ GET /v2/subscriptions
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/subscriptions \
+curl -s https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -897,7 +897,7 @@ GET /v2/subscriptions/{subscriptionId}
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
+curl -s https://api.geonicdb.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -914,7 +914,7 @@ Partially update a subscription. Only the provided fields are modified.
 **Request**
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -933,7 +933,7 @@ DELETE /v2/subscriptions/{subscriptionId}
 **Request**
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -941,7 +941,7 @@ curl -X DELETE https://api.vela.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234
 
 ## Registrations
 
-Registrations define external context providers that supply entity data. When a query matches a registered provider, Vela forwards the request and merges the results (federation).
+Registrations define external context providers that supply entity data. When a query matches a registered provider, GeonicDB forwards the request and merges the results (federation).
 
 ### Create Registration
 
@@ -952,7 +952,7 @@ POST /v2/registrations
 **Request**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/registrations \
+curl -X POST https://api.geonicdb.geolonia.com/v2/registrations \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -d '{
@@ -1008,7 +1008,7 @@ GET /v2/registrations
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/registrations \
+curl -s https://api.geonicdb.geolonia.com/v2/registrations \
   -H "Fiware-Service: smartcity" | jq .
 ```
 
@@ -1050,7 +1050,7 @@ Partially update a registration. Only the provided fields are modified.
 **Request**
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/registrations/5f8a7b3c-1234-5678-abcd-ef0123456789 \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/registrations/5f8a7b3c-1234-5678-abcd-ef0123456789 \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -d '{
@@ -1069,7 +1069,7 @@ DELETE /v2/registrations/{registrationId}
 **Request**
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/registrations/5f8a7b3c-1234-5678-abcd-ef0123456789 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/registrations/5f8a7b3c-1234-5678-abcd-ef0123456789 \
   -H "Fiware-Service: smartcity"
 ```
 
@@ -1077,13 +1077,13 @@ curl -X DELETE https://api.vela.geolonia.com/v2/registrations/5f8a7b3c-1234-5678
 
 ### Federation
 
-When a query matches a registered provider, Vela automatically forwards the request to the external provider and merges the results with local data.
+When a query matches a registered provider, GeonicDB automatically forwards the request to the external provider and merges the results with local data.
 
 ```text
 Client Request
     |
     v
-Vela Context Broker
+GeonicDB Context Broker
     |
     +-- Local DB query
     |
@@ -1122,7 +1122,7 @@ Retrieve all entity types in the current tenant, with counts and attribute infor
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/types \
+curl -s https://api.geonicdb.geolonia.com/v2/types \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -1152,7 +1152,7 @@ Retrieve details about a specific entity type.
 **Request**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/types/Room \
+curl -s https://api.geonicdb.geolonia.com/v2/types/Room \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -1215,7 +1215,7 @@ Use the `Fiware-Total-Count` header (returned with `options=count`) to implement
 **Example: Find entities within 1 km of a point**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Store&georel=near;maxDistance:1000&geometry=point&coords=35.6895,139.6917" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Store&georel=near;maxDistance:1000&geometry=point&coords=35.6895,139.6917" \
   -H "Fiware-Service: smartcity"
 ```
 

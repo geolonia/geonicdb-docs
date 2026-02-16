@@ -1,12 +1,12 @@
 ---
 title: llms.txt
-description: Vela OS はルート URL で LLM 向けに最適化された Markdown 形式の API ドキュメントを提供する llms.txt エンドポイントを実装しています。
+description: GeonicDB はルート URL で LLM 向けに最適化された Markdown 形式の API ドキュメントを提供する llms.txt エンドポイントを実装しています。
 outline: deep
 ---
 
 # llms.txt
 
-Vela OS は [llms.txt 標準](https://llmstxt.org/) を実装しており、ルート URL で Markdown 形式の API ドキュメントを提供します。これにより LLM は API の構造を理解し、Context Broker と連携するための簡潔で構造化された概要を取得できます。
+GeonicDB は [llms.txt 標準](https://llmstxt.org/) を実装しており、ルート URL で Markdown 形式の API ドキュメントを提供します。これにより LLM は API の構造を理解し、Context Broker と連携するための簡潔で構造化された概要を取得できます。
 
 ## エンドポイント
 
@@ -19,7 +19,7 @@ Vela OS は [llms.txt 標準](https://llmstxt.org/) を実装しており、ル�
 
 ## 仕組み
 
-AI エージェント（または任意の HTTP クライアント）が `GET /` リクエストを送信すると、Vela OS は以下を記述した Markdown ドキュメントを返します:
+AI エージェント（または任意の HTTP クライアント）が `GET /` リクエストを送信すると、GeonicDB は以下を記述した Markdown ドキュメントを返します:
 
 - API の目的と機能
 - 利用可能なエンドポイントとパラメータ
@@ -33,7 +33,7 @@ AI エージェント（または任意の HTTP クライアント）が `GET /`
 ### 直接取得
 
 ```bash
-curl https://api.vela.geolonia.com/
+curl https://api.geonicdb.geolonia.com/
 ```
 
 レスポンスは LLM がパースして API を理解できる Markdown ドキュメントです。
@@ -46,7 +46,7 @@ AI エージェントは API 検出の第一歩として llms.txt コンテン�
 import requests
 
 # API ドキュメントを取得
-docs = requests.get("https://api.vela.geolonia.com/").text
+docs = requests.get("https://api.geonicdb.geolonia.com/").text
 
 # LLM にコンテキストとして渡す
 # LLM は API 構造を理解し、適切な呼び出しを生成可能

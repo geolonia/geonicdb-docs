@@ -1,12 +1,12 @@
 ---
 title: Spatial ID / ZFXY
-description: Vela OS implements the Digital Agency / IPA 3D Spatial Identification (ZFXY) standard for indexing and querying entities in three-dimensional space.
+description: GeonicDB implements the Digital Agency / IPA 3D Spatial Identification (ZFXY) standard for indexing and querying entities in three-dimensional space.
 outline: deep
 ---
 
 # Spatial ID / ZFXY
 
-Vela OS implements the **3D Spatial Identification standard** (commonly known as **ZFXY** or **Spatial ID**) defined by Japan's **Digital Agency** and **IPA** (Information-technology Promotion Agency). This allows entities to be indexed and queried using a hierarchical 3D spatial grid system.
+GeonicDB implements the **3D Spatial Identification standard** (commonly known as **ZFXY** or **Spatial ID**) defined by Japan's **Digital Agency** and **IPA** (Information-technology Promotion Agency). This allows entities to be indexed and queried using a hierarchical 3D spatial grid system.
 
 ## What is ZFXY?
 
@@ -65,7 +65,7 @@ The altitude resolution depends on the zoom level. At the default configuration 
 Query entities within a specific spatial cell:
 
 ```bash
-curl "https://api.vela.geolonia.com/v2/entities?spatialId=20/0/929593/410773" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?spatialId=20/0/929593/410773" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -74,7 +74,7 @@ curl "https://api.vela.geolonia.com/v2/entities?spatialId=20/0/929593/410773" \
 Expand the query to include child tiles at finer zoom levels:
 
 ```bash
-curl "https://api.vela.geolonia.com/v2/entities?spatialId=18/0/232398/102693&depth=2" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?spatialId=18/0/232398/102693&depth=2" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -82,7 +82,7 @@ With `depth=2`, this returns entities in all tiles at zoom level 20 that fall wi
 
 ## Spatial ID Operations
 
-Vela's spatial ID system supports the following operations:
+GeonicDB's spatial ID system supports the following operations:
 
 ### Coordinate to Spatial ID
 
@@ -124,4 +124,4 @@ This is particularly useful for smart city applications where millions of entiti
 ## Next Steps
 
 - [CADDE](/en/japan-standards/cadde) — Cross-domain data exchange integration
-- [Smart City Cases](/en/japan-standards/smart-city-cases) — Smart city use cases with Vela
+- [Smart City Cases](/en/japan-standards/smart-city-cases) — Smart city use cases with GeonicDB

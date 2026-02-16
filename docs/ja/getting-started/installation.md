@@ -1,24 +1,24 @@
 ---
 title: セットアップ
-description: Vela OS SaaS API へのアクセス方法 — エンドポイント URL、API キー設定、推奨 HTTP クライアント、SDK の提供予定。
+description: GeonicDB SaaS API へのアクセス方法 — エンドポイント URL、API キー設定、推奨 HTTP クライアント、SDK の提供予定。
 outline: deep
 ---
 
 # セットアップ
 
-Vela OS はマネージド SaaS サービスとして提供されます。ソフトウェアのインストールは不要 — HTTP API コールでアクセスできます。
+GeonicDB はマネージド SaaS サービスとして提供されます。ソフトウェアのインストールは不要 — HTTP API コールでアクセスできます。
 
 ## API エンドポイント
 
 | API | ベース URL |
 |-----|----------|
-| **NGSIv2** | `https://api.vela.geolonia.com/v2/` |
-| **NGSI-LD** | `https://api.vela.geolonia.com/ngsi-ld/v1/` |
-| **Admin** | `https://api.vela.geolonia.com/admin/` |
-| **MCP** | `https://api.vela.geolonia.com/mcp` |
-| **データカタログ** | `https://api.vela.geolonia.com/catalog/` |
-| **ヘルスチェック** | `https://api.vela.geolonia.com/health` |
-| **バージョン** | `https://api.vela.geolonia.com/version` |
+| **NGSIv2** | `https://api.geonicdb.geolonia.com/v2/` |
+| **NGSI-LD** | `https://api.geonicdb.geolonia.com/ngsi-ld/v1/` |
+| **Admin** | `https://api.geonicdb.geolonia.com/admin/` |
+| **MCP** | `https://api.geonicdb.geolonia.com/mcp` |
+| **データカタログ** | `https://api.geonicdb.geolonia.com/catalog/` |
+| **ヘルスチェック** | `https://api.geonicdb.geolonia.com/health` |
+| **バージョン** | `https://api.geonicdb.geolonia.com/version` |
 
 ## API キー
 
@@ -27,7 +27,7 @@ Vela OS はマネージド SaaS サービスとして提供されます。ソフ
 ::: tip 準備中
 API キーの登録機能は現在準備中です。利用可能になり次第、以下の手順で取得できます：
 
-1. Vela OS ダッシュボードでサインアップ
+1. GeonicDB ダッシュボードでサインアップ
 2. プロジェクトを作成
 3. API キーを生成
 4. `x-api-key` ヘッダーでキーを使用
@@ -38,7 +38,7 @@ API キーの登録機能は現在準備中です。利用可能になり次第�
 すべてのリクエストに API キーを含めます：
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
@@ -49,12 +49,12 @@ curl https://api.vela.geolonia.com/v2/entities \
 
 ```bash
 # テナント A のデータ
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: tenant-a"
 
 # テナント B のデータ（完全に別）
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: tenant-b"
 ```
@@ -63,25 +63,25 @@ curl https://api.vela.geolonia.com/v2/entities \
 
 ### curl（コマンドライン）
 
-Vela とのやり取りの最もシンプルな方法です。このドキュメントの全サンプルは curl を使用しています。
+GeonicDB とのやり取りの最もシンプルな方法です。このドキュメントの全サンプルは curl を使用しています。
 
 ```bash
 # 接続確認
-curl https://api.vela.geolonia.com/version
+curl https://api.geonicdb.geolonia.com/version
 ```
 
 ### Postman
 
 [Postman](https://www.postman.com/) は API 探索用のグラフィカルインターフェースを提供します：
 
-1. ベース URL を `https://api.vela.geolonia.com` に設定
+1. ベース URL を `https://api.geonicdb.geolonia.com` に設定
 2. ヘッダーを追加：
    - `x-api-key`: API キー
    - `Fiware-Service`: テナント名
    - `Content-Type`: `application/json`（POST/PATCH/PUT 時）
 3. OpenAPI 仕様をインポートしてリクエストテンプレートを自動生成：
    ```text
-   https://api.vela.geolonia.com/openapi.json
+   https://api.geonicdb.geolonia.com/openapi.json
    ```
 
 ### HTTPie
@@ -93,7 +93,7 @@ curl https://api.vela.geolonia.com/version
 pip install httpie
 
 # リクエスト例
-http GET https://api.vela.geolonia.com/v2/entities \
+http GET https://api.geonicdb.geolonia.com/v2/entities \
   x-api-key:YOUR_API_KEY \
   Fiware-Service:myproject
 ```
@@ -104,7 +104,7 @@ http GET https://api.vela.geolonia.com/v2/entities \
 
 ```http
 ### 全エンティティを取得
-GET https://api.vela.geolonia.com/v2/entities
+GET https://api.geonicdb.geolonia.com/v2/entities
 x-api-key: YOUR_API_KEY
 Fiware-Service: myproject
 ```
@@ -113,16 +113,16 @@ Fiware-Service: myproject
 
 ### Claude Desktop（MCP）
 
-Claude Desktop を Vela の MCP サーバーに接続して、AI によるデータ操作を実現します：
+Claude Desktop を GeonicDB の MCP サーバーに接続して、AI によるデータ操作を実現します：
 
 ```json
 {
   "mcpServers": {
-    "vela": {
+    "geonicdb": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://api.vela.geolonia.com/mcp",
+        "https://api.geonicdb.geolonia.com/mcp",
         "--header",
         "x-api-key: YOUR_API_KEY",
         "--header",
@@ -138,7 +138,7 @@ Claude Desktop を Vela の MCP サーバーに接続して、AI によるデー
 AI API で使用するツール定義を取得します：
 
 ```bash
-curl https://api.vela.geolonia.com/tools.json
+curl https://api.geonicdb.geolonia.com/tools.json
 ```
 
 返される JSON は Claude Tool Use や OpenAI Function Calling のツール定義としてそのまま使用できます。

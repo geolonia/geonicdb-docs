@@ -1,12 +1,12 @@
 ---
 title: ベクトルタイル
-description: Vela OS で TileJSON 3.0、自動クラスタリング、MapLibre GL JS 連携によるベクトルタイル配信。
+description: GeonicDB で TileJSON 3.0、自動クラスタリング、MapLibre GL JS 連携によるベクトルタイル配信。
 outline: deep
 ---
 
 # ベクトルタイル
 
-Vela OS はエンティティの位置データを **ベクトルタイル** として配信でき、コンテキストデータから直接高性能な地図可視化を実現します。組み込みのタイルサーバーは **TileJSON 3.0** 仕様、自動ポイントクラスタリング、**MapLibre GL JS** とのシームレスな連携をサポートしています。
+GeonicDB はエンティティの位置データを **ベクトルタイル** として配信でき、コンテキストデータから直接高性能な地図可視化を実現します。組み込みのタイルサーバーは **TileJSON 3.0** 仕様、自動ポイントクラスタリング、**MapLibre GL JS** とのシームレスな連携をサポートしています。
 
 ## 概要
 
@@ -14,10 +14,10 @@ Vela OS はエンティティの位置データを **ベクトルタイル** と
 
 ## TileJSON 3.0 エンドポイント
 
-Vela OS は各エンティティタイプに対して TileJSON 3.0 メタデータエンドポイントを公開します：
+GeonicDB は各エンティティタイプに対して TileJSON 3.0 メタデータエンドポイントを公開します：
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/tiles/Room/tilejson \
+curl https://api.geonicdb.geolonia.com/v2/entities/tiles/Room/tilejson \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -29,7 +29,7 @@ curl https://api.vela.geolonia.com/v2/entities/tiles/Room/tilejson \
   "tilejson": "3.0.0",
   "name": "Room",
   "tiles": [
-    "https://api.vela.geolonia.com/v2/entities/tiles/Room/{z}/{x}/{y}.pbf"
+    "https://api.geonicdb.geolonia.com/v2/entities/tiles/Room/{z}/{x}/{y}.pbf"
   ],
   "minzoom": 0,
   "maxzoom": 14,
@@ -61,7 +61,7 @@ GET /v2/entities/tiles/{entityType}/{z}/{x}/{y}.pbf
 
 ## 自動クラスタリング
 
-低ズームレベルでは、Vela OS は近接するエンティティを自動的に集約ポイントにクラスタリングします。これにより、都市や地域スケールで大規模データセットを表示する際のレンダリングパフォーマンスが向上します。
+低ズームレベルでは、GeonicDB は近接するエンティティを自動的に集約ポイントにクラスタリングします。これにより、都市や地域スケールで大規模データセットを表示する際のレンダリングパフォーマンスが向上します。
 
 | ズームレベル | 動作 |
 |------------|------|
@@ -94,7 +94,7 @@ GET /v2/entities/tiles/{entityType}/{z}/{x}/{y}.pbf
     map.on('load', () => {
       map.addSource('sensors', {
         type: 'vector',
-        url: 'https://api.vela.geolonia.com/v2/entities/tiles/Sensor/tilejson'
+        url: 'https://api.geonicdb.geolonia.com/v2/entities/tiles/Sensor/tilejson'
       });
 
       map.addLayer({
@@ -119,7 +119,7 @@ GET /v2/entities/tiles/{entityType}/{z}/{x}/{y}.pbf
 map.on('load', () => {
   map.addSource('sensors', {
     type: 'vector',
-    url: 'https://api.vela.geolonia.com/v2/entities/tiles/Sensor/tilejson'
+    url: 'https://api.geonicdb.geolonia.com/v2/entities/tiles/Sensor/tilejson'
   });
 
   // クラスタ円

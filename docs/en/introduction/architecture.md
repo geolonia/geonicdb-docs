@@ -1,19 +1,19 @@
 ---
 title: Architecture
-description: Vela OS system architecture — AWS Lambda, API Gateway, MongoDB Atlas, and the internal layer structure.
+description: GeonicDB system architecture — AWS Lambda, API Gateway, MongoDB Atlas, and the internal layer structure.
 outline: deep
 ---
 
 # Architecture
 
-Vela OS is a serverless application built on AWS managed services. This page describes the overall system architecture, request flow, and source code structure.
+GeonicDB is a serverless application built on AWS managed services. This page describes the overall system architecture, request flow, and source code structure.
 
 ## System Overview
 
 ```mermaid
 graph TB
     Client[Client / AI Agent] --> APIGW[AWS API Gateway<br/>HTTP + WebSocket]
-    APIGW --> Lambda[AWS Lambda<br/>Vela OS]
+    APIGW --> Lambda[AWS Lambda<br/>GeonicDB]
     Lambda --> MongoDB[(MongoDB Atlas)]
     Lambda --> EB[AWS EventBridge]
     EB --> Matcher[Lambda<br/>Subscription Matcher]
@@ -47,7 +47,7 @@ A typical API request follows this path:
 sequenceDiagram
     participant C as Client
     participant GW as API Gateway
-    participant L as Lambda (Vela)
+    participant L as Lambda (GeonicDB)
     participant DB as MongoDB Atlas
     participant EB as EventBridge
 

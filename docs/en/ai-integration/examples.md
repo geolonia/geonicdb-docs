@@ -1,26 +1,26 @@
 ---
 title: AI Integration Examples
-description: Working code examples for integrating AI agents with Vela OS using Python with Claude SDK, OpenAI SDK, and curl with MCP.
+description: Working code examples for integrating AI agents with GeonicDB using Python with Claude SDK, OpenAI SDK, and curl with MCP.
 outline: deep
 ---
 
 # AI Integration Examples
 
-This page provides working code examples for integrating AI agents with Vela OS through different approaches.
+This page provides working code examples for integrating AI agents with GeonicDB through different approaches.
 
 ## Python + Claude API
 
-Use the Anthropic Python SDK with Vela's tool definitions:
+Use the Anthropic Python SDK with GeonicDB's tool definitions:
 
 ```python
 import anthropic
 import requests
 import json
 
-VELA_API = "https://api.vela.geolonia.com"
+VELA_API = "https://api.geonicdb.geolonia.com"
 API_KEY = "YOUR_API_KEY"
 
-# Step 1: Fetch tool definitions from Vela
+# Step 1: Fetch tool definitions from GeonicDB
 tools = requests.get(f"{VELA_API}/tools.json").json()["tools"]
 
 # Step 2: Create Claude client and send a request with tools
@@ -40,7 +40,7 @@ for block in response.content:
         tool_name = block.name
         tool_input = block.input
 
-        # Map tool name to Vela API endpoint and method
+        # Map tool name to GeonicDB API endpoint and method
         if tool_name == "list_entities":
             result = requests.get(
                 f"{VELA_API}/v2/entities",
@@ -61,14 +61,14 @@ for block in response.content:
 
 ## Python + OpenAI API
 
-Use the OpenAI Python SDK with Vela's tool definitions transformed to function calling format:
+Use the OpenAI Python SDK with GeonicDB's tool definitions transformed to function calling format:
 
 ```python
 import openai
 import requests
 import json
 
-VELA_API = "https://api.vela.geolonia.com"
+VELA_API = "https://api.geonicdb.geolonia.com"
 API_KEY = "YOUR_API_KEY"
 
 # Step 1: Fetch and transform tool definitions
@@ -108,12 +108,12 @@ for choice in response.choices:
 
 ## curl + MCP
 
-Interact with Vela's MCP server directly using curl:
+Interact with GeonicDB's MCP server directly using curl:
 
 ### Initialize MCP Session
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -132,7 +132,7 @@ curl -X POST https://api.vela.geolonia.com/mcp \
 ### List Available Tools
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -147,7 +147,7 @@ curl -X POST https://api.vela.geolonia.com/mcp \
 ### Call a Tool (List Entities)
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -169,7 +169,7 @@ curl -X POST https://api.vela.geolonia.com/mcp \
 ### Create an Entity via MCP
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -203,7 +203,7 @@ Any AI integration can start by fetching the llms.txt endpoint to understand the
 import requests
 
 # Fetch LLM-optimized documentation
-llms_txt = requests.get("https://api.vela.geolonia.com/").text
+llms_txt = requests.get("https://api.geonicdb.geolonia.com/").text
 
 # Use as system context for your LLM
 print(f"API documentation length: {len(llms_txt)} characters")

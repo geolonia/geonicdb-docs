@@ -6,7 +6,7 @@ outline: deep
 
 # クエリ言語
 
-Vela OS はエンティティをフィルタリングするための強力なクエリ言語を提供します。このページでは、NGSIv2 と NGSI-LD API で利用可能なすべてのクエリパラメータを解説します。
+GeonicDB はエンティティをフィルタリングするための強力なクエリ言語を提供します。このページでは、NGSIv2 と NGSI-LD API で利用可能なすべてのクエリパラメータを解説します。
 
 ## 属性クエリ（`q`）
 
@@ -30,7 +30,7 @@ Vela OS はエンティティをフィルタリングするための強力なク
 温度が 25 度を超える部屋を検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=temperature>25" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=temperature>25" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -38,7 +38,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=temperature>25" \
 ステータスが "available" と等しい部屋を検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=status==available" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=status==available" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -46,7 +46,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=status==available
 NGSI-LD でも同じ `q` パラメータが使用可能：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&q=temperature>25" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&q=temperature>25" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartbuilding" \
   -H "Accept: application/ld+json" | jq .
@@ -75,7 +75,7 @@ q=temperature>25;humidity<40|status==active
 **例** -- 2 階の使用中で高温の部屋を検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=floor==2;temperature>25;status==occupied" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=floor==2;temperature>25;status==occupied" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
@@ -91,7 +91,7 @@ q=temperature==20..30
 これは temperature が 20 から 30 の範囲（境界値を含む）のエンティティにマッチします。
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=temperature==20..30" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=temperature==20..30" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -108,7 +108,7 @@ q=name~=Room.*       # 正規表現マッチ（"Room1"、"Room201" 等にマッ�
 
 ```bash
 # 名前が "Conference.*" パターンにマッチするエンティティを検索
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=name~=Conference.*" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=name~=Conference.*" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -142,7 +142,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=name~=Conference.
 temperature 属性の accuracy が 0.9 を超えるエンティティを検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&mq=temperature.accuracy>0.9" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&mq=temperature.accuracy>0.9" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -150,7 +150,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&mq=temperature.accu
 accuracy が 0.9 から 1.0 の範囲にあるエンティティを検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&mq=temperature.accuracy==0.9..1.0" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&mq=temperature.accuracy==0.9..1.0" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -158,7 +158,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&mq=temperature.accu
 単位が Celsius または Fahrenheit のエンティティを検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&mq=temperature.unit==Celsius,Fahrenheit" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&mq=temperature.unit==Celsius,Fahrenheit" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -166,7 +166,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&mq=temperature.unit
 複数のメタデータ条件を AND で組み合わせ：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&mq=temperature.accuracy>0.9;temperature.unit==Celsius" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&mq=temperature.accuracy>0.9;temperature.unit==Celsius" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -193,7 +193,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&mq=temperature.accu
 スコープが `/Japan/Tokyo` と完全一致するエンティティを検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Accept: application/ld+json" | jq .
@@ -202,7 +202,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo" 
 `/Japan` の 1 レベル下にあるエンティティを検索（例: `/Japan/Tokyo`、`/Japan/Osaka`）：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/+" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/+" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Accept: application/ld+json" | jq .
@@ -211,7 +211,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/+" \
 `/Japan` 配下のすべてのエンティティを検索（例: `/Japan/Tokyo`、`/Japan/Tokyo/Shibuya`）：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/%23" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/%23" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Accept: application/ld+json" | jq .
@@ -224,7 +224,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/%23" \
 `/Japan/Tokyo` と `/IoT` の両方のスコープに属するエンティティを検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo;/IoT" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo;/IoT" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Accept: application/ld+json" | jq .
@@ -241,7 +241,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo;/
 レスポンスに指定した属性のみを含めます。`id` と `type` フィールドは `pick` の値に関係なく常に含まれます。
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?pick=temperature,humidity" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?pick=temperature,humidity" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartbuilding" \
   -H "Accept: application/ld+json" | jq .
@@ -268,7 +268,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?
 レスポンスから指定した属性を除外します。`id` と `type` は除外できません。
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?omit=location" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?omit=location" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartbuilding" \
   -H "Accept: application/ld+json" | jq .
@@ -283,7 +283,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?
 NGSIv2 では、`attrs` パラメータが `pick` と同じ機能を提供します：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001?attrs=temperature,humidity" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001?attrs=temperature,humidity" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -321,7 +321,7 @@ NGSIv2 には `omit` に相当する機能はありません。
 `lang=ja` でリクエスト：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Accept: application/ld+json" | jq .
@@ -358,7 +358,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M0
 
 ```bash
 # NGSI-LD: 東京スコープ内で温度が 25 を超える部屋を、temperature と humidity のみで取得
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&q=temperature>25&scopeQ=/Japan/Tokyo&pick=temperature,humidity" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&q=temperature>25&scopeQ=/Japan/Tokyo&pick=temperature,humidity" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Accept: application/ld+json" | jq .
@@ -366,7 +366,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&q=temperatu
 
 ```bash
 # NGSIv2: 温度が 20-30 の範囲かつメタデータの accuracy が 0.9 を超える部屋
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=temperature==20..30&mq=temperature.accuracy>0.9" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=temperature==20..30&mq=temperature.accuracy>0.9" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```

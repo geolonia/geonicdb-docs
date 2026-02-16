@@ -1,21 +1,21 @@
 ---
 title: Smart City Use Cases
-description: Smart city and IoT use cases built with Vela OS, including traffic management, environmental monitoring, disaster prevention, and waste collection.
+description: Smart city and IoT use cases built with GeonicDB, including traffic management, environmental monitoring, disaster prevention, and waste collection.
 outline: deep
 ---
 
 # Smart City Use Cases
 
-Vela OS is designed to power **smart city** and **IoT** platforms. As a FIWARE Orion-compatible Context Broker with serverless architecture and Japan-specific standards support, it is well suited for urban infrastructure projects across multiple domains.
+GeonicDB is designed to power **smart city** and **IoT** platforms. As a FIWARE Orion-compatible Context Broker with serverless architecture and Japan-specific standards support, it is well suited for urban infrastructure projects across multiple domains.
 
 ## Architecture Pattern
 
-A typical smart city deployment with Vela follows this pattern:
+A typical smart city deployment with GeonicDB follows this pattern:
 
 ```text
 IoT Sensors / Data Sources
     ↓ (NGSIv2 / NGSI-LD)
-Vela OS (Context Broker)
+GeonicDB (Context Broker)
     ↓
 ┌────────────┬─────────────┬──────────────┐
 │ Dashboards │ AI Agents   │ CADDE        │
@@ -37,11 +37,11 @@ Vela OS (Context Broker)
 
 Monitor traffic flow in real time using vehicle sensors and roadside units. Detect congestion, optimize signal timing, and provide navigation guidance.
 
-### Implementation with Vela
+### Implementation with GeonicDB
 
 ```bash
 # Create a traffic sensor entity
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smart-city" \
   -H "Fiware-ServicePath: /traffic" \
@@ -59,7 +59,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 ```
 
-**Vela features used**: Geo-queries for spatial filtering, WebSocket subscriptions for real-time dashboard updates, temporal API for historical trend analysis.
+**GeonicDB features used**: Geo-queries for spatial filtering, WebSocket subscriptions for real-time dashboard updates, temporal API for historical trend analysis.
 
 ## Environmental Monitoring
 
@@ -67,11 +67,11 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 
 Track air quality, noise levels, temperature, and humidity across urban areas. Generate alerts when thresholds are exceeded.
 
-### Implementation with Vela
+### Implementation with GeonicDB
 
 ```bash
 # Create an air quality sensor entity
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smart-city" \
   -H "Fiware-ServicePath: /environment" \
@@ -91,7 +91,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 ```
 
-**Vela features used**: Subscriptions with threshold conditions (`q` parameter) for alerts, CADDE integration for sharing data with government environmental agencies, DCAT-AP catalog for open data publishing.
+**GeonicDB features used**: Subscriptions with threshold conditions (`q` parameter) for alerts, CADDE integration for sharing data with government environmental agencies, DCAT-AP catalog for open data publishing.
 
 ## Disaster Prevention
 
@@ -99,11 +99,11 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 
 Monitor water levels in rivers and reservoirs, detect seismic activity, and distribute evacuation alerts across a city's infrastructure.
 
-### Implementation with Vela
+### Implementation with GeonicDB
 
 ```bash
 # Create a water level sensor entity
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smart-city" \
   -H "Fiware-ServicePath: /disaster-prevention" \
@@ -121,7 +121,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 ```
 
-**Vela features used**: Spatial ID (ZFXY) for 3D hazard zone mapping, subscriptions for real-time alert distribution, federation for aggregating data from multiple municipal brokers.
+**GeonicDB features used**: Spatial ID (ZFXY) for 3D hazard zone mapping, subscriptions for real-time alert distribution, federation for aggregating data from multiple municipal brokers.
 
 ## Waste Collection
 
@@ -129,11 +129,11 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 
 Optimize waste collection routes based on real-time fill levels in smart waste bins. Reduce collection costs and improve service efficiency.
 
-### Implementation with Vela
+### Implementation with GeonicDB
 
 ```bash
 # Create a waste container entity
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smart-city" \
   -H "Fiware-ServicePath: /waste" \
@@ -151,24 +151,24 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 ```
 
-**Vela features used**: Geo-queries to find nearby containers along a route, subscriptions triggered when `fillingLevel > 0.85`, vector tiles for map visualization of container locations.
+**GeonicDB features used**: Geo-queries to find nearby containers along a route, subscriptions triggered when `fillingLevel > 0.85`, vector tiles for map visualization of container locations.
 
-## FIWARE + Vela Architecture
+## FIWARE + GeonicDB Architecture
 
-Vela OS integrates with the broader **FIWARE ecosystem** as a drop-in replacement for Orion:
+GeonicDB integrates with the broader **FIWARE ecosystem** as a drop-in replacement for Orion:
 
 ```text
 ┌─────────────────────────────────┐
 │        Smart City Platform      │
 ├──────────┬──────────┬───────────┤
-│ Vela OS  │ QuantumLeap│ Keyrock │
+│ GeonicDB  │ QuantumLeap│ Keyrock │
 │ (Broker) │ (Time DB)  │ (Auth)  │
 ├──────────┴──────────┴───────────┤
 │         FIWARE Ecosystem        │
 └─────────────────────────────────┘
 ```
 
-Existing FIWARE-based smart city deployments can migrate to Vela to gain serverless scaling, AI integration, and Japan-specific standards support while maintaining compatibility with other FIWARE components.
+Existing FIWARE-based smart city deployments can migrate to GeonicDB to gain serverless scaling, AI integration, and Japan-specific standards support while maintaining compatibility with other FIWARE components.
 
 ## Next Steps
 

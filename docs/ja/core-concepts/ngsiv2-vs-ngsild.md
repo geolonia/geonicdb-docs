@@ -1,16 +1,16 @@
 ---
 title: NGSIv2 vs NGSI-LD
-description: Vela OS における NGSIv2 と NGSI-LD API の詳細比較 — 統一内部フォーマット、クロス API アクセス、属性マッピング、使い分けガイド。
+description: GeonicDB における NGSIv2 と NGSI-LD API の詳細比較 — 統一内部フォーマット、クロス API アクセス、属性マッピング、使い分けガイド。
 outline: deep
 ---
 
 # NGSIv2 vs NGSI-LD
 
-Vela OS は同一インスタンス上で **NGSIv2** と **NGSI-LD** の両方をサポートしています。統一された内部エンティティフォーマットにより、一方の API で書き込んだデータをもう一方の API で読み取ることができ、フォーマット変換は自動的かつ透過的に処理されます。このページでは、両 API の包括的な比較を提供します。
+GeonicDB は同一インスタンス上で **NGSIv2** と **NGSI-LD** の両方をサポートしています。統一された内部エンティティフォーマットにより、一方の API で書き込んだデータをもう一方の API で読み取ることができ、フォーマット変換は自動的かつ透過的に処理されます。このページでは、両 API の包括的な比較を提供します。
 
 ## 統一アーキテクチャ
 
-FIWARE Orion（NGSIv2 のみ）や Orion-LD（NGSI-LD のみ）とは異なり、Vela OS は単一のデプロイメントで両方の API を提供し、単一の MongoDB データベースをバックエンドとしています。両方の API レイヤーは同じエンティティストレージとサブスクリプション基盤を共有します。
+FIWARE Orion（NGSIv2 のみ）や Orion-LD（NGSI-LD のみ）とは異なり、GeonicDB は単一のデプロイメントで両方の API を提供し、単一の MongoDB データベースをバックエンドとしています。両方の API レイヤーは同じエンティティストレージとサブスクリプション基盤を共有します。
 
 ```text
 ┌─────────────────────────────────────────────────┐
@@ -42,14 +42,14 @@ FIWARE Orion（NGSIv2 のみ）や Orion-LD（NGSI-LD のみ）とは異なり�
 
 ## クロス API アクセス
 
-一方の API で作成したエンティティを、もう一方の API で読み取り、更新、削除できます。これが Vela の統一アーキテクチャの最大の利点です。
+一方の API で作成したエンティティを、もう一方の API で読み取り、更新、削除できます。これが GeonicDB の統一アーキテクチャの最大の利点です。
 
 ### NGSIv2 で書き込み、NGSI-LD で読み取り
 
 NGSIv2 API を使用してエンティティを作成：
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo" \
@@ -76,7 +76,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 NGSI-LD API で同じエンティティを読み取り：
 
 ```bash
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo"
 ```
@@ -108,7 +108,7 @@ curl https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSe
 NGSI-LD API を使用してエンティティを作成：
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo" \
@@ -131,7 +131,7 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
 NGSIv2 で読み取り：
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo"
 ```
@@ -160,7 +160,7 @@ curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
 
 ## 属性タイプのマッピング
 
-Vela OS は 2 つの API フォーマット間で属性タイプを自動的に変換します。マッピングは決定的であり、すべての標準タイプで情報の損失はありません。
+GeonicDB は 2 つの API フォーマット間で属性タイプを自動的に変換します。マッピングは決定的であり、すべての標準タイプで情報の損失はありません。
 
 | NGSIv2 タイプ | NGSI-LD タイプ | 説明 |
 |-------------|--------------|------|
@@ -189,7 +189,7 @@ Vela OS は 2 つの API フォーマット間で属性タイプを自動的に�
 **NGSIv2** では、クエリパラメータで明示的にリクエストした場合のみシステム属性が含まれます：
 
 ```bash
-curl "https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=dateCreated,dateModified" \
+curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=dateCreated,dateModified" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo"
 ```
@@ -210,11 +210,11 @@ curl "https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=dat
 
 ```bash
 # Normalized（デフォルト）
-curl "https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101" \
+curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 
 # keyValues
-curl "https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=keyValues" \
+curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=keyValues" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 ```
 
@@ -238,11 +238,11 @@ keyValues レスポンス：
 
 ```bash
 # Normalized（デフォルト）
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 
 # Concise
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101?options=concise" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101?options=concise" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 ```
 
@@ -325,7 +325,7 @@ NGSIv2 も `"type": "Relationship"` をサポートしていますが、NGSI-LD 
 ```
 
 ```bash
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&scopeQ=/building/#" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&scopeQ=/building/#" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 ```
 
@@ -335,11 +335,11 @@ curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&scopeQ=/buildi
 
 ```bash
 # temperature と humidity のみを返す
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&pick=temperature,humidity" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&pick=temperature,humidity" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 
 # location 以外のすべての属性を返す
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&omit=location" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&omit=location" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 ```
 
@@ -348,7 +348,7 @@ curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&omit=location"
 NGSI-LD は `@context` を使用してボキャブラリマッピングを定義し、セマンティックな意味を提供します。コンテキストはインラインで提供するか、`Link` ヘッダー経由で提供できます：
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo" \
@@ -386,7 +386,7 @@ urn:ngsi-ld:WeatherObserved:Tokyo-2026-02-10
 ```
 
 ::: warning ショート ID と NGSI-LD
-NGSI-LD は技術的にエンティティ ID が有効な URI であることを要求します。Vela OS は利便性のために `Room1` のようなショート ID を受け付けますが、厳密な NGSI-LD クライアントとの間で問題が生じる可能性があります。本番環境では常に URN 形式を使用してください。
+NGSI-LD は技術的にエンティティ ID が有効な URI であることを要求します。GeonicDB は利便性のために `Room1` のようなショート ID を受け付けますが、厳密な NGSI-LD クライアントとの間で問題が生じる可能性があります。本番環境では常に URN 形式を使用してください。
 :::
 
 エンティティ ID、タイプ、属性の詳細は [NGSI データモデル](/ja/core-concepts/ngsi-data-model)を参照してください。
@@ -423,7 +423,7 @@ NGSI-LD は技術的にエンティティ ID が有効な URI であることを
 
 ## ハイブリッド運用パターン
 
-Vela の主要な強みの一つは、同じデータに対して両方の API を同時に実行するハイブリッド運用を可能にすることです。
+GeonicDB の主要な強みの一つは、同じデータに対して両方の API を同時に実行するハイブリッド運用を可能にすることです。
 
 ### 段階的な移行
 
@@ -435,7 +435,7 @@ NGSIv2 から NGSI-LD へ段階的に移行できます。既存の NGSIv2 サ�
 └──────────────────────────┘                   │
                                                 ▼
                                           ┌──────────┐
-                                          │ Vela OS  │
+                                          │ GeonicDB  │
                                           │（共有     │
                                           │ データ）  │
                                           └──────────┘
@@ -454,7 +454,7 @@ NGSIv2 から NGSI-LD へ段階的に移行できます。既存の NGSIv2 サ�
 
 ```bash
 # IoT デバイスが NGSIv2 経由で書き込み（シンプル）
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" \
@@ -466,7 +466,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 
 # 分析プラットフォームが NGSI-LD 経由で読み取り（セマンティック）
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=AirQualityObserved&options=keyValues" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=AirQualityObserved&options=keyValues" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" \
   -H "Link: <https://smartdatamodels.org/context.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
@@ -478,7 +478,7 @@ curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=AirQualityObserved&
 
 ```bash
 # NGSI-LD 経由でサブスクリプションを作成
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" \

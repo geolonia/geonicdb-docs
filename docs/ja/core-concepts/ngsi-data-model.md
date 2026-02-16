@@ -1,12 +1,12 @@
 ---
 title: NGSI データモデル
-description: Vela OS の基盤となる NGSI 情報モデルの中核概念 — エンティティ、属性、メタデータについて解説します。
+description: GeonicDB の基盤となる NGSI 情報モデルの中核概念 — エンティティ、属性、メタデータについて解説します。
 outline: deep
 ---
 
 # NGSI データモデル
 
-Vela OS は **NGSI（Next Generation Service Interface）** データモデルを使用してコンテキスト情報を管理します。このページでは、中核となる構成要素である**エンティティ**、**属性**、**メタデータ**について説明します。
+GeonicDB は **NGSI（Next Generation Service Interface）** データモデルを使用してコンテキスト情報を管理します。このページでは、中核となる構成要素である**エンティティ**、**属性**、**メタデータ**について説明します。
 
 ## エンティティ
 
@@ -105,7 +105,7 @@ NGSI-LD はよりセマンティックに豊富な属性タイプを使用しま
 
 ### 属性タイプのマッピング
 
-Vela OS は NGSIv2 と NGSI-LD の属性タイプを自動的に変換します：
+GeonicDB は NGSIv2 と NGSI-LD の属性タイプを自動的に変換します：
 
 | NGSIv2 タイプ | NGSI-LD タイプ | 説明 |
 |-------------|--------------|------|
@@ -198,7 +198,7 @@ NGSIv2 では、`options=dateCreated,dateModified` を指定した場合にの�
 
 ## JSON-LD コンテキスト
 
-NGSI-LD は `@context` を使用してボキャブラリとセマンティクスを定義します。Vela OS は NGSI-LD コアコンテキストをサポートし、Smart Data Models コンテキストを自動的に解決します：
+NGSI-LD は `@context` を使用してボキャブラリとセマンティクスを定義します。GeonicDB は NGSI-LD コアコンテキストをサポートし、Smart Data Models コンテキストを自動的に解決します：
 
 ```json
 {

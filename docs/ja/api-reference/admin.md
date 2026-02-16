@@ -1,16 +1,16 @@
 ---
 title: Admin API
-description: Vela OS Admin API リファレンス -- 認証、ユーザー管理、テナント管理、XACML ポリシー、OAuth クライアント、メトリクス、セキュリティ設定。
+description: GeonicDB Admin API リファレンス -- 認証、ユーザー管理、テナント管理、XACML ポリシー、OAuth クライアント、メトリクス、セキュリティ設定。
 outline: deep
 ---
 
 # Admin API
 
-Admin API は Vela OS の管理操作を提供します。認証、ユーザー・テナント管理、ポリシーベースの認可、OAuth クライアント管理、システムメトリクスなどが含まれます。すべての管理エンドポイントは `https://api.vela.geolonia.com` をベース URL として提供されます。
+Admin API は GeonicDB の管理操作を提供します。認証、ユーザー・テナント管理、ポリシーベースの認可、OAuth クライアント管理、システムメトリクスなどが含まれます。すべての管理エンドポイントは `https://api.geonicdb.geolonia.com` をベース URL として提供されます。
 
 ## 概要
 
-Vela OS はロールベースアクセス制御を備えた **JWT ベースの認証**を採用しています。アクセスを制御する3つの組み込みロールがあります。
+GeonicDB はロールベースアクセス制御を備えた **JWT ベースの認証**を採用しています。アクセスを制御する3つの組み込みロールがあります。
 
 | ロール | 説明 | スコープ |
 |--------|------|----------|
@@ -50,7 +50,7 @@ Vela OS はロールベースアクセス制御を備えた **JWT ベースの�
 メールアドレスとパスワードで認証し、JWT トークンペアを受け取ります。
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/auth/login \
+curl -X POST https://api.geonicdb.geolonia.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@example.com",
@@ -80,7 +80,7 @@ curl -X POST https://api.vela.geolonia.com/auth/login \
 リフレッシュトークンを使用して、再認証なしで新しいアクセストークンを取得します。
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/auth/refresh \
+curl -X POST https://api.geonicdb.geolonia.com/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{
     "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -102,7 +102,7 @@ curl -X POST https://api.vela.geolonia.com/auth/refresh \
 現在認証されているユーザーのプロフィールを取得します。
 
 ```bash
-curl https://api.vela.geolonia.com/me \
+curl https://api.geonicdb.geolonia.com/me \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -125,7 +125,7 @@ curl https://api.vela.geolonia.com/me \
 現在認証されているユーザーのパスワードを変更します。
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/me/password \
+curl -X POST https://api.geonicdb.geolonia.com/me/password \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -147,7 +147,7 @@ curl -X POST https://api.vela.geolonia.com/me/password \
 ### ユーザー一覧
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/users?limit=20&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/users?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -188,7 +188,7 @@ curl "https://api.vela.geolonia.com/admin/users?limit=20&offset=0" \
 ### ユーザー作成
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/users \
+curl -X POST https://api.geonicdb.geolonia.com/admin/users \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -217,7 +217,7 @@ curl -X POST https://api.vela.geolonia.com/admin/users \
 ### ユーザー更新
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
+curl -X PATCH https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -244,7 +244,7 @@ curl -X PATCH https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM00000000000
 ### ユーザー削除
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
+curl -X DELETE https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -254,11 +254,11 @@ curl -X DELETE https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000
 
 ```bash
 # 無効化
-curl -X POST https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003/deactivate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003/deactivate \
   -H "Authorization: Bearer <access_token>"
 
 # 有効化
-curl -X POST https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003/activate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003/activate \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -281,7 +281,7 @@ curl -X POST https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM000000000000
 ### テナント一覧
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/tenants?limit=20&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/tenants?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -314,7 +314,7 @@ curl "https://api.vela.geolonia.com/admin/tenants?limit=20&offset=0" \
 ### テナント作成
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/tenants \
+curl -X POST https://api.geonicdb.geolonia.com/admin/tenants \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -350,7 +350,7 @@ curl -X POST https://api.vela.geolonia.com/admin/tenants \
 ### テナント更新
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
+curl -X PATCH https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -366,7 +366,7 @@ curl -X PATCH https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM000000000
 ### テナント削除
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
+curl -X DELETE https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -380,11 +380,11 @@ curl -X DELETE https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM00000000
 
 ```bash
 # 無効化
-curl -X POST https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002/deactivate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002/deactivate \
   -H "Authorization: Bearer <access_token>"
 
 # 有効化
-curl -X POST https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002/activate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002/activate \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -403,14 +403,14 @@ curl -X POST https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000
 
 ## ポリシー管理 (XACML 3.0)
 
-Vela OS は **XACML 3.0** ポリシーを使用した、きめ細かい属性ベースのアクセス制御をサポートしています。ポリシーは、サブジェクト属性（ユーザーロール、テナント）、リソース属性（エンティティタイプ、サービスパス）、アクション属性（read、write、delete）に基づいてルールを定義します。
+GeonicDB は **XACML 3.0** ポリシーを使用した、きめ細かい属性ベースのアクセス制御をサポートしています。ポリシーは、サブジェクト属性（ユーザーロール、テナント）、リソース属性（エンティティタイプ、サービスパス）、アクション属性（read、write、delete）に基づいてルールを定義します。
 
 `super_admin` ロールが必要です。
 
 ### ポリシー一覧
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/policies?limit=20&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/policies?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -443,7 +443,7 @@ curl "https://api.vela.geolonia.com/admin/policies?limit=20&offset=0" \
 ### ポリシー作成
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/policies \
+curl -X POST https://api.geonicdb.geolonia.com/admin/policies \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -480,7 +480,7 @@ curl -X POST https://api.vela.geolonia.com/admin/policies \
 ### ポリシー更新
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
+curl -X PUT https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -500,7 +500,7 @@ curl -X PUT https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000
 ### ポリシー削除
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
+curl -X DELETE https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -510,11 +510,11 @@ curl -X DELETE https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000
 
 ```bash
 # 無効化
-curl -X POST https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/deactivate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/deactivate \
   -H "Authorization: Bearer <access_token>"
 
 # 有効化
-curl -X POST https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/activate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/activate \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -526,12 +526,12 @@ curl -X POST https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM000000000
 
 ```bash
 # エクスポート
-curl https://api.vela.geolonia.com/admin/policies/export \
+curl https://api.geonicdb.geolonia.com/admin/policies/export \
   -H "Authorization: Bearer <access_token>" \
   -o policies-backup.json
 
 # インポート
-curl -X POST https://api.vela.geolonia.com/admin/policies/import \
+curl -X POST https://api.geonicdb.geolonia.com/admin/policies/import \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d @policies-backup.json
@@ -572,7 +572,7 @@ curl -X POST https://api.vela.geolonia.com/admin/policies/import \
 ### OAuth クライアント一覧
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -583,7 +583,7 @@ curl "https://api.vela.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
   "clients": [
     {
       "id": "oac_01HQ3XJKM0000000000000001",
-      "client_id": "vela_client_abc123",
+      "client_id": "geonicdb_client_abc123",
       "name": "IoT Data Ingestion Service",
       "grant_types": ["client_credentials"],
       "scopes": ["entities:read", "entities:write"],
@@ -601,7 +601,7 @@ curl "https://api.vela.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
 ### OAuth クライアント作成
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/oauth-clients \
+curl -X POST https://api.geonicdb.geolonia.com/admin/oauth-clients \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -617,8 +617,8 @@ curl -X POST https://api.vela.geolonia.com/admin/oauth-clients \
 ```json
 {
   "id": "oac_01HQ3XJKM0000000000000002",
-  "client_id": "vela_client_def456",
-  "client_secret": "vela_secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "client_id": "geonicdb_client_def456",
+  "client_secret": "geonicdb_secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "name": "IoT Data Ingestion Service",
   "grant_types": ["client_credentials"],
   "scopes": ["entities:read", "entities:write", "subscriptions:read"],
@@ -635,7 +635,7 @@ curl -X POST https://api.vela.geolonia.com/admin/oauth-clients \
 ### OAuth クライアント更新
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
+curl -X PATCH https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -649,7 +649,7 @@ curl -X PATCH https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM000
 ### OAuth クライアント削除
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
+curl -X DELETE https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -658,7 +658,7 @@ curl -X DELETE https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM00
 ### クライアントシークレットの再生成
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002/regenerate-secret \
+curl -X POST https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002/regenerate-secret \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -666,8 +666,8 @@ curl -X POST https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000
 
 ```json
 {
-  "client_id": "vela_client_def456",
-  "client_secret": "vela_secret_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+  "client_id": "geonicdb_client_def456",
+  "client_secret": "geonicdb_secret_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
   "regenerated_at": "2026-02-10T11:00:00Z"
 }
 ```
@@ -683,11 +683,11 @@ curl -X POST https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000
 OAuth 2.0 Client Credentials フローを使用してアクセストークンを取得します。これはサービス間 (M2M) 認証の標準的なフローです。
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/oauth/token \
+curl -X POST https://api.geonicdb.geolonia.com/oauth/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=client_credentials" \
-  -d "client_id=vela_client_def456" \
-  -d "client_secret=vela_secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+  -d "client_id=geonicdb_client_def456" \
+  -d "client_secret=geonicdb_secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
   -d "scope=entities:read entities:write"
 ```
 
@@ -705,7 +705,7 @@ curl -X POST https://api.vela.geolonia.com/oauth/token \
 取得したアクセストークンを、後続の API 呼び出しの `Authorization` ヘッダーに使用します。
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer <access_token>" \
   -H "Fiware-Service: smartcity"
 ```
@@ -717,7 +717,7 @@ API 使用状況のメトリクスを表示・管理します。`super_admin` �
 ### メトリクスの取得
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&to=2026-02-10T23:59:59Z" \
+curl "https://api.geonicdb.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&to=2026-02-10T23:59:59Z" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -758,7 +758,7 @@ curl "https://api.vela.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&to=2
 指定した期間のメトリクスデータを削除します。
 
 ```bash
-curl -X DELETE "https://api.vela.geolonia.com/admin/metrics?before=2025-12-31T23:59:59Z" \
+curl -X DELETE "https://api.geonicdb.geolonia.com/admin/metrics?before=2025-12-31T23:59:59Z" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -778,7 +778,7 @@ curl -X DELETE "https://api.vela.geolonia.com/admin/metrics?before=2025-12-31T23
 ### ヘルスチェック
 
 ```bash
-curl https://api.vela.geolonia.com/health
+curl https://api.geonicdb.geolonia.com/health
 ```
 
 **レスポンス** `200 OK`
@@ -798,7 +798,7 @@ curl https://api.vela.geolonia.com/health
 ### バージョン
 
 ```bash
-curl https://api.vela.geolonia.com/version
+curl https://api.geonicdb.geolonia.com/version
 ```
 
 **レスポンス** `200 OK`
@@ -817,7 +817,7 @@ curl https://api.vela.geolonia.com/version
 システム全体の統計情報を取得します。`super_admin` ロールが必要です。
 
 ```bash
-curl https://api.vela.geolonia.com/statistics \
+curl https://api.geonicdb.geolonia.com/statistics \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -839,21 +839,21 @@ curl https://api.vela.geolonia.com/statistics \
 モニタリング連携のため、Prometheus エクスポジション形式でメトリクスを取得します。
 
 ```bash
-curl https://api.vela.geolonia.com/metrics \
+curl https://api.geonicdb.geolonia.com/metrics \
   -H "Authorization: Bearer <access_token>"
 ```
 
 **レスポンス** `200 OK` (`text/plain`)
 
 ```text
-# HELP vela_requests_total Total number of API requests
-# TYPE vela_requests_total counter
-vela_requests_total{method="GET",status="200"} 1250000
-vela_requests_total{method="POST",status="201"} 85420
-# HELP vela_request_duration_seconds Request duration in seconds
-# TYPE vela_request_duration_seconds histogram
-vela_request_duration_seconds_bucket{le="0.01"} 980000
-vela_request_duration_seconds_bucket{le="0.1"} 1300000
+# HELP geonicdb_requests_total Total number of API requests
+# TYPE geonicdb_requests_total counter
+geonicdb_requests_total{method="GET",status="200"} 1250000
+geonicdb_requests_total{method="POST",status="201"} 85420
+# HELP geonicdb_request_duration_seconds Request duration in seconds
+# TYPE geonicdb_request_duration_seconds histogram
+geonicdb_request_duration_seconds_bucket{le="0.01"} 980000
+geonicdb_request_duration_seconds_bucket{le="0.1"} 1300000
 ```
 
 ## セキュリティ設定
@@ -877,12 +877,12 @@ JWT 認証と IP 制限を組み合わせることで、多層防御を実現で
 
 ### OIDC 外部 IdP 連携
 
-Vela OS は **OpenID Connect (OIDC)** を介した外部 ID プロバイダー (IdP) への認証委任をサポートしています。これにより、Azure AD、Google Workspace、Okta などのプロバイダーとのシングルサインオン (SSO) が可能になります。
+GeonicDB は **OpenID Connect (OIDC)** を介した外部 ID プロバイダー (IdP) への認証委任をサポートしています。これにより、Azure AD、Google Workspace、Okta などのプロバイダーとのシングルサインオン (SSO) が可能になります。
 
 OIDC が設定されている場合:
 - ユーザーは外部 IdP を通じて認証を行います。
-- IdP が ID トークンを発行し、Vela OS がそれを検証して内部ユーザーにマッピングします。
-- IdP のクレームに基づいてロールマッピングを設定できます（例: `groups` クレームを Vela のロールにマッピング）。
+- IdP が ID トークンを発行し、GeonicDB がそれを検証して内部ユーザーにマッピングします。
+- IdP のクレームに基づいてロールマッピングを設定できます（例: `groups` クレームを GeonicDB のロールにマッピング）。
 
 **OIDC 設定フィールド**
 
@@ -891,10 +891,10 @@ OIDC が設定されている場合:
 | `issuer` | OIDC 発行者 URL | `https://login.microsoftonline.com/{tenant}/v2.0` |
 | `client_id` | IdP に登録されたクライアント ID | `abc123-def456-...` |
 | `client_secret` | IdP 用のクライアントシークレット | `secret_value` |
-| `redirect_uri` | IdP 認証後のコールバック URL | `https://api.vela.geolonia.com/auth/oidc/callback` |
+| `redirect_uri` | IdP 認証後のコールバック URL | `https://api.geonicdb.geolonia.com/auth/oidc/callback` |
 | `scopes` | 要求する OIDC スコープ | `openid profile email` |
-| `role_claim` | Vela ロールにマッピングする JWT クレーム | `groups` または `roles` |
-| `role_mapping` | IdP クレーム値から Vela ロールへのマッピング | `{"admins": "super_admin", "users": "user"}` |
+| `role_claim` | GeonicDB ロールにマッピングする JWT クレーム | `groups` または `roles` |
+| `role_mapping` | IdP クレーム値から GeonicDB ロールへのマッピング | `{"admins": "super_admin", "users": "user"}` |
 
 ### JWT トークン設定
 
@@ -921,7 +921,7 @@ OIDC が設定されている場合:
 
 ## エラーレスポンス
 
-Admin API のエラーは Vela OS の標準エラー形式に従います。完全な一覧は[ステータスコード](/ja/api-reference/status-codes)を参照してください。
+Admin API のエラーは GeonicDB の標準エラー形式に従います。完全な一覧は[ステータスコード](/ja/api-reference/status-codes)を参照してください。
 
 | ステータス | 説明 | 主な原因 |
 |-----------|------|---------|

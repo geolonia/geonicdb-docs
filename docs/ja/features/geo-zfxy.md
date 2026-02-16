@@ -1,12 +1,12 @@
 ---
 title: ジオクエリと空間ID（ZFXY）
-description: Vela OS で near、within、intersects、coveredBy 演算子を使用した地理的クエリと、空間ID（ZFXY）サポートについて。
+description: GeonicDB で near、within、intersects、coveredBy 演算子を使用した地理的クエリと、空間ID（ZFXY）サポートについて。
 outline: deep
 ---
 
 # ジオクエリと空間ID（ZFXY）
 
-Vela OS は位置情報によるエンティティフィルタリングのための強力な地理的クエリ機能を提供します。標準的な NGSI ジオクエリ演算子、GeoJSON ジオメトリタイプ、そして日本のデジタル庁/IPA が推進する空間ID（ZFXY）タイルベース空間インデックスシステムをサポートしています。
+GeonicDB は位置情報によるエンティティフィルタリングのための強力な地理的クエリ機能を提供します。標準的な NGSI ジオクエリ演算子、GeoJSON ジオメトリタイプ、そして日本のデジタル庁/IPA が推進する空間ID（ZFXY）タイルベース空間インデックスシステムをサポートしています。
 
 ## ジオクエリ演算子
 
@@ -16,7 +16,7 @@ Vela OS は位置情報によるエンティティフィルタリングのため
 
 ```bash
 # ある地点から1km以内のエンティティを検索
-curl -G https://api.vela.geolonia.com/v2/entities \
+curl -G https://api.geonicdb.geolonia.com/v2/entities \
   --data-urlencode "georel=near;maxDistance:1000" \
   --data-urlencode "geometry=point" \
   --data-urlencode "coords=35.6812,139.7671" \
@@ -48,7 +48,7 @@ NGSI-LD では `geoproperty`、`georel`、`geometry`、`coordinates` パラメ�
 
 ```bash
 # ポリゴン内のエンティティを検索
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   --data-urlencode "type=Building" \
   --data-urlencode "georel=within" \
   --data-urlencode "geometry=Polygon" \
@@ -61,7 +61,7 @@ curl -G https://api.vela.geolonia.com/ngsi-ld/v1/entities \
 
 ```bash
 # 東京駅から500メートル以内のエンティティ
-curl -G https://api.vela.geolonia.com/v2/entities \
+curl -G https://api.geonicdb.geolonia.com/v2/entities \
   --data-urlencode "type=Sensor" \
   --data-urlencode "georel=near;maxDistance:500" \
   --data-urlencode "geometry=point" \
@@ -76,12 +76,12 @@ curl -G https://api.vela.geolonia.com/v2/entities \
 
 ## GeoJSON サポート
 
-Vela OS は標準的な GeoJSON 形式でエンティティの位置情報を保存・返却します。
+GeonicDB は標準的な GeoJSON 形式でエンティティの位置情報を保存・返却します。
 
 ### 位置情報付きエンティティの作成
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -105,7 +105,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 ### NGSI-LD GeoProperty
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/json" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -135,7 +135,7 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
 
 ## 空間ID（ZFXY）
 
-Vela OS はデジタル庁/IPA のガイドラインに準拠した **空間ID（ZFXY）** システムをサポートしています。ZFXY はズームレベル（Z）、フロア（F）、X座標、Y座標を使用して、3D空間を階層的なグリッドに分割するタイルベースの空間インデックス方式です。
+GeonicDB はデジタル庁/IPA のガイドラインに準拠した **空間ID（ZFXY）** システムをサポートしています。ZFXY はズームレベル（Z）、フロア（F）、X座標、Y座標を使用して、3D空間を階層的なグリッドに分割するタイルベースの空間インデックス方式です。
 
 ### ZFXY フォーマット
 
@@ -154,7 +154,7 @@ Vela OS はデジタル庁/IPA のガイドラインに準拠した **空間ID�
 
 ```bash
 # 特定の空間タイル内のエンティティを検索
-curl -G https://api.vela.geolonia.com/v2/entities \
+curl -G https://api.geonicdb.geolonia.com/v2/entities \
   --data-urlencode "type=Sensor" \
   --data-urlencode "spatialId=15/0/29103/12903" \
   -H "Fiware-Service: smartcity" \

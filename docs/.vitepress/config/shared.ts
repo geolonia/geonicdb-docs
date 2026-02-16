@@ -1,23 +1,23 @@
 import { defineConfig } from 'vitepress'
 
 export const shared = defineConfig({
-  title: 'Vela OS',
+  title: 'GeonicDB',
   description: 'FIWARE Orion-compatible Context Broker on AWS Lambda',
 
-  base: '/vela-docs/',
+  base: '/geonicdb-docs/',
   lastUpdated: true,
   cleanUrls: true,
   ignoreDeadLinks: true,
 
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/vela-logo.svg' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/geonicdb-logo.svg' }],
   ],
 
   themeConfig: {
-    logo: '/vela-logo.svg',
+    logo: '/geonicdb-logo.svg',
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/geolonia/vela' },
+      { icon: 'github', link: 'https://github.com/geolonia/geonicdb' },
     ],
 
     search: {

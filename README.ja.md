@@ -1,19 +1,19 @@
-# Vela OS ドキュメント
+# GeonicDB ドキュメント
 
 🇬🇧 [English version](README.md)
 
 ## 概要
 
-このリポジトリは **Vela OS** の公式ドキュメントを提供します。Vela OS は、サーバーレス環境で動作する FIWARE Orion 互換 Context Broker です。ドキュメントサイトは VitePress で構築されており、包括的なガイド、API リファレンス、統合例を提供しています。
+このリポジトリは **GeonicDB** の公式ドキュメントを提供します。GeonicDB は、サーバーレス環境で動作する FIWARE Orion 互換 Context Broker です。ドキュメントサイトは VitePress で構築されており、包括的なガイド、API リファレンス、統合例を提供しています。
 
-**Vela OS** は、FIWARE 標準をサーバーレス環境に持ち込む次世代 Context Broker です：
+**GeonicDB** は、FIWARE 標準をサーバーレス環境に持ち込む次世代 Context Broker です：
 
 - **AI ネイティブ**: MCP サーバー、llms.txt、tools.json、OpenAPI 3.0 を標準搭載し、AI エージェントとのシームレスな統合を実現
 - **サーバーレス**: AWS Lambda 上で動作し、オートスケールと従量課金を実現
 - **デュアル API サポート**: 単一インスタンスで NGSIv2 と NGSI-LD の両方をサポート
 - **日本標準対応**: CADDE 互換、来歴追跡機能を搭載
 
-🌐 **公開ドキュメント**: https://geolonia.github.io/vela-docs/
+🌐 **公開ドキュメント**: https://geolonia.github.io/geonicdb-docs/
 
 ## 技術スタック
 
@@ -33,8 +33,8 @@
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/geolonia/vela-docs.git
-cd vela-docs
+git clone https://github.com/geolonia/geonicdb-docs.git
+cd geonicdb-docs
 
 # 依存関係をインストール
 pnpm install
@@ -174,7 +174,7 @@ docs/
 
 ## 詳細情報
 
-- **Vela OS リポジトリ**: https://github.com/geolonia/vela
+- **GeonicDB リポジトリ**: https://github.com/geolonia/geonicdb
 - **FIWARE Orion**: https://fiware-orion.readthedocs.io/
 - **NGSIv2 仕様**: https://fiware.github.io/specifications/ngsiv2/stable/
 - **NGSI-LD 仕様**: https://ngsi-ld.org

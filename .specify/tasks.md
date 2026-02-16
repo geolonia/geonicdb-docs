@@ -1,4 +1,4 @@
-# Tasks: Vela OS Documentation Site
+# Tasks: GeonicDB Documentation Site
 
 **Input**: Design documents from `.specify/` (spec.md, plan.md)
 **Prerequisites**: plan.md (required), spec.md (required for user stories)
@@ -42,15 +42,15 @@
 
 ## Phase 2: Docs Sync Infrastructure [US1, US5]
 
-**Purpose**: Vela 本体 docs/ 取り込みスクリプト + CI/CD 自動同期パイプライン
+**Purpose**: GeonicDB 本体 docs/ 取り込みスクリプト + CI/CD 自動同期パイプライン
 
-- [ ] T008 [US1] `scripts/sync-vela-docs.ts` 作成 — Vela 本体 docs/ を VitePress 形式に変換するビルドスクリプト。ファイル名小文字ケバブケース変換、frontmatter 自動付与、セクション振り分け
-- [ ] T009 [US1] マッピングテーブル定義 — plan.md Section 6 の対応表を `scripts/sync-vela-docs.ts` 内に実装（25ファイル → 各セクションへの振り分け）
-- [ ] T010 [US1] `package.json` に `sync-docs` スクリプト追加 — `tsx scripts/sync-vela-docs.ts`
-- [ ] T011 [US1] `.github/workflows/sync-vela-docs.yml` 作成 — repository_dispatch + workflow_dispatch トリガー、sparse-checkout で vela docs/ 取得、sync-docs 実行、差分 PR 自動作成
+- [ ] T008 [US1] `scripts/sync-geonicdb-docs.ts` 作成 — GeonicDB 本体 docs/ を VitePress 形式に変換するビルドスクリプト。ファイル名小文字ケバブケース変換、frontmatter 自動付与、セクション振り分け
+- [ ] T009 [US1] マッピングテーブル定義 — plan.md Section 6 の対応表を `scripts/sync-geonicdb-docs.ts` 内に実装（25ファイル → 各セクションへの振り分け）
+- [ ] T010 [US1] `package.json` に `sync-docs` スクリプト追加 — `tsx scripts/sync-geonicdb-docs.ts`
+- [ ] T011 [US1] `.github/workflows/sync-geonicdb-docs.yml` 作成 — repository_dispatch + workflow_dispatch トリガー、sparse-checkout で geonicdb docs/ 取得、sync-docs 実行、差分 PR 自動作成
 - [ ] T012 [P] [US5] リンク検証スクリプト作成 — ビルド後の HTML 内リンク（内部リンク + 外部リンク）の死活チェックスクリプト
 
-**Checkpoint**: `pnpm sync-docs` で Vela docs/ が `docs/ja/` 配下に正しく変換・配置される。VitePress ビルド成功
+**Checkpoint**: `pnpm sync-docs` で GeonicDB docs/ が `docs/ja/` 配下に正しく変換・配置される。VitePress ビルド成功
 
 ---
 
@@ -58,13 +58,13 @@
 
 **Purpose**: サイトの入口ページ群を作成。Quick Start は SaaS API 向け
 
-- [ ] T013 [P] [US1] `docs/en/introduction/what-is-vela.md` 作成 — Vela OS 概要（AWS Lambda + MongoDB Atlas、Orion 互換、AI ネイティブ）
-- [ ] T014 [P] [US1] `docs/en/introduction/why-vela.md` 作成 — Orion との主要な違い9項目
+- [ ] T013 [P] [US1] `docs/en/introduction/what-is-geonicdb.md` 作成 — GeonicDB 概要（AWS Lambda + MongoDB Atlas、Orion 互換、AI ネイティブ）
+- [ ] T014 [P] [US1] `docs/en/introduction/why-geonicdb.md` 作成 — Orion との主要な違い9項目
 - [ ] T015 [P] [US1] `docs/en/introduction/architecture.md` 作成 — Lambda → API Gateway → MongoDB Atlas のアーキテクチャ図、src/ ディレクトリ構造
 - [ ] T016 [P] [US4] `docs/en/introduction/quick-start.md` 作成 — SaaS API エンドポイントへの curl コマンド例。API キー取得は Coming Soon / プレースホルダー
 - [ ] T017 [P] [US4] `docs/en/getting-started/installation.md` 作成 — SaaS API アクセス方法（エンドポイント URL、API キー取得手順 Coming Soon）
 - [ ] T018 [P] [US4] `docs/en/getting-started/first-entity.md` 作成 — NGSIv2 エンティティ CRUD チュートリアル（SaaS エンドポイント向け curl 例）
-- [ ] T019 [P] [US4] `docs/en/getting-started/demo-app.md` 作成 — vela-demo-app への導線と概要
+- [ ] T019 [P] [US4] `docs/en/getting-started/demo-app.md` 作成 — geonicdb-demo-app への導線と概要
 - [ ] T020 [US1, US4] Introduction & Getting Started の日本語版作成 — `docs/ja/introduction/`、`docs/ja/getting-started/` に翻訳版配置
 
 **Checkpoint**: Introduction 4ページ + Getting Started 3ページが日英で閲覧可能。Quick Start の curl 例がコピー可能
@@ -73,7 +73,7 @@
 
 ## Phase 4: Core Content - API Reference & Core Concepts [US1, US4, US5]
 
-**Purpose**: API リファレンスと基本概念ページを作成。Vela docs/ からの取り込みコンテンツが中心
+**Purpose**: API リファレンスと基本概念ページを作成。GeonicDB docs/ からの取り込みコンテンツが中心
 
 - [ ] T021 [P] [US5] `docs/en/core-concepts/ngsi-data-model.md` 作成 — Entity, Attribute, Metadata の基本概念
 - [ ] T022 [P] [US5] `docs/en/core-concepts/multi-tenancy.md` 作成 — Fiware-Service / Fiware-ServicePath ヘッダー
@@ -126,7 +126,7 @@
 
 ### Migration (2ページ)
 
-- [ ] T049 [P] [US1] `docs/en/migration/orion-to-vela.md` 作成 — Orion セルフホスト → Vela SaaS 移行手順（API エンドポイント変更、認証切替、サブスクリプション移行）
+- [ ] T049 [P] [US1] `docs/en/migration/orion-to-geonicdb.md` 作成 — Orion セルフホスト → GeonicDB SaaS 移行手順（API エンドポイント変更、認証切替、サブスクリプション移行）
 - [ ] T050 [P] [US1] `docs/en/migration/compatibility-matrix.md` 作成 — NGSIv2/NGSI-LD 全エンドポイント対応状況、非互換点（FIWARE_ORION_COMPARISON.md ベース）
 
 ### 日本語版
@@ -160,7 +160,7 @@
 - **Phase 1 (Setup)**: 依存なし — 即時開始可能
 - **Phase 2 (Sync Infra)**: Phase 1 完了が前提 — sync-docs スクリプトは VitePress 設定に依存
 - **Phase 3 (Intro & Getting Started)**: Phase 1 完了が前提。Phase 2 と **並列可能**（オリジナルコンテンツのみのため）
-- **Phase 4 (API Ref & Core Concepts)**: Phase 2 完了が前提（Vela docs/ 取り込みコンテンツを含むため）。Phase 3 と **並列可能**
+- **Phase 4 (API Ref & Core Concepts)**: Phase 2 完了が前提（GeonicDB docs/ 取り込みコンテンツを含むため）。Phase 3 と **並列可能**
 - **Phase 5 (Features 他)**: Phase 2 完了が前提。Phase 3, 4 と **並列可能**
 - **Phase 6 (Integration)**: Phase 1〜5 全完了が前提
 
@@ -199,7 +199,7 @@ Phase 6 (Integration) ← 全Phase完了後
 ### MVP First (Phase 1 → 2 → 3)
 
 1. Phase 1: VitePress 環境構築（サイドバー・i18n 設定）
-2. Phase 2: Vela docs/ 取り込みスクリプト + CI/CD
+2. Phase 2: GeonicDB docs/ 取り込みスクリプト + CI/CD
 3. Phase 3: Introduction + Getting Started = **MVP 完成**
 4. **STOP and VALIDATE**: Quick Start が SaaS API 向けに動作、日英切り替え OK
 
@@ -219,4 +219,4 @@ Phase 6 (Integration) ← 全Phase完了後
 - Security セクションは Coming Soon（SaaS 認証基盤の設計確定後に詳細化）
 - Deployment セクションは SaaS 方針により削除済み（OSS セルフホスト非対応）
 - 英語がプライマリ。日本語版は各 Phase の最終タスクで一括作成
-- Vela docs/ 取り込みは sync-vela-docs.ts 経由。ローカルパス直接参照不可（GitHub リポジトリ経由）
+- GeonicDB docs/ 取り込みは sync-geonicdb-docs.ts 経由。ローカルパス直接参照不可（GitHub リポジトリ経由）

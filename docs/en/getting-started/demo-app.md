@@ -1,12 +1,12 @@
 ---
 title: Demo App
-description: Explore the Vela Demo App — interactive demos for dashboards, API tutorials, smart building management, and city maps powered by Vela OS.
+description: Explore the GeonicDB Demo App — interactive demos for dashboards, API tutorials, smart building management, and city maps powered by GeonicDB.
 outline: deep
 ---
 
 # Demo App
 
-The [Vela Demo App](https://github.com/geolonia/vela-demo-app) is a collection of interactive applications that showcase Vela OS capabilities. Built with React, Vite, and MapLibre GL JS, the demos cover real-world use cases from executive dashboards to geo-spatial city maps.
+The [GeonicDB Demo App](https://github.com/geolonia/geonicdb-demo-app) is a collection of interactive applications that showcase GeonicDB capabilities. Built with React, Vite, and MapLibre GL JS, the demos cover real-world use cases from executive dashboards to geo-spatial city maps.
 
 ## Demo Applications
 
@@ -14,7 +14,7 @@ The [Vela Demo App](https://github.com/geolonia/vela-demo-app) is a collection o
 
 **Audience**: Business stakeholders and decision makers
 
-An executive summary view that aggregates data from Vela entities into actionable metrics.
+An executive summary view that aggregates data from GeonicDB entities into actionable metrics.
 
 - **KPI Cards** — Entity count, type distribution, location coverage, health status
 - **Metric Aggregation** — Count, average, min, max per attribute across all entities
@@ -26,7 +26,7 @@ An executive summary view that aggregates data from Vela entities into actionabl
 
 **Audience**: Developers and evaluators
 
-A guided, 5-step interactive walkthrough that teaches you the Vela API hands-on:
+A guided, 5-step interactive walkthrough that teaches you the GeonicDB API hands-on:
 
 1. **CRUD Operations** — Create, read, update, delete entities
 2. **Query Language** — Filter entities with the `q` parameter
@@ -78,14 +78,14 @@ A full-screen geographic interface for spatial data exploration:
 
 - Node.js 20+
 - pnpm 9+
-- A running Vela instance (local or SaaS)
+- A running GeonicDB instance (local or SaaS)
 
 ### Run Locally
 
 ```bash
 # Clone the repository
-git clone https://github.com/geolonia/vela-demo-app.git
-cd vela-demo-app
+git clone https://github.com/geolonia/geonicdb-demo-app.git
+cd geonicdb-demo-app
 
 # Install dependencies
 pnpm install
@@ -94,7 +94,7 @@ pnpm install
 cp .env.sample .env
 # Edit .env and add your Geolonia API key for map tiles
 
-# Load demo data into Vela
+# Load demo data into GeonicDB
 ./scripts/demo-data/setup.sh
 
 # Start the development server
@@ -108,7 +108,7 @@ Open `http://localhost:5173` to access the landing page.
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `VITE_GEOLONIA_API_KEY` | Geolonia Maps API key for map tiles | Yes |
-| `VITE_VELA_URL` | Vela API URL (default: `http://localhost:3000`) | No |
+| `VITE_VELA_URL` | GeonicDB API URL (default: `http://localhost:3000`) | No |
 
 ### Demo Tenants
 
@@ -124,13 +124,13 @@ The setup script creates these pre-configured tenants:
 ## Architecture
 
 ```text
-vela-demo-app/
+geonicdb-demo-app/
 ├── packages/
 │   ├── shared/              # Shared library
-│   │   ├── src/api/         # VelaClient — type-safe API client
+│   │   ├── src/api/         # GeonicDBClient — type-safe API client
 │   │   ├── src/types/       # NGSI entity types
 │   │   ├── src/hooks/       # React hooks (useEntities, useGeoEntities)
-│   │   └── src/components/  # VelaMap component
+│   │   └── src/components/  # GeonicDBMap component
 │   └── dashboard/           # Main demo app
 │       ├── src/pages/       # Landing, Dashboard, Tutorial, SmartBuilding, CityMap
 │       └── src/components/  # Page-specific components
@@ -140,8 +140,8 @@ vela-demo-app/
 
 ## Links
 
-- **GitHub Repository**: [geolonia/vela-demo-app](https://github.com/geolonia/vela-demo-app)
-- **Vela OS**: [geolonia/vela](https://github.com/geolonia/vela)
+- **GitHub Repository**: [geolonia/geonicdb-demo-app](https://github.com/geolonia/geonicdb-demo-app)
+- **GeonicDB**: [geolonia/geonicdb](https://github.com/geolonia/geonicdb)
 - **Geolonia Maps**: [geolonia.com](https://geolonia.com/)
 
 ## Next Steps

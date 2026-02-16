@@ -1,12 +1,12 @@
 ---
 title: ページネーション
-description: Vela OS API のページネーション仕様 — limit/offset パラメータ、トータルカウントヘッダー、Link ヘッダーの解説。
+description: GeonicDB API のページネーション仕様 — limit/offset パラメータ、トータルカウントヘッダー、Link ヘッダーの解説。
 outline: deep
 ---
 
 # ページネーション
 
-Vela OS のすべてのリストエンドポイントは、`limit` と `offset` クエリパラメータによるページネーションをサポートしています。
+GeonicDB のすべてのリストエンドポイントは、`limit` と `offset` クエリパラメータによるページネーションをサポートしています。
 
 ## パラメータ
 
@@ -55,8 +55,8 @@ Vela OS のすべてのリストエンドポイントは、`limit` と `offset` 
 | `prev` | `offset > 0` | 前のページの URL |
 
 ```text
-Link: <https://api.vela.geolonia.com/v2/entities?limit=10&offset=20>; rel="next",
-      <https://api.vela.geolonia.com/v2/entities?limit=10&offset=0>; rel="prev"
+Link: <https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=20>; rel="next",
+      <https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
 
 - 結果が単一ページに収まる場合、`Link` ヘッダーは返されません。
@@ -69,18 +69,18 @@ Link: <https://api.vela.geolonia.com/v2/entities?limit=10&offset=20>; rel="next"
 
 ```bash
 # 最初の 10 件
-curl "https://api.vela.geolonia.com/v2/entities?limit=10&offset=0" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=0" \
   -H "Fiware-Service: demo"
 
 # 次の 10 件
-curl "https://api.vela.geolonia.com/v2/entities?limit=10&offset=10" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=10" \
   -H "Fiware-Service: demo"
 ```
 
 ### NGSIv2 でトータルカウントを取得
 
 ```bash
-curl "https://api.vela.geolonia.com/v2/entities?limit=10&options=count" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?limit=10&options=count" \
   -H "Fiware-Service: demo"
 
 # レスポンスヘッダー:
@@ -90,7 +90,7 @@ curl "https://api.vela.geolonia.com/v2/entities?limit=10&options=count" \
 ### NGSI-LD のページネーション
 
 ```bash
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?limit=10&offset=0" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?limit=10&offset=0" \
   -H "Fiware-Service: demo"
 
 # レスポンスヘッダー:
@@ -100,7 +100,7 @@ curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?limit=10&offset=0" \
 ### Admin API のページネーション
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/users?limit=50&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/users?limit=50&offset=0" \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # レスポンスヘッダー:

@@ -1,12 +1,12 @@
 ---
 title: スナップショット
-description: Vela OS でエンティティデータのポイントインタイムスナップショットを作成・復元する方法。
+description: GeonicDB でエンティティデータのポイントインタイムスナップショットを作成・復元する方法。
 outline: deep
 ---
 
 # スナップショット
 
-Vela OS はエンティティデータのポイントインタイムコピーをキャプチャ・復元できる **スナップショット** 機能を提供します。スナップショットはバックアップ、テスト、データ移行、ロールバックのシナリオで活用できます。
+GeonicDB はエンティティデータのポイントインタイムコピーをキャプチャ・復元できる **スナップショット** 機能を提供します。スナップショットはバックアップ、テスト、データ移行、ロールバックのシナリオで活用できます。
 
 ## 概要
 
@@ -15,7 +15,7 @@ Vela OS はエンティティデータのポイントインタイムコピーを
 ## スナップショットの作成
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/snapshots \
+curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -39,7 +39,7 @@ curl -X POST https://api.vela.geolonia.com/v2/snapshots \
 ## スナップショットの一覧
 
 ```bash
-curl https://api.vela.geolonia.com/v2/snapshots \
+curl https://api.geonicdb.geolonia.com/v2/snapshots \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -68,7 +68,7 @@ curl https://api.vela.geolonia.com/v2/snapshots \
 ## スナップショットの復元
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z/restore \
+curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z/restore \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -90,7 +90,7 @@ curl -X POST https://api.vela.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-0
 ## スナップショットの削除
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -113,14 +113,14 @@ curl -X DELETE https://api.vela.geolonia.com/v2/snapshots/snapshot_2026-01-15T10
 
 ```bash
 # デプロイ前
-curl -X POST https://api.vela.geolonia.com/v2/snapshots \
+curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{"description": "デプロイ前: v2.1.0"}'
 
 # 問題が発生した場合、復元
-curl -X POST https://api.vela.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z/restore \
+curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z/restore \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

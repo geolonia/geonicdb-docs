@@ -1,12 +1,12 @@
 ---
 title: マルチテナンシー
-description: Vela OS が Fiware-Service および Fiware-ServicePath ヘッダーを使用してテナント間のデータを分離する仕組みを解説します。
+description: GeonicDB が Fiware-Service および Fiware-ServicePath ヘッダーを使用してテナント間のデータを分離する仕組みを解説します。
 outline: deep
 ---
 
 # マルチテナンシー
 
-Vela OS は HTTP ヘッダーによるマルチテナンシーをサポートしており、単一のデプロイメント内で異なるテナント間の完全なデータ分離を実現します。
+GeonicDB は HTTP ヘッダーによるマルチテナンシーをサポートしており、単一のデプロイメント内で異なるテナント間の完全なデータ分離を実現します。
 
 ## テナントヘッダー
 
@@ -19,7 +19,7 @@ Vela OS は HTTP ヘッダーによるマルチテナンシーをサポートし
 ### 基本的な使い方
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /buildings/floor1" \
@@ -40,17 +40,17 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 
 ```bash
 # テナント "demo" にエンティティを作成
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: demo" \
   -H "Content-Type: application/json" \
   -d '{"id": "Room1", "type": "Room", "temperature": {"type": "Number", "value": 22}}'
 
 # 何も返されない — 別のテナント
-curl https://api.vela.geolonia.com/v2/entities?type=Room \
+curl https://api.geonicdb.geolonia.com/v2/entities?type=Room \
   -H "Fiware-Service: production"
 
 # Room1 が返される — 同じテナント
-curl https://api.vela.geolonia.com/v2/entities?type=Room \
+curl https://api.geonicdb.geolonia.com/v2/entities?type=Room \
   -H "Fiware-Service: demo"
 ```
 
@@ -83,7 +83,7 @@ curl https://api.vela.geolonia.com/v2/entities?type=Room \
 
 ```bash
 # /buildings とすべてのサブパスを検索
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /buildings/#"
 ```
@@ -94,7 +94,7 @@ curl https://api.vela.geolonia.com/v2/entities \
 
 ```bash
 # /park1 と /park2 の両方を検索
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /park1, /park2"
 ```
@@ -112,7 +112,7 @@ curl https://api.vela.geolonia.com/v2/entities \
 
 ## NGSI-LD のテナントヘッダー
 
-NGSI-LD もテナント分離をサポートしています。Vela OS は両方のヘッダー名を受け付けます：
+NGSI-LD もテナント分離をサポートしています。GeonicDB は両方のヘッダー名を受け付けます：
 
 | ヘッダー | API |
 |---------|-----|
@@ -123,11 +123,11 @@ NGSI-LD もテナント分離をサポートしています。Vela OS は両方�
 
 ```bash
 # NGSI-LD で Fiware-Service を使用
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room \
   -H "Fiware-Service: smartcity"
 
 # NGSI-LD で NGSILD-Tenant を使用
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room \
   -H "NGSILD-Tenant: smartcity"
 ```
 

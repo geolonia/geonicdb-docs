@@ -1,12 +1,12 @@
 ---
 title: デモアプリ
-description: Vela Demo App の紹介 — ダッシュボード、API チュートリアル、スマートビルディング管理、シティマップのインタラクティブなデモ。
+description: GeonicDB Demo App の紹介 — ダッシュボード、API チュートリアル、スマートビルディング管理、シティマップのインタラクティブなデモ。
 outline: deep
 ---
 
 # デモアプリ
 
-[Vela Demo App](https://github.com/geolonia/vela-demo-app) は、Vela OS の機能を体験できるインタラクティブなアプリケーション集です。React、Vite、MapLibre GL JS で構築され、エグゼクティブダッシュボードから地理空間シティマップまで、実際のユースケースをカバーしています。
+[GeonicDB Demo App](https://github.com/geolonia/geonicdb-demo-app) は、GeonicDB の機能を体験できるインタラクティブなアプリケーション集です。React、Vite、MapLibre GL JS で構築され、エグゼクティブダッシュボードから地理空間シティマップまで、実際のユースケースをカバーしています。
 
 ## デモアプリケーション
 
@@ -14,7 +14,7 @@ outline: deep
 
 **対象**: ビジネスステークホルダー、意思決定者
 
-Vela エンティティのデータをアクション可能なメトリクスに集約するエグゼクティブサマリービューです。
+GeonicDB エンティティのデータをアクション可能なメトリクスに集約するエグゼクティブサマリービューです。
 
 - **KPI カード** — エンティティ数、タイプ分布、位置情報カバー率、ヘルスステータス
 - **メトリクス集計** — 全エンティティの属性ごとのカウント、平均、最小、最大
@@ -26,7 +26,7 @@ Vela エンティティのデータをアクション可能なメトリクスに
 
 **対象**: 開発者、評価者
 
-Vela API をハンズオンで学ぶ、ガイド付き5ステップのインタラクティブなウォークスルーです：
+GeonicDB API をハンズオンで学ぶ、ガイド付き5ステップのインタラクティブなウォークスルーです：
 
 1. **CRUD 操作** — エンティティの作成、取得、更新、削除
 2. **クエリ言語** — `q` パラメータによるエンティティのフィルタリング
@@ -78,14 +78,14 @@ IoT センサーデータの可視化を示すビル管理インターフェー�
 
 - Node.js 20+
 - pnpm 9+
-- 稼働中の Vela インスタンス（ローカルまたは SaaS）
+- 稼働中の GeonicDB インスタンス（ローカルまたは SaaS）
 
 ### ローカルで実行
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/geolonia/vela-demo-app.git
-cd vela-demo-app
+git clone https://github.com/geolonia/geonicdb-demo-app.git
+cd geonicdb-demo-app
 
 # 依存パッケージのインストール
 pnpm install
@@ -94,7 +94,7 @@ pnpm install
 cp .env.sample .env
 # .env を編集して Geolonia API キーを追加（地図タイル用）
 
-# Vela にデモデータをロード
+# GeonicDB にデモデータをロード
 ./scripts/demo-data/setup.sh
 
 # 開発サーバーを起動
@@ -108,7 +108,7 @@ pnpm dev
 | 変数 | 説明 | 必須 |
 |------|------|------|
 | `VITE_GEOLONIA_API_KEY` | 地図タイル用 Geolonia Maps API キー | はい |
-| `VITE_VELA_URL` | Vela API URL（デフォルト: `http://localhost:3000`） | いいえ |
+| `VITE_VELA_URL` | GeonicDB API URL（デフォルト: `http://localhost:3000`） | いいえ |
 
 ### デモテナント
 
@@ -124,13 +124,13 @@ pnpm dev
 ## アーキテクチャ
 
 ```text
-vela-demo-app/
+geonicdb-demo-app/
 ├── packages/
 │   ├── shared/              # 共有ライブラリ
-│   │   ├── src/api/         # VelaClient — 型安全な API クライアント
+│   │   ├── src/api/         # GeonicDBClient — 型安全な API クライアント
 │   │   ├── src/types/       # NGSI エンティティ型
 │   │   ├── src/hooks/       # React hooks（useEntities, useGeoEntities）
-│   │   └── src/components/  # VelaMap コンポーネント
+│   │   └── src/components/  # GeonicDBMap コンポーネント
 │   └── dashboard/           # メインデモアプリ
 │       ├── src/pages/       # Landing, Dashboard, Tutorial, SmartBuilding, CityMap
 │       └── src/components/  # ページ固有のコンポーネント
@@ -140,8 +140,8 @@ vela-demo-app/
 
 ## リンク
 
-- **GitHub リポジトリ**: [geolonia/vela-demo-app](https://github.com/geolonia/vela-demo-app)
-- **Vela OS**: [geolonia/vela](https://github.com/geolonia/vela)
+- **GitHub リポジトリ**: [geolonia/geonicdb-demo-app](https://github.com/geolonia/geonicdb-demo-app)
+- **GeonicDB**: [geolonia/geonicdb](https://github.com/geolonia/geonicdb)
 - **Geolonia Maps**: [geolonia.com](https://geolonia.com/)
 
 ## 次のステップ

@@ -1,21 +1,21 @@
 ---
 title: NGSIv2 API リファレンス
-description: Vela OS NGSIv2 REST API の完全リファレンス -- エンティティの CRUD、属性操作、バッチ処理、サブスクリプション、レジストレーション、エンティティタイプ。
+description: GeonicDB NGSIv2 REST API の完全リファレンス -- エンティティの CRUD、属性操作、バッチ処理、サブスクリプション、レジストレーション、エンティティタイプ。
 outline: deep
 ---
 
 # NGSIv2 API リファレンス
 
-このページでは、Vela OS NGSIv2 REST API の完全なリファレンスを提供します。すべてのエンドポイントは、SaaS のベース URL 配下で利用できます。
+このページでは、GeonicDB NGSIv2 REST API の完全なリファレンスを提供します。すべてのエンドポイントは、SaaS のベース URL 配下で利用できます。
 
 ```text
-https://api.vela.geolonia.com/v2/
+https://api.geonicdb.geolonia.com/v2/
 ```
 
 すべてのリクエストには、テナントを指定するための `Fiware-Service` ヘッダーが必要です。
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: mytenant"
 ```
 
@@ -52,7 +52,7 @@ GET /v2/entities
 **リクエスト**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&limit=10&options=count" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&limit=10&options=count" \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -84,7 +84,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&limit=10&options=co
 `options=keyValues` を指定すると、属性はタイプやメタデータを含まないシンプルなキーバリュー形式で返されます。
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&options=keyValues" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&options=keyValues" \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -104,7 +104,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&options=keyValues" 
 `options=geojson` または `Accept: application/geo+json` ヘッダーを指定すると、レスポンスは GeoJSON FeatureCollection 形式でフォーマットされます。
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Store&options=geojson" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Store&options=geojson" \
   -H "Fiware-Service: smartcity"
 ```
 
@@ -135,7 +135,7 @@ POST /v2/entities
 **リクエスト**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -182,7 +182,7 @@ ID を指定して単一のエンティティを取得します。
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001 \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001 \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -224,7 +224,7 @@ PATCH /v2/entities/{entityId}/attrs
 **リクエスト**
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -270,7 +270,7 @@ POST /v2/entities/{entityId}/attrs
 **リクエスト**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -300,7 +300,7 @@ ID を指定してエンティティを削除します。
 **リクエスト**
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001 \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -328,7 +328,7 @@ GET /v2/entities/{entityId}/attrs
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -366,7 +366,7 @@ GET /v2/entities/{entityId}/attrs/{attrName}
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -397,7 +397,7 @@ PUT /v2/entities/{entityId}/attrs/{attrName}
 **リクエスト**
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature \
+curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -425,7 +425,7 @@ DELETE /v2/entities/{entityId}/attrs/{attrName}
 **リクエスト**
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/pressure \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/pressure \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -459,7 +459,7 @@ GET /v2/entities/{entityId}/attrs/{attrName}/value
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature/value \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature/value \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -493,7 +493,7 @@ PUT /v2/entities/{entityId}/attrs/{attrName}/value
 **リクエスト (text/plain)**
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature/value \
+curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs/temperature/value \
   -H "Content-Type: text/plain" \
   -H "Fiware-Service: smartbuilding" \
   -d "25.5"
@@ -502,7 +502,7 @@ curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:001/attrs
 **リクエスト (application/json)**
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Car:001/attrs/location/value \
+curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Car:001/attrs/location/value \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -d '{"type": "Point", "coordinates": [139.76, 35.68]}'
@@ -555,7 +555,7 @@ POST /v2/op/update
 **リクエスト**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/op/update \
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -608,7 +608,7 @@ POST /v2/op/query
 **リクエスト**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/op/query \
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/query \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -654,7 +654,7 @@ POST /v2/op/notify
 **リクエスト**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/op/notify \
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/notify \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -680,7 +680,7 @@ curl -X POST https://api.vela.geolonia.com/v2/op/notify \
 
 ## サブスクリプション
 
-サブスクリプションを使用すると、エンティティデータの変更時に通知を受信できます。Vela は HTTP、MQTT、およびカスタム HTTP（httpCustom）の通知チャネルをサポートしています。
+サブスクリプションを使用すると、エンティティデータの変更時に通知を受信できます。GeonicDB は HTTP、MQTT、およびカスタム HTTP（httpCustom）の通知チャネルをサポートしています。
 
 ### サブスクリプションの作成
 
@@ -691,7 +691,7 @@ POST /v2/subscriptions
 #### HTTP 通知
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -852,7 +852,7 @@ GET /v2/subscriptions
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/subscriptions \
+curl -s https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -897,7 +897,7 @@ GET /v2/subscriptions/{subscriptionId}
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
+curl -s https://api.geonicdb.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -914,7 +914,7 @@ PATCH /v2/subscriptions/{subscriptionId}
 **リクエスト**
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartbuilding" \
   -d '{
@@ -933,7 +933,7 @@ DELETE /v2/subscriptions/{subscriptionId}
 **リクエスト**
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234-5678-ef0123456789 \
   -H "Fiware-Service: smartbuilding"
 ```
 
@@ -941,7 +941,7 @@ curl -X DELETE https://api.vela.geolonia.com/v2/subscriptions/5f8a7b3c-abcd-1234
 
 ## レジストレーション
 
-レジストレーションは、エンティティデータを提供する外部コンテキストプロバイダーを定義します。クエリが登録済みプロバイダーに一致すると、Vela はリクエストを転送し、結果をマージします（フェデレーション）。
+レジストレーションは、エンティティデータを提供する外部コンテキストプロバイダーを定義します。クエリが登録済みプロバイダーに一致すると、GeonicDB はリクエストを転送し、結果をマージします（フェデレーション）。
 
 ### レジストレーションの作成
 
@@ -952,7 +952,7 @@ POST /v2/registrations
 **リクエスト**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/registrations \
+curl -X POST https://api.geonicdb.geolonia.com/v2/registrations \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -d '{
@@ -1008,7 +1008,7 @@ GET /v2/registrations
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/registrations \
+curl -s https://api.geonicdb.geolonia.com/v2/registrations \
   -H "Fiware-Service: smartcity" | jq .
 ```
 
@@ -1050,7 +1050,7 @@ PATCH /v2/registrations/{registrationId}
 **リクエスト**
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/registrations/5f8a7b3c-1234-5678-abcd-ef0123456789 \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/registrations/5f8a7b3c-1234-5678-abcd-ef0123456789 \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -d '{
@@ -1069,7 +1069,7 @@ DELETE /v2/registrations/{registrationId}
 **リクエスト**
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/registrations/5f8a7b3c-1234-5678-abcd-ef0123456789 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/registrations/5f8a7b3c-1234-5678-abcd-ef0123456789 \
   -H "Fiware-Service: smartcity"
 ```
 
@@ -1077,13 +1077,13 @@ curl -X DELETE https://api.vela.geolonia.com/v2/registrations/5f8a7b3c-1234-5678
 
 ### フェデレーション
 
-クエリが登録済みプロバイダーに一致すると、Vela は自動的にリクエストを外部プロバイダーに転送し、ローカルデータと結果をマージします。
+クエリが登録済みプロバイダーに一致すると、GeonicDB は自動的にリクエストを外部プロバイダーに転送し、ローカルデータと結果をマージします。
 
 ```text
 Client Request
     |
     v
-Vela Context Broker
+GeonicDB Context Broker
     |
     +-- Local DB query
     |
@@ -1122,7 +1122,7 @@ GET /v2/types
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/types \
+curl -s https://api.geonicdb.geolonia.com/v2/types \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -1152,7 +1152,7 @@ GET /v2/types/{typeName}
 **リクエスト**
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/types/Room \
+curl -s https://api.geonicdb.geolonia.com/v2/types/Room \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
@@ -1215,7 +1215,7 @@ curl -s https://api.vela.geolonia.com/v2/types/Room \
 **例: ある地点から 1 km 以内のエンティティを検索**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Store&georel=near;maxDistance:1000&geometry=point&coords=35.6895,139.6917" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Store&georel=near;maxDistance:1000&geometry=point&coords=35.6895,139.6917" \
   -H "Fiware-Service: smartcity"
 ```
 

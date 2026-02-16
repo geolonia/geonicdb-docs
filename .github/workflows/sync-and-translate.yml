@@ -1,9 +1,9 @@
-name: Sync and Translate Vela Docs
+name: Sync and Translate GeonicDB Docs
 
 on:
   workflow_dispatch:
   repository_dispatch:
-    types: [vela-docs-sync]
+    types: [geonicdb-docs-sync]
 
 permissions:
   contents: write
@@ -13,14 +13,14 @@ jobs:
   sync-and-translate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout vela-docs
+      - name: Checkout geonicdb-docs
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Checkout geolonia/vela (docs/ only via sparse-checkout)
+      - name: Checkout geolonia/geonicdb (docs/ only via sparse-checkout)
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          repository: geolonia/vela
-          path: .vela-upstream
+          repository: geolonia/geonicdb
+          path: .geonicdb-upstream
           sparse-checkout: docs
           sparse-checkout-cone-mode: false
 
@@ -37,7 +37,7 @@ jobs:
         run: pnpm install
 
       - name: Run sync-docs
-        run: VELA_REPO_PATH=.vela-upstream pnpm run sync-docs
+        run: GEONICDB_REPO_PATH=.geonicdb-upstream pnpm run sync-docs
 
       - name: Detect changed files
         id: detect
@@ -94,19 +94,19 @@ jobs:
         if: steps.detect.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
-          commit-message: "docs: sync and translate from vela/docs (${{ github.event.client_payload.sha || 'manual' }})"
-          title: "docs: sync and translate from vela/docs"
+          commit-message: "docs: sync and translate from geonicdb/docs (${{ github.event.client_payload.sha || 'manual' }})"
+          title: "docs: sync and translate from geonicdb/docs"
           body: |
             ## Automated Sync & Translation
 
             **Trigger**: ${{ github.event_name }}
-            **Vela SHA**: ${{ github.event.client_payload.sha || 'N/A (manual dispatch)' }}
+            **GeonicDB SHA**: ${{ github.event.client_payload.sha || 'N/A (manual dispatch)' }}
 
             ### Changed files
             ${{ steps.detect.outputs.file_list }}
 
             ### Process
-            1. Synced docs from geolonia/vela
+            1. Synced docs from geolonia/geonicdb
             2. Translated changed English docs to Japanese via yuuhitsu
             3. Build verification passed
           branch: docs/auto-sync-translate

@@ -1,26 +1,26 @@
 ---
 title: AI 連携の使用例
-description: Python（Claude SDK / OpenAI SDK）と curl（MCP）を使った Vela OS と AI エージェントの連携コード例。
+description: Python（Claude SDK / OpenAI SDK）と curl（MCP）を使った GeonicDB と AI エージェントの連携コード例。
 outline: deep
 ---
 
 # AI 連携の使用例
 
-このページでは、さまざまなアプローチで AI エージェントと Vela OS を連携する実装例を紹介します。
+このページでは、さまざまなアプローチで AI エージェントと GeonicDB を連携する実装例を紹介します。
 
 ## Python + Claude API
 
-Anthropic Python SDK と Vela のツール定義を使用:
+Anthropic Python SDK と GeonicDB のツール定義を使用:
 
 ```python
 import anthropic
 import requests
 import json
 
-VELA_API = "https://api.vela.geolonia.com"
+VELA_API = "https://api.geonicdb.geolonia.com"
 API_KEY = "YOUR_API_KEY"
 
-# ステップ 1: Vela からツール定義を取得
+# ステップ 1: GeonicDB からツール定義を取得
 tools = requests.get(f"{VELA_API}/tools.json").json()["tools"]
 
 # ステップ 2: Claude クライアントを作成しツール付きでリクエスト送信
@@ -40,7 +40,7 @@ for block in response.content:
         tool_name = block.name
         tool_input = block.input
 
-        # ツール名から Vela API エンドポイントとメソッドを決定
+        # ツール名から GeonicDB API エンドポイントとメソッドを決定
         if tool_name == "list_entities":
             result = requests.get(
                 f"{VELA_API}/v2/entities",
@@ -61,14 +61,14 @@ for block in response.content:
 
 ## Python + OpenAI API
 
-OpenAI Python SDK と Vela のツール定義を Function Calling 形式に変換して使用:
+OpenAI Python SDK と GeonicDB のツール定義を Function Calling 形式に変換して使用:
 
 ```python
 import openai
 import requests
 import json
 
-VELA_API = "https://api.vela.geolonia.com"
+VELA_API = "https://api.geonicdb.geolonia.com"
 API_KEY = "YOUR_API_KEY"
 
 # ステップ 1: ツール定義を取得して変換
@@ -108,12 +108,12 @@ for choice in response.choices:
 
 ## curl + MCP
 
-curl を使って Vela の MCP サーバーと直接やり取り:
+curl を使って GeonicDB の MCP サーバーと直接やり取り:
 
 ### MCP セッション初期化
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -132,7 +132,7 @@ curl -X POST https://api.vela.geolonia.com/mcp \
 ### 利用可能なツール一覧取得
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -147,7 +147,7 @@ curl -X POST https://api.vela.geolonia.com/mcp \
 ### ツール呼び出し（エンティティ一覧取得）
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -169,7 +169,7 @@ curl -X POST https://api.vela.geolonia.com/mcp \
 ### MCP 経由でエンティティ作成
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -203,7 +203,7 @@ curl -X POST https://api.vela.geolonia.com/mcp \
 import requests
 
 # LLM 向け最適化ドキュメントを取得
-llms_txt = requests.get("https://api.vela.geolonia.com/").text
+llms_txt = requests.get("https://api.geonicdb.geolonia.com/").text
 
 # LLM のシステムコンテキストとして使用
 print(f"API ドキュメント長: {len(llms_txt)} 文字")

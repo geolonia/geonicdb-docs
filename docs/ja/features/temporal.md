@@ -1,16 +1,16 @@
 ---
 title: Temporal API
-description: Vela OS の Temporal API でエンティティ履歴と時系列データにアクセスし、TTL を管理する方法。
+description: GeonicDB の Temporal API でエンティティ履歴と時系列データにアクセスし、TTL を管理する方法。
 outline: deep
 ---
 
 # Temporal API
 
-Vela OS は、エンティティの時間的な状態履歴にアクセスするための **Temporal API** を提供します。属性の変更がすべて記録されるため、時系列分析、トレンドモニタリング、コンテキストデータの監査が可能です。
+GeonicDB は、エンティティの時間的な状態履歴にアクセスするための **Temporal API** を提供します。属性の変更がすべて記録されるため、時系列分析、トレンドモニタリング、コンテキストデータの監査が可能です。
 
 ## 概要
 
-Temporal API は NGSI-LD の時間的表現モデルに準拠しています。テンポラルトラッキングが有効な場合、Vela OS は各エンティティ属性の更新を時間インデックス付きのレコードとして保存し、属性の完全な履歴をクエリできるようにします。
+Temporal API は NGSI-LD の時間的表現モデルに準拠しています。テンポラルトラッキングが有効な場合、GeonicDB は各エンティティ属性の更新を時間インデックス付きのレコードとして保存し、属性の完全な履歴をクエリできるようにします。
 
 ## テンポラルデータのクエリ
 
@@ -18,7 +18,7 @@ Temporal API は NGSI-LD の時間的表現モデルに準拠しています。�
 
 ```bash
 # エンティティのテンポラル履歴を取得
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
   --data-urlencode "timerel=between" \
   --data-urlencode "timeAt=2026-01-01T00:00:00Z" \
   --data-urlencode "endTimeAt=2026-01-31T23:59:59Z" \
@@ -75,7 +75,7 @@ curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:R
 
 ```bash
 # すべての Room エンティティのテンポラルデータを取得
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities \
   --data-urlencode "type=Room" \
   --data-urlencode "timerel=after" \
   --data-urlencode "timeAt=2026-01-15T00:00:00Z" \
@@ -90,7 +90,7 @@ curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities \
 特定の属性の履歴のみを取得：
 
 ```bash
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
   --data-urlencode "attrs=temperature,humidity" \
   --data-urlencode "timerel=after" \
   --data-urlencode "timeAt=2026-01-15T00:00:00Z" \
@@ -100,13 +100,13 @@ curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:R
 
 ## TTL（Time-to-Live）
 
-Vela OS はストレージの増大を管理するために、テンポラルデータの TTL 設定をサポートしています。設定された TTL を超えたテンポラルレコードは自動的にパージされます。
+GeonicDB はストレージの増大を管理するために、テンポラルデータの TTL 設定をサポートしています。設定された TTL を超えたテンポラルレコードは自動的にパージされます。
 
 ### 設定
 
 TTL はテナントレベルで設定されます。保持期間を超えたレコードは MongoDB の TTL インデックスにより自動的にクリーンアップされます。
 
-> **注:** Vela OS SaaS では、TTL は管理者によってテナントレベルで管理されます。TTL 設定の詳細については、[Admin API ドキュメント](/ja/api-reference/admin)を参照してください。
+> **注:** GeonicDB SaaS では、TTL は管理者によってテナントレベルで管理されます。TTL 設定の詳細については、[Admin API ドキュメント](/ja/api-reference/admin)を参照してください。
 
 ### ユースケース
 
@@ -123,7 +123,7 @@ TTL はテナントレベルで設定されます。保持期間を超えたレ�
 
 ```bash
 # 過去24時間の時間ごとの温度データを取得
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
   --data-urlencode "attrs=temperature" \
   --data-urlencode "timerel=after" \
   --data-urlencode "timeAt=2026-01-14T10:00:00Z" \

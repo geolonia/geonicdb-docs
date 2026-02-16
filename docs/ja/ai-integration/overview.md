@@ -1,16 +1,16 @@
 ---
 title: AI 連携 概要
-description: Vela OS は AI ネイティブ Context Broker として、MCP サーバー、llms.txt、tools.json など複数の AI 向けインターフェースを提供します。
+description: GeonicDB は AI ネイティブ Context Broker として、MCP サーバー、llms.txt、tools.json など複数の AI 向けインターフェースを提供します。
 outline: deep
 ---
 
 # AI 連携 概要
 
-Vela OS は **AI ネイティブ Context Broker** として設計されており、AI エージェント（Claude、GPT-4、Gemini 等）がカスタム統合コードなしで IoT コンテキストデータを検出・クエリ・管理できる複数の標準化インターフェースを提供します。
+GeonicDB は **AI ネイティブ Context Broker** として設計されており、AI エージェント（Claude、GPT-4、Gemini 等）がカスタム統合コードなしで IoT コンテキストデータを検出・クエリ・管理できる複数の標準化インターフェースを提供します。
 
 ## AI 連携の3本柱
 
-Vela OS は3つの補完的な AI インターフェースを公開しています:
+GeonicDB は3つの補完的な AI インターフェースを公開しています:
 
 | エンドポイント | 形式 | 用途 |
 |---------------|------|------|
@@ -25,15 +25,15 @@ Vela OS は3つの補完的な AI インターフェースを公開していま�
 | `GET /openapi.json` | JSON | OpenAPI 3.0 仕様 |
 | `GET /.well-known/ai-plugin.json` | JSON | AI プラグイン検出用マニフェスト |
 
-## AI エージェントによる Vela の利用フロー
+## AI エージェントによる GeonicDB の利用フロー
 
 ### 1. ディスカバリ
 
-AI エージェントはまず `GET /`（llms.txt）または `GET /tools.json` を取得して Vela の機能を把握します。これらのエンドポイントは、利用可能な操作・パラメータ・認証要件をエージェントが理解できる形式で記述しています。
+AI エージェントはまず `GET /`（llms.txt）または `GET /tools.json` を取得して GeonicDB の機能を把握します。これらのエンドポイントは、利用可能な操作・パラメータ・認証要件をエージェントが理解できる形式で記述しています。
 
 ### 2. インタラクション
 
-エージェントは2つの経路で Vela と連携します:
+エージェントは2つの経路で GeonicDB と連携します:
 
 - **MCP プロトコル** — `POST /mcp` 経由で Model Context Protocol を使用。Claude Desktop 等の MCP 対応クライアントに最適で、8つの組み込みツールを備えた構造化ツール呼び出しインターフェースを提供します。
 - **直接 API 呼び出し** — `tools.json` や `openapi.json` のスキーマを使って NGSIv2 / NGSI-LD エンドポイントを直接呼び出します。
@@ -50,7 +50,7 @@ AI エージェントはまず `GET /`（llms.txt）または `GET /tools.json` 
 
 ## 利用可能な MCP ツール
 
-Vela の MCP サーバーは **8つのツール** を公開しており、各ツールは `action` パラメータで操作を選択します:
+GeonicDB の MCP サーバーは **8つのツール** を公開しており、各ツールは `action` パラメータで操作を選択します:
 
 | ツール | アクション | 説明 |
 |--------|-----------|------|
@@ -65,7 +65,7 @@ Vela の MCP サーバーは **8つのツール** を公開しており、各ツ
 
 ## NGSI-LD 属性型の自動検出
 
-MCP ツール経由でエンティティを作成・更新する際、Vela は値から NGSI-LD 属性型を自動推論します:
+MCP ツール経由でエンティティを作成・更新する際、GeonicDB は値から NGSI-LD 属性型を自動推論します:
 
 | 値のパターン | 検出される型 | 例 |
 |------------|-----------|-----|

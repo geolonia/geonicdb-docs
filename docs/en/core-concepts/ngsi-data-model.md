@@ -1,12 +1,12 @@
 ---
 title: NGSI Data Model
-description: Understand the core data model concepts — Entities, Attributes, and Metadata — that form the foundation of the NGSI information model used by Vela OS.
+description: Understand the core data model concepts — Entities, Attributes, and Metadata — that form the foundation of the NGSI information model used by GeonicDB.
 outline: deep
 ---
 
 # NGSI Data Model
 
-Vela OS manages context information using the **NGSI (Next Generation Service Interface)** data model. This page explains the core building blocks: **Entities**, **Attributes**, and **Metadata**.
+GeonicDB manages context information using the **NGSI (Next Generation Service Interface)** data model. This page explains the core building blocks: **Entities**, **Attributes**, and **Metadata**.
 
 ## Entities
 
@@ -105,7 +105,7 @@ NGSI-LD uses semantically richer attribute types:
 
 ### Attribute Type Mapping
 
-Vela OS automatically converts between NGSIv2 and NGSI-LD attribute types:
+GeonicDB automatically converts between NGSIv2 and NGSI-LD attribute types:
 
 | NGSIv2 Type | NGSI-LD Type | Description |
 |-------------|--------------|-------------|
@@ -198,7 +198,7 @@ In NGSIv2, system attributes are returned when `options=dateCreated,dateModified
 
 ## JSON-LD Context
 
-NGSI-LD uses `@context` to define vocabulary and semantics. Vela OS supports the NGSI-LD core context and automatically resolves Smart Data Models contexts:
+NGSI-LD uses `@context` to define vocabulary and semantics. GeonicDB supports the NGSI-LD core context and automatically resolves Smart Data Models contexts:
 
 ```json
 {

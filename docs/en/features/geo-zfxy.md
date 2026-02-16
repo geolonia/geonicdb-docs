@@ -1,12 +1,12 @@
 ---
 title: Geo-Queries & Spatial ID (ZFXY)
-description: Perform geographic queries using near, within, intersects, and coveredBy operators, and leverage Spatial ID (ZFXY) support in Vela OS.
+description: Perform geographic queries using near, within, intersects, and coveredBy operators, and leverage Spatial ID (ZFXY) support in GeonicDB.
 outline: deep
 ---
 
 # Geo-Queries & Spatial ID (ZFXY)
 
-Vela OS provides powerful geographic query capabilities for filtering entities by location. It supports standard NGSI geo-query operators, GeoJSON geometry types, and Japan's Spatial ID (ZFXY) tile-based spatial indexing system.
+GeonicDB provides powerful geographic query capabilities for filtering entities by location. It supports standard NGSI geo-query operators, GeoJSON geometry types, and Japan's Spatial ID (ZFXY) tile-based spatial indexing system.
 
 ## Geo-Query Operators
 
@@ -16,7 +16,7 @@ Use the `georel`, `geometry`, and `coords` parameters to filter entities by geog
 
 ```bash
 # Find entities near a point (within 1km)
-curl -G https://api.vela.geolonia.com/v2/entities \
+curl -G https://api.geonicdb.geolonia.com/v2/entities \
   --data-urlencode "georel=near;maxDistance:1000" \
   --data-urlencode "geometry=point" \
   --data-urlencode "coords=35.6812,139.7671" \
@@ -48,7 +48,7 @@ NGSI-LD uses `geoproperty`, `georel`, `geometry`, and `coordinates` parameters:
 
 ```bash
 # Find entities within a polygon
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   --data-urlencode "type=Building" \
   --data-urlencode "georel=within" \
   --data-urlencode "geometry=Polygon" \
@@ -61,7 +61,7 @@ curl -G https://api.vela.geolonia.com/ngsi-ld/v1/entities \
 
 ```bash
 # Entities within 500 meters of Tokyo Station
-curl -G https://api.vela.geolonia.com/v2/entities \
+curl -G https://api.geonicdb.geolonia.com/v2/entities \
   --data-urlencode "type=Sensor" \
   --data-urlencode "georel=near;maxDistance:500" \
   --data-urlencode "geometry=point" \
@@ -76,12 +76,12 @@ The `near` operator supports:
 
 ## GeoJSON Support
 
-Vela OS stores and returns entity locations using standard GeoJSON format.
+GeonicDB stores and returns entity locations using standard GeoJSON format.
 
 ### Creating an Entity with Location
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -105,7 +105,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 ### NGSI-LD GeoProperty
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/json" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -135,7 +135,7 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
 
 ## Spatial ID (ZFXY)
 
-Vela OS supports Japan's **Spatial ID (ZFXY)** system, a tile-based spatial indexing scheme aligned with the Digital Agency / IPA guidelines. ZFXY divides 3D space into a hierarchical grid using zoom level (Z), floor (F), X, and Y coordinates.
+GeonicDB supports Japan's **Spatial ID (ZFXY)** system, a tile-based spatial indexing scheme aligned with the Digital Agency / IPA guidelines. ZFXY divides 3D space into a hierarchical grid using zoom level (Z), floor (F), X, and Y coordinates.
 
 ### ZFXY Format
 
@@ -154,7 +154,7 @@ Vela OS supports Japan's **Spatial ID (ZFXY)** system, a tile-based spatial inde
 
 ```bash
 # Query entities within a specific spatial tile
-curl -G https://api.vela.geolonia.com/v2/entities \
+curl -G https://api.geonicdb.geolonia.com/v2/entities \
   --data-urlencode "type=Sensor" \
   --data-urlencode "spatialId=15/0/29103/12903" \
   -H "Fiware-Service: smartcity" \

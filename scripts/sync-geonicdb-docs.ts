@@ -2,11 +2,11 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 
 import { join, basename, dirname, relative } from 'node:path'
 
 // ---------------------------------------------------------------------------
-// Vela docs/ → VitePress docs/ja/ sync script
+// GeonicDB docs/ → VitePress docs/ja/ sync script
 // ---------------------------------------------------------------------------
 // Usage:
-//   VELA_REPO_PATH=/path/to/vela pnpm sync-docs
-//   (CI: VELA_REPO_PATH=.vela-upstream pnpm sync-docs)
+//   GEONICDB_REPO_PATH=/path/to/geonicdb pnpm sync-docs
+//   (CI: GEONICDB_REPO_PATH=.geonicdb-upstream pnpm sync-docs)
 // ---------------------------------------------------------------------------
 
 /** Convert UPPER_SNAKE.md → lower-kebab.md */
@@ -54,7 +54,7 @@ interface MappingEntry {
 
 const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   'API.md': [
-    { dest: 'api-reference/endpoints.md', title: 'API 共通仕様', description: 'Vela API の共通仕様・認証・クエリパラメータ' },
+    { dest: 'api-reference/endpoints.md', title: 'API 共通仕様', description: 'GeonicDB API の共通仕様・認証・クエリパラメータ' },
   ],
   'API_NGSIV2.md': [
     { dest: 'api-reference/ngsiv2.md', title: 'NGSIv2 API', description: 'NGSIv2 API リファレンス' },
@@ -81,7 +81,7 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
     { dest: 'api-reference/admin.md', title: '認証管理 API', description: 'Admin API リファレンス' },
   ],
   'AI_INTEGRATION.md': [
-    { dest: 'ai-integration/overview.md', title: 'AI 連携 概要', description: 'Vela の AI ネイティブ機能概要' },
+    { dest: 'ai-integration/overview.md', title: 'AI 連携 概要', description: 'GeonicDB の AI ネイティブ機能概要' },
     { dest: 'ai-integration/tools-json.md', title: 'tools.json', description: 'AI ツール定義（tools.json）' },
     { dest: 'ai-integration/examples.md', title: 'AI 連携サンプル', description: 'AI 連携コード例' },
   ],
@@ -147,7 +147,7 @@ function buildLinkMap(): Record<string, string> {
 const LINK_MAP = buildLinkMap()
 
 /**
- * Rewrite internal links that reference other Vela docs files.
+ * Rewrite internal links that reference other GeonicDB docs files.
  * Patterns handled:
  *   ./FILENAME.md  →  relative path to dest
  *   ./FILENAME     →  relative path to dest
@@ -189,15 +189,15 @@ const writtenDests = new Map<string, string>()
 // ---------------------------------------------------------------------------
 
 function main() {
-  const velaRepoPath = process.env.VELA_REPO_PATH
-  if (!velaRepoPath) {
-    console.error('Error: VELA_REPO_PATH environment variable is not set.')
-    console.error('  Local:  VELA_REPO_PATH=/path/to/vela pnpm sync-docs')
-    console.error('  CI:     VELA_REPO_PATH=.vela-upstream pnpm sync-docs')
+  const geonicdbRepoPath = process.env.GEONICDB_REPO_PATH
+  if (!geonicdbRepoPath) {
+    console.error('Error: GEONICDB_REPO_PATH environment variable is not set.')
+    console.error('  Local:  GEONICDB_REPO_PATH=/path/to/geonicdb pnpm sync-docs')
+    console.error('  CI:     GEONICDB_REPO_PATH=.geonicdb-upstream pnpm sync-docs')
     process.exit(1)
   }
 
-  const docsDir = join(velaRepoPath, 'docs')
+  const docsDir = join(geonicdbRepoPath, 'docs')
   if (!existsSync(docsDir)) {
     console.error(`Error: docs/ directory not found at ${docsDir}`)
     process.exit(1)

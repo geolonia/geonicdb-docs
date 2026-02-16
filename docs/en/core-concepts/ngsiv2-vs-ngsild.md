@@ -1,16 +1,16 @@
 ---
 title: NGSIv2 vs NGSI-LD
-description: A side-by-side comparison of NGSIv2 and NGSI-LD APIs in Vela OS — unified internal format, cross-API access, attribute mapping, and when to use which API.
+description: A side-by-side comparison of NGSIv2 and NGSI-LD APIs in GeonicDB — unified internal format, cross-API access, attribute mapping, and when to use which API.
 outline: deep
 ---
 
 # NGSIv2 vs NGSI-LD
 
-Vela OS supports both **NGSIv2** and **NGSI-LD** on the same instance. A unified internal entity format allows data written through one API to be read through the other, with automatic format transformation handled transparently. This page provides a comprehensive comparison of the two APIs.
+GeonicDB supports both **NGSIv2** and **NGSI-LD** on the same instance. A unified internal entity format allows data written through one API to be read through the other, with automatic format transformation handled transparently. This page provides a comprehensive comparison of the two APIs.
 
 ## Unified Architecture
 
-Unlike FIWARE Orion (NGSIv2 only) and Orion-LD (NGSI-LD only), Vela OS serves both APIs from a single deployment backed by a single MongoDB database. Both API layers share the same entity storage and subscription infrastructure.
+Unlike FIWARE Orion (NGSIv2 only) and Orion-LD (NGSI-LD only), GeonicDB serves both APIs from a single deployment backed by a single MongoDB database. Both API layers share the same entity storage and subscription infrastructure.
 
 ```text
 ┌─────────────────────────────────────────────────┐
@@ -42,14 +42,14 @@ Each API layer has its own **transformer** that converts between the wire format
 
 ## Cross-API Access
 
-Entities created via one API can be read, updated, and deleted via the other. This is the core benefit of Vela's unified architecture.
+Entities created via one API can be read, updated, and deleted via the other. This is the core benefit of GeonicDB's unified architecture.
 
 ### Write via NGSIv2, Read via NGSI-LD
 
 Create an entity using the NGSIv2 API:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo" \
@@ -76,7 +76,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 Read the same entity via the NGSI-LD API:
 
 ```bash
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo"
 ```
@@ -108,7 +108,7 @@ Response (NGSI-LD normalized format):
 Create an entity using the NGSI-LD API:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo" \
@@ -131,7 +131,7 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
 Read via NGSIv2:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo"
 ```
@@ -160,7 +160,7 @@ Response (NGSIv2 normalized format):
 
 ## Attribute Type Mapping
 
-Vela OS automatically converts attribute types between the two API formats. The mapping is deterministic and lossless for all standard types.
+GeonicDB automatically converts attribute types between the two API formats. The mapping is deterministic and lossless for all standard types.
 
 | NGSIv2 Type | NGSI-LD Type | Description |
 |-------------|--------------|-------------|
@@ -189,7 +189,7 @@ Both APIs track entity creation and modification timestamps, but use different f
 In **NGSIv2**, system attributes are only included when explicitly requested via query parameters:
 
 ```bash
-curl "https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=dateCreated,dateModified" \
+curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=dateCreated,dateModified" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo"
 ```
@@ -210,11 +210,11 @@ Each API supports different output format options.
 
 ```bash
 # Normalized (default)
-curl "https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101" \
+curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 
 # keyValues
-curl "https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=keyValues" \
+curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=keyValues" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 ```
 
@@ -238,11 +238,11 @@ keyValues response:
 
 ```bash
 # Normalized (default)
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 
 # Concise
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101?options=concise" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101?options=concise" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 ```
 
@@ -325,7 +325,7 @@ Entity-level scope filtering using the `scope` attribute and `scopeQ` query para
 ```
 
 ```bash
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&scopeQ=/building/#" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&scopeQ=/building/#" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 ```
 
@@ -335,11 +335,11 @@ Fine-grained attribute selection using `pick` and `omit` query parameters:
 
 ```bash
 # Return only temperature and humidity
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&pick=temperature,humidity" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&pick=temperature,humidity" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 
 # Return all attributes except location
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&omit=location" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&omit=location" \
   -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
 ```
 
@@ -348,7 +348,7 @@ curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&omit=location"
 NGSI-LD uses `@context` to define vocabulary mappings and provide semantic meaning. The context can be provided inline or via the `Link` header:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo" \
@@ -386,7 +386,7 @@ urn:ngsi-ld:WeatherObserved:Tokyo-2026-02-10
 ```
 
 ::: warning Short IDs and NGSI-LD
-NGSI-LD technically requires entity IDs to be valid URIs. While Vela OS accepts short IDs like `Room1` for convenience, they may cause issues with strict NGSI-LD clients. Always use URN format for production deployments.
+NGSI-LD technically requires entity IDs to be valid URIs. While GeonicDB accepts short IDs like `Room1` for convenience, they may cause issues with strict NGSI-LD clients. Always use URN format for production deployments.
 :::
 
 For more detail on entity IDs, types, and attributes, see [NGSI Data Model](/en/core-concepts/ngsi-data-model).
@@ -423,7 +423,7 @@ For more detail on entity IDs, types, and attributes, see [NGSI Data Model](/en/
 
 ## Hybrid Operation Patterns
 
-One of Vela's key strengths is enabling hybrid operation — running both APIs simultaneously on the same data.
+One of GeonicDB's key strengths is enabling hybrid operation — running both APIs simultaneously on the same data.
 
 ### Gradual Migration
 
@@ -435,7 +435,7 @@ Migrate from NGSIv2 to NGSI-LD incrementally. Existing NGSIv2 services continue 
 └──────────────────────────┘                   │
                                                 ▼
                                           ┌──────────┐
-                                          │ Vela OS  │
+                                          │ GeonicDB  │
                                           │ (shared  │
                                           │  data)   │
                                           └──────────┘
@@ -454,7 +454,7 @@ Use the API format that best suits each use case:
 
 ```bash
 # IoT device writes via NGSIv2 (simple)
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" \
@@ -466,7 +466,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 
 # Analytics platform reads via NGSI-LD (semantic)
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=AirQualityObserved&options=keyValues" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=AirQualityObserved&options=keyValues" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" \
   -H "Link: <https://smartdatamodels.org/context.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
@@ -478,7 +478,7 @@ Subscriptions created via one API will trigger for entity changes made through e
 
 ```bash
 # Create a subscription via NGSI-LD
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" \

@@ -1,6 +1,6 @@
 ---
 title: 変更履歴
-description: Vela OS の変更履歴
+description: GeonicDB の変更履歴
 outline: deep
 ---
 
@@ -47,7 +47,7 @@ outline: deep
 - データカタログAPI（CKAN/DCAT互換）
 - 新規ユーザー向けQUICKSTART.mdガイド (#372)
 - 包括的なAWSデプロイ手順を含むDEPLOYMENT.md (#382)
-- VelaOS取扱説明書（docs/instruction.md）とPDF生成スクリプト（npm run docs:pdf） (#400)
+- GeonicDB取扱説明書（docs/instruction.md）とPDF生成スクリプト（npm run docs:pdf） (#400)
 - instruction.md の全サンプルを検証する E2E テスト（tests/e2e/features/common/instruction.feature） (#400)
 
 ### Changed
@@ -76,7 +76,7 @@ outline: deep
 ## [0.1.0] - 2026-02-11
 
 ### Added
-- VelaOS初回リリース - AWS Lambda上で動作するFIWARE Orion互換Context Broker
+- GeonicDB初回リリース - AWS Lambda上で動作するFIWARE Orion互換Context Broker
 - NGSIv2 API実装
   - エンティティCRUD操作
   - サブスクリプション
@@ -104,5 +104,5 @@ outline: deep
 - 単体テストカバレッジ ~99%（Jest）
 - インメモリMongoDBを使用したローカル開発サーバー（`npm start`）
 
-[unreleased]: https://github.com/geolonia/vela/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/geolonia/vela/releases/tag/v0.1.0
+[unreleased]: https://github.com/geolonia/geonicdb/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/geolonia/geonicdb/releases/tag/v0.1.0

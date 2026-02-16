@@ -1,12 +1,12 @@
 ---
 title: tools.json
-description: Vela OS は Claude Tool Use および OpenAI Function Calling と互換性のあるツール定義を tools.json エンドポイントで提供します。
+description: GeonicDB は Claude Tool Use および OpenAI Function Calling と互換性のあるツール定義を tools.json エンドポイントで提供します。
 outline: deep
 ---
 
 # tools.json
 
-Vela OS は `tools.json` エンドポイントで **Claude Tool Use** および **OpenAI Function Calling** と互換性のあるツール定義を提供します。AI エージェントはこのスキーマを取得し、手動設定なしで構造化された API 呼び出しを行えます。
+GeonicDB は `tools.json` エンドポイントで **Claude Tool Use** および **OpenAI Function Calling** と互換性のあるツール定義を提供します。AI エージェントはこのスキーマを取得し、手動設定なしで構造化された API 呼び出しを行えます。
 
 ## エンドポイント
 
@@ -22,9 +22,9 @@ Vela OS は `tools.json` エンドポイントで **Claude Tool Use** および 
 {
   "schemaVersion": "1.0.0",
   "apiVersion": "1.0.0",
-  "name": "VelaOS",
+  "name": "GeonicDB",
   "description": "FIWARE Orion-compatible Context Broker API tools",
-  "baseUrl": "https://api.vela.geolonia.com",
+  "baseUrl": "https://api.geonicdb.geolonia.com",
   "tools": [
     {
       "name": "entities",
@@ -78,7 +78,7 @@ import anthropic
 import requests
 
 # ツール定義を取得
-tools_response = requests.get("https://api.vela.geolonia.com/tools.json")
+tools_response = requests.get("https://api.geonicdb.geolonia.com/tools.json")
 tools = tools_response.json()["tools"]
 
 # Claude で使用
@@ -99,7 +99,7 @@ import openai
 import requests
 
 # ツール定義を取得して変換
-tools_data = requests.get("https://api.vela.geolonia.com/tools.json").json()
+tools_data = requests.get("https://api.geonicdb.geolonia.com/tools.json").json()
 openai_tools = [
     {
         "type": "function",
@@ -123,19 +123,19 @@ response = client.chat.completions.create(
 
 ## AI プラグインマニフェスト
 
-Vela は API ディスカバリ用の AI プラグインマニフェストも提供しています:
+GeonicDB は API ディスカバリ用の AI プラグインマニフェストも提供しています:
 
 ```bash
-curl https://api.vela.geolonia.com/.well-known/ai-plugin.json
+curl https://api.geonicdb.geolonia.com/.well-known/ai-plugin.json
 ```
 
 ```json
 {
   "schema_version": "v1",
-  "name_for_human": "VelaOS",
-  "name_for_model": "vela",
+  "name_for_human": "GeonicDB",
+  "name_for_model": "geonicdb",
   "description_for_human": "FIWARE Orion-compatible Context Broker for IoT data",
-  "description_for_model": "VelaOS is a FIWARE Orion-compatible Context Broker...",
+  "description_for_model": "GeonicDB is a FIWARE Orion-compatible Context Broker...",
   "auth": { "type": "none" },
   "api": { "type": "openapi", "url": "/openapi.json" },
   "tools": { "url": "/tools.json" }

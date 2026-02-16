@@ -1,6 +1,6 @@
 ---
 title: Changelog
-description: Vela OS changelog
+description: GeonicDB changelog
 outline: deep
 ---
 
@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Data catalog API (CKAN/DCAT compatible)
 - QUICKSTART.md guide for new users (#372)
 - DEPLOYMENT.md with comprehensive AWS deployment instructions (#382)
-- VelaOS Instruction Manual (docs/instruction.md) and PDF generation script (npm run docs:pdf) (#400)
+- GeonicDB Instruction Manual (docs/instruction.md) and PDF generation script (npm run docs:pdf) (#400)
 - E2E tests validating all samples in instruction.md (tests/e2e/features/common/instruction.feature) (#400)
 
 ### Changed
@@ -76,7 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-02-11
 
 ### Added
-- Initial VelaOS release - FIWARE Orion-compatible Context Broker on AWS Lambda
+- Initial GeonicDB release - FIWARE Orion-compatible Context Broker on AWS Lambda
 - NGSIv2 API implementation
   - Entity CRUD operations
   - Subscriptions
@@ -104,5 +104,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit test coverage ~99% (Jest)
 - Local development server with in-memory MongoDB (`npm start`)
 
-[unreleased]: https://github.com/geolonia/vela/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/geolonia/vela/releases/tag/v0.1.0
+[unreleased]: https://github.com/geolonia/geonicdb/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/geolonia/geonicdb/releases/tag/v0.1.0

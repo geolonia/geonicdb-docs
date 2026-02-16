@@ -1,19 +1,19 @@
 ---
 title: Federation
-description: Distribute queries across multiple Context Brokers using Context Source Registrations (CSR) in Vela OS.
+description: Distribute queries across multiple Context Brokers using Context Source Registrations (CSR) in GeonicDB.
 outline: deep
 ---
 
 # Federation
 
-Vela OS supports **federation** through Context Source Registrations (CSR), allowing you to distribute queries and updates across multiple Context Brokers. This enables a decentralized architecture where different data providers manage their own entities while a central broker can aggregate and forward requests seamlessly.
+GeonicDB supports **federation** through Context Source Registrations (CSR), allowing you to distribute queries and updates across multiple Context Brokers. This enables a decentralized architecture where different data providers manage their own entities while a central broker can aggregate and forward requests seamlessly.
 
 ## Overview
 
-Federation in Vela OS works by registering external Context Brokers (context providers) that can supply data for specific entity types or patterns. When a query arrives for entities that match a registration, Vela OS forwards the request to the registered provider and merges the results.
+Federation in GeonicDB works by registering external Context Brokers (context providers) that can supply data for specific entity types or patterns. When a query arrives for entities that match a registration, GeonicDB forwards the request to the registered provider and merges the results.
 
 ```text
-Client → Vela OS (Central) ──┬── Local MongoDB
+Client → GeonicDB (Central) ──┬── Local MongoDB
                               ├── Context Provider A (e.g., Weather Service)
                               └── Context Provider B (e.g., Traffic Service)
 ```
@@ -23,7 +23,7 @@ Client → Vela OS (Central) ──┬── Local MongoDB
 ### Creating a Registration (NGSIv2)
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/registrations \
+curl -X POST https://api.geonicdb.geolonia.com/v2/registrations \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -47,7 +47,7 @@ curl -X POST https://api.vela.geolonia.com/v2/registrations \
 ### Creating a Registration (NGSI-LD)
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/csourceRegistrations \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/csourceRegistrations \
   -H "Content-Type: application/json" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -77,7 +77,7 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/csourceRegistrations \
 
 ## Distributed Queries
 
-When a client queries for entities, Vela OS checks registrations and fans out requests:
+When a client queries for entities, GeonicDB checks registrations and fans out requests:
 
 1. Query local MongoDB for matching entities
 2. Forward the query to all matching context providers in parallel
@@ -86,24 +86,24 @@ When a client queries for entities, Vela OS checks registrations and fans out re
 
 ```bash
 # This query may be served by local data + federated providers
-curl https://api.vela.geolonia.com/v2/entities?type=WeatherObserved \
+curl https://api.geonicdb.geolonia.com/v2/entities?type=WeatherObserved \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ### Entity-Level Forwarding
 
-For individual entity retrieval, if the entity is not found locally but a registration matches, Vela OS forwards the request to the registered provider:
+For individual entity retrieval, if the entity is not found locally but a registration matches, GeonicDB forwards the request to the registered provider:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:WeatherObserved:station01 \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:WeatherObserved:station01 \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ## Loop Detection
 
-Vela OS includes loop detection to prevent infinite forwarding chains in multi-broker federations. When forwarding a request, Vela OS adds tracking headers to detect and break circular forwarding paths. If a forwarded request arrives back at the same broker, it is terminated to avoid infinite loops.
+GeonicDB includes loop detection to prevent infinite forwarding chains in multi-broker federations. When forwarding a request, GeonicDB adds tracking headers to detect and break circular forwarding paths. If a forwarded request arrives back at the same broker, it is terminated to avoid infinite loops.
 
 ## Registration Patterns
 
@@ -155,7 +155,7 @@ Forward only specific attributes:
 ### List Registrations
 
 ```bash
-curl https://api.vela.geolonia.com/v2/registrations \
+curl https://api.geonicdb.geolonia.com/v2/registrations \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -163,7 +163,7 @@ curl https://api.vela.geolonia.com/v2/registrations \
 ### Delete a Registration
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/registrations/{registrationId} \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/registrations/{registrationId} \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -173,4 +173,4 @@ curl -X DELETE https://api.vela.geolonia.com/v2/registrations/{registrationId} \
 - **Timeout handling** — Federated queries have a configurable timeout. If a context provider does not respond in time, the local results are returned without the provider's data.
 - **Attribute partitioning** — Register providers for specific attributes to minimize unnecessary forwarding.
 - **Health monitoring** — Monitor context provider availability. Unreachable providers will cause timeouts but will not block local data retrieval.
-- **Security** — Ensure context providers are accessible over HTTPS. Vela OS forwards the tenant context but providers must implement their own authentication.
+- **Security** — Ensure context providers are accessible over HTTPS. GeonicDB forwards the tenant context but providers must implement their own authentication.

@@ -1,12 +1,12 @@
 ---
-title: Orion to Vela Migration Guide
-description: Step-by-step guide for migrating from a self-hosted FIWARE Orion deployment to Vela OS SaaS, covering API endpoints, authentication, subscriptions, and data migration.
+title: Orion to GeonicDB Migration Guide
+description: Step-by-step guide for migrating from a self-hosted FIWARE Orion deployment to GeonicDB SaaS, covering API endpoints, authentication, subscriptions, and data migration.
 outline: deep
 ---
 
-# Orion to Vela Migration Guide
+# Orion to GeonicDB Migration Guide
 
-This guide walks through migrating from a self-hosted **FIWARE Orion** (or Orion-LD) deployment to **Vela OS SaaS**. Because Vela is API-compatible with Orion, most applications can migrate by updating endpoint URLs and authentication configuration.
+This guide walks through migrating from a self-hosted **FIWARE Orion** (or Orion-LD) deployment to **GeonicDB SaaS**. Because GeonicDB is API-compatible with Orion, most applications can migrate by updating endpoint URLs and authentication configuration.
 
 ## Migration Overview
 
@@ -20,43 +20,43 @@ This guide walks through migrating from a self-hosted **FIWARE Orion** (or Orion
 
 ## Step 1: Update API Endpoints
 
-Replace your Orion endpoint URLs with Vela SaaS endpoints:
+Replace your Orion endpoint URLs with GeonicDB SaaS endpoints:
 
 ### NGSIv2
 
-| Before (Orion) | After (Vela SaaS) |
+| Before (Orion) | After (GeonicDB SaaS) |
 |----------------|-------------------|
-| `http://orion:1026/v2/entities` | `https://api.vela.geolonia.com/v2/entities` |
-| `http://orion:1026/v2/subscriptions` | `https://api.vela.geolonia.com/v2/subscriptions` |
-| `http://orion:1026/v2/registrations` | `https://api.vela.geolonia.com/v2/registrations` |
-| `http://orion:1026/v2/types` | `https://api.vela.geolonia.com/v2/types` |
-| `http://orion:1026/v2/op/update` | `https://api.vela.geolonia.com/v2/op/update` |
-| `http://orion:1026/v2/op/query` | `https://api.vela.geolonia.com/v2/op/query` |
+| `http://orion:1026/v2/entities` | `https://api.geonicdb.geolonia.com/v2/entities` |
+| `http://orion:1026/v2/subscriptions` | `https://api.geonicdb.geolonia.com/v2/subscriptions` |
+| `http://orion:1026/v2/registrations` | `https://api.geonicdb.geolonia.com/v2/registrations` |
+| `http://orion:1026/v2/types` | `https://api.geonicdb.geolonia.com/v2/types` |
+| `http://orion:1026/v2/op/update` | `https://api.geonicdb.geolonia.com/v2/op/update` |
+| `http://orion:1026/v2/op/query` | `https://api.geonicdb.geolonia.com/v2/op/query` |
 
 ### NGSI-LD
 
-| Before (Orion-LD) | After (Vela SaaS) |
+| Before (Orion-LD) | After (GeonicDB SaaS) |
 |-------------------|-------------------|
-| `http://orion-ld:1026/ngsi-ld/v1/entities` | `https://api.vela.geolonia.com/ngsi-ld/v1/entities` |
-| `http://orion-ld:1026/ngsi-ld/v1/subscriptions` | `https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions` |
+| `http://orion-ld:1026/ngsi-ld/v1/entities` | `https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities` |
+| `http://orion-ld:1026/ngsi-ld/v1/subscriptions` | `https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions` |
 
 ## Step 2: Configure Authentication
 
-Vela SaaS requires authentication. Add the `Authorization` header to all requests:
+GeonicDB SaaS requires authentication. Add the `Authorization` header to all requests:
 
 ```bash
 # Before (Orion — no auth)
 curl http://orion:1026/v2/entities
 
-# After (Vela SaaS — Bearer token)
-curl https://api.vela.geolonia.com/v2/entities \
+# After (GeonicDB SaaS — Bearer token)
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 If you use `Fiware-Service` and `Fiware-ServicePath` headers for multi-tenancy, these continue to work as before:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Fiware-Service: my-tenant" \
   -H "Fiware-ServicePath: /sensors"
@@ -64,7 +64,7 @@ curl https://api.vela.geolonia.com/v2/entities \
 
 ## Step 3: Migrate Subscriptions
 
-Subscriptions from Orion cannot be transferred directly — they must be recreated on Vela. The subscription format is compatible, so you can use the same payloads.
+Subscriptions from Orion cannot be transferred directly — they must be recreated on GeonicDB. The subscription format is compatible, so you can use the same payloads.
 
 ### Export Existing Subscriptions
 
@@ -73,18 +73,18 @@ Subscriptions from Orion cannot be transferred directly — they must be recreat
 curl http://orion:1026/v2/subscriptions | jq '.' > subscriptions.json
 ```
 
-### Recreate on Vela
+### Recreate on GeonicDB
 
 ```bash
 # For each subscription in subscriptions.json
-curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d @subscriptions.json
 ```
 
 ::: tip Notification URLs
-Make sure your notification endpoints (webhook URLs) are accessible from the internet, since Vela SaaS sends notifications from AWS infrastructure rather than your local network.
+Make sure your notification endpoints (webhook URLs) are accessible from the internet, since GeonicDB SaaS sends notifications from AWS infrastructure rather than your local network.
 :::
 
 ## Step 4: Migrate Entity Data
@@ -99,8 +99,8 @@ curl "http://orion:1026/v2/entities?limit=1000&offset=0" > entities_batch1.json
 curl "http://orion:1026/v2/entities?limit=1000&offset=1000" > entities_batch2.json
 # ... continue until all entities exported
 
-# Import to Vela using batch update
-curl -X POST https://api.vela.geolonia.com/v2/op/update \
+# Import to GeonicDB using batch update
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -111,7 +111,7 @@ curl -X POST https://api.vela.geolonia.com/v2/op/update \
 
 ### Large Datasets (> 10,000 entities)
 
-For larger datasets, export directly from MongoDB and coordinate with the Vela team for bulk import.
+For larger datasets, export directly from MongoDB and coordinate with the GeonicDB team for bulk import.
 
 ## Step 5: Verify and Cut Over
 
@@ -129,11 +129,11 @@ After migration, verify:
 - [ ] Subscriptions receiving notifications
 - [ ] Geo-queries returning correct results
 - [ ] Authentication working for all service accounts
-- [ ] Application endpoints updated to Vela SaaS URLs
+- [ ] Application endpoints updated to GeonicDB SaaS URLs
 
 ## Key Differences from Orion
 
-| Feature | FIWARE Orion | Vela SaaS |
+| Feature | FIWARE Orion | GeonicDB SaaS |
 |---------|-------------|-----------|
 | Hosting | Self-hosted (Docker) | Managed SaaS |
 | Authentication | External (Keyrock + Wilma) | Built-in JWT |

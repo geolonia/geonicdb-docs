@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:4173/vela-docs/',
+    baseURL: 'http://localhost:4173/geonicdb-docs/',
     trace: 'on-first-retry',
   },
   projects: [
@@ -19,7 +19,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm docs:preview',
-    url: 'http://localhost:4173/vela-docs/',
+    url: 'http://localhost:4173/geonicdb-docs/',
     reuseExistingServer: !process.env.CI,
     timeout: 30000,
   },

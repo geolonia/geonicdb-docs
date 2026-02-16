@@ -1,12 +1,12 @@
 ---
 title: Snapshots
-description: Create and restore point-in-time snapshots of entity data in Vela OS.
+description: Create and restore point-in-time snapshots of entity data in GeonicDB.
 outline: deep
 ---
 
 # Snapshots
 
-Vela OS provides a **snapshot** feature that allows you to capture and restore point-in-time copies of entity data. Snapshots are useful for backup, testing, data migration, and rollback scenarios.
+GeonicDB provides a **snapshot** feature that allows you to capture and restore point-in-time copies of entity data. Snapshots are useful for backup, testing, data migration, and rollback scenarios.
 
 ## Overview
 
@@ -15,7 +15,7 @@ A snapshot captures the current state of entities within a tenant at a specific 
 ## Creating a Snapshot
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/snapshots \
+curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -39,7 +39,7 @@ curl -X POST https://api.vela.geolonia.com/v2/snapshots \
 ## Listing Snapshots
 
 ```bash
-curl https://api.vela.geolonia.com/v2/snapshots \
+curl https://api.geonicdb.geolonia.com/v2/snapshots \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -68,7 +68,7 @@ curl https://api.vela.geolonia.com/v2/snapshots \
 ## Restoring a Snapshot
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z/restore \
+curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z/restore \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -90,7 +90,7 @@ Restoring a snapshot replaces the current entity data with the snapshot data. An
 ## Deleting a Snapshot
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -113,14 +113,14 @@ Create a snapshot before deploying application changes that modify entity data:
 
 ```bash
 # Before deployment
-curl -X POST https://api.vela.geolonia.com/v2/snapshots \
+curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{"description": "Pre-deployment: v2.1.0"}'
 
 # If something goes wrong, restore
-curl -X POST https://api.vela.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z/restore \
+curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T10-00-00Z/restore \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
