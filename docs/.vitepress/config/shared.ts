@@ -4,7 +4,7 @@ export const shared = defineConfig({
   title: 'GeonicDB',
   description: 'FIWARE Orion-compatible Context Broker on AWS Lambda',
 
-  base: '/geonicdb-docs/',
+  base: '/',
   lastUpdated: true,
   cleanUrls: true,
   ignoreDeadLinks: true,

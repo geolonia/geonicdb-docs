@@ -13,7 +13,7 @@ This repository hosts the official documentation for **GeonicDB**, a serverless 
 - **Dual API Support**: Both NGSIv2 and NGSI-LD on a single instance
 - **Japan Standards Ready**: CADDE compatible with provenance tracking
 
-🌐 **Live Documentation**: https://geolonia.github.io/geonicdb-docs/
+🌐 **Live Documentation**: https://docs.geonicdb.com/
 
 ## Tech Stack
 

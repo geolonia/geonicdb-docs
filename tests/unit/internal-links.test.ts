@@ -45,8 +45,8 @@ describe('internal link validation', () => {
         // Resolve the link relative to the file or docs root
         let targetPath: string
         if (link.startsWith('/')) {
-          // Absolute path from docs root — strip base path /geonicdb-docs/ if present
-          const cleanLink = link.replace(/^\/geonicdb-docs\//, '/')
+          // Absolute path from docs root
+          const cleanLink = link
           targetPath = join(DOCS_DIR, cleanLink.slice(1))
         } else {
           // Relative path
