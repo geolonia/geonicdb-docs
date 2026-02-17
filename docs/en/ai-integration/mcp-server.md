@@ -1,12 +1,12 @@
 ---
 title: MCP Server
-description: Vela OS provides a Model Context Protocol (MCP) server endpoint for direct AI agent integration with Claude Desktop, VS Code Copilot, and other MCP clients.
+description: GeonicDB provides a Model Context Protocol (MCP) server endpoint for direct AI agent integration with Claude Desktop, VS Code Copilot, and other MCP clients.
 outline: deep
 ---
 
 # MCP Server
 
-Vela OS supports the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/), enabling MCP-compatible AI clients to connect directly to the Context Broker and perform data operations through structured tool calls.
+GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/), enabling MCP-compatible AI clients to connect directly to the Context Broker and perform data operations through structured tool calls.
 
 ## Endpoint Details
 
@@ -27,11 +27,11 @@ Add the following to your Claude Desktop MCP settings:
 ```json
 {
   "mcpServers": {
-    "vela": {
+    "geonicdb": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://api.vela.geolonia.com/mcp",
+        "https://api.geonicdb.geolonia.com/mcp",
         "--header",
         "Authorization: Bearer YOUR_API_KEY"
       ]
@@ -49,7 +49,7 @@ For local development with authentication disabled:
 ```json
 {
   "mcpServers": {
-    "vela": {
+    "geonicdb": {
       "command": "npx",
       "args": [
         "mcp-remote",
@@ -108,7 +108,7 @@ Write operations (create, update, delete) require a single, non-hierarchical ser
 You can test the MCP endpoint directly:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \

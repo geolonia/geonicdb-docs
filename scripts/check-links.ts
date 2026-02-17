@@ -86,7 +86,7 @@ async function checkExternalLink(href: string, sourceFile: string): Promise<Link
     const response = await fetch(href, {
       method: 'HEAD',
       signal: AbortSignal.timeout(10000),
-      headers: { 'User-Agent': 'vela-docs-link-checker/1.0' },
+      headers: { 'User-Agent': 'geonicdb-docs-link-checker/1.0' },
     })
     if (response.ok || response.status === 301 || response.status === 302) {
       return { file: sourceFile, href, status: 'ok' }

@@ -25,7 +25,7 @@ export const ja = defineConfig({
 
 function nav(): DefaultTheme.NavItem[] {
   return [
-    { text: 'Vela OS', link: '/ja/introduction/what-is-vela' },
+    { text: 'GeonicDB', link: '/ja/introduction/what-is-geonicdb' },
     { text: 'はじめに', link: '/ja/getting-started/installation' },
     { text: 'API リファレンス', link: '/ja/api-reference/ngsiv2' },
     { text: '機能', link: '/ja/features/subscriptions' },
@@ -33,7 +33,7 @@ function nav(): DefaultTheme.NavItem[] {
     { text: '変更履歴', link: '/ja/changelog' },
     {
       text: 'GitHub',
-      link: 'https://github.com/geolonia/vela',
+      link: 'https://github.com/geolonia/geonicdb',
       target: '_blank',
     },
   ]
@@ -45,8 +45,8 @@ function sidebar(): DefaultTheme.Sidebar {
       {
         text: 'はじめに',
         items: [
-          { text: 'Vela とは？', link: '/ja/introduction/what-is-vela' },
-          { text: 'Vela を選ぶ理由', link: '/ja/introduction/why-vela' },
+          { text: 'GeonicDB とは？', link: '/ja/introduction/what-is-geonicdb' },
+          { text: 'GeonicDB を選ぶ理由', link: '/ja/introduction/why-geonicdb' },
           { text: 'アーキテクチャ', link: '/ja/introduction/architecture' },
           { text: 'クイックスタート', link: '/ja/introduction/quick-start' },
         ],
@@ -119,7 +119,7 @@ function sidebar(): DefaultTheme.Sidebar {
       {
         text: 'マイグレーション',
         items: [
-          { text: 'Orion → Vela ガイド', link: '/ja/migration/orion-to-vela' },
+          { text: 'Orion → GeonicDB ガイド', link: '/ja/migration/orion-to-geonicdb' },
           { text: '互換性マトリックス', link: '/ja/migration/compatibility-matrix' },
         ],
       },

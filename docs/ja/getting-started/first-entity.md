@@ -1,12 +1,12 @@
 ---
 title: はじめてのエンティティ
-description: Vela OS SaaS 上でのNGSIv2 エンティティの作成、クエリ、更新、削除のステップバイステップチュートリアル。サブスクリプションも含む。
+description: GeonicDB SaaS 上でのNGSIv2 エンティティの作成、クエリ、更新、削除のステップバイステップチュートリアル。サブスクリプションも含む。
 outline: deep
 ---
 
 # はじめてのエンティティ
 
-このチュートリアルでは、Vela OS 上の NGSIv2 エンティティのライフサイクル全体をカバーします — 作成からサブスクリプション、削除まで。
+このチュートリアルでは、GeonicDB 上の NGSIv2 エンティティのライフサイクル全体をカバーします — 作成からサブスクリプション、削除まで。
 
 ## 作るもの
 
@@ -20,7 +20,7 @@ outline: deep
 
 ## 前提条件
 
-- Vela OS SaaS API へのアクセス（[セットアップ](/ja/getting-started/installation) を参照）
+- GeonicDB SaaS API へのアクセス（[セットアップ](/ja/getting-started/installation) を参照）
 - `curl` および JSON 整形用の `jq`（オプション）
 
 ::: tip
@@ -34,7 +34,7 @@ outline: deep
 **101号室 — 東棟:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -78,7 +78,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 **201号室 — 西棟:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -126,7 +126,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 ### 全会議室の一覧
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities?type=Room \
+curl -s https://api.geonicdb.geolonia.com/v2/entities?type=Room \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
@@ -139,7 +139,7 @@ curl -s https://api.vela.geolonia.com/v2/entities?type=Room \
 ### 特定のエンティティを取得
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -149,7 +149,7 @@ curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
 温度が25°Cを超える部屋を検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=temperature>25" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=temperature>25" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
@@ -163,7 +163,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=temperature>25" \
 名前と温度だけを返す：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&attrs=name,temperature" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&attrs=name,temperature" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -173,7 +173,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&attrs=name,temperat
 メタデータなしの簡略化した出力：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&options=keyValues" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&options=keyValues" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -199,7 +199,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&options=keyValues" 
 2階で温度が高い使用中の部屋を検索：
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=floor==2;temperature>25;status==occupied" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=floor==2;temperature>25;status==occupied" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
@@ -211,7 +211,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=floor==2;temperat
 101号室の温度と在室人数を更新：
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -238,7 +238,7 @@ curl -X PATCH https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/att
 温度の値だけを直接更新：
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs/temperature/value \
+curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs/temperature/value \
   -H "Content-Type: text/plain" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -250,7 +250,7 @@ curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs
 `lastCleaned` タイムスタンプ属性を追加：
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -267,7 +267,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attr
 Room の温度が27°Cを超えたときに通知を受け取るサブスクリプションを設定：
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -299,14 +299,14 @@ curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
 ### サブスクリプション一覧
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/subscriptions \
+curl -s https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
 ### 通知の仕組み
 
-Room エンティティの温度が27°Cを超える値に更新されると、Vela は Webhook URL に POST リクエストを送信します：
+Room エンティティの温度が27°Cを超える値に更新されると、GeonicDB は Webhook URL に POST リクエストを送信します：
 
 ```json
 {
@@ -324,7 +324,7 @@ Room エンティティの温度が27°Cを超える値に更新されると、V
 ```
 
 ::: info 通知チャネル
-HTTP Webhook の他に、Vela は **MQTT**（QoS 0/1/2）と **WebSocket** 通知もサポートしています。詳細は サブスクリプション ページをご覧ください。
+HTTP Webhook の他に、GeonicDB は **MQTT**（QoS 0/1/2）と **WebSocket** 通知もサポートしています。詳細は サブスクリプション ページをご覧ください。
 :::
 
 ## ステップ 5: エンティティの削除
@@ -332,7 +332,7 @@ HTTP Webhook の他に、Vela は **MQTT**（QoS 0/1/2）と **WebSocket** 通�
 エンティティを1つ削除：
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:201 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:201 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding"
 ```
@@ -344,7 +344,7 @@ curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:201 \
 バッチ操作で複数のエンティティを一括削除：
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/op/update \
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -373,7 +373,7 @@ curl -X POST https://api.vela.geolonia.com/v2/op/update \
 
 ## 次のステップ
 
-- [デモアプリ](/ja/getting-started/demo-app) — Vela を使ったインタラクティブなデモ
+- [デモアプリ](/ja/getting-started/demo-app) — GeonicDB を使ったインタラクティブなデモ
 - NGSIv2 API リファレンス — 完全な API ドキュメント
 - クエリ言語 — q, mq, scopeQ を使った高度なフィルタリング
 - サブスクリプション — HTTP、MQTT、WebSocket 通知

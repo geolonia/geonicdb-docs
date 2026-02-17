@@ -1,24 +1,24 @@
 ---
 title: Installation & Setup
-description: How to access the Vela OS SaaS API — endpoint URLs, API key setup, recommended HTTP clients, and SDK availability.
+description: How to access the GeonicDB SaaS API — endpoint URLs, API key setup, recommended HTTP clients, and SDK availability.
 outline: deep
 ---
 
 # Installation & Setup
 
-Vela OS is provided as a managed SaaS service. There is no software to install — you access it through HTTP API calls.
+GeonicDB is provided as a managed SaaS service. There is no software to install — you access it through HTTP API calls.
 
 ## API Endpoints
 
 | API | Base URL |
 |-----|----------|
-| **NGSIv2** | `https://api.vela.geolonia.com/v2/` |
-| **NGSI-LD** | `https://api.vela.geolonia.com/ngsi-ld/v1/` |
-| **Admin** | `https://api.vela.geolonia.com/admin/` |
-| **MCP** | `https://api.vela.geolonia.com/mcp` |
-| **Data Catalog** | `https://api.vela.geolonia.com/catalog/` |
-| **Health Check** | `https://api.vela.geolonia.com/health` |
-| **Version** | `https://api.vela.geolonia.com/version` |
+| **NGSIv2** | `https://api.geonicdb.geolonia.com/v2/` |
+| **NGSI-LD** | `https://api.geonicdb.geolonia.com/ngsi-ld/v1/` |
+| **Admin** | `https://api.geonicdb.geolonia.com/admin/` |
+| **MCP** | `https://api.geonicdb.geolonia.com/mcp` |
+| **Data Catalog** | `https://api.geonicdb.geolonia.com/catalog/` |
+| **Health Check** | `https://api.geonicdb.geolonia.com/health` |
+| **Version** | `https://api.geonicdb.geolonia.com/version` |
 
 ## API Key
 
@@ -27,7 +27,7 @@ All API requests require an `x-api-key` header for authentication.
 ::: tip Coming Soon
 API key registration is currently being prepared. Once available, you will be able to:
 
-1. Sign up at the Vela OS dashboard
+1. Sign up at the GeonicDB dashboard
 2. Create a project
 3. Generate an API key
 4. Use the key in the `x-api-key` header
@@ -38,7 +38,7 @@ API key registration is currently being prepared. Once available, you will be ab
 Include your API key in every request:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
@@ -49,12 +49,12 @@ Use the `Fiware-Service` header to specify your tenant (project). Data is fully 
 
 ```bash
 # Tenant A data
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: tenant-a"
 
 # Tenant B data (completely separate)
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: tenant-b"
 ```
@@ -63,25 +63,25 @@ curl https://api.vela.geolonia.com/v2/entities \
 
 ### curl (Command Line)
 
-The simplest way to interact with Vela. All examples in this documentation use curl.
+The simplest way to interact with GeonicDB. All examples in this documentation use curl.
 
 ```bash
 # Verify connectivity
-curl https://api.vela.geolonia.com/version
+curl https://api.geonicdb.geolonia.com/version
 ```
 
 ### Postman
 
 [Postman](https://www.postman.com/) provides a graphical interface for API exploration:
 
-1. Set the base URL to `https://api.vela.geolonia.com`
+1. Set the base URL to `https://api.geonicdb.geolonia.com`
 2. Add headers:
    - `x-api-key`: your API key
    - `Fiware-Service`: your tenant name
    - `Content-Type`: `application/json` (for POST/PATCH/PUT)
 3. Import the OpenAPI spec for auto-generated request templates:
    ```text
-   https://api.vela.geolonia.com/openapi.json
+   https://api.geonicdb.geolonia.com/openapi.json
    ```
 
 ### HTTPie
@@ -93,7 +93,7 @@ curl https://api.vela.geolonia.com/version
 pip install httpie
 
 # Example request
-http GET https://api.vela.geolonia.com/v2/entities \
+http GET https://api.geonicdb.geolonia.com/v2/entities \
   x-api-key:YOUR_API_KEY \
   Fiware-Service:myproject
 ```
@@ -104,7 +104,7 @@ The [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest
 
 ```http
 ### Get all entities
-GET https://api.vela.geolonia.com/v2/entities
+GET https://api.geonicdb.geolonia.com/v2/entities
 x-api-key: YOUR_API_KEY
 Fiware-Service: myproject
 ```
@@ -113,16 +113,16 @@ Fiware-Service: myproject
 
 ### Claude Desktop (MCP)
 
-Connect Claude Desktop to Vela's MCP server for AI-powered data interaction:
+Connect Claude Desktop to GeonicDB's MCP server for AI-powered data interaction:
 
 ```json
 {
   "mcpServers": {
-    "vela": {
+    "geonicdb": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://api.vela.geolonia.com/mcp",
+        "https://api.geonicdb.geolonia.com/mcp",
         "--header",
         "x-api-key: YOUR_API_KEY",
         "--header",
@@ -138,7 +138,7 @@ Connect Claude Desktop to Vela's MCP server for AI-powered data interaction:
 Fetch the tool definitions for use with AI APIs:
 
 ```bash
-curl https://api.vela.geolonia.com/tools.json
+curl https://api.geonicdb.geolonia.com/tools.json
 ```
 
 The returned JSON can be used directly as tool definitions in Claude Tool Use or OpenAI Function Calling.

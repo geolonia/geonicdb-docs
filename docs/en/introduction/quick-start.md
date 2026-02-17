@@ -1,20 +1,20 @@
 ---
 title: Quick Start
-description: Get started with Vela OS SaaS API in minutes — create, read, update, and delete your first entity.
+description: Get started with GeonicDB SaaS API in minutes — create, read, update, and delete your first entity.
 outline: deep
 ---
 
 # Quick Start
 
-This guide walks you through making your first API calls to the Vela OS SaaS endpoint. No installation required — just a terminal with `curl`.
+This guide walks you through making your first API calls to the GeonicDB SaaS endpoint. No installation required — just a terminal with `curl`.
 
 ## Prerequisites
 
 - A terminal with `curl` installed
-- An API key for Vela OS SaaS
+- An API key for GeonicDB SaaS
 
 ::: tip Coming Soon
-API key registration is currently being prepared. Once available, you'll be able to obtain your key from the Vela OS dashboard.
+API key registration is currently being prepared. Once available, you'll be able to obtain your key from the GeonicDB dashboard.
 :::
 
 ## Step 1: Verify Connectivity
@@ -22,7 +22,7 @@ API key registration is currently being prepared. Once available, you'll be able
 Check that the API endpoint is reachable:
 
 ```bash
-curl https://api.vela.geolonia.com/version
+curl https://api.geonicdb.geolonia.com/version
 ```
 
 Expected response:
@@ -41,7 +41,7 @@ Expected response:
 Create a temperature sensor entity using the NGSIv2 API:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject" \
@@ -76,7 +76,7 @@ The `Fiware-Service` header acts as a tenant identifier. Data is fully isolated 
 Read back the entity you just created:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
@@ -109,7 +109,7 @@ Expected response:
 Update the temperature reading:
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject" \
@@ -126,7 +126,7 @@ A successful update returns **204 No Content**.
 Verify the update:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs/temperature \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs/temperature \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
@@ -146,7 +146,7 @@ curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001
 Remove the entity:
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
@@ -155,10 +155,10 @@ A successful deletion returns **204 No Content**.
 
 ## Step 6: Try NGSI-LD (Optional)
 
-Vela supports NGSI-LD alongside NGSIv2. Create the same entity using the NGSI-LD API:
+GeonicDB supports NGSI-LD alongside NGSIv2. Create the same entity using the NGSI-LD API:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject" \
@@ -184,12 +184,12 @@ Retrieve it via either API:
 
 ```bash
 # Via NGSI-LD
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 
 # Via NGSIv2 (cross-API access)
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```

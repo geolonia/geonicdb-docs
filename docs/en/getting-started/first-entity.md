@@ -1,12 +1,12 @@
 ---
 title: First Entity Tutorial
-description: A step-by-step tutorial for creating, querying, updating, and deleting NGSIv2 entities on Vela OS SaaS, including subscriptions.
+description: A step-by-step tutorial for creating, querying, updating, and deleting NGSIv2 entities on GeonicDB SaaS, including subscriptions.
 outline: deep
 ---
 
 # First Entity Tutorial
 
-This tutorial walks you through the complete lifecycle of an NGSIv2 entity on Vela OS — from creation to subscriptions to deletion.
+This tutorial walks you through the complete lifecycle of an NGSIv2 entity on GeonicDB — from creation to subscriptions to deletion.
 
 ## What You'll Build
 
@@ -20,7 +20,7 @@ A smart building scenario with conference room sensors that track temperature, h
 
 ## Prerequisites
 
-- Access to the Vela OS SaaS API (see [Installation & Setup](/en/getting-started/installation))
+- Access to the GeonicDB SaaS API (see [Installation & Setup](/en/getting-started/installation))
 - `curl` and optionally `jq` for JSON formatting
 
 ::: tip
@@ -34,7 +34,7 @@ Create two conference room entities:
 **Room 101 — East Wing:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -78,7 +78,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 **Room 201 — West Wing:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -126,7 +126,7 @@ Both requests should return **201 Created**.
 ### List All Rooms
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities?type=Room \
+curl -s https://api.geonicdb.geolonia.com/v2/entities?type=Room \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
@@ -139,7 +139,7 @@ curl -s https://api.vela.geolonia.com/v2/entities?type=Room \
 ### Get a Specific Entity
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
+curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -149,7 +149,7 @@ curl -s https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
 Find rooms where temperature exceeds 25°C:
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=temperature>25" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=temperature>25" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
@@ -163,7 +163,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=temperature>25" \
 Return only name and temperature:
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&attrs=name,temperature" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&attrs=name,temperature" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -173,7 +173,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&attrs=name,temperat
 Get simplified output without metadata:
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&options=keyValues" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&options=keyValues" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
@@ -199,7 +199,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&options=keyValues" 
 Find occupied rooms on floor 2 with high temperature:
 
 ```bash
-curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=floor==2;temperature>25;status==occupied" \
+curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=floor==2;temperature>25;status==occupied" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
@@ -211,7 +211,7 @@ curl -s "https://api.vela.geolonia.com/v2/entities?type=Room&q=floor==2;temperat
 Update Room 101's temperature and occupancy:
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -238,7 +238,7 @@ Returns **204 No Content** on success.
 Update just the temperature value directly:
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs/temperature/value \
+curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs/temperature/value \
   -H "Content-Type: text/plain" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -250,7 +250,7 @@ curl -X PUT https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs
 Add a `lastCleaned` timestamp attribute:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attrs \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -267,7 +267,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/attr
 Set up a notification when any Room's temperature exceeds 27°C:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -299,14 +299,14 @@ Returns **201 Created** with the subscription ID in the `Location` header.
 ### List Subscriptions
 
 ```bash
-curl -s https://api.vela.geolonia.com/v2/subscriptions \
+curl -s https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
 ### How Notifications Work
 
-When a Room entity's temperature is updated to a value above 27°C, Vela sends a POST request to your webhook URL:
+When a Room entity's temperature is updated to a value above 27°C, GeonicDB sends a POST request to your webhook URL:
 
 ```json
 {
@@ -324,7 +324,7 @@ When a Room entity's temperature is updated to a value above 27°C, Vela sends a
 ```
 
 ::: info Notification Channels
-Besides HTTP webhooks, Vela also supports **MQTT** (QoS 0/1/2) and **WebSocket** notifications. See the Subscriptions page for details.
+Besides HTTP webhooks, GeonicDB also supports **MQTT** (QoS 0/1/2) and **WebSocket** notifications. See the Subscriptions page for details.
 :::
 
 ## Step 5: Delete Entities
@@ -332,7 +332,7 @@ Besides HTTP webhooks, Vela also supports **MQTT** (QoS 0/1/2) and **WebSocket**
 Delete a single entity:
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Room:201 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:201 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding"
 ```
@@ -344,7 +344,7 @@ Returns **204 No Content**.
 Delete multiple entities at once using the batch operation:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/op/update \
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -373,7 +373,7 @@ curl -X POST https://api.vela.geolonia.com/v2/op/update \
 
 ## Next Steps
 
-- [Demo App](/en/getting-started/demo-app) — See Vela in action with interactive demos
+- [Demo App](/en/getting-started/demo-app) — See GeonicDB in action with interactive demos
 - NGSIv2 API Reference — Complete API documentation
 - Query Language — Advanced filtering with q, mq, scopeQ
 - Subscriptions — HTTP, MQTT, and WebSocket notifications

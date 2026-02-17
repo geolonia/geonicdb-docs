@@ -1,12 +1,12 @@
 ---
 title: MCP サーバー
-description: Vela OS は Model Context Protocol (MCP) サーバーエンドポイントを提供し、Claude Desktop や VS Code Copilot 等の MCP クライアントから直接接続できます。
+description: GeonicDB は Model Context Protocol (MCP) サーバーエンドポイントを提供し、Claude Desktop や VS Code Copilot 等の MCP クライアントから直接接続できます。
 outline: deep
 ---
 
 # MCP サーバー
 
-Vela OS は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) をサポートしており、MCP 対応 AI クライアントから直接 Context Broker に接続してデータ操作を行えます。
+GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) をサポートしており、MCP 対応 AI クライアントから直接 Context Broker に接続してデータ操作を行えます。
 
 ## エンドポイント詳細
 
@@ -27,11 +27,11 @@ Claude Desktop の MCP 設定に以下を追加してください:
 ```json
 {
   "mcpServers": {
-    "vela": {
+    "geonicdb": {
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://api.vela.geolonia.com/mcp",
+        "https://api.geonicdb.geolonia.com/mcp",
         "--header",
         "Authorization: Bearer YOUR_API_KEY"
       ]
@@ -49,7 +49,7 @@ Claude Desktop の MCP 設定に以下を追加してください:
 ```json
 {
   "mcpServers": {
-    "vela": {
+    "geonicdb": {
       "command": "npx",
       "args": [
         "mcp-remote",
@@ -108,7 +108,7 @@ servicePath: "/park1, /park2"
 MCP エンドポイントを直接テストできます:
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/mcp \
+curl -X POST https://api.geonicdb.geolonia.com/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "Authorization: Bearer YOUR_API_KEY" \

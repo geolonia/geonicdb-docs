@@ -1,16 +1,16 @@
 ---
 title: Admin API
-description: Vela OS Admin API reference — authentication, user management, tenant management, XACML policies, OAuth clients, metrics, and security configuration.
+description: GeonicDB Admin API reference — authentication, user management, tenant management, XACML policies, OAuth clients, metrics, and security configuration.
 outline: deep
 ---
 
 # Admin API
 
-The Admin API provides administrative operations for Vela OS, including authentication, user and tenant management, policy-based authorization, OAuth client management, and system metrics. All admin endpoints are served under the `https://api.vela.geolonia.com` base URL.
+The Admin API provides administrative operations for GeonicDB, including authentication, user and tenant management, policy-based authorization, OAuth client management, and system metrics. All admin endpoints are served under the `https://api.geonicdb.geolonia.com` base URL.
 
 ## Overview
 
-Vela OS uses **JWT-based authentication** with role-based access control. Three built-in roles govern access:
+GeonicDB uses **JWT-based authentication** with role-based access control. Three built-in roles govern access:
 
 | Role | Description | Scope |
 |------|-------------|-------|
@@ -50,7 +50,7 @@ Vela OS uses **JWT-based authentication** with role-based access control. Three 
 Authenticate with email and password to receive a JWT token pair.
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/auth/login \
+curl -X POST https://api.geonicdb.geolonia.com/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@example.com",
@@ -80,7 +80,7 @@ curl -X POST https://api.vela.geolonia.com/auth/login \
 Exchange a refresh token for a new access token without re-authenticating.
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/auth/refresh \
+curl -X POST https://api.geonicdb.geolonia.com/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{
     "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -102,7 +102,7 @@ curl -X POST https://api.vela.geolonia.com/auth/refresh \
 Retrieve the profile of the currently authenticated user.
 
 ```bash
-curl https://api.vela.geolonia.com/me \
+curl https://api.geonicdb.geolonia.com/me \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -125,7 +125,7 @@ curl https://api.vela.geolonia.com/me \
 Change the password for the currently authenticated user.
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/me/password \
+curl -X POST https://api.geonicdb.geolonia.com/me/password \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -147,7 +147,7 @@ Manage platform users. Requires `super_admin` or `tenant_admin` role.
 ### List Users
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/users?limit=20&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/users?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -188,7 +188,7 @@ See [Pagination](/en/api-reference/pagination) for details on `limit` and `offse
 ### Create User
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/users \
+curl -X POST https://api.geonicdb.geolonia.com/admin/users \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -217,7 +217,7 @@ curl -X POST https://api.vela.geolonia.com/admin/users \
 ### Update User
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
+curl -X PATCH https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -244,7 +244,7 @@ curl -X PATCH https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM00000000000
 ### Delete User
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
+curl -X DELETE https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -254,11 +254,11 @@ curl -X DELETE https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000
 
 ```bash
 # Deactivate
-curl -X POST https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003/deactivate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003/deactivate \
   -H "Authorization: Bearer <access_token>"
 
 # Activate
-curl -X POST https://api.vela.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003/activate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003/activate \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -281,7 +281,7 @@ Manage tenants (organizations). Requires `super_admin` role.
 ### List Tenants
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/tenants?limit=20&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/tenants?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -314,7 +314,7 @@ curl "https://api.vela.geolonia.com/admin/tenants?limit=20&offset=0" \
 ### Create Tenant
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/tenants \
+curl -X POST https://api.geonicdb.geolonia.com/admin/tenants \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -350,7 +350,7 @@ curl -X POST https://api.vela.geolonia.com/admin/tenants \
 ### Update Tenant
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
+curl -X PATCH https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -366,7 +366,7 @@ curl -X PATCH https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM000000000
 ### Delete Tenant
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
+curl -X DELETE https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -380,11 +380,11 @@ Deleting a tenant permanently removes all entities, subscriptions, and registrat
 
 ```bash
 # Deactivate
-curl -X POST https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002/deactivate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002/deactivate \
   -H "Authorization: Bearer <access_token>"
 
 # Activate
-curl -X POST https://api.vela.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002/activate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002/activate \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -403,14 +403,14 @@ Deactivated tenants reject all API requests with `403 Forbidden`. Data is preser
 
 ## Policy Management (XACML 3.0)
 
-Vela OS supports fine-grained attribute-based access control using **XACML 3.0** policies. Policies define rules based on subject attributes (user role, tenant), resource attributes (entity type, service path), and action attributes (read, write, delete).
+GeonicDB supports fine-grained attribute-based access control using **XACML 3.0** policies. Policies define rules based on subject attributes (user role, tenant), resource attributes (entity type, service path), and action attributes (read, write, delete).
 
 Requires `super_admin` role.
 
 ### List Policies
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/policies?limit=20&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/policies?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -443,7 +443,7 @@ curl "https://api.vela.geolonia.com/admin/policies?limit=20&offset=0" \
 ### Create Policy
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/policies \
+curl -X POST https://api.geonicdb.geolonia.com/admin/policies \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -480,7 +480,7 @@ curl -X POST https://api.vela.geolonia.com/admin/policies \
 ### Update Policy
 
 ```bash
-curl -X PUT https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
+curl -X PUT https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -500,7 +500,7 @@ curl -X PUT https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000
 ### Delete Policy
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
+curl -X DELETE https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -510,11 +510,11 @@ curl -X DELETE https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000
 
 ```bash
 # Deactivate
-curl -X POST https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/deactivate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/deactivate \
   -H "Authorization: Bearer <access_token>"
 
 # Activate
-curl -X POST https://api.vela.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/activate \
+curl -X POST https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/activate \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -526,12 +526,12 @@ Export all policies as a JSON array for backup or migration between environments
 
 ```bash
 # Export
-curl https://api.vela.geolonia.com/admin/policies/export \
+curl https://api.geonicdb.geolonia.com/admin/policies/export \
   -H "Authorization: Bearer <access_token>" \
   -o policies-backup.json
 
 # Import
-curl -X POST https://api.vela.geolonia.com/admin/policies/import \
+curl -X POST https://api.geonicdb.geolonia.com/admin/policies/import \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d @policies-backup.json
@@ -572,7 +572,7 @@ Manage OAuth 2.0 clients for machine-to-machine (M2M) authentication. Requires `
 ### List OAuth Clients
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -583,7 +583,7 @@ curl "https://api.vela.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
   "clients": [
     {
       "id": "oac_01HQ3XJKM0000000000000001",
-      "client_id": "vela_client_abc123",
+      "client_id": "geonicdb_client_abc123",
       "name": "IoT Data Ingestion Service",
       "grant_types": ["client_credentials"],
       "scopes": ["entities:read", "entities:write"],
@@ -601,7 +601,7 @@ curl "https://api.vela.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
 ### Create OAuth Client
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/oauth-clients \
+curl -X POST https://api.geonicdb.geolonia.com/admin/oauth-clients \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -617,8 +617,8 @@ curl -X POST https://api.vela.geolonia.com/admin/oauth-clients \
 ```json
 {
   "id": "oac_01HQ3XJKM0000000000000002",
-  "client_id": "vela_client_def456",
-  "client_secret": "vela_secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "client_id": "geonicdb_client_def456",
+  "client_secret": "geonicdb_secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "name": "IoT Data Ingestion Service",
   "grant_types": ["client_credentials"],
   "scopes": ["entities:read", "entities:write", "subscriptions:read"],
@@ -635,7 +635,7 @@ The `client_secret` is returned **only once** at creation time. Store it securel
 ### Update OAuth Client
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
+curl -X PATCH https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -649,7 +649,7 @@ curl -X PATCH https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM000
 ### Delete OAuth Client
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
+curl -X DELETE https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -658,7 +658,7 @@ curl -X DELETE https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM00
 ### Regenerate Client Secret
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002/regenerate-secret \
+curl -X POST https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002/regenerate-secret \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -666,8 +666,8 @@ curl -X POST https://api.vela.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000
 
 ```json
 {
-  "client_id": "vela_client_def456",
-  "client_secret": "vela_secret_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+  "client_id": "geonicdb_client_def456",
+  "client_secret": "geonicdb_secret_yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
   "regenerated_at": "2026-02-10T11:00:00Z"
 }
 ```
@@ -683,11 +683,11 @@ Regenerating a secret immediately invalidates the previous secret. All applicati
 Obtain an access token using OAuth 2.0 Client Credentials flow. This is the standard flow for service-to-service (M2M) authentication.
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/oauth/token \
+curl -X POST https://api.geonicdb.geolonia.com/oauth/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=client_credentials" \
-  -d "client_id=vela_client_def456" \
-  -d "client_secret=vela_secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+  -d "client_id=geonicdb_client_def456" \
+  -d "client_secret=geonicdb_secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
   -d "scope=entities:read entities:write"
 ```
 
@@ -705,7 +705,7 @@ curl -X POST https://api.vela.geolonia.com/oauth/token \
 Use the returned access token in the `Authorization` header for subsequent API calls:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer <access_token>" \
   -H "Fiware-Service: smartcity"
 ```
@@ -717,7 +717,7 @@ View and manage API usage metrics. Requires `super_admin` role.
 ### Get Metrics
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&to=2026-02-10T23:59:59Z" \
+curl "https://api.geonicdb.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&to=2026-02-10T23:59:59Z" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -758,7 +758,7 @@ curl "https://api.vela.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&to=2
 Delete metrics data for a specified time range.
 
 ```bash
-curl -X DELETE "https://api.vela.geolonia.com/admin/metrics?before=2025-12-31T23:59:59Z" \
+curl -X DELETE "https://api.geonicdb.geolonia.com/admin/metrics?before=2025-12-31T23:59:59Z" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -778,7 +778,7 @@ The /health and /version endpoints do not require authentication. All other admi
 ### Health Check
 
 ```bash
-curl https://api.vela.geolonia.com/health
+curl https://api.geonicdb.geolonia.com/health
 ```
 
 **Response** `200 OK`
@@ -798,7 +798,7 @@ curl https://api.vela.geolonia.com/health
 ### Version
 
 ```bash
-curl https://api.vela.geolonia.com/version
+curl https://api.geonicdb.geolonia.com/version
 ```
 
 **Response** `200 OK`
@@ -817,7 +817,7 @@ curl https://api.vela.geolonia.com/version
 Retrieve system-wide statistics. Requires `super_admin` role.
 
 ```bash
-curl https://api.vela.geolonia.com/statistics \
+curl https://api.geonicdb.geolonia.com/statistics \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -839,21 +839,21 @@ curl https://api.vela.geolonia.com/statistics \
 Retrieve metrics in Prometheus exposition format for monitoring integration.
 
 ```bash
-curl https://api.vela.geolonia.com/metrics \
+curl https://api.geonicdb.geolonia.com/metrics \
   -H "Authorization: Bearer <access_token>"
 ```
 
 **Response** `200 OK` (`text/plain`)
 
 ```text
-# HELP vela_requests_total Total number of API requests
-# TYPE vela_requests_total counter
-vela_requests_total{method="GET",status="200"} 1250000
-vela_requests_total{method="POST",status="201"} 85420
-# HELP vela_request_duration_seconds Request duration in seconds
-# TYPE vela_request_duration_seconds histogram
-vela_request_duration_seconds_bucket{le="0.01"} 980000
-vela_request_duration_seconds_bucket{le="0.1"} 1300000
+# HELP geonicdb_requests_total Total number of API requests
+# TYPE geonicdb_requests_total counter
+geonicdb_requests_total{method="GET",status="200"} 1250000
+geonicdb_requests_total{method="POST",status="201"} 85420
+# HELP geonicdb_request_duration_seconds Request duration in seconds
+# TYPE geonicdb_request_duration_seconds histogram
+geonicdb_request_duration_seconds_bucket{le="0.01"} 980000
+geonicdb_request_duration_seconds_bucket{le="0.1"} 1300000
 ```
 
 ## Security Configuration
@@ -877,12 +877,12 @@ Use IP restrictions in combination with JWT authentication for defense in depth.
 
 ### OIDC External IdP Integration
 
-Vela OS supports delegating authentication to an external Identity Provider (IdP) via **OpenID Connect (OIDC)**. This enables Single Sign-On (SSO) with providers such as Azure AD, Google Workspace, or Okta.
+GeonicDB supports delegating authentication to an external Identity Provider (IdP) via **OpenID Connect (OIDC)**. This enables Single Sign-On (SSO) with providers such as Azure AD, Google Workspace, or Okta.
 
 When OIDC is configured:
 - Users authenticate through the external IdP.
-- The IdP issues an ID token, which Vela OS validates and maps to an internal user.
-- Role mapping can be configured based on IdP claims (e.g., `groups` claim maps to Vela roles).
+- The IdP issues an ID token, which GeonicDB validates and maps to an internal user.
+- Role mapping can be configured based on IdP claims (e.g., `groups` claim maps to GeonicDB roles).
 
 **OIDC Configuration Fields**
 
@@ -891,10 +891,10 @@ When OIDC is configured:
 | `issuer` | OIDC issuer URL | `https://login.microsoftonline.com/{tenant}/v2.0` |
 | `client_id` | Client ID registered with the IdP | `abc123-def456-...` |
 | `client_secret` | Client secret for the IdP | `secret_value` |
-| `redirect_uri` | Callback URL after IdP authentication | `https://api.vela.geolonia.com/auth/oidc/callback` |
+| `redirect_uri` | Callback URL after IdP authentication | `https://api.geonicdb.geolonia.com/auth/oidc/callback` |
 | `scopes` | Requested OIDC scopes | `openid profile email` |
-| `role_claim` | JWT claim to map to Vela roles | `groups` or `roles` |
-| `role_mapping` | Mapping from IdP claim values to Vela roles | `{"admins": "super_admin", "users": "user"}` |
+| `role_claim` | JWT claim to map to GeonicDB roles | `groups` or `roles` |
+| `role_mapping` | Mapping from IdP claim values to GeonicDB roles | `{"admins": "super_admin", "users": "user"}` |
 
 ### JWT Token Configuration
 
@@ -921,7 +921,7 @@ Passwords must meet the following requirements:
 
 ## Error Responses
 
-Admin API errors follow the standard Vela OS error format. See [Status Codes](/en/api-reference/status-codes) for the complete list.
+Admin API errors follow the standard GeonicDB error format. See [Status Codes](/en/api-reference/status-codes) for the complete list.
 
 | Status | Description | Common Cause |
 |--------|-------------|--------------|

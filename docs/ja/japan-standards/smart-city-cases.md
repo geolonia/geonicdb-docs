@@ -1,21 +1,21 @@
 ---
 title: スマートシティ ユースケース
-description: 交通管理、環境モニタリング、防災、ゴミ収集など、Vela OS を使ったスマートシティ・IoT のユースケース。
+description: 交通管理、環境モニタリング、防災、ゴミ収集など、GeonicDB を使ったスマートシティ・IoT のユースケース。
 outline: deep
 ---
 
 # スマートシティ ユースケース
 
-Vela OS は**スマートシティ**および **IoT** プラットフォームを支えるために設計されています。FIWARE Orion 互換の Context Broker として、サーバーレスアーキテクチャと日本固有の標準サポートを備え、複数のドメインにわたる都市インフラプロジェクトに適しています。
+GeonicDB は**スマートシティ**および **IoT** プラットフォームを支えるために設計されています。FIWARE Orion 互換の Context Broker として、サーバーレスアーキテクチャと日本固有の標準サポートを備え、複数のドメインにわたる都市インフラプロジェクトに適しています。
 
 ## アーキテクチャパターン
 
-Vela を使った典型的なスマートシティ構成:
+GeonicDB を使った典型的なスマートシティ構成:
 
 ```text
 IoT センサー / データソース
     ↓ (NGSIv2 / NGSI-LD)
-Vela OS（Context Broker）
+GeonicDB（Context Broker）
     ↓
 ┌──────────────┬───────────┬──────────┐
 │ ダッシュボード │ AI エージェント│ CADDE    │
@@ -37,11 +37,11 @@ Vela OS（Context Broker）
 
 車両センサーと路側ユニットを使ってリアルタイムの交通フローを監視。渋滞の検出、信号タイミングの最適化、ナビゲーションガイダンスの提供。
 
-### Vela での実装例
+### GeonicDB での実装例
 
 ```bash
 # 交通センサーエンティティの作成
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smart-city" \
   -H "Fiware-ServicePath: /traffic" \
@@ -59,7 +59,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 ```
 
-**使用する Vela 機能**: 空間フィルタリング用のジオクエリ、リアルタイムダッシュボード更新用の WebSocket サブスクリプション、過去のトレンド分析用の Temporal API。
+**使用する GeonicDB 機能**: 空間フィルタリング用のジオクエリ、リアルタイムダッシュボード更新用の WebSocket サブスクリプション、過去のトレンド分析用の Temporal API。
 
 ## 環境モニタリング
 
@@ -67,11 +67,11 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 
 都市エリア全体の大気質、騒音レベル、気温、湿度を追跡。閾値超過時にアラートを生成。
 
-### Vela での実装例
+### GeonicDB での実装例
 
 ```bash
 # 大気質センサーエンティティの作成
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smart-city" \
   -H "Fiware-ServicePath: /environment" \
@@ -91,7 +91,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 ```
 
-**使用する Vela 機能**: 閾値条件（`q` パラメータ）付きサブスクリプションによるアラート、政府環境機関とのデータ共有のための CADDE 連携、オープンデータ公開のための DCAT-AP カタログ。
+**使用する GeonicDB 機能**: 閾値条件（`q` パラメータ）付きサブスクリプションによるアラート、政府環境機関とのデータ共有のための CADDE 連携、オープンデータ公開のための DCAT-AP カタログ。
 
 ## 防災
 
@@ -99,11 +99,11 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 
 河川・貯水池の水位監視、地震活動の検知、市内インフラ全体への避難警報の配信。
 
-### Vela での実装例
+### GeonicDB での実装例
 
 ```bash
 # 水位センサーエンティティの作成
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smart-city" \
   -H "Fiware-ServicePath: /disaster-prevention" \
@@ -121,7 +121,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 ```
 
-**使用する Vela 機能**: 3D 危険区域マッピングのための空間ID（ZFXY）、リアルタイム警報配信のためのサブスクリプション、複数自治体のブローカーからデータを集約するフェデレーション。
+**使用する GeonicDB 機能**: 3D 危険区域マッピングのための空間ID（ZFXY）、リアルタイム警報配信のためのサブスクリプション、複数自治体のブローカーからデータを集約するフェデレーション。
 
 ## ゴミ収集
 
@@ -129,11 +129,11 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 
 スマートゴミ箱のリアルタイム充填レベルに基づいてゴミ収集ルートを最適化。収集コストの削減とサービス効率の向上。
 
-### Vela での実装例
+### GeonicDB での実装例
 
 ```bash
 # ゴミ容器エンティティの作成
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smart-city" \
   -H "Fiware-ServicePath: /waste" \
@@ -151,24 +151,24 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
   }'
 ```
 
-**使用する Vela 機能**: ルート沿いの近隣容器検索のためのジオクエリ、`fillingLevel > 0.85` でトリガーされるサブスクリプション、容器位置の地図表示のためのベクトルタイル。
+**使用する GeonicDB 機能**: ルート沿いの近隣容器検索のためのジオクエリ、`fillingLevel > 0.85` でトリガーされるサブスクリプション、容器位置の地図表示のためのベクトルタイル。
 
-## FIWARE + Vela アーキテクチャ
+## FIWARE + GeonicDB アーキテクチャ
 
-Vela OS は FIWARE Orion のドロップインリプレースメントとして **FIWARE エコシステム** と統合できます:
+GeonicDB は FIWARE Orion のドロップインリプレースメントとして **FIWARE エコシステム** と統合できます:
 
 ```text
 ┌─────────────────────────────────┐
 │     スマートシティプラットフォーム    │
 ├──────────┬──────────┬───────────┤
-│ Vela OS  │QuantumLeap│ Keyrock  │
+│ GeonicDB  │QuantumLeap│ Keyrock  │
 │(Broker)  │ (時系列DB) │ (認証)   │
 ├──────────┴──────────┴───────────┤
 │         FIWARE エコシステム        │
 └─────────────────────────────────┘
 ```
 
-既存の FIWARE ベースのスマートシティ環境は、Vela に移行することでサーバーレススケーリング、AI 連携、日本固有の標準サポートを得ながら、他の FIWARE コンポーネントとの互換性を維持できます。
+既存の FIWARE ベースのスマートシティ環境は、GeonicDB に移行することでサーバーレススケーリング、AI 連携、日本固有の標準サポートを得ながら、他の FIWARE コンポーネントとの互換性を維持できます。
 
 ## 次のステップ
 

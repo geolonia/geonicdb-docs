@@ -1,12 +1,12 @@
 ---
-title: Vela とは？
-description: Vela OS の概要 — AWS Lambda 上で動作する FIWARE Orion 互換のサーバーレス Context Broker。デュアル API、AI ネイティブ設計、地理空間拡張機能を搭載。
+title: GeonicDB とは？
+description: GeonicDB の概要 — AWS Lambda 上で動作する FIWARE Orion 互換のサーバーレス Context Broker。デュアル API、AI ネイティブ設計、地理空間拡張機能を搭載。
 outline: deep
 ---
 
-# Vela とは？
+# GeonicDB とは？
 
-Vela OS は **AWS Lambda** 上で動作し、**MongoDB Atlas** をデータストアとする **FIWARE Orion 互換の Context Broker** です。単一のデプロイで **NGSIv2** と **NGSI-LD** の両方の API を完全サポートし、IoT やスマートシティのコンテキストデータをシームレスに管理できます。
+GeonicDB は **AWS Lambda** 上で動作し、**MongoDB Atlas** をデータストアとする **FIWARE Orion 互換の Context Broker** です。単一のデプロイで **NGSIv2** と **NGSI-LD** の両方の API を完全サポートし、IoT やスマートシティのコンテキストデータをシームレスに管理できます。
 
 ## 主な特長
 
@@ -22,14 +22,14 @@ Vela OS は **AWS Lambda** 上で動作し、**MongoDB Atlas** をデータス�
 
 ## 仕組み
 
-Vela OS は **AWS API Gateway** 経由で API リクエストを受信し、**AWS Lambda** 関数にルーティングします。Lambda 関数は NGSI リクエスト（エンティティ CRUD、サブスクリプション、ジオクエリ、フェデレーション）を処理し、データを **MongoDB Atlas** に保存します。
+GeonicDB は **AWS API Gateway** 経由で API リクエストを受信し、**AWS Lambda** 関数にルーティングします。Lambda 関数は NGSI リクエスト（エンティティ CRUD、サブスクリプション、ジオクエリ、フェデレーション）を処理し、データを **MongoDB Atlas** に保存します。
 
 ```text
 クライアントリクエスト
     ↓
 API Gateway（HTTP / WebSocket）
     ↓
-AWS Lambda（Vela OS）
+AWS Lambda（GeonicDB）
     ↓
 MongoDB Atlas
 ```
@@ -38,7 +38,7 @@ MongoDB Atlas
 
 ## デュアル API: NGSIv2 と NGSI-LD
 
-FIWARE Orion（NGSIv2 のみ）や Orion-LD（NGSI-LD のみ）とは異なり、Vela OS は**同一インスタンス上で両方の API をサポート**します。統一された内部エンティティフォーマットにより、完全な相互運用が可能です。
+FIWARE Orion（NGSIv2 のみ）や Orion-LD（NGSI-LD のみ）とは異なり、GeonicDB は**同一インスタンス上で両方の API をサポート**します。統一された内部エンティティフォーマットにより、完全な相互運用が可能です。
 
 | 機能 | NGSIv2 | NGSI-LD |
 |------|--------|---------|
@@ -52,7 +52,7 @@ NGSIv2 で書き込んだデータを NGSI-LD で読み取ることが可能で�
 
 ## AI ネイティブ連携
 
-Vela OS は AI エージェントとの連携を最初から想定して設計されています：
+GeonicDB は AI エージェントとの連携を最初から想定して設計されています：
 
 - **MCP サーバー**（`POST /mcp`）— Claude Desktop などの MCP クライアントと互換性のある Streamable HTTP トランスポート
 - **llms.txt**（`GET /`）— LLM 向けに最適化された人間可読の API ドキュメント
@@ -74,10 +74,10 @@ Vela OS は AI エージェントとの連携を最初から想定して設計�
 
 ## SaaS アクセス
 
-Vela OS はマネージド SaaS サービスとして利用できます。インストールやインフラ構築は不要です。
+GeonicDB はマネージド SaaS サービスとして利用できます。インストールやインフラ構築は不要です。
 
-- **API エンドポイント**: `https://api.vela.geolonia.com/v2/`
-- **NGSI-LD エンドポイント**: `https://api.vela.geolonia.com/ngsi-ld/v1/`
+- **API エンドポイント**: `https://api.geonicdb.geolonia.com/v2/`
+- **NGSI-LD エンドポイント**: `https://api.geonicdb.geolonia.com/ngsi-ld/v1/`
 
 ::: tip 準備中
 API キーの登録機能は現在準備中です。詳細が決まり次第お知らせします。
@@ -85,6 +85,6 @@ API キーの登録機能は現在準備中です。詳細が決まり次第お�
 
 ## 次のステップ
 
-- [なぜ Vela を選ぶのか？](/ja/introduction/why-vela) — FIWARE Orion との比較
+- [なぜ GeonicDB を選ぶのか？](/ja/introduction/why-geonicdb) — FIWARE Orion との比較
 - [アーキテクチャ](/ja/introduction/architecture) — システムアーキテクチャの詳細
 - [クイックスタート](/ja/introduction/quick-start) — 数分で最初の API コールを試す

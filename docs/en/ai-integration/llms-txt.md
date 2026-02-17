@@ -1,12 +1,12 @@
 ---
 title: llms.txt
-description: Vela OS provides an llms.txt endpoint that serves LLM-optimized API documentation in Markdown format at the root URL.
+description: GeonicDB provides an llms.txt endpoint that serves LLM-optimized API documentation in Markdown format at the root URL.
 outline: deep
 ---
 
 # llms.txt
 
-Vela OS implements the [llms.txt standard](https://llmstxt.org/), serving a Markdown-formatted API documentation page at the root URL. This gives LLMs a concise, structured overview of the API that they can use to understand and interact with the Context Broker.
+GeonicDB implements the [llms.txt standard](https://llmstxt.org/), serving a Markdown-formatted API documentation page at the root URL. This gives LLMs a concise, structured overview of the API that they can use to understand and interact with the Context Broker.
 
 ## Endpoint
 
@@ -19,7 +19,7 @@ Vela OS implements the [llms.txt standard](https://llmstxt.org/), serving a Mark
 
 ## How It Works
 
-When an AI agent (or any HTTP client) sends a `GET /` request, Vela OS returns a Markdown document that describes:
+When an AI agent (or any HTTP client) sends a `GET /` request, GeonicDB returns a Markdown document that describes:
 
 - The API's purpose and capabilities
 - Available endpoints and their parameters
@@ -33,7 +33,7 @@ This document is dynamically generated based on the current server configuration
 ### Direct Fetch
 
 ```bash
-curl https://api.vela.geolonia.com/
+curl https://api.geonicdb.geolonia.com/
 ```
 
 The response is a Markdown document that an LLM can parse to understand the API.
@@ -46,7 +46,7 @@ AI agents can fetch the llms.txt content as a first step to discover the API:
 import requests
 
 # Fetch API documentation
-docs = requests.get("https://api.vela.geolonia.com/").text
+docs = requests.get("https://api.geonicdb.geolonia.com/").text
 
 # Pass to LLM as context
 # The LLM can now understand the API structure and generate appropriate calls

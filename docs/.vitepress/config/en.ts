@@ -12,7 +12,7 @@ export const en = defineConfig({
 
 function nav(): DefaultTheme.NavItem[] {
   return [
-    { text: 'Vela OS', link: '/en/introduction/what-is-vela' },
+    { text: 'GeonicDB', link: '/en/introduction/what-is-geonicdb' },
     { text: 'Getting Started', link: '/en/getting-started/installation' },
     { text: 'API Reference', link: '/en/api-reference/ngsiv2' },
     { text: 'Features', link: '/en/features/subscriptions' },
@@ -20,7 +20,7 @@ function nav(): DefaultTheme.NavItem[] {
     { text: 'Changelog', link: '/en/changelog' },
     {
       text: 'GitHub',
-      link: 'https://github.com/geolonia/vela',
+      link: 'https://github.com/geolonia/geonicdb',
       target: '_blank',
     },
   ]
@@ -32,8 +32,8 @@ function sidebar(): DefaultTheme.Sidebar {
       {
         text: 'Introduction',
         items: [
-          { text: 'What is Vela?', link: '/en/introduction/what-is-vela' },
-          { text: 'Why Vela?', link: '/en/introduction/why-vela' },
+          { text: 'What is GeonicDB?', link: '/en/introduction/what-is-geonicdb' },
+          { text: 'Why GeonicDB?', link: '/en/introduction/why-geonicdb' },
           { text: 'Architecture', link: '/en/introduction/architecture' },
           { text: 'Quick Start', link: '/en/introduction/quick-start' },
         ],
@@ -106,7 +106,7 @@ function sidebar(): DefaultTheme.Sidebar {
       {
         text: 'Migration',
         items: [
-          { text: 'Orion to Vela Guide', link: '/en/migration/orion-to-vela' },
+          { text: 'Orion to GeonicDB Guide', link: '/en/migration/orion-to-geonicdb' },
           { text: 'Compatibility Matrix', link: '/en/migration/compatibility-matrix' },
         ],
       },

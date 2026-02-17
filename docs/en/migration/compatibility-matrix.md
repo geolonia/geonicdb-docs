@@ -1,16 +1,16 @@
 ---
 title: Compatibility Matrix
-description: Detailed compatibility matrix between FIWARE Orion and Vela OS, covering NGSIv2, NGSI-LD, geospatial, subscription, and authentication APIs.
+description: Detailed compatibility matrix between FIWARE Orion and GeonicDB, covering NGSIv2, NGSI-LD, geospatial, subscription, and authentication APIs.
 outline: deep
 ---
 
 # Compatibility Matrix
 
-This page provides a detailed comparison of API compatibility between **FIWARE Orion** (NGSIv2) / **Orion-LD** (NGSI-LD) and **Vela OS**.
+This page provides a detailed comparison of API compatibility between **FIWARE Orion** (NGSIv2) / **Orion-LD** (NGSI-LD) and **GeonicDB**.
 
 ## Overview
 
-| Property | Vela OS | FIWARE Orion |
+| Property | GeonicDB | FIWARE Orion |
 |----------|---------|-------------|
 | **Implementation** | TypeScript / Node.js | C++ |
 | **Architecture** | Serverless (AWS Lambda) | Monolithic (Docker) |
@@ -23,7 +23,7 @@ This page provides a detailed comparison of API compatibility between **FIWARE O
 
 All standard NGSIv2 endpoints are fully supported:
 
-| Endpoint | Vela | Orion | Notes |
+| Endpoint | GeonicDB | Orion | Notes |
 |----------|:----:|:-----:|-------|
 | `POST /v2/entities` | ✅ | ✅ | Entity creation |
 | `GET /v2/entities` | ✅ | ✅ | Entity listing |
@@ -55,7 +55,7 @@ All standard NGSIv2 endpoints are fully supported:
 
 ## NGSI-LD API Compatibility
 
-| Endpoint | Vela | Orion-LD | Notes |
+| Endpoint | GeonicDB | Orion-LD | Notes |
 |----------|:----:|:--------:|-------|
 | `POST /ngsi-ld/v1/entities` | ✅ | ✅ | Entity creation |
 | `GET /ngsi-ld/v1/entities` | ✅ | ✅ | Entity listing |
@@ -70,16 +70,16 @@ All standard NGSIv2 endpoints are fully supported:
 | `POST /ngsi-ld/v1/entityOperations/query` | ✅ | ✅ | Batch query |
 | Subscriptions CRUD | ✅ | ✅ | Full lifecycle |
 | CSR CRUD | ✅ | ✅ | Context Source Registrations |
-| `POST /ngsi-ld/v1/csourceSubscriptions` | ✅ | ❌ | CSR subscriptions (Vela only) |
+| `POST /ngsi-ld/v1/csourceSubscriptions` | ✅ | ❌ | CSR subscriptions (GeonicDB only) |
 | Temporal API | ✅ | ⚠️ | Limited in Orion-LD |
 | JSON-LD context management | ✅ | ✅ | `/ngsi-ld/v1/jsonldContexts` |
-| EntityMap operations | ✅ | ❌ | Vela only |
-| Snapshot operations | ✅ | ❌ | Vela only |
-| Vector tiles | ✅ | ❌ | Vela only |
+| EntityMap operations | ✅ | ❌ | GeonicDB only |
+| Snapshot operations | ✅ | ❌ | GeonicDB only |
+| Vector tiles | ✅ | ❌ | GeonicDB only |
 
 ## Query Features
 
-| Feature | Vela | Orion | Notes |
+| Feature | GeonicDB | Orion | Notes |
 |---------|:----:|:-----:|-------|
 | Simple Query Language (`q`) | ✅ | ✅ | |
 | Comparison operators | ✅ | ✅ | `==`, `!=`, `<`, `>`, `<=`, `>=` |
@@ -96,7 +96,7 @@ All standard NGSIv2 endpoints are fully supported:
 
 ## Geospatial Features
 
-| Feature | Vela | Orion | Notes |
+| Feature | GeonicDB | Orion | Notes |
 |---------|:----:|:-----:|-------|
 | `georel=near` | ✅ | ✅ | Point geometry only |
 | `georel=within` | ✅ | ✅ | |
@@ -111,25 +111,25 @@ All standard NGSIv2 endpoints are fully supported:
 
 ## Subscription / Notification Features
 
-| Feature | Vela | Orion | Notes |
+| Feature | GeonicDB | Orion | Notes |
 |---------|:----:|:-----:|-------|
 | HTTP Webhook | ✅ | ✅ | |
 | MQTT | ✅ | ✅ | |
-| WebSocket streaming | ✅ | ❌ | Vela only |
+| WebSocket streaming | ✅ | ❌ | GeonicDB only |
 | Custom headers | ✅ | ✅ | |
 | Custom payload template | ✅ | ✅ | Macro substitution |
-| `httpCustom.json` | ❌ | ✅ | Planned for Vela |
-| `httpCustom.ngsi` | ❌ | ✅ | Planned for Vela |
-| JEXL expressions | ❌ | ✅ | Planned for Vela |
+| `httpCustom.json` | ❌ | ✅ | Planned for GeonicDB |
+| `httpCustom.ngsi` | ❌ | ✅ | Planned for GeonicDB |
+| JEXL expressions | ❌ | ✅ | Planned for GeonicDB |
 | Throttling | ✅ | ✅ | |
 | Expiration | ✅ | ✅ | |
 | `onlyChangedAttrs` | ✅ | ✅ | |
 | Ordered delivery | ✅ (SQS FIFO) | ⚠️ | Limited in Orion |
-| Dead Letter Queue | ✅ | ❌ | Vela only |
+| Dead Letter Queue | ✅ | ❌ | GeonicDB only |
 
 ## Authentication / Authorization
 
-| Feature | Vela | Orion | Notes |
+| Feature | GeonicDB | Orion | Notes |
 |---------|:----:|:-----:|-------|
 | Built-in JWT auth | ✅ | ❌ | |
 | RBAC (roles) | ✅ | ❌ | super_admin, tenant_admin, user |
@@ -139,9 +139,9 @@ All standard NGSIv2 endpoints are fully supported:
 | Wilma PEP Proxy | ⚠️ | ✅ | API-compatible (untested) |
 | Multi-tenancy headers | ✅ | ✅ | Fiware-Service / Fiware-ServicePath |
 
-## Vela-Only Features
+## GeonicDB-Only Features
 
-The following features are available exclusively in Vela OS:
+The following features are available exclusively in GeonicDB:
 
 | Feature | Description |
 |---------|-------------|
@@ -160,4 +160,4 @@ The following features are available exclusively in Vela OS:
 
 ## Next Steps
 
-- [Orion to Vela Guide](/en/migration/orion-to-vela) — Step-by-step migration instructions
+- [Orion to GeonicDB Guide](/en/migration/orion-to-geonicdb) — Step-by-step migration instructions

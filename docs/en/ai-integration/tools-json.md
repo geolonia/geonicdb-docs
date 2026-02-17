@@ -1,12 +1,12 @@
 ---
 title: tools.json
-description: Vela OS provides a tools.json endpoint with Claude Tool Use and OpenAI Function Calling compatible tool definitions for AI agent integration.
+description: GeonicDB provides a tools.json endpoint with Claude Tool Use and OpenAI Function Calling compatible tool definitions for AI agent integration.
 outline: deep
 ---
 
 # tools.json
 
-Vela OS serves a `tools.json` endpoint that provides tool definitions compatible with **Claude Tool Use** and **OpenAI Function Calling**. AI agents can fetch this schema and use it to make structured API calls without manual configuration.
+GeonicDB serves a `tools.json` endpoint that provides tool definitions compatible with **Claude Tool Use** and **OpenAI Function Calling**. AI agents can fetch this schema and use it to make structured API calls without manual configuration.
 
 ## Endpoint
 
@@ -22,9 +22,9 @@ Vela OS serves a `tools.json` endpoint that provides tool definitions compatible
 {
   "schemaVersion": "1.0.0",
   "apiVersion": "1.0.0",
-  "name": "VelaOS",
+  "name": "GeonicDB",
   "description": "FIWARE Orion-compatible Context Broker API tools",
-  "baseUrl": "https://api.vela.geolonia.com",
+  "baseUrl": "https://api.geonicdb.geolonia.com",
   "tools": [
     {
       "name": "entities",
@@ -78,7 +78,7 @@ import anthropic
 import requests
 
 # Fetch tool definitions
-tools_response = requests.get("https://api.vela.geolonia.com/tools.json")
+tools_response = requests.get("https://api.geonicdb.geolonia.com/tools.json")
 tools = tools_response.json()["tools"]
 
 # Use with Claude
@@ -99,7 +99,7 @@ import openai
 import requests
 
 # Fetch and transform tool definitions
-tools_data = requests.get("https://api.vela.geolonia.com/tools.json").json()
+tools_data = requests.get("https://api.geonicdb.geolonia.com/tools.json").json()
 openai_tools = [
     {
         "type": "function",
@@ -123,19 +123,19 @@ response = client.chat.completions.create(
 
 ## AI Plugin Manifest
 
-Vela also provides an AI plugin manifest for API discovery:
+GeonicDB also provides an AI plugin manifest for API discovery:
 
 ```bash
-curl https://api.vela.geolonia.com/.well-known/ai-plugin.json
+curl https://api.geonicdb.geolonia.com/.well-known/ai-plugin.json
 ```
 
 ```json
 {
   "schema_version": "v1",
-  "name_for_human": "VelaOS",
-  "name_for_model": "vela",
+  "name_for_human": "GeonicDB",
+  "name_for_model": "geonicdb",
   "description_for_human": "FIWARE Orion-compatible Context Broker for IoT data",
-  "description_for_model": "VelaOS is a FIWARE Orion-compatible Context Broker...",
+  "description_for_model": "GeonicDB is a FIWARE Orion-compatible Context Broker...",
   "auth": { "type": "none" },
   "api": { "type": "openapi", "url": "/openapi.json" },
   "tools": { "url": "/tools.json" }

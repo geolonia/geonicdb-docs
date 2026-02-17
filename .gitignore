@@ -8,6 +8,6 @@ docs/.vitepress/cache/
 .env
 .env.*
 .claude/
-.vela-upstream/
+.geonicdb-upstream/
 test-results/
 playwright-report/

@@ -1,12 +1,12 @@
 ---
 title: データカタログ
-description: Vela OS でエンティティメタデータを DCAT-AP データセットとして公開し、CKAN オープンデータポータルと連携する方法。
+description: GeonicDB でエンティティメタデータを DCAT-AP データセットとして公開し、CKAN オープンデータポータルと連携する方法。
 outline: deep
 ---
 
 # データカタログ
 
-Vela OS は **DCAT-AP**（Data Catalog Vocabulary - Application Profile）形式でエンティティタイプのメタデータを公開し、**CKAN 互換** API エンドポイントを提供する組み込みの **データカタログ** 機能を搭載しています。これにより、オープンデータポータルやデータハーベスティングシステムとのシームレスな連携が可能です。
+GeonicDB は **DCAT-AP**（Data Catalog Vocabulary - Application Profile）形式でエンティティタイプのメタデータを公開し、**CKAN 互換** API エンドポイントを提供する組み込みの **データカタログ** 機能を搭載しています。これにより、オープンデータポータルやデータハーベスティングシステムとのシームレスな連携が可能です。
 
 ## 概要
 
@@ -22,7 +22,7 @@ Vela OS は **DCAT-AP**（Data Catalog Vocabulary - Application Profile）形式
 完全なカタログを DCAT-AP JSON-LD 形式で返します。
 
 ```bash
-curl https://api.vela.geolonia.com/catalog \
+curl https://api.geonicdb.geolonia.com/catalog \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -43,7 +43,7 @@ curl https://api.vela.geolonia.com/catalog \
   "dct:description": "DCAT-AP catalog for context data in tenant: smartcity",
   "dct:publisher": {
     "@type": "foaf:Organization",
-    "foaf:name": "VelaOS"
+    "foaf:name": "GeonicDB"
   },
   "dct:language": ["ja", "en"],
   "dcat:dataset": [
@@ -75,7 +75,7 @@ curl https://api.vela.geolonia.com/catalog \
 ページネーション付きのデータセット一覧。
 
 ```bash
-curl "https://api.vela.geolonia.com/catalog/datasets?limit=10&offset=0" \
+curl "https://api.geonicdb.geolonia.com/catalog/datasets?limit=10&offset=0" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -90,7 +90,7 @@ curl "https://api.vela.geolonia.com/catalog/datasets?limit=10&offset=0" \
 特定のデータセット（エンティティタイプ）の詳細。
 
 ```bash
-curl https://api.vela.geolonia.com/catalog/datasets/Room \
+curl https://api.geonicdb.geolonia.com/catalog/datasets/Room \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -100,7 +100,7 @@ curl https://api.vela.geolonia.com/catalog/datasets/Room \
 データセットのサンプルエンティティを取得。
 
 ```bash
-curl "https://api.vela.geolonia.com/catalog/datasets/Room/sample?limit=3" \
+curl "https://api.geonicdb.geolonia.com/catalog/datasets/Room/sample?limit=3" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -111,14 +111,14 @@ curl "https://api.vela.geolonia.com/catalog/datasets/Room/sample?limit=3" \
 
 ## CKAN 互換 API
 
-Vela OS は CKAN ハーベスタがコンテキストブローカーからデータを直接取り込める CKAN 互換エンドポイントを提供します。
+GeonicDB は CKAN ハーベスタがコンテキストブローカーからデータを直接取り込める CKAN 互換エンドポイントを提供します。
 
 ### GET /catalog/ckan/package_list
 
 すべてのパッケージ（データセット）ID を返します。
 
 ```bash
-curl https://api.vela.geolonia.com/catalog/ckan/package_list \
+curl https://api.geonicdb.geolonia.com/catalog/ckan/package_list \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -137,7 +137,7 @@ curl https://api.vela.geolonia.com/catalog/ckan/package_list \
 特定のパッケージの詳細情報を取得。
 
 ```bash
-curl "https://api.vela.geolonia.com/catalog/ckan/package_show?id=room" \
+curl "https://api.geonicdb.geolonia.com/catalog/ckan/package_show?id=room" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -181,7 +181,7 @@ curl "https://api.vela.geolonia.com/catalog/ckan/package_show?id=room" \
 リソース情報付きのページネーション対応パッケージ一覧。
 
 ```bash
-curl "https://api.vela.geolonia.com/catalog/ckan/current_package_list_with_resources?limit=10&offset=0" \
+curl "https://api.geonicdb.geolonia.com/catalog/ckan/current_package_list_with_resources?limit=10&offset=0" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -200,10 +200,10 @@ curl "https://api.vela.geolonia.com/catalog/ckan/current_package_list_with_resou
 
 ## CKAN ハーベスタ連携
 
-CKAN ポータルを Vela OS に接続するには：
+CKAN ポータルを GeonicDB に接続するには：
 
 1. CKAN インスタンスで新しいハーベストソースを作成
-2. ソース URL を Vela OS のカタログエンドポイントに設定
+2. ソース URL を GeonicDB のカタログエンドポイントに設定
 3. CKAN ハーベスタが `package_list` でデータセットを検出し、`package_show` で詳細を取得
 4. エンティティタイプが変更されるとデータセットが自動的に更新
 
@@ -212,7 +212,7 @@ CKAN ポータルを Vela OS に接続するには：
 カタログ API はマルチテナンシーに対応しています。`Fiware-Service` ヘッダーを使用してカタログを特定のテナントにスコープします：
 
 ```bash
-curl https://api.vela.geolonia.com/catalog \
+curl https://api.geonicdb.geolonia.com/catalog \
   -H "Fiware-Service: smart_city" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

@@ -1,12 +1,12 @@
 ---
 title: サブスクリプションと通知
-description: Vela OS で HTTP Webhook、MQTT、WebSocket イベントストリーミングによるリアルタイム通知を設定する方法。
+description: GeonicDB で HTTP Webhook、MQTT、WebSocket イベントストリーミングによるリアルタイム通知を設定する方法。
 outline: deep
 ---
 
 # サブスクリプションと通知
 
-Vela OS は、エンティティの属性が変更された際にリアルタイムでデータを配信する3つの通知チャネルを提供します：**HTTP Webhook**、**MQTT**、**WebSocket イベントストリーミング**。サブスクリプションにより、通知をトリガーする条件を定義し、アプリケーションを最新のコンテキストデータと同期させることができます。
+GeonicDB は、エンティティの属性が変更された際にリアルタイムでデータを配信する3つの通知チャネルを提供します：**HTTP Webhook**、**MQTT**、**WebSocket イベントストリーミング**。サブスクリプションにより、通知をトリガーする条件を定義し、アプリケーションを最新のコンテキストデータと同期させることができます。
 
 ## 通知チャネル
 
@@ -21,7 +21,7 @@ Vela OS は、エンティティの属性が変更された際にリアルタイ
 ### NGSIv2
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -52,7 +52,7 @@ curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
 ### NGSI-LD
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions \
   -H "Content-Type: application/json" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -76,7 +76,7 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions \
 
 ## HTTP Webhook 通知
 
-サブスクリプション条件が満たされると、Vela OS は設定されたエンドポイントに HTTP POST リクエストを送信します。
+サブスクリプション条件が満たされると、GeonicDB は設定されたエンドポイントに HTTP POST リクエストを送信します。
 
 ### 通知ペイロード（NGSIv2）
 
@@ -119,14 +119,14 @@ Webhook 通知にカスタムヘッダーを含めることができます：
 
 ## MQTT 通知
 
-Vela OS は HTTP リクエストの代わりに MQTT ブローカーに通知をパブリッシュできます。
+GeonicDB は HTTP リクエストの代わりに MQTT ブローカーに通知をパブリッシュできます。
 
 ```json
 {
   "notification": {
     "mqtt": {
       "url": "mqtt://broker.example.com:1883",
-      "topic": "vela/notifications/room",
+      "topic": "geonicdb/notifications/room",
       "qos": 1
     },
     "attrs": ["temperature"]
@@ -142,13 +142,13 @@ Vela OS は HTTP リクエストの代わりに MQTT ブローカーに通知を
 
 ## WebSocket イベントストリーミング
 
-ブラウザベースのリアルタイムアプリケーション向けに、Vela OS はエンティティの変更を接続中のクライアントに直接プッシュする WebSocket イベントストリーミングを提供します。
+ブラウザベースのリアルタイムアプリケーション向けに、GeonicDB はエンティティの変更を接続中のクライアントに直接プッシュする WebSocket イベントストリーミングを提供します。
 
 ### 接続
 
 ```javascript
 const ws = new WebSocket(
-  'wss://api.vela.geolonia.com/ws?tenant=smartcity&token=YOUR_API_KEY'
+  'wss://api.geonicdb.geolonia.com/ws?tenant=smartcity&token=YOUR_API_KEY'
 );
 
 ws.onopen = () => {
@@ -261,7 +261,7 @@ temperature>25;humidity<80
 ### 一覧取得
 
 ```bash
-curl https://api.vela.geolonia.com/v2/subscriptions \
+curl https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -269,7 +269,7 @@ curl https://api.vela.geolonia.com/v2/subscriptions \
 ### 削除
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/subscriptions/{subscriptionId} \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/subscriptions/{subscriptionId} \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

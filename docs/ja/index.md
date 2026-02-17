@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Vela OS
+  name: GeonicDB
   text: サーバーレス FIWARE Orion 互換 Context Broker
   tagline: AI ネイティブ、サーバーレス、日本標準規格対応
   actions:
@@ -14,7 +14,7 @@ hero:
       link: /ja/api-reference/ngsiv2
     - theme: alt
       text: GitHub
-      link: https://github.com/geolonia/vela
+      link: https://github.com/geolonia/geonicdb
 
 features:
   - icon: ⚡

@@ -1,12 +1,12 @@
 ---
 title: Pagination
-description: Pagination specifications for Vela OS APIs — limit/offset parameters, total count headers, and Link headers for all list endpoints.
+description: Pagination specifications for GeonicDB APIs — limit/offset parameters, total count headers, and Link headers for all list endpoints.
 outline: deep
 ---
 
 # Pagination
 
-All list endpoints in Vela OS support pagination using `limit` and `offset` query parameters.
+All list endpoints in GeonicDB support pagination using `limit` and `offset` query parameters.
 
 ## Parameters
 
@@ -55,8 +55,8 @@ All paginated endpoints return [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288
 | `prev` | `offset > 0` | URL for the previous page |
 
 ```text
-Link: <https://api.vela.geolonia.com/v2/entities?limit=10&offset=20>; rel="next",
-      <https://api.vela.geolonia.com/v2/entities?limit=10&offset=0>; rel="prev"
+Link: <https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=20>; rel="next",
+      <https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
 
 - No `Link` header is returned when results fit in a single page.
@@ -69,18 +69,18 @@ Link: <https://api.vela.geolonia.com/v2/entities?limit=10&offset=20>; rel="next"
 
 ```bash
 # First 10 items
-curl "https://api.vela.geolonia.com/v2/entities?limit=10&offset=0" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=0" \
   -H "Fiware-Service: demo"
 
 # Next 10 items
-curl "https://api.vela.geolonia.com/v2/entities?limit=10&offset=10" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=10" \
   -H "Fiware-Service: demo"
 ```
 
 ### NGSIv2 with Total Count
 
 ```bash
-curl "https://api.vela.geolonia.com/v2/entities?limit=10&options=count" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?limit=10&options=count" \
   -H "Fiware-Service: demo"
 
 # Response header:
@@ -90,7 +90,7 @@ curl "https://api.vela.geolonia.com/v2/entities?limit=10&options=count" \
 ### NGSI-LD Pagination
 
 ```bash
-curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?limit=10&offset=0" \
+curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?limit=10&offset=0" \
   -H "Fiware-Service: demo"
 
 # Response header:
@@ -100,7 +100,7 @@ curl "https://api.vela.geolonia.com/ngsi-ld/v1/entities?limit=10&offset=0" \
 ### Admin API Pagination
 
 ```bash
-curl "https://api.vela.geolonia.com/admin/users?limit=50&offset=0" \
+curl "https://api.geonicdb.geolonia.com/admin/users?limit=50&offset=0" \
   -H "Authorization: Bearer YOUR_API_KEY"
 
 # Response header:

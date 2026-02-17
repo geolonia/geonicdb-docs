@@ -1,18 +1,18 @@
 ---
 title: Smart Data Models
-description: Use FIWARE Smart Data Models with automatic @context resolution and MCP-based schema browsing in Vela OS.
+description: Use FIWARE Smart Data Models with automatic @context resolution and MCP-based schema browsing in GeonicDB.
 outline: deep
 ---
 
 # Smart Data Models
 
-Vela OS integrates with the [FIWARE Smart Data Models](https://smartdatamodels.org/) initiative, providing **automatic @context resolution** for known data model types and an **MCP tool** for browsing the model catalog. This ensures semantic interoperability with the broader FIWARE ecosystem.
+GeonicDB integrates with the [FIWARE Smart Data Models](https://smartdatamodels.org/) initiative, providing **automatic @context resolution** for known data model types and an **MCP tool** for browsing the model catalog. This ensures semantic interoperability with the broader FIWARE ecosystem.
 
 ## Overview
 
-Smart Data Models are standardized data schemas widely used in smart city and IoT deployments. Vela OS supports them through two features:
+Smart Data Models are standardized data schemas widely used in smart city and IoT deployments. GeonicDB supports them through two features:
 
-1. **@context Auto-Completion** — When retrieving NGSI-LD entities of known Smart Data Model types, Vela OS automatically adds the correct JSON-LD @context
+1. **@context Auto-Completion** — When retrieving NGSI-LD entities of known Smart Data Model types, GeonicDB automatically adds the correct JSON-LD @context
 2. **MCP Tool (`data_models`)** — Browse and search available data models via the MCP interface
 
 ## Supported Domains
@@ -30,7 +30,7 @@ Smart Data Models are standardized data schemas widely used in smart city and Io
 
 ## @context Auto-Completion
 
-When you retrieve entities via the NGSI-LD API, Vela OS checks if the entity type matches a known Smart Data Model and automatically includes the appropriate @context.
+When you retrieve entities via the NGSI-LD API, GeonicDB checks if the entity type matches a known Smart Data Model and automatically includes the appropriate @context.
 
 ### Resolution Priority
 
@@ -45,7 +45,7 @@ When you retrieve entities via the NGSI-LD API, Vela OS checks if the entity typ
 **Create a Smart Data Model entity:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/json" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -74,7 +74,7 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
 **Retrieve with auto-completed @context:**
 
 ```bash
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown \
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

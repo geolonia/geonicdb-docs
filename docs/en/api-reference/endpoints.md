@@ -1,12 +1,12 @@
 ---
 title: Endpoints
-description: Common API specifications for Vela OS — headers, content types, CORS, tenant headers, and the complete list of all API endpoints.
+description: Common API specifications for GeonicDB — headers, content types, CORS, tenant headers, and the complete list of all API endpoints.
 outline: deep
 ---
 
 # Endpoints
 
-This page describes the common specifications shared across all Vela OS API endpoints, including headers, content types, and the complete endpoint reference.
+This page describes the common specifications shared across all GeonicDB API endpoints, including headers, content types, and the complete endpoint reference.
 
 ## API Categories
 

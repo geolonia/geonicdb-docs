@@ -1,12 +1,12 @@
 ---
 title: CADDE 連携
-description: Vela OS は日本の分野間データ連携基盤 CADDE（Connector Architecture for Decentralized Data Exchange）と連携します。
+description: GeonicDB は日本の分野間データ連携基盤 CADDE（Connector Architecture for Decentralized Data Exchange）と連携します。
 outline: deep
 ---
 
 # CADDE 連携
 
-Vela OS は **CADDE**（Connector Architecture for Decentralized Data Exchange）と連携します。CADDE は、異なるデータ提供者・消費者間でのデータ交換を実現する日本のデータ連携アーキテクチャです。
+GeonicDB は **CADDE**（Connector Architecture for Decentralized Data Exchange）と連携します。CADDE は、異なるデータ提供者・消費者間でのデータ交換を実現する日本のデータ連携アーキテクチャです。
 
 ## CADDE とは
 
@@ -17,9 +17,9 @@ CADDE は、日本のデジタル政策フレームワークの下で開発さ�
 - **標準認証** — Bearer トークンと JWT による認証
 - **メタデータ伝播** — HTTP ヘッダーによる情報伝達
 
-## Vela の CADDE サポート
+## GeonicDB の CADDE サポート
 
-Vela OS は **CADDE 対応データ提供者** として機能します。CADDE コネクタからデータリクエストが送られると、Vela は CADDE 固有のヘッダーを処理し、認証を検証（有効時）し、来歴情報付きでデータを返却します。
+GeonicDB は **CADDE 対応データ提供者** として機能します。CADDE コネクタからデータリクエストが送られると、GeonicDB は CADDE 固有のヘッダーを処理し、認証を検証（有効時）し、来歴情報付きでデータを返却します。
 
 ### リクエストフロー
 
@@ -28,7 +28,7 @@ CADDE 利用者
     ↓
 CADDE コネクタ（ブローカー）
     ↓ (x-cadde-* ヘッダー)
-Vela OS（データ提供者）
+GeonicDB（データ提供者）
     ↓ (x-cadde-provenance-* ヘッダー)
 CADDE コネクタ
     ↓
@@ -37,7 +37,7 @@ CADDE 利用者
 
 ## CADDE リクエストヘッダー
 
-CADDE コネクタが Vela にアクセスする際、以下のヘッダーを含めます:
+CADDE コネクタが GeonicDB にアクセスする際、以下のヘッダーを含めます:
 
 | ヘッダー | 必須 | 説明 |
 |---------|------|------|
@@ -51,14 +51,14 @@ CADDE コネクタが Vela にアクセスする際、以下のヘッダーを�
 
 ## CADDE レスポンスヘッダー（来歴情報）
 
-Vela は CADDE リクエストへのレスポンスに来歴ヘッダーを自動付与します:
+GeonicDB は CADDE リクエストへのレスポンスに来歴ヘッダーを自動付与します:
 
 | ヘッダー | 説明 | 例 |
 |---------|------|-----|
 | `x-cadde-provenance-id` | 一意のリクエスト ID（Fiware-Correlator を使用） | `a1b2c3d4-...` |
 | `x-cadde-provenance-timestamp` | ISO 8601 形式のレスポンスタイムスタンプ | `2026-02-10T12:00:00.000Z` |
 | `x-cadde-provenance-provider` | データ提供者の識別子 | `provider-001` |
-| `x-cadde-provenance-resource-url` | アクセスされた実際のリソース URL | `https://api.vela.geolonia.com/v2/entities` |
+| `x-cadde-provenance-resource-url` | アクセスされた実際のリソース URL | `https://api.geonicdb.geolonia.com/v2/entities` |
 
 ## 設定
 
@@ -75,7 +75,7 @@ CADDE 機能は環境変数で設定します:
 
 ## 認証
 
-`CADDE_AUTH_ENABLED=true` の場合、Vela は `Authorization` ヘッダーの Bearer トークンを検証します:
+`CADDE_AUTH_ENABLED=true` の場合、GeonicDB は `Authorization` ヘッダーの Bearer トークンを検証します:
 
 1. **JWT デコード** — トークンのデコードと構造の検証
 2. **署名検証** — JWKS エンドポイントの公開鍵による署名検証
@@ -87,7 +87,7 @@ CADDE 機能は環境変数で設定します:
 ## 使用例: CADDE リクエスト
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities?type=AirQualityObserved \
+curl https://api.geonicdb.geolonia.com/v2/entities?type=AirQualityObserved \
   -H "x-cadde-resource-url: https://data.example.jp/air-quality" \
   -H "x-cadde-resource-api-type: api/ngsi" \
   -H "x-cadde-provider: tokyo-env-agency" \
@@ -101,7 +101,7 @@ HTTP/1.1 200 OK
 x-cadde-provenance-id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 x-cadde-provenance-timestamp: 2026-02-10T12:00:00.000Z
 x-cadde-provenance-provider: tokyo-env-agency
-x-cadde-provenance-resource-url: https://api.vela.geolonia.com/v2/entities?type=AirQualityObserved
+x-cadde-provenance-resource-url: https://api.geonicdb.geolonia.com/v2/entities?type=AirQualityObserved
 Content-Type: application/json
 
 [...]
@@ -110,4 +110,4 @@ Content-Type: application/json
 ## 次のステップ
 
 - [空間ID / ZFXY](/ja/japan-standards/spatial-id-zfxy) — 3D 空間識別標準
-- [スマートシティ事例](/ja/japan-standards/smart-city-cases) — Vela を使ったスマートシティのユースケース
+- [スマートシティ事例](/ja/japan-standards/smart-city-cases) — GeonicDB を使ったスマートシティのユースケース

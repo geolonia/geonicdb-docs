@@ -1,12 +1,12 @@
 ---
 title: 空間ID / ZFXY
-description: Vela OS はデジタル庁 / IPA の 3D 空間識別標準（ZFXY）を実装し、3次元空間グリッドでエンティティのインデックスとクエリを行えます。
+description: GeonicDB はデジタル庁 / IPA の 3D 空間識別標準（ZFXY）を実装し、3次元空間グリッドでエンティティのインデックスとクエリを行えます。
 outline: deep
 ---
 
 # 空間ID / ZFXY
 
-Vela OS は、日本の**デジタル庁**および **IPA**（情報処理推進機構）が定める **3D 空間識別標準**（通称 **ZFXY** または**空間ID**）を実装しています。これにより、階層的な3D空間グリッドシステムを使ってエンティティのインデックスとクエリが可能です。
+GeonicDB は、日本の**デジタル庁**および **IPA**（情報処理推進機構）が定める **3D 空間識別標準**（通称 **ZFXY** または**空間ID**）を実装しています。これにより、階層的な3D空間グリッドシステムを使ってエンティティのインデックスとクエリが可能です。
 
 ## ZFXY とは
 
@@ -65,7 +65,7 @@ z/f/x/y
 特定の空間セル内のエンティティをクエリ:
 
 ```bash
-curl "https://api.vela.geolonia.com/v2/entities?spatialId=20/0/929593/410773" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?spatialId=20/0/929593/410773" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -74,7 +74,7 @@ curl "https://api.vela.geolonia.com/v2/entities?spatialId=20/0/929593/410773" \
 より細かいズームレベルの子タイルを含めてクエリを展開:
 
 ```bash
-curl "https://api.vela.geolonia.com/v2/entities?spatialId=18/0/232398/102693&depth=2" \
+curl "https://api.geonicdb.geolonia.com/v2/entities?spatialId=18/0/232398/102693&depth=2" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -82,7 +82,7 @@ curl "https://api.vela.geolonia.com/v2/entities?spatialId=18/0/232398/102693&dep
 
 ## 空間ID 操作
 
-Vela の空間IDシステムは以下の操作をサポートします:
+GeonicDB の空間IDシステムは以下の操作をサポートします:
 
 ### 座標から空間IDへの変換
 
@@ -124,4 +124,4 @@ Vela の空間IDシステムは以下の操作をサポートします:
 ## 次のステップ
 
 - [CADDE](/ja/japan-standards/cadde) — 分野間データ連携基盤との連携
-- [スマートシティ事例](/ja/japan-standards/smart-city-cases) — Vela を使ったスマートシティのユースケース
+- [スマートシティ事例](/ja/japan-standards/smart-city-cases) — GeonicDB を使ったスマートシティのユースケース

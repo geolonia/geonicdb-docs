@@ -1,12 +1,12 @@
 ---
 title: Subscriptions & Notifications
-description: Configure real-time notifications via HTTP Webhooks, MQTT, and WebSocket event streaming in Vela OS.
+description: Configure real-time notifications via HTTP Webhooks, MQTT, and WebSocket event streaming in GeonicDB.
 outline: deep
 ---
 
 # Subscriptions & Notifications
 
-Vela OS provides three notification channels for real-time data delivery when entity attributes change: **HTTP Webhooks**, **MQTT**, and **WebSocket event streaming**. Subscriptions let you define conditions that trigger notifications, ensuring your applications stay in sync with the latest context data.
+GeonicDB provides three notification channels for real-time data delivery when entity attributes change: **HTTP Webhooks**, **MQTT**, and **WebSocket event streaming**. Subscriptions let you define conditions that trigger notifications, ensuring your applications stay in sync with the latest context data.
 
 ## Notification Channels
 
@@ -21,7 +21,7 @@ Vela OS provides three notification channels for real-time data delivery when en
 ### NGSIv2
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -52,7 +52,7 @@ curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
 ### NGSI-LD
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions \
   -H "Content-Type: application/json" \
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY" \
@@ -76,7 +76,7 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions \
 
 ## HTTP Webhook Notifications
 
-When a subscription condition is met, Vela OS sends an HTTP POST request to the configured endpoint.
+When a subscription condition is met, GeonicDB sends an HTTP POST request to the configured endpoint.
 
 ### Notification Payload (NGSIv2)
 
@@ -119,14 +119,14 @@ You can include custom headers in webhook notifications:
 
 ## MQTT Notifications
 
-Vela OS can publish notifications to an MQTT broker instead of sending HTTP requests.
+GeonicDB can publish notifications to an MQTT broker instead of sending HTTP requests.
 
 ```json
 {
   "notification": {
     "mqtt": {
       "url": "mqtt://broker.example.com:1883",
-      "topic": "vela/notifications/room",
+      "topic": "geonicdb/notifications/room",
       "qos": 1
     },
     "attrs": ["temperature"]
@@ -142,13 +142,13 @@ Vela OS can publish notifications to an MQTT broker instead of sending HTTP requ
 
 ## WebSocket Event Streaming
 
-For real-time browser-based applications, Vela OS provides WebSocket event streaming that pushes entity changes directly to connected clients.
+For real-time browser-based applications, GeonicDB provides WebSocket event streaming that pushes entity changes directly to connected clients.
 
 ### Connecting
 
 ```javascript
 const ws = new WebSocket(
-  'wss://api.vela.geolonia.com/ws?tenant=smartcity&token=YOUR_API_KEY'
+  'wss://api.geonicdb.geolonia.com/ws?tenant=smartcity&token=YOUR_API_KEY'
 );
 
 ws.onopen = () => {
@@ -246,7 +246,7 @@ temperature>25;humidity<80
 
 ## Throttling
 
-The `throttling` field (in seconds) limits the notification rate per subscription. When set, Vela OS will not send more than one notification within the specified interval, even if multiple attribute changes occur.
+The `throttling` field (in seconds) limits the notification rate per subscription. When set, GeonicDB will not send more than one notification within the specified interval, even if multiple attribute changes occur.
 
 ```json
 {
@@ -261,7 +261,7 @@ This ensures at most one notification every 10 seconds for that subscription.
 ### List Subscriptions
 
 ```bash
-curl https://api.vela.geolonia.com/v2/subscriptions \
+curl https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -269,7 +269,7 @@ curl https://api.vela.geolonia.com/v2/subscriptions \
 ### Delete a Subscription
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/subscriptions/{subscriptionId} \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/subscriptions/{subscriptionId} \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

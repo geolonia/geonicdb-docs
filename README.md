@@ -1,19 +1,19 @@
-# Vela OS Documentation
+# GeonicDB Documentation
 
 🇯🇵 [日本語版はこちら](README.ja.md)
 
 ## Overview
 
-This repository hosts the official documentation for **Vela OS**, a serverless FIWARE Orion-compatible Context Broker. The documentation site is built with VitePress and provides comprehensive guides, API references, and integration examples.
+This repository hosts the official documentation for **GeonicDB**, a serverless FIWARE Orion-compatible Context Broker. The documentation site is built with VitePress and provides comprehensive guides, API references, and integration examples.
 
-**Vela OS** is a next-generation Context Broker that brings FIWARE standards to the serverless world:
+**GeonicDB** is a next-generation Context Broker that brings FIWARE standards to the serverless world:
 
 - **AI-Native**: Built-in MCP server, llms.txt, tools.json, and OpenAPI 3.0 for seamless AI agent integration
 - **Serverless**: Runs on AWS Lambda with auto-scaling and pay-per-use pricing
 - **Dual API Support**: Both NGSIv2 and NGSI-LD on a single instance
 - **Japan Standards Ready**: CADDE compatible with provenance tracking
 
-🌐 **Live Documentation**: https://docs.vela-os.org/
+🌐 **Live Documentation**: https://docs.geonicdb.org/
 
 ## Tech Stack
 
@@ -33,8 +33,8 @@ This repository hosts the official documentation for **Vela OS**, a serverless F
 
 ```bash
 # Clone the repository
-git clone https://github.com/geolonia/vela-docs.git
-cd vela-docs
+git clone https://github.com/geolonia/geonicdb-docs.git
+cd geonicdb-docs
 
 # Install dependencies
 pnpm install
@@ -174,7 +174,7 @@ We welcome contributions! Please follow these guidelines:
 
 ## Learn More
 
-- **Vela OS Repository**: https://github.com/geolonia/vela
+- **GeonicDB Repository**: https://github.com/geolonia/geonicdb
 - **FIWARE Orion**: https://fiware-orion.readthedocs.io/
 - **NGSIv2 Specification**: https://fiware.github.io/specifications/ngsiv2/stable/
 - **NGSI-LD Specification**: https://ngsi-ld.org

@@ -1,12 +1,12 @@
 ---
-title: Orion から Vela への移行ガイド
-description: セルフホスト型 FIWARE Orion から Vela OS SaaS への移行手順。API エンドポイント、認証、サブスクリプション、データ移行をカバー。
+title: Orion から GeonicDB への移行ガイド
+description: セルフホスト型 FIWARE Orion から GeonicDB SaaS への移行手順。API エンドポイント、認証、サブスクリプション、データ移行をカバー。
 outline: deep
 ---
 
-# Orion から Vela への移行ガイド
+# Orion から GeonicDB への移行ガイド
 
-このガイドでは、セルフホスト型の **FIWARE Orion**（または Orion-LD）から **Vela OS SaaS** への移行手順を説明します。Vela は Orion と API 互換のため、ほとんどのアプリケーションはエンドポイント URL と認証設定の変更で移行できます。
+このガイドでは、セルフホスト型の **FIWARE Orion**（または Orion-LD）から **GeonicDB SaaS** への移行手順を説明します。GeonicDB は Orion と API 互換のため、ほとんどのアプリケーションはエンドポイント URL と認証設定の変更で移行できます。
 
 ## 移行の概要
 
@@ -20,43 +20,43 @@ outline: deep
 
 ## ステップ 1: API エンドポイントの更新
 
-Orion のエンドポイント URL を Vela SaaS のエンドポイントに置き換えます:
+Orion のエンドポイント URL を GeonicDB SaaS のエンドポイントに置き換えます:
 
 ### NGSIv2
 
-| 移行前（Orion） | 移行後（Vela SaaS） |
+| 移行前（Orion） | 移行後（GeonicDB SaaS） |
 |----------------|-------------------|
-| `http://orion:1026/v2/entities` | `https://api.vela.geolonia.com/v2/entities` |
-| `http://orion:1026/v2/subscriptions` | `https://api.vela.geolonia.com/v2/subscriptions` |
-| `http://orion:1026/v2/registrations` | `https://api.vela.geolonia.com/v2/registrations` |
-| `http://orion:1026/v2/types` | `https://api.vela.geolonia.com/v2/types` |
-| `http://orion:1026/v2/op/update` | `https://api.vela.geolonia.com/v2/op/update` |
-| `http://orion:1026/v2/op/query` | `https://api.vela.geolonia.com/v2/op/query` |
+| `http://orion:1026/v2/entities` | `https://api.geonicdb.geolonia.com/v2/entities` |
+| `http://orion:1026/v2/subscriptions` | `https://api.geonicdb.geolonia.com/v2/subscriptions` |
+| `http://orion:1026/v2/registrations` | `https://api.geonicdb.geolonia.com/v2/registrations` |
+| `http://orion:1026/v2/types` | `https://api.geonicdb.geolonia.com/v2/types` |
+| `http://orion:1026/v2/op/update` | `https://api.geonicdb.geolonia.com/v2/op/update` |
+| `http://orion:1026/v2/op/query` | `https://api.geonicdb.geolonia.com/v2/op/query` |
 
 ### NGSI-LD
 
-| 移行前（Orion-LD） | 移行後（Vela SaaS） |
+| 移行前（Orion-LD） | 移行後（GeonicDB SaaS） |
 |-------------------|-------------------|
-| `http://orion-ld:1026/ngsi-ld/v1/entities` | `https://api.vela.geolonia.com/ngsi-ld/v1/entities` |
-| `http://orion-ld:1026/ngsi-ld/v1/subscriptions` | `https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions` |
+| `http://orion-ld:1026/ngsi-ld/v1/entities` | `https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities` |
+| `http://orion-ld:1026/ngsi-ld/v1/subscriptions` | `https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions` |
 
 ## ステップ 2: 認証の設定
 
-Vela SaaS は認証が必要です。すべてのリクエストに `Authorization` ヘッダーを追加してください:
+GeonicDB SaaS は認証が必要です。すべてのリクエストに `Authorization` ヘッダーを追加してください:
 
 ```bash
 # 移行前（Orion — 認証なし）
 curl http://orion:1026/v2/entities
 
-# 移行後（Vela SaaS — Bearer トークン）
-curl https://api.vela.geolonia.com/v2/entities \
+# 移行後（GeonicDB SaaS — Bearer トークン）
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 マルチテナンシー用の `Fiware-Service` / `Fiware-ServicePath` ヘッダーは従来通り使用できます:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Fiware-Service: my-tenant" \
   -H "Fiware-ServicePath: /sensors"
@@ -64,7 +64,7 @@ curl https://api.vela.geolonia.com/v2/entities \
 
 ## ステップ 3: サブスクリプションの移行
 
-Orion のサブスクリプションは直接転送できません。Vela 上で再作成する必要があります。サブスクリプション形式は互換性があるため、同じペイロードを使用できます。
+Orion のサブスクリプションは直接転送できません。GeonicDB 上で再作成する必要があります。サブスクリプション形式は互換性があるため、同じペイロードを使用できます。
 
 ### 既存サブスクリプションのエクスポート
 
@@ -73,18 +73,18 @@ Orion のサブスクリプションは直接転送できません。Vela 上で
 curl http://orion:1026/v2/subscriptions | jq '.' > subscriptions.json
 ```
 
-### Vela で再作成
+### GeonicDB で再作成
 
 ```bash
 # subscriptions.json の各サブスクリプションについて
-curl -X POST https://api.vela.geolonia.com/v2/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d @subscriptions.json
 ```
 
 ::: tip 通知先 URL の確認
-通知エンドポイント（Webhook URL）がインターネットからアクセス可能であることを確認してください。Vela SaaS はローカルネットワークではなく AWS インフラから通知を送信します。
+通知エンドポイント（Webhook URL）がインターネットからアクセス可能であることを確認してください。GeonicDB SaaS はローカルネットワークではなく AWS インフラから通知を送信します。
 :::
 
 ## ステップ 4: エンティティデータの移行
@@ -99,8 +99,8 @@ curl "http://orion:1026/v2/entities?limit=1000&offset=0" > entities_batch1.json
 curl "http://orion:1026/v2/entities?limit=1000&offset=1000" > entities_batch2.json
 # ... 全エンティティのエクスポートが完了するまで続行
 
-# Vela にバッチアップデートでインポート
-curl -X POST https://api.vela.geolonia.com/v2/op/update \
+# GeonicDB にバッチアップデートでインポート
+curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -111,7 +111,7 @@ curl -X POST https://api.vela.geolonia.com/v2/op/update \
 
 ### 大規模データセット（10,000件以上）
 
-大規模データセットの場合、MongoDB から直接エクスポートし、Vela チームと連携してバルクインポートを行ってください。
+大規模データセットの場合、MongoDB から直接エクスポートし、GeonicDB チームと連携してバルクインポートを行ってください。
 
 ## ステップ 5: 検証とカットオーバー
 
@@ -129,11 +129,11 @@ curl -X POST https://api.vela.geolonia.com/v2/op/update \
 - [ ] サブスクリプションが通知を受信
 - [ ] ジオクエリが正しい結果を返却
 - [ ] すべてのサービスアカウントで認証が機能
-- [ ] アプリケーションのエンドポイントが Vela SaaS URL に更新済み
+- [ ] アプリケーションのエンドポイントが GeonicDB SaaS URL に更新済み
 
 ## Orion との主な違い
 
-| 機能 | FIWARE Orion | Vela SaaS |
+| 機能 | FIWARE Orion | GeonicDB SaaS |
 |------|-------------|-----------|
 | ホスティング | セルフホスト（Docker） | マネージド SaaS |
 | 認証 | 外部（Keyrock + Wilma） | 組み込み JWT |

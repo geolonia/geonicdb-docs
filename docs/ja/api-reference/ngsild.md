@@ -1,17 +1,17 @@
 ---
 title: NGSI-LD API リファレンス
-description: Vela OS の NGSI-LD API 完全リファレンス -- エンティティの CRUD、バッチ操作、サブスクリプション、レジストレーション、時系列クエリなど。ETSI GS CIM 009 V1.9.1 に準拠。
+description: GeonicDB の NGSI-LD API 完全リファレンス -- エンティティの CRUD、バッチ操作、サブスクリプション、レジストレーション、時系列クエリなど。ETSI GS CIM 009 V1.9.1 に準拠。
 outline: deep
 ---
 
 # NGSI-LD API リファレンス
 
-このページでは、Vela OS で利用可能な NGSI-LD API エンドポイントについて説明します。実装は **[ETSI GS CIM 009 V1.9.1 (2025-07)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf)** に準拠しています。
+このページでは、GeonicDB で利用可能な NGSI-LD API エンドポイントについて説明します。実装は **[ETSI GS CIM 009 V1.9.1 (2025-07)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf)** に準拠しています。
 
 ## ベース URL
 
 ```text
-https://api.vela.geolonia.com/ngsi-ld/v1/
+https://api.geonicdb.geolonia.com/ngsi-ld/v1/
 ```
 
 すべてのリクエストには以下のヘッダーが必要です:
@@ -77,7 +77,7 @@ GET /ngsi-ld/v1/entities
 **リクエスト例:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&limit=10" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&limit=10" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
@@ -148,7 +148,7 @@ POST /ngsi-ld/v1/entities
 **リクエスト例:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -210,7 +210,7 @@ ID を指定して単一のエンティティを取得します。
 **リクエスト例:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?attrs=temperature" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?attrs=temperature" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
@@ -243,7 +243,7 @@ PATCH /ngsi-ld/v1/entities/{entityId}
 **リクエスト例:**
 
 ```bash
-curl -X PATCH "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001" \
+curl -X PATCH "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001" \
   -H "Content-Type: application/merge-patch+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -300,7 +300,7 @@ PATCH /ngsi-ld/v1/entities/{entityId}/attrs
 **リクエスト例:**
 
 ```bash
-curl -X PATCH "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001/attrs" \
+curl -X PATCH "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001/attrs" \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -387,7 +387,7 @@ POST /ngsi-ld/v1/entityOperations/create
 **リクエスト例:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entityOperations/create \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entityOperations/create \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -527,7 +527,7 @@ POST /ngsi-ld/v1/subscriptions
 #### HTTP 通知の例
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -651,7 +651,7 @@ DELETE /ngsi-ld/v1/subscriptions/{subscriptionId}
 
 > ETSI GS CIM 009 Section 5.9
 
-外部コンテキストプロバイダを登録することで、Vela が複数のデータソースにまたがるクエリをフェデレーションできるようにします。
+外部コンテキストプロバイダを登録することで、GeonicDB が複数のデータソースにまたがるクエリをフェデレーションできるようにします。
 
 ### レジストレーションの作成
 
@@ -662,7 +662,7 @@ POST /ngsi-ld/v1/csourceRegistrations
 **リクエスト例:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/csourceRegistrations \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/csourceRegistrations \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" \
@@ -853,7 +853,7 @@ POST /ngsi-ld/v1/jsonldContexts
 **リクエスト例:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/jsonldContexts \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/jsonldContexts \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -947,7 +947,7 @@ GET /ngsi-ld/v1/temporal/entities/{entityId}
 **temporalValues を使用した例:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:1?options=temporalValues&timerel=after&timeAt=2026-01-01T00:00:00Z" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:1?options=temporalValues&timerel=after&timeAt=2026-01-01T00:00:00Z" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" | jq .
@@ -969,7 +969,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:
 **集計の例:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:1?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2026-01-01T00:00:00Z" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:1?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2026-01-01T00:00:00Z" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" | jq .
@@ -998,8 +998,8 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:
 
 テンポラルエンティティのバッチ操作です（1 リクエストあたり最大 1,000 件）。
 
-::: info Vela 拡張
-テンポラルバッチの `create`、`upsert`、`delete` は Vela OS の独自拡張です（ETSI 仕様には含まれません）。`query` のみが仕様準拠です。
+::: info GeonicDB 拡張
+テンポラルバッチの `create`、`upsert`、`delete` は GeonicDB の独自拡張です（ETSI 仕様には含まれません）。`query` のみが仕様準拠です。
 :::
 
 | 操作 | メソッド | エンドポイント |
@@ -1139,7 +1139,7 @@ DELETE /ngsi-ld/v1/entityMaps/{entityMapId}
 **例:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&join=inline&joinLevel=2" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&join=inline&joinLevel=2" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" | jq .

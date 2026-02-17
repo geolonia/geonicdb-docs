@@ -7,15 +7,15 @@ test.describe('Home page', () => {
     expect(page.url()).toContain('/en/')
   })
 
-  test('/en/ displays Vela OS hero', async ({ page }) => {
+  test('/en/ displays GeonicDB hero', async ({ page }) => {
     await page.goto('./en/')
     const hero = page.locator('.VPHero .name')
-    await expect(hero).toContainText('Vela OS')
+    await expect(hero).toContainText('GeonicDB')
   })
 
-  test('/ja/ displays Vela OS hero', async ({ page }) => {
+  test('/ja/ displays GeonicDB hero', async ({ page }) => {
     await page.goto('./ja/')
     const hero = page.locator('.VPHero .name')
-    await expect(hero).toContainText('Vela OS')
+    await expect(hero).toContainText('GeonicDB')
   })
 })

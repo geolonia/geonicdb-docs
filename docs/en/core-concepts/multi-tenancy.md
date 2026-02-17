@@ -1,12 +1,12 @@
 ---
 title: Multi-Tenancy
-description: Learn how Vela OS isolates data between tenants using Fiware-Service and Fiware-ServicePath headers.
+description: Learn how GeonicDB isolates data between tenants using Fiware-Service and Fiware-ServicePath headers.
 outline: deep
 ---
 
 # Multi-Tenancy
 
-Vela OS supports multi-tenancy through HTTP headers, allowing complete data isolation between different tenants within a single deployment.
+GeonicDB supports multi-tenancy through HTTP headers, allowing complete data isolation between different tenants within a single deployment.
 
 ## Tenant Headers
 
@@ -19,7 +19,7 @@ Vela OS supports multi-tenancy through HTTP headers, allowing complete data isol
 ### Basic Usage
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /buildings/floor1" \
@@ -40,17 +40,17 @@ Data under different `Fiware-Service` values is **completely isolated**:
 
 ```bash
 # Create entity in tenant "demo"
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: demo" \
   -H "Content-Type: application/json" \
   -d '{"id": "Room1", "type": "Room", "temperature": {"type": "Number", "value": 22}}'
 
 # This returns nothing — different tenant
-curl https://api.vela.geolonia.com/v2/entities?type=Room \
+curl https://api.geonicdb.geolonia.com/v2/entities?type=Room \
   -H "Fiware-Service: production"
 
 # This returns Room1 — same tenant
-curl https://api.vela.geolonia.com/v2/entities?type=Room \
+curl https://api.geonicdb.geolonia.com/v2/entities?type=Room \
   -H "Fiware-Service: demo"
 ```
 
@@ -83,7 +83,7 @@ Use the `/#` suffix to search a path and all its descendants (**query operations
 
 ```bash
 # Search /buildings and all sub-paths
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /buildings/#"
 ```
@@ -94,7 +94,7 @@ Use comma-separated paths to search multiple locations simultaneously (up to 10 
 
 ```bash
 # Search both /park1 and /park2
-curl https://api.vela.geolonia.com/v2/entities \
+curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /park1, /park2"
 ```
@@ -112,7 +112,7 @@ Write operations accept only a single, non-hierarchical path. Using `/#` or mult
 
 ## NGSI-LD Tenant Header
 
-NGSI-LD also supports tenant isolation. Vela OS accepts both header names:
+NGSI-LD also supports tenant isolation. GeonicDB accepts both header names:
 
 | Header | API |
 |--------|-----|
@@ -123,11 +123,11 @@ Both headers are equivalent — use whichever fits your client.
 
 ```bash
 # NGSI-LD with Fiware-Service
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room \
   -H "Fiware-Service: smartcity"
 
 # NGSI-LD with NGSILD-Tenant
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room \
   -H "NGSILD-Tenant: smartcity"
 ```
 

@@ -1,12 +1,12 @@
 ---
 title: Data Catalog
-description: Expose entity metadata as DCAT-AP datasets and integrate with CKAN open data portals using Vela OS.
+description: Expose entity metadata as DCAT-AP datasets and integrate with CKAN open data portals using GeonicDB.
 outline: deep
 ---
 
 # Data Catalog
 
-Vela OS includes a built-in **data catalog** that exposes entity type metadata in **DCAT-AP** (Data Catalog Vocabulary - Application Profile) format and provides **CKAN-compatible** API endpoints. This enables seamless integration with open data portals and data harvesting systems.
+GeonicDB includes a built-in **data catalog** that exposes entity type metadata in **DCAT-AP** (Data Catalog Vocabulary - Application Profile) format and provides **CKAN-compatible** API endpoints. This enables seamless integration with open data portals and data harvesting systems.
 
 ## Overview
 
@@ -22,7 +22,7 @@ Vela OS includes a built-in **data catalog** that exposes entity type metadata i
 Returns the full catalog in DCAT-AP JSON-LD format.
 
 ```bash
-curl https://api.vela.geolonia.com/catalog \
+curl https://api.geonicdb.geolonia.com/catalog \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -43,7 +43,7 @@ curl https://api.vela.geolonia.com/catalog \
   "dct:description": "DCAT-AP catalog for context data in tenant: smartcity",
   "dct:publisher": {
     "@type": "foaf:Organization",
-    "foaf:name": "VelaOS"
+    "foaf:name": "GeonicDB"
   },
   "dct:language": ["ja", "en"],
   "dcat:dataset": [
@@ -75,7 +75,7 @@ curl https://api.vela.geolonia.com/catalog \
 List all datasets with optional pagination.
 
 ```bash
-curl "https://api.vela.geolonia.com/catalog/datasets?limit=10&offset=0" \
+curl "https://api.geonicdb.geolonia.com/catalog/datasets?limit=10&offset=0" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -90,7 +90,7 @@ curl "https://api.vela.geolonia.com/catalog/datasets?limit=10&offset=0" \
 Get details for a specific dataset (entity type).
 
 ```bash
-curl https://api.vela.geolonia.com/catalog/datasets/Room \
+curl https://api.geonicdb.geolonia.com/catalog/datasets/Room \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -100,7 +100,7 @@ curl https://api.vela.geolonia.com/catalog/datasets/Room \
 Get sample entities for a dataset.
 
 ```bash
-curl "https://api.vela.geolonia.com/catalog/datasets/Room/sample?limit=3" \
+curl "https://api.geonicdb.geolonia.com/catalog/datasets/Room/sample?limit=3" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -111,14 +111,14 @@ curl "https://api.vela.geolonia.com/catalog/datasets/Room/sample?limit=3" \
 
 ## CKAN Compatible API
 
-Vela OS provides CKAN-compatible endpoints that allow CKAN harvesters to directly ingest data from your context broker.
+GeonicDB provides CKAN-compatible endpoints that allow CKAN harvesters to directly ingest data from your context broker.
 
 ### GET /catalog/ckan/package_list
 
 Returns all package (dataset) IDs.
 
 ```bash
-curl https://api.vela.geolonia.com/catalog/ckan/package_list \
+curl https://api.geonicdb.geolonia.com/catalog/ckan/package_list \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -137,7 +137,7 @@ curl https://api.vela.geolonia.com/catalog/ckan/package_list \
 Get detailed information for a specific package.
 
 ```bash
-curl "https://api.vela.geolonia.com/catalog/ckan/package_show?id=room" \
+curl "https://api.geonicdb.geolonia.com/catalog/ckan/package_show?id=room" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -181,7 +181,7 @@ curl "https://api.vela.geolonia.com/catalog/ckan/package_show?id=room" \
 Paginated package list with resource information.
 
 ```bash
-curl "https://api.vela.geolonia.com/catalog/ckan/current_package_list_with_resources?limit=10&offset=0" \
+curl "https://api.geonicdb.geolonia.com/catalog/ckan/current_package_list_with_resources?limit=10&offset=0" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -200,10 +200,10 @@ curl "https://api.vela.geolonia.com/catalog/ckan/current_package_list_with_resou
 
 ## CKAN Harvester Integration
 
-To connect a CKAN portal to Vela OS:
+To connect a CKAN portal to GeonicDB:
 
 1. In your CKAN instance, create a new harvest source
-2. Set the source URL to your Vela OS catalog endpoint
+2. Set the source URL to your GeonicDB catalog endpoint
 3. The CKAN harvester will use `package_list` to discover datasets and `package_show` to retrieve details
 4. Datasets are automatically updated when entity types change
 
@@ -212,7 +212,7 @@ To connect a CKAN portal to Vela OS:
 The catalog API respects multi-tenancy. Use the `Fiware-Service` header to scope the catalog to a specific tenant:
 
 ```bash
-curl https://api.vela.geolonia.com/catalog \
+curl https://api.geonicdb.geolonia.com/catalog \
   -H "Fiware-Service: smart_city"  \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Vela OS
+  name: GeonicDB
   text: Serverless FIWARE Orion-compatible Context Broker
   tagline: AI-Native, Serverless, Japan Standards Ready
   actions:
@@ -14,7 +14,7 @@ hero:
       link: /en/api-reference/ngsiv2
     - theme: alt
       text: GitHub
-      link: https://github.com/geolonia/vela
+      link: https://github.com/geolonia/geonicdb
 
 features:
   - icon: ⚡

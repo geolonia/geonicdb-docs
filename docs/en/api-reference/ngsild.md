@@ -1,17 +1,17 @@
 ---
 title: NGSI-LD API Reference
-description: Complete reference for the NGSI-LD API on Vela OS — entity CRUD, batch operations, subscriptions, registrations, temporal queries, and more. Conformant to ETSI GS CIM 009 V1.9.1.
+description: Complete reference for the NGSI-LD API on GeonicDB — entity CRUD, batch operations, subscriptions, registrations, temporal queries, and more. Conformant to ETSI GS CIM 009 V1.9.1.
 outline: deep
 ---
 
 # NGSI-LD API Reference
 
-This page documents the NGSI-LD API endpoints available on Vela OS. The implementation conforms to **[ETSI GS CIM 009 V1.9.1 (2025-07)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf)**.
+This page documents the NGSI-LD API endpoints available on GeonicDB. The implementation conforms to **[ETSI GS CIM 009 V1.9.1 (2025-07)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.09.01_60/gs_CIM009v010901p.pdf)**.
 
 ## Base URL
 
 ```text
-https://api.vela.geolonia.com/ngsi-ld/v1/
+https://api.geonicdb.geolonia.com/ngsi-ld/v1/
 ```
 
 All requests require the following headers:
@@ -77,7 +77,7 @@ Retrieve entities matching the specified filters.
 **Example request:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&limit=10" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&limit=10" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
@@ -148,7 +148,7 @@ Create a new entity.
 **Example request:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -210,7 +210,7 @@ Retrieve a single entity by ID.
 **Example request:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?attrs=temperature" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?attrs=temperature" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
@@ -243,7 +243,7 @@ Partially update an entity using **Merge-Patch semantics** (ETSI GS CIM 009 Sect
 **Example request:**
 
 ```bash
-curl -X PATCH "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001" \
+curl -X PATCH "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001" \
   -H "Content-Type: application/merge-patch+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -300,7 +300,7 @@ Update multiple attributes at once. Only attributes included in the request body
 **Example request:**
 
 ```bash
-curl -X PATCH "https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001/attrs" \
+curl -X PATCH "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001/attrs" \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -387,7 +387,7 @@ POST /ngsi-ld/v1/entityOperations/create
 **Example request:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entityOperations/create \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entityOperations/create \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -533,7 +533,7 @@ POST /ngsi-ld/v1/subscriptions
 #### HTTP Notification Example
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/subscriptions \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -657,7 +657,7 @@ DELETE /ngsi-ld/v1/subscriptions/{subscriptionId}
 
 > ETSI GS CIM 009 Section 5.9
 
-Register external context providers so that Vela can federate queries across multiple data sources.
+Register external context providers so that GeonicDB can federate queries across multiple data sources.
 
 ### Create Registration
 
@@ -668,7 +668,7 @@ POST /ngsi-ld/v1/csourceRegistrations
 **Example request:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/csourceRegistrations \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/csourceRegistrations \
   -H "Content-Type: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" \
@@ -859,7 +859,7 @@ POST /ngsi-ld/v1/jsonldContexts
 **Example request:**
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/jsonldContexts \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/jsonldContexts \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" \
@@ -953,7 +953,7 @@ GET /ngsi-ld/v1/temporal/entities/{entityId}
 **Example with temporalValues:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:1?options=temporalValues&timerel=after&timeAt=2026-01-01T00:00:00Z" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:1?options=temporalValues&timerel=after&timeAt=2026-01-01T00:00:00Z" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" | jq .
@@ -975,7 +975,7 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:
 **Aggregation example:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:1?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2026-01-01T00:00:00Z" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:1?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2026-01-01T00:00:00Z" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" | jq .
@@ -1004,8 +1004,8 @@ curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:
 
 Batch operations for temporal entities (up to 1,000 per request).
 
-::: info Vela Extension
-Temporal batch `create`, `upsert`, and `delete` are Vela OS extensions (not part of the ETSI specification). Only `query` is specification-conformant.
+::: info GeonicDB Extension
+Temporal batch `create`, `upsert`, and `delete` are GeonicDB extensions (not part of the ETSI specification). Only `query` is specification-conformant.
 :::
 
 | Operation | Method | Endpoint |
@@ -1146,7 +1146,7 @@ A consolidated reference of query parameters available across entity endpoints.
 **Example:**
 
 ```bash
-curl -s "https://api.vela.geolonia.com/ngsi-ld/v1/entities?type=Room&join=inline&joinLevel=2" \
+curl -s "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&join=inline&joinLevel=2" \
   -H "Accept: application/ld+json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartcity" | jq .

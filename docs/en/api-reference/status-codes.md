@@ -1,12 +1,12 @@
 ---
 title: Status Codes
-description: HTTP status codes and error response formats used across all Vela OS API endpoints.
+description: HTTP status codes and error response formats used across all GeonicDB API endpoints.
 outline: deep
 ---
 
 # Status Codes
 
-This page documents all HTTP status codes and error response formats used by Vela OS APIs.
+This page documents all HTTP status codes and error response formats used by GeonicDB APIs.
 
 ## Success Responses
 

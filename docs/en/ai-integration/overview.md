@@ -1,16 +1,16 @@
 ---
 title: AI Integration Overview
-description: Vela OS is an AI-native Context Broker that provides multiple interfaces for AI agents — MCP server, llms.txt, tools.json, and OpenAPI 3.0.
+description: GeonicDB is an AI-native Context Broker that provides multiple interfaces for AI agents — MCP server, llms.txt, tools.json, and OpenAPI 3.0.
 outline: deep
 ---
 
 # AI Integration Overview
 
-Vela OS is designed from the ground up as an **AI-native Context Broker**. It provides multiple standardized interfaces that allow AI agents (Claude, GPT-4, Gemini, and others) to discover, query, and manage IoT context data without custom integration code.
+GeonicDB is designed from the ground up as an **AI-native Context Broker**. It provides multiple standardized interfaces that allow AI agents (Claude, GPT-4, Gemini, and others) to discover, query, and manage IoT context data without custom integration code.
 
 ## Three Pillars of AI Integration
 
-Vela OS exposes three complementary AI interfaces, each serving a different purpose:
+GeonicDB exposes three complementary AI interfaces, each serving a different purpose:
 
 | Endpoint | Format | Purpose |
 |----------|--------|---------|
@@ -25,15 +25,15 @@ In addition, standard machine-readable specs are available:
 | `GET /openapi.json` | JSON | OpenAPI 3.0 specification |
 | `GET /.well-known/ai-plugin.json` | JSON | AI plugin manifest for API discovery |
 
-## How AI Agents Use Vela
+## How AI Agents Use GeonicDB
 
 ### 1. Discovery
 
-An AI agent first discovers Vela's capabilities by fetching `GET /` (llms.txt) or `GET /tools.json`. These endpoints describe the available operations, parameters, and authentication requirements in a format the agent can understand.
+An AI agent first discovers GeonicDB's capabilities by fetching `GET /` (llms.txt) or `GET /tools.json`. These endpoints describe the available operations, parameters, and authentication requirements in a format the agent can understand.
 
 ### 2. Interaction
 
-The agent then interacts with Vela through one of two paths:
+The agent then interacts with GeonicDB through one of two paths:
 
 - **MCP Protocol** — The agent connects via `POST /mcp` using the Model Context Protocol. This is the preferred method for MCP-compatible clients like Claude Desktop, as it provides a structured tool-calling interface with 8 built-in tools.
 - **Direct API Calls** — The agent calls NGSIv2 or NGSI-LD endpoints directly, using the schema from `tools.json` or `openapi.json` to construct requests.
@@ -50,7 +50,7 @@ Through either path, the agent can perform the full range of NGSI operations:
 
 ## Available MCP Tools
 
-Vela's MCP server exposes **8 tools**, each supporting multiple actions via an `action` parameter:
+GeonicDB's MCP server exposes **8 tools**, each supporting multiple actions via an `action` parameter:
 
 | Tool | Actions | Description |
 |------|---------|-------------|
@@ -65,7 +65,7 @@ Vela's MCP server exposes **8 tools**, each supporting multiple actions via an `
 
 ## NGSI-LD Attribute Type Auto-Detection
 
-When creating or updating entities through MCP tools, Vela automatically infers the NGSI-LD attribute type from the value:
+When creating or updating entities through MCP tools, GeonicDB automatically infers the NGSI-LD attribute type from the value:
 
 | Value Pattern | Detected Type | Example |
 |--------------|---------------|---------|

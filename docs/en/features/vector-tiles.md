@@ -1,12 +1,12 @@
 ---
 title: Vector Tiles
-description: Serve entity data as vector tiles with TileJSON 3.0, automatic clustering, and MapLibre GL JS integration in Vela OS.
+description: Serve entity data as vector tiles with TileJSON 3.0, automatic clustering, and MapLibre GL JS integration in GeonicDB.
 outline: deep
 ---
 
 # Vector Tiles
 
-Vela OS can serve entity location data as **vector tiles**, enabling high-performance map visualizations directly from your context data. The built-in tile server supports the **TileJSON 3.0** specification, automatic point clustering, and seamless integration with **MapLibre GL JS**.
+GeonicDB can serve entity location data as **vector tiles**, enabling high-performance map visualizations directly from your context data. The built-in tile server supports the **TileJSON 3.0** specification, automatic point clustering, and seamless integration with **MapLibre GL JS**.
 
 ## Overview
 
@@ -14,10 +14,10 @@ Vector tiles provide an efficient way to render large numbers of geo-located ent
 
 ## TileJSON 3.0 Endpoint
 
-Vela OS exposes a TileJSON 3.0 metadata endpoint for each entity type:
+GeonicDB exposes a TileJSON 3.0 metadata endpoint for each entity type:
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/tiles/Room/tilejson \
+curl https://api.geonicdb.geolonia.com/v2/entities/tiles/Room/tilejson \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
@@ -29,7 +29,7 @@ curl https://api.vela.geolonia.com/v2/entities/tiles/Room/tilejson \
   "tilejson": "3.0.0",
   "name": "Room",
   "tiles": [
-    "https://api.vela.geolonia.com/v2/entities/tiles/Room/{z}/{x}/{y}.pbf"
+    "https://api.geonicdb.geolonia.com/v2/entities/tiles/Room/{z}/{x}/{y}.pbf"
   ],
   "minzoom": 0,
   "maxzoom": 14,
@@ -61,7 +61,7 @@ GET /v2/entities/tiles/{entityType}/{z}/{x}/{y}.pbf
 
 ## Automatic Clustering
 
-At lower zoom levels, Vela OS automatically clusters nearby entities into aggregated points. This improves rendering performance when viewing large datasets at city or regional scale.
+At lower zoom levels, GeonicDB automatically clusters nearby entities into aggregated points. This improves rendering performance when viewing large datasets at city or regional scale.
 
 | Zoom Level | Behavior |
 |------------|----------|
@@ -94,7 +94,7 @@ Cluster features include a `point_count` property that indicates the number of e
     map.on('load', () => {
       map.addSource('sensors', {
         type: 'vector',
-        url: 'https://api.vela.geolonia.com/v2/entities/tiles/Sensor/tilejson'
+        url: 'https://api.geonicdb.geolonia.com/v2/entities/tiles/Sensor/tilejson'
       });
 
       map.addLayer({
@@ -119,7 +119,7 @@ Cluster features include a `point_count` property that indicates the number of e
 map.on('load', () => {
   map.addSource('sensors', {
     type: 'vector',
-    url: 'https://api.vela.geolonia.com/v2/entities/tiles/Sensor/tilejson'
+    url: 'https://api.geonicdb.geolonia.com/v2/entities/tiles/Sensor/tilejson'
   });
 
   // Cluster circles

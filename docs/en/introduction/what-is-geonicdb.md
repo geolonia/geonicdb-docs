@@ -1,12 +1,12 @@
 ---
-title: What is Vela?
-description: An overview of Vela OS — a FIWARE Orion-compatible serverless Context Broker running on AWS Lambda with dual API support, AI-native design, and geo-spatial extensions.
+title: What is GeonicDB?
+description: An overview of GeonicDB — a FIWARE Orion-compatible serverless Context Broker running on AWS Lambda with dual API support, AI-native design, and geo-spatial extensions.
 outline: deep
 ---
 
-# What is Vela?
+# What is GeonicDB?
 
-Vela OS is a **FIWARE Orion-compatible Context Broker** that runs on **AWS Lambda** with **MongoDB Atlas** as its data store. It provides full support for both **NGSIv2** and **NGSI-LD** APIs within a single deployment, enabling seamless management of IoT and smart city context data.
+GeonicDB is a **FIWARE Orion-compatible Context Broker** that runs on **AWS Lambda** with **MongoDB Atlas** as its data store. It provides full support for both **NGSIv2** and **NGSI-LD** APIs within a single deployment, enabling seamless management of IoT and smart city context data.
 
 ## Key Highlights
 
@@ -22,14 +22,14 @@ Vela OS is a **FIWARE Orion-compatible Context Broker** that runs on **AWS Lambd
 
 ## How It Works
 
-Vela OS receives API requests through **AWS API Gateway**, which routes them to **AWS Lambda** functions. These functions process NGSI requests — entity CRUD, subscriptions, geo-queries, federation — and store data in **MongoDB Atlas**.
+GeonicDB receives API requests through **AWS API Gateway**, which routes them to **AWS Lambda** functions. These functions process NGSI requests — entity CRUD, subscriptions, geo-queries, federation — and store data in **MongoDB Atlas**.
 
 ```text
 Client Request
     ↓
 API Gateway (HTTP / WebSocket)
     ↓
-AWS Lambda (Vela OS)
+AWS Lambda (GeonicDB)
     ↓
 MongoDB Atlas
 ```
@@ -38,7 +38,7 @@ Subscription notifications are processed asynchronously via **EventBridge** and 
 
 ## Dual API: NGSIv2 and NGSI-LD
 
-Unlike FIWARE Orion (NGSIv2 only) and Orion-LD (NGSI-LD only), Vela OS supports **both APIs on the same instance**. A unified internal entity format ensures full interoperability:
+Unlike FIWARE Orion (NGSIv2 only) and Orion-LD (NGSI-LD only), GeonicDB supports **both APIs on the same instance**. A unified internal entity format ensures full interoperability:
 
 | Feature | NGSIv2 | NGSI-LD |
 |---------|--------|---------|
@@ -52,7 +52,7 @@ Data written through NGSIv2 can be read through NGSI-LD and vice versa, with aut
 
 ## AI-Native Integration
 
-Vela OS is designed from the ground up for AI agent interaction:
+GeonicDB is designed from the ground up for AI agent interaction:
 
 - **MCP Server** (`POST /mcp`) — Streamable HTTP transport compatible with Claude Desktop and other MCP clients
 - **llms.txt** (`GET /`) — Human-readable API documentation optimized for LLMs
@@ -74,10 +74,10 @@ These endpoints enable AI assistants to query, create, and manage IoT data witho
 
 ## SaaS Access
 
-Vela OS is available as a managed SaaS service. No installation or infrastructure setup is required.
+GeonicDB is available as a managed SaaS service. No installation or infrastructure setup is required.
 
-- **API Endpoint**: `https://api.vela.geolonia.com/v2/`
-- **NGSI-LD Endpoint**: `https://api.vela.geolonia.com/ngsi-ld/v1/`
+- **API Endpoint**: `https://api.geonicdb.geolonia.com/v2/`
+- **NGSI-LD Endpoint**: `https://api.geonicdb.geolonia.com/ngsi-ld/v1/`
 
 ::: tip Coming Soon
 API key registration is currently being prepared. Check back soon for access details.
@@ -85,6 +85,6 @@ API key registration is currently being prepared. Check back soon for access det
 
 ## Next Steps
 
-- [Why Vela?](/en/introduction/why-vela) — See how Vela compares to FIWARE Orion
+- [Why GeonicDB?](/en/introduction/why-geonicdb) — See how GeonicDB compares to FIWARE Orion
 - [Architecture](/en/introduction/architecture) — Explore the system architecture in detail
 - [Quick Start](/en/introduction/quick-start) — Try your first API call in minutes

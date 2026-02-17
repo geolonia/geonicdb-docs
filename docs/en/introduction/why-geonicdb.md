@@ -1,16 +1,16 @@
 ---
-title: Why Vela?
-description: A detailed comparison between Vela OS and FIWARE Orion Context Broker, highlighting the key differences in architecture, AI support, geo-spatial features, and more.
+title: Why GeonicDB?
+description: A detailed comparison between GeonicDB and FIWARE Orion Context Broker, highlighting the key differences in architecture, AI support, geo-spatial features, and more.
 outline: deep
 ---
 
-# Why Vela?
+# Why GeonicDB?
 
-Vela OS is a modern alternative to FIWARE Orion, built from the ground up for cloud-native, AI-driven, and geo-spatial workloads. This page highlights the key differences.
+GeonicDB is a modern alternative to FIWARE Orion, built from the ground up for cloud-native, AI-driven, and geo-spatial workloads. This page highlights the key differences.
 
 ## At a Glance
 
-| Aspect | Vela OS | FIWARE Orion |
+| Aspect | GeonicDB | FIWARE Orion |
 |--------|---------|--------------|
 | **Language** | TypeScript / Node.js | C++ |
 | **Architecture** | Serverless (AWS Lambda) | Monolithic (Docker) |
@@ -24,9 +24,9 @@ Vela OS is a modern alternative to FIWARE Orion, built from the ground up for cl
 
 ### 1. Serverless Architecture
 
-Vela runs on AWS Lambda — no servers to provision, patch, or scale. Lambda automatically handles traffic spikes, and you only pay for actual API invocations.
+GeonicDB runs on AWS Lambda — no servers to provision, patch, or scale. Lambda automatically handles traffic spikes, and you only pay for actual API invocations.
 
-| | Vela OS | Orion |
+| | GeonicDB | Orion |
 |---|---------|-------|
 | Deployment | AWS Lambda + API Gateway | Docker containers |
 | Scaling | Automatic, per-request | Manual, container-level |
@@ -35,7 +35,7 @@ Vela runs on AWS Lambda — no servers to provision, patch, or scale. Lambda aut
 
 ### 2. AI-Native Design
 
-Vela ships with four AI integration endpoints out of the box. No plugins or external tools needed.
+GeonicDB ships with four AI integration endpoints out of the box. No plugins or external tools needed.
 
 | Endpoint | Purpose | Orion Support |
 |----------|---------|---------------|
@@ -44,13 +44,13 @@ Vela ships with four AI integration endpoints out of the box. No plugins or exte
 | `GET /tools.json` | Tool definitions for Claude / OpenAI | ❌ |
 | `GET /openapi.json` | OpenAPI 3.0 specification | ❌ |
 
-With Vela, AI assistants can directly query, create, and manage IoT entities through standardized tool interfaces.
+With GeonicDB, AI assistants can directly query, create, and manage IoT entities through standardized tool interfaces.
 
 ### 3. Geo-Spatial Extensions
 
-Beyond standard NGSI geo-queries, Vela adds Japan-specific spatial features and modern map integration.
+Beyond standard NGSI geo-queries, GeonicDB adds Japan-specific spatial features and modern map integration.
 
-| Feature | Vela OS | Orion |
+| Feature | GeonicDB | Orion |
 |---------|---------|-------|
 | Standard geo-queries (near, within, intersects, etc.) | ✅ | ✅ |
 | Spatial ID (ZFXY) — Japan Digital Agency standard | ✅ | ❌ |
@@ -61,7 +61,7 @@ Beyond standard NGSI geo-queries, Vela adds Japan-specific spatial features and 
 
 ### 4. CADDE Integration (Japan Data Exchange)
 
-Vela natively supports Japan's Cross-domain Data Exchange platform (CADDE), enabling interoperability with government data systems.
+GeonicDB natively supports Japan's Cross-domain Data Exchange platform (CADDE), enabling interoperability with government data systems.
 
 - `x-cadde-*` request headers for resource identification
 - Provenance information headers (`x-cadde-provenance-*`)
@@ -71,7 +71,7 @@ FIWARE Orion does not support CADDE.
 
 ### 5. Dual API (NGSIv2 + NGSI-LD)
 
-Orion supports NGSIv2 only. Orion-LD supports NGSI-LD only. Vela supports **both on the same instance** with full cross-API interoperability.
+Orion supports NGSIv2 only. Orion-LD supports NGSI-LD only. GeonicDB supports **both on the same instance** with full cross-API interoperability.
 
 - Write an entity via NGSIv2 → read it via NGSI-LD
 - Write an entity via NGSI-LD → read it via NGSIv2
@@ -81,9 +81,9 @@ This means existing NGSIv2 applications can coexist with new NGSI-LD services, e
 
 ### 6. Built-in Enterprise Authentication
 
-Vela includes a complete authentication and authorization system. Orion requires external components (Keyrock, Wilma PEP Proxy).
+GeonicDB includes a complete authentication and authorization system. Orion requires external components (Keyrock, Wilma PEP Proxy).
 
-| Feature | Vela OS | Orion |
+| Feature | GeonicDB | Orion |
 |---------|---------|-------|
 | JWT authentication | ✅ Built-in | ❌ Requires Keyrock |
 | RBAC (3 roles) | ✅ Built-in | ❌ Requires PEP Proxy |
@@ -94,9 +94,9 @@ Vela includes a complete authentication and authorization system. Orion requires
 
 ### 7. Real-Time WebSocket Streaming
 
-Vela provides WebSocket-based event streaming for real-time entity change notifications, in addition to standard HTTP webhook and MQTT delivery.
+GeonicDB provides WebSocket-based event streaming for real-time entity change notifications, in addition to standard HTTP webhook and MQTT delivery.
 
-| Notification Channel | Vela OS | Orion |
+| Notification Channel | GeonicDB | Orion |
 |---------------------|---------|-------|
 | HTTP Webhook | ✅ | ✅ |
 | MQTT (QoS 0/1/2, TLS) | ✅ | ✅ |
@@ -106,9 +106,9 @@ Vela provides WebSocket-based event streaming for real-time entity change notifi
 
 ### 8. Data Catalog
 
-Vela includes a built-in data catalog API compatible with EU and open data standards.
+GeonicDB includes a built-in data catalog API compatible with EU and open data standards.
 
-| Feature | Vela OS | Orion |
+| Feature | GeonicDB | Orion |
 |---------|---------|-------|
 | DCAT-AP JSON-LD catalog | ✅ | ❌ |
 | CKAN compatible API | ✅ | ❌ |
@@ -117,17 +117,17 @@ Vela includes a built-in data catalog API compatible with EU and open data stand
 
 ### 9. SaaS API Access
 
-Vela OS is available as a managed SaaS — no deployment, no infrastructure, no maintenance. Just call the API.
+GeonicDB is available as a managed SaaS — no deployment, no infrastructure, no maintenance. Just call the API.
 
-| | Vela OS | Orion |
+| | GeonicDB | Orion |
 |---|---------|-------|
 | SaaS availability | ✅ | ❌ |
 | Self-hosted option | AWS Lambda | Docker / Kubernetes |
 | Getting started | API key + curl | Clone → Docker Compose → configure |
 
-## When to Choose Vela
+## When to Choose GeonicDB
 
-Vela OS is the right choice when you need:
+GeonicDB is the right choice when you need:
 
 - **Serverless / auto-scaling** — Variable traffic, pay-per-use
 - **AI integration** — LLM agents interacting with IoT data
@@ -148,6 +148,6 @@ FIWARE Orion may be a better fit when you need:
 
 ## Next Steps
 
-- [Architecture](/en/introduction/architecture) — Understand how Vela is built
+- [Architecture](/en/introduction/architecture) — Understand how GeonicDB is built
 - [Quick Start](/en/introduction/quick-start) — Make your first API call
-- Orion to Vela Migration — Step-by-step migration guide
+- Orion to GeonicDB Migration — Step-by-step migration guide

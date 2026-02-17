@@ -1,19 +1,19 @@
 ---
 title: アーキテクチャ
-description: Vela OS のシステムアーキテクチャ — AWS Lambda、API Gateway、MongoDB Atlas、および内部レイヤー構造。
+description: GeonicDB のシステムアーキテクチャ — AWS Lambda、API Gateway、MongoDB Atlas、および内部レイヤー構造。
 outline: deep
 ---
 
 # アーキテクチャ
 
-Vela OS は AWS マネージドサービス上に構築されたサーバーレスアプリケーションです。このページでは、システム全体のアーキテクチャ、リクエストフロー、ソースコード構造を説明します。
+GeonicDB は AWS マネージドサービス上に構築されたサーバーレスアプリケーションです。このページでは、システム全体のアーキテクチャ、リクエストフロー、ソースコード構造を説明します。
 
 ## システム概要
 
 ```mermaid
 graph TB
     Client[クライアント / AI エージェント] --> APIGW[AWS API Gateway<br/>HTTP + WebSocket]
-    APIGW --> Lambda[AWS Lambda<br/>Vela OS]
+    APIGW --> Lambda[AWS Lambda<br/>GeonicDB]
     Lambda --> MongoDB[(MongoDB Atlas)]
     Lambda --> EB[AWS EventBridge]
     EB --> Matcher[Lambda<br/>サブスクリプション<br/>マッチャー]
@@ -47,7 +47,7 @@ graph TB
 sequenceDiagram
     participant C as クライアント
     participant GW as API Gateway
-    participant L as Lambda (Vela)
+    participant L as Lambda (GeonicDB)
     participant DB as MongoDB Atlas
     participant EB as EventBridge
 

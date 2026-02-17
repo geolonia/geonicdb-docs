@@ -1,20 +1,20 @@
 ---
 title: クイックスタート
-description: Vela OS SaaS API を数分で使い始める — エンティティの作成、取得、更新、削除。
+description: GeonicDB SaaS API を数分で使い始める — エンティティの作成、取得、更新、削除。
 outline: deep
 ---
 
 # クイックスタート
 
-このガイドでは、Vela OS SaaS エンドポイントへの最初の API コールを紹介します。インストール不要 — `curl` が使えるターミナルだけで始められます。
+このガイドでは、GeonicDB SaaS エンドポイントへの最初の API コールを紹介します。インストール不要 — `curl` が使えるターミナルだけで始められます。
 
 ## 前提条件
 
 - `curl` がインストールされたターミナル
-- Vela OS SaaS の API キー
+- GeonicDB SaaS の API キー
 
 ::: tip 準備中
-API キーの登録機能は現在準備中です。利用可能になり次第、Vela OS ダッシュボードからキーを取得できるようになります。
+API キーの登録機能は現在準備中です。利用可能になり次第、GeonicDB ダッシュボードからキーを取得できるようになります。
 :::
 
 ## ステップ 1: 接続確認
@@ -22,7 +22,7 @@ API キーの登録機能は現在準備中です。利用可能になり次第�
 API エンドポイントに到達できるか確認します：
 
 ```bash
-curl https://api.vela.geolonia.com/version
+curl https://api.geonicdb.geolonia.com/version
 ```
 
 期待されるレスポンス：
@@ -41,7 +41,7 @@ curl https://api.vela.geolonia.com/version
 NGSIv2 API を使って温度センサーエンティティを作成します：
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/v2/entities \
+curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject" \
@@ -76,7 +76,7 @@ curl -X POST https://api.vela.geolonia.com/v2/entities \
 作成したエンティティを読み取ります：
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
@@ -109,7 +109,7 @@ curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001
 温度の値を更新します：
 
 ```bash
-curl -X PATCH https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs \
+curl -X PATCH https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject" \
@@ -126,7 +126,7 @@ curl -X PATCH https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureS
 更新を確認：
 
 ```bash
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs/temperature \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001/attrs/temperature \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
@@ -146,7 +146,7 @@ curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001
 エンティティを削除します：
 
 ```bash
-curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
@@ -155,10 +155,10 @@ curl -X DELETE https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:Temperature
 
 ## ステップ 6: NGSI-LD を試す（オプション）
 
-Vela は NGSIv2 と並行して NGSI-LD もサポートしています。NGSI-LD API で同じエンティティを作成してみましょう：
+GeonicDB は NGSIv2 と並行して NGSI-LD もサポートしています。NGSI-LD API で同じエンティティを作成してみましょう：
 
 ```bash
-curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
+curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Content-Type: application/json" \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject" \
@@ -184,12 +184,12 @@ curl -X POST https://api.vela.geolonia.com/ngsi-ld/v1/entities \
 
 ```bash
 # NGSI-LD 経由
-curl https://api.vela.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 
 # NGSIv2 経由（クロス API アクセス）
-curl https://api.vela.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
+curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor:001 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```

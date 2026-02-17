@@ -1,16 +1,16 @@
 ---
 title: Temporal API
-description: Access entity history and time-series data with TTL management using the Temporal API in Vela OS.
+description: Access entity history and time-series data with TTL management using the Temporal API in GeonicDB.
 outline: deep
 ---
 
 # Temporal API
 
-Vela OS provides a **Temporal API** for accessing the historical state of entities over time. Every attribute change is recorded, enabling time-series analysis, trend monitoring, and auditing of context data.
+GeonicDB provides a **Temporal API** for accessing the historical state of entities over time. Every attribute change is recorded, enabling time-series analysis, trend monitoring, and auditing of context data.
 
 ## Overview
 
-The Temporal API follows the NGSI-LD temporal representation model. When temporal tracking is enabled, Vela OS stores each entity attribute update as a time-indexed record, allowing you to query the full history of an entity's attributes.
+The Temporal API follows the NGSI-LD temporal representation model. When temporal tracking is enabled, GeonicDB stores each entity attribute update as a time-indexed record, allowing you to query the full history of an entity's attributes.
 
 ## Querying Temporal Data
 
@@ -18,7 +18,7 @@ The Temporal API follows the NGSI-LD temporal representation model. When tempora
 
 ```bash
 # Get the temporal history of an entity
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
   --data-urlencode "timerel=between" \
   --data-urlencode "timeAt=2026-01-01T00:00:00Z" \
   --data-urlencode "endTimeAt=2026-01-31T23:59:59Z" \
@@ -75,7 +75,7 @@ curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:R
 
 ```bash
 # Get temporal data for all Room entities
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities \
   --data-urlencode "type=Room" \
   --data-urlencode "timerel=after" \
   --data-urlencode "timeAt=2026-01-15T00:00:00Z" \
@@ -90,7 +90,7 @@ curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities \
 Retrieve history for specific attributes only:
 
 ```bash
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
   --data-urlencode "attrs=temperature,humidity" \
   --data-urlencode "timerel=after" \
   --data-urlencode "timeAt=2026-01-15T00:00:00Z" \
@@ -100,13 +100,13 @@ curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:R
 
 ## TTL (Time-to-Live)
 
-Vela OS supports TTL configuration for temporal data to manage storage growth. Temporal records older than the configured TTL are automatically purged.
+GeonicDB supports TTL configuration for temporal data to manage storage growth. Temporal records older than the configured TTL are automatically purged.
 
 ### Configuration
 
 TTL is configured at the tenant level. Records exceeding the retention period are cleaned up automatically via MongoDB TTL indexes.
 
-> **Note:** In Vela OS SaaS, TTL is managed at the tenant level by administrators. For details on configuring TTL settings, refer to the [Admin API documentation](/en/api-reference/admin).
+> **Note:** In GeonicDB SaaS, TTL is managed at the tenant level by administrators. For details on configuring TTL settings, refer to the [Admin API documentation](/en/api-reference/admin).
 
 ### Use Cases
 
@@ -123,7 +123,7 @@ TTL is configured at the tenant level. Records exceeding the retention period ar
 
 ```bash
 # Get hourly temperature readings for the last 24 hours
-curl -G https://api.vela.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
+curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Room:001 \
   --data-urlencode "attrs=temperature" \
   --data-urlencode "timerel=after" \
   --data-urlencode "timeAt=2026-01-14T10:00:00Z" \
