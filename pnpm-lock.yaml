@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@geolonia/yuuhitsu':
+        specifier: ^0.1.0
+        version: 0.1.0(ws@8.19.0)
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
@@ -26,9 +29,6 @@ importers:
       vue:
         specifier: ^3.5.28
         version: 3.5.28(typescript@5.9.3)
-      yuuhitsu:
-        specifier: github:geolonia/yuuhitsu
-        version: https://codeload.github.com/geolonia/yuuhitsu/tar.gz/461c5d61aa13f6aa43049d605e9938129e3a2d75(ws@8.19.0)
 
 packages:
 
@@ -444,6 +444,10 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@geolonia/yuuhitsu@0.1.0':
+    resolution: {integrity: sha512-uAHvrz6fyuRbpYAv3DpKf4NGMbjOnt19YYcG6KUhOtd+yz8b94pjo6q/PI9rXTfF9bb8zBWwreErYdfOtFCoag==}
+    hasBin: true
 
   '@google/genai@0.7.0':
     resolution: {integrity: sha512-r+Fwj/emnXZN5R+4JCxDXboY4AGTmTn7+Wnori5dgyJiStP0P82f9YYL0CVsCnDIumNY2i0UIcZ1zGZdtHJ34w==}
@@ -1458,11 +1462,6 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
-  yuuhitsu@https://codeload.github.com/geolonia/yuuhitsu/tar.gz/461c5d61aa13f6aa43049d605e9938129e3a2d75:
-    resolution: {tarball: https://codeload.github.com/geolonia/yuuhitsu/tar.gz/461c5d61aa13f6aa43049d605e9938129e3a2d75}
-    version: 0.1.0
-    hasBin: true
-
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
@@ -1775,6 +1774,23 @@ snapshots:
 
   '@esbuild/win32-x64@0.27.3':
     optional: true
+
+  '@geolonia/yuuhitsu@0.1.0(ws@8.19.0)':
+    dependencies:
+      '@anthropic-ai/sdk': 0.39.0
+      '@google/genai': 0.7.0
+      chalk: 5.6.2
+      commander: 13.1.0
+      dotenv: 16.6.1
+      openai: 4.104.0(ws@8.19.0)
+      yaml: 2.8.2
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - utf-8-validate
+      - ws
+      - zod
 
   '@google/genai@0.7.0':
     dependencies:
@@ -2819,22 +2835,5 @@ snapshots:
   ws@8.19.0: {}
 
   yaml@2.8.2: {}
-
-  yuuhitsu@https://codeload.github.com/geolonia/yuuhitsu/tar.gz/461c5d61aa13f6aa43049d605e9938129e3a2d75(ws@8.19.0):
-    dependencies:
-      '@anthropic-ai/sdk': 0.39.0
-      '@google/genai': 0.7.0
-      chalk: 5.6.2
-      commander: 13.1.0
-      dotenv: 16.6.1
-      openai: 4.104.0(ws@8.19.0)
-      yaml: 2.8.2
-    transitivePeerDependencies:
-      - bufferutil
-      - encoding
-      - supports-color
-      - utf-8-validate
-      - ws
-      - zod
 
   zwitch@2.0.4: {}
