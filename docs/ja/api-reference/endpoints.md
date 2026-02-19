@@ -1,238 +1,526 @@
 ---
-title: エンドポイント
-description: GeonicDB の共通 API 仕様 — ヘッダー、コンテンツタイプ、CORS、テナントヘッダー、全 API エンドポイントの一覧。
+title: "API 共通仕様"
+description: "GeonicDB API の共通仕様・認証・クエリパラメータ"
 outline: deep
 ---
+# GeonicDB Context Broker API Documentation
 
-# エンドポイント
+AWS Lambda 上で動作する FIWARE Orion 互換の Context Broker API ドキュメントです。NGSIv2 および NGSI-LD の両方の API をサポートしています。
 
-このページでは、ヘッダー、コンテンツタイプ、完全なエンドポイントリファレンスなど、すべての GeonicDB API エンドポイントに共通する仕様を説明します。
+## 目次
 
-## API カテゴリ
+- [概要](#概要)
+- [認証とマルチテナンシー](#認証とマルチテナンシー)
+- [ページネーション](#ページネーション)
+- [認証 API](#認証-api)
+- [メタエンドポイント](#メタエンドポイント)
+- [NGSIv2 API](#ngsiv2-api)（→ [API_NGSIV2.md](./ngsiv2.md)）
+- [NGSI-LD API](#ngsi-ld-api)（→ [API_NGSILD.md](./ngsild.md)）
+- [クエリ言語](#クエリ言語)
+- [ジオクエリ](#ジオクエリ)
+- [空間 ID 検索](#空間-id-検索)
+- [GeoJSON 出力](#geojson-出力)
+- [ベクトルタイル](#ベクトルタイル)
+- [座標参照系（CRS）](#座標参照系crs)
+- [データカタログ API](#データカタログ-api)
+- [CADDE 連携](#cadde-連携)
+- [イベントストリーミング](#イベントストリーミング)
+- [エラーレスポンス](#エラーレスポンス)
+- [実装状況](#実装状況)
 
-| カテゴリ | ベースパス | 認証 | Content-Type |
-|---------|-----------|------|--------------|
-| メタ / ヘルス | `/` | 不要 | `application/json` |
-| 認証 | `/auth` | 不要 | `application/json` |
-| ユーザー | `/me` | 必要 | `application/json` |
-| NGSIv2 | `/v2` | 必要* | `application/json` |
-| NGSI-LD | `/ngsi-ld/v1` | 必要* | `application/ld+json` |
-| 管理 | `/admin` | 必要（super_admin） | `application/json` |
-| カタログ | `/catalog` | 必要* | `application/json` |
+---
 
-\* 認証は `AUTH_ENABLED=true` の場合のみ必要。
+## 概要
 
-## 共通ヘッダー
+この Context Broker は、FIWARE NGSI（Next Generation Service Interface）仕様に準拠した RESTful API を提供します。
 
-### リクエストヘッダー
+**📖 関連ドキュメント:**
+- [NGSIv2 / NGSI-LD 相互互換性ガイド](../core-concepts/ngsiv2-vs-ngsild.md) - 両 API の相互運用性、型マッピング、ベストプラクティス
+- [WebSocket イベントストリーミング](../features/subscriptions.md) - リアルタイムイベント購読、実装例、ベストプラクティス
 
-| ヘッダー | 必須 | デフォルト | 説明 |
-|---------|------|-----------|------|
-| `Content-Type` | POST/PUT/PATCH で必要 | — | `application/json`（NGSIv2）または `application/ld+json`（NGSI-LD） |
-| `Fiware-Service` | 推奨 | `default` | テナント識別子 |
-| `Fiware-ServicePath` | 推奨 | `/` | 階層サービスパス |
-| `Fiware-Correlator` | 任意 | 自動生成 | 分散トレーシング用のリクエスト相関 ID |
-| `Authorization` | 認証有効時 | — | `Bearer {access_token}` |
-
-### CORS ヘッダー
-
-すべてのレスポンスに CORS ヘッダーが含まれます：
+### ベース URL
 
 ```text
-Access-Control-Allow-Origin: *
-Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
-Access-Control-Allow-Headers: Content-Type, Fiware-Service, Fiware-ServicePath, Authorization, Link
-Access-Control-Expose-Headers: Location, Fiware-Correlator, Fiware-Total-Count, NGSILD-Results-Count, X-Total-Count, Link
+https://{api-gateway-url}/{stage}
 ```
+
+### サポートする API
+
+| API バージョン | ベースパス | Content-Type |
+|--------------|-----------|--------------|
+| NGSIv2 | `/v2` | `application/json` |
+| NGSI-LD | `/ngsi-ld/v1` | `application/ld+json` |
 
 ### OPTIONS メソッド
 
-すべてのエンドポイントは CORS プリフライトリクエスト用の `OPTIONS` メソッドをサポートし、許可されたメソッドとヘッダーを含む `204 No Content` を返します。
+すべてのエンドポイントで `OPTIONS` メソッドがサポートされています。CORS プリフライトリクエストに対して、許可されるメソッドとヘッダーの情報を返します。
 
-NGSI-LD エンドポイントでは、追加で `Accept-Patch` ヘッダーが返されます：
+#### レスポンス形式
 
-```text
-Accept-Patch: application/json, application/ld+json, application/merge-patch+json
+OPTIONS リクエストは `204 No Content` を返し、以下のヘッダーを含みます：
+
+```http
+OPTIONS /v2/entities/urn:ngsi-ld:Room:Room1
+
+HTTP/1.1 204 No Content
+Allow: GET, PUT, PATCH, DELETE, OPTIONS
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Fiware-Service, Fiware-ServicePath, Authorization
+Access-Control-Max-Age: 86400
 ```
 
-## パブリックエンドポイント（メタ / ヘルス）
+NGSI-LD エンドポイントでは、追加で `Accept-Patch` ヘッダーも返されます：
 
-以下のエンドポイントは認証不要です。
+```http
+OPTIONS /ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1
 
-| エンドポイント | メソッド | 説明 |
-|-------------|--------|------|
-| `/` | GET | llms.txt 形式の API ドキュメント（Markdown） |
-| `/version` | GET | FIWARE Orion 互換のバージョン情報 |
-| `/health` | GET | 基本的なヘルスチェック |
-| `/health/live` | GET | Kubernetes liveness プローブ |
-| `/health/ready` | GET | Kubernetes readiness プローブ（MongoDB チェック） |
-| `/.well-known/ngsi-ld` | GET | NGSI-LD API ディスカバリ |
-| `/api.json` | GET | JSON 形式の API リファレンス |
-| `/openapi.json` | GET | OpenAPI 3.0 仕様 |
-| `/statistics` | GET | FIWARE Orion 互換のサーバー統計 |
-| `/cache/statistics` | GET | サブスクリプション・登録キャッシュ統計 |
-| `/metrics` | GET | Prometheus exposition フォーマットのメトリクス |
-| `/tools.json` | GET | AI ツール定義（Claude Tool Use / OpenAI Function Calling） |
-| `/.well-known/ai-plugin.json` | GET | AI プラグインマニフェスト |
-| `/mcp` | POST | MCP（Model Context Protocol）Streamable HTTP エンドポイント |
+HTTP/1.1 204 No Content
+Allow: GET, PUT, PATCH, DELETE, OPTIONS
+Accept-Patch: application/json, application/ld+json, application/merge-patch+json
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type, NGSILD-Tenant, Fiware-Service, Link, Authorization
+Access-Control-Max-Age: 86400
+```
 
-## NGSIv2 エンドポイント
+---
 
-| エンドポイント | メソッド | 説明 |
-|-------------|--------|------|
-| `/v2/entities` | GET | エンティティ一覧 |
-| `/v2/entities` | POST | エンティティ作成 |
-| `/v2/entities/{id}` | GET | エンティティ取得 |
-| `/v2/entities/{id}` | DELETE | エンティティ削除 |
-| `/v2/entities/{id}/attrs` | GET | エンティティ属性取得 |
-| `/v2/entities/{id}/attrs` | POST | エンティティ属性追加 |
-| `/v2/entities/{id}/attrs` | PATCH | エンティティ属性更新 |
-| `/v2/entities/{id}/attrs` | PUT | エンティティ属性置換 |
-| `/v2/entities/{id}/attrs/{attr}` | GET | 属性取得 |
-| `/v2/entities/{id}/attrs/{attr}` | PUT | 属性更新 |
-| `/v2/entities/{id}/attrs/{attr}` | DELETE | 属性削除 |
-| `/v2/entities/{id}/attrs/{attr}/value` | GET | 属性値取得 |
-| `/v2/entities/{id}/attrs/{attr}/value` | PUT | 属性値更新 |
-| `/v2/subscriptions` | GET | サブスクリプション一覧 |
-| `/v2/subscriptions` | POST | サブスクリプション作成 |
-| `/v2/subscriptions/{id}` | GET | サブスクリプション取得 |
-| `/v2/subscriptions/{id}` | PATCH | サブスクリプション更新 |
-| `/v2/subscriptions/{id}` | DELETE | サブスクリプション削除 |
-| `/v2/registrations` | GET | 登録一覧 |
-| `/v2/registrations` | POST | 登録作成 |
-| `/v2/registrations/{id}` | GET | 登録取得 |
-| `/v2/registrations/{id}` | PATCH | 登録更新 |
-| `/v2/registrations/{id}` | DELETE | 登録削除 |
-| `/v2/types` | GET | エンティティタイプ一覧 |
-| `/v2/types/{typeName}` | GET | エンティティタイプ取得 |
-| `/v2/op/update` | POST | バッチ更新 |
-| `/v2/op/query` | POST | バッチクエリ |
-| `/v2/op/notify` | POST | 通知受信 |
-| `/v2/tiles` | GET | TileJSON メタデータ |
-| `/v2/tiles/{z}/{x}/{y}.geojson` | GET | GeoJSON ベクトルタイル |
+## 認証とマルチテナンシー
 
-## NGSI-LD エンドポイント
+### 必須ヘッダー
 
-| エンドポイント | メソッド | 説明 |
-|-------------|--------|------|
-| `/ngsi-ld/v1/entities` | GET | エンティティ一覧 |
-| `/ngsi-ld/v1/entities` | POST | エンティティ作成 |
-| `/ngsi-ld/v1/entities/{id}` | GET | エンティティ取得 |
-| `/ngsi-ld/v1/entities/{id}` | PUT | エンティティ置換 |
-| `/ngsi-ld/v1/entities/{id}` | PATCH | エンティティ更新（Merge-Patch） |
-| `/ngsi-ld/v1/entities/{id}` | POST | 属性追加 |
-| `/ngsi-ld/v1/entities/{id}` | DELETE | エンティティ削除 |
-| `/ngsi-ld/v1/entities/{id}/attrs` | GET | 全属性取得 |
-| `/ngsi-ld/v1/entities/{id}/attrs` | PATCH | 属性部分更新 |
-| `/ngsi-ld/v1/entities/{id}/attrs/{attr}` | GET | 属性取得 |
-| `/ngsi-ld/v1/entities/{id}/attrs/{attr}` | PUT | 属性置換 |
-| `/ngsi-ld/v1/entities/{id}/attrs/{attr}` | POST | 属性置換 |
-| `/ngsi-ld/v1/entities/{id}/attrs/{attr}` | PATCH | 属性部分更新 |
-| `/ngsi-ld/v1/entities/{id}/attrs/{attr}` | DELETE | 属性削除 |
-| `/ngsi-ld/v1/subscriptions` | GET | サブスクリプション一覧 |
-| `/ngsi-ld/v1/subscriptions` | POST | サブスクリプション作成 |
-| `/ngsi-ld/v1/subscriptions/{id}` | GET | サブスクリプション取得 |
-| `/ngsi-ld/v1/subscriptions/{id}` | PATCH | サブスクリプション更新 |
-| `/ngsi-ld/v1/subscriptions/{id}` | DELETE | サブスクリプション削除 |
-| `/ngsi-ld/v1/csourceRegistrations` | GET | コンテキストソース登録一覧 |
-| `/ngsi-ld/v1/csourceRegistrations` | POST | 登録作成 |
-| `/ngsi-ld/v1/csourceRegistrations/{id}` | GET | 登録取得 |
-| `/ngsi-ld/v1/csourceRegistrations/{id}` | PATCH | 登録更新 |
-| `/ngsi-ld/v1/csourceRegistrations/{id}` | DELETE | 登録削除 |
-| `/ngsi-ld/v1/types` | GET | エンティティタイプ一覧 |
-| `/ngsi-ld/v1/types/{typeName}` | GET | エンティティタイプ取得 |
-| `/ngsi-ld/v1/attributes` | GET | 属性一覧 |
-| `/ngsi-ld/v1/attributes/{attrName}` | GET | 属性情報取得 |
-| `/ngsi-ld/v1/entityOperations/create` | POST | バッチ作成 |
-| `/ngsi-ld/v1/entityOperations/upsert` | POST | バッチ upsert |
-| `/ngsi-ld/v1/entityOperations/update` | POST | バッチ更新 |
-| `/ngsi-ld/v1/entityOperations/delete` | POST | バッチ削除 |
-| `/ngsi-ld/v1/entityOperations/query` | POST | バッチクエリ |
-| `/ngsi-ld/v1/entityOperations/merge` | POST | バッチマージ |
-| `/ngsi-ld/v1/entityOperations/purge` | POST | バッチパージ |
-| `/ngsi-ld/v1/temporal/entities` | GET | テンポラルエンティティ一覧 |
-| `/ngsi-ld/v1/temporal/entities` | POST | テンポラルエンティティ作成 |
-| `/ngsi-ld/v1/temporal/entities/{id}` | GET | テンポラルエンティティ取得 |
-| `/ngsi-ld/v1/temporal/entities/{id}` | PATCH | テンポラルエンティティ更新 |
-| `/ngsi-ld/v1/temporal/entities/{id}` | DELETE | テンポラルエンティティ削除 |
-| `/ngsi-ld/v1/jsonldContexts` | GET | JSON-LD コンテキスト一覧 |
-| `/ngsi-ld/v1/jsonldContexts` | POST | JSON-LD コンテキスト登録 |
-| `/ngsi-ld/v1/jsonldContexts/{id}` | GET | JSON-LD コンテキスト取得 |
-| `/ngsi-ld/v1/jsonldContexts/{id}` | DELETE | JSON-LD コンテキスト削除 |
-| `/ngsi-ld/v1/snapshots` | GET | スナップショット一覧 |
-| `/ngsi-ld/v1/snapshots` | POST | スナップショット作成 |
-| `/ngsi-ld/v1/snapshots/{id}` | GET | スナップショット取得 |
-| `/ngsi-ld/v1/snapshots/{id}` | PATCH | スナップショット更新 |
-| `/ngsi-ld/v1/snapshots/{id}` | DELETE | スナップショット削除 |
-| `/ngsi-ld/v1/snapshots/{id}/clone` | POST | スナップショットクローン |
-| `/ngsi-ld/v1/info/sourceIdentity` | GET | ソース ID |
-| `/ngsi-ld/v1/info/conformance` | GET | 適合性情報 |
-| `/ngsi-ld/v1/tiles` | GET | TileJSON メタデータ |
-| `/ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GET | GeoJSON ベクトルタイル |
+すべてのリクエストには以下のヘッダーを含めることを推奨します：
 
-## 認証エンドポイント
+| ヘッダー | 必須 | 説明 | デフォルト |
+|---------|------|------|-----------|
+| `Fiware-Service` | 推奨 | テナント名（英数字とアンダースコアのみ） | `default` |
+| `Fiware-ServicePath` | 推奨 | テナント内の階層パス（`/` で始まる） | `/`（クエリ時は `/#` 相当） |
+| `Fiware-Correlator` | 任意 | リクエスト追跡用の相関 ID | 自動生成 |
 
-| エンドポイント | メソッド | 説明 | 認証 |
-|-------------|--------|------|------|
-| `/auth/login` | POST | ユーザーログイン（JWT） | 不要 |
-| `/auth/refresh` | POST | トークンリフレッシュ | 不要 |
-| `/oauth/token` | POST | OAuth トークン（M2M） | Basic Auth |
+### 使用例
 
-## 管理エンドポイント
+```bash
+curl -X GET "https://api.example.com/v2/entities" \
+  -H "Fiware-Service: smartcity" \
+  -H "Fiware-ServicePath: /buildings/floor1"
+```
 
-すべての管理エンドポイントは `super_admin` ロールが必要です。
+### テナント分離
 
-| エンドポイント | メソッド | 説明 |
-|-------------|--------|------|
-| `/admin/tenants` | GET/POST | テナント一覧 / 作成 |
-| `/admin/tenants/{id}` | GET/PATCH/DELETE | テナント取得 / 更新 / 削除 |
-| `/admin/tenants/{id}/activate` | POST | テナント有効化 |
-| `/admin/tenants/{id}/deactivate` | POST | テナント無効化 |
-| `/admin/users` | GET/POST | ユーザー一覧 / 作成 |
-| `/admin/users/{id}` | GET/PATCH/DELETE | ユーザー取得 / 更新 / 削除 |
-| `/admin/users/{id}/activate` | POST | ユーザー有効化 |
-| `/admin/users/{id}/deactivate` | POST | ユーザー無効化 |
-| `/admin/policies` | GET/POST | ポリシー一覧 / 作成 |
-| `/admin/policies/{id}` | GET/PUT/DELETE | ポリシー取得 / 置換 / 削除 |
-| `/admin/policies/{id}/activate` | POST | ポリシー有効化 |
-| `/admin/policies/{id}/deactivate` | POST | ポリシー無効化 |
-| `/admin/policies/{id}/export` | GET | XACML XML エクスポート |
-| `/admin/policies/import` | POST | XACML XML インポート |
-| `/admin/policy-sets` | GET/POST | ポリシーセット一覧 / 作成 |
-| `/admin/policy-sets/{id}` | GET/PUT/DELETE | ポリシーセット取得 / 置換 / 削除 |
-| `/admin/oauth-clients` | GET/POST | OAuth クライアント一覧 / 作成 |
-| `/admin/oauth-clients/{id}` | GET/PATCH/DELETE | OAuth クライアント取得 / 更新 / 削除 |
-| `/admin/oauth-clients/{id}/regenerate-secret` | POST | クライアントシークレット再生成 |
-| `/admin/metrics` | GET/DELETE | メトリクス取得 / リセット |
+- 異なる `Fiware-Service` のデータは完全に分離されます
+- 同じテナント内でも `Fiware-ServicePath` でデータを階層的に整理できます
+- テナント名は自動的に小文字に変換されます
 
-## カタログエンドポイント
+### サービスパス仕様
 
-| エンドポイント | メソッド | 説明 |
-|-------------|--------|------|
-| `/catalog` | GET | DCAT-AP カタログ |
-| `/catalog/datasets` | GET | データセット一覧 |
-| `/catalog/datasets/{id}` | GET | データセット取得 |
-| `/catalog/datasets/{id}/sample` | GET | サンプルデータ取得 |
-| `/catalog/ckan/package_list` | GET | CKAN パッケージ一覧 |
-| `/catalog/ckan/package_show` | GET | CKAN パッケージ詳細 |
-| `/catalog/ckan/current_package_list_with_resources` | GET | リソース付き CKAN パッケージ一覧 |
+[FIWARE Orion 仕様](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html)に準拠しています。
 
-## ロールベースアクセス
+#### 基本形式
 
-| API カテゴリ | user | tenant_admin | super_admin |
-|-------------|------|--------------|-------------|
-| パブリックエンドポイント | はい | はい | はい |
-| `/auth/*` | はい | はい | はい |
-| `/me/*` | はい | はい | はい |
-| `/v2/*` | 自テナント | 自テナント | 全テナント |
-| `/ngsi-ld/*` | 自テナント | 自テナント | 全テナント |
-| `/catalog/*` | 自テナント | 自テナント | 全テナント |
-| `/admin/*` | 不可 | 不可 | はい |
+- `/` で始まる絶対パスのみ使用可能
+- 英数字とアンダースコアのみ使用可能
+- 最大 10 階層、各レベル最大 50 文字
 
-## 次のステップ
+```bash
+# 特定パスのエンティティを取得
+curl "http://localhost:3000/v2/entities" \
+  -H "Fiware-Service: smartcity" \
+  -H "Fiware-ServicePath: /Madrid/Gardens"
+```
 
-- [NGSIv2 API](/ja/api-reference/ngsiv2) — NGSIv2 API の詳細リファレンス
-- [NGSI-LD API](/ja/api-reference/ngsild) — NGSI-LD API の詳細リファレンス
-- [Admin API](/ja/api-reference/admin) — 認証と管理
-- [ページネーション](/ja/api-reference/pagination) — ページネーション仕様
-- [ステータスコード](/ja/api-reference/status-codes) — HTTP ステータスコードとエラーフォーマット
+#### 階層検索（/#）
+
+`/#` サフィックスを使用すると、指定パスとその子パスすべてを検索できます（**クエリ操作のみ**）。
+
+```bash
+# /Madrid/Gardens とその子パス全てを検索
+curl "http://localhost:3000/v2/entities" \
+  -H "Fiware-Service: smartcity" \
+  -H "Fiware-ServicePath: /Madrid/Gardens/#"
+```
+
+#### 複数パス指定（カンマ区切り）
+
+カンマで区切って複数のパスを同時に検索できます（最大 10 パス、**クエリ操作のみ**）。
+
+```bash
+# /park1 と /park2 の両方を検索
+curl "http://localhost:3000/v2/entities" \
+  -H "Fiware-Service: smartcity" \
+  -H "Fiware-ServicePath: /park1, /park2"
+```
+
+#### デフォルト動作
+
+| 操作 | ヘッダー省略時 | 説明 |
+|------|---------------|------|
+| クエリ（GET） | `/` | ルートパスのみ検索 |
+| 書き込み（POST/PUT/PATCH/DELETE） | `/` | ルートパスに作成・更新 |
+
+**注意**: 書き込み操作では、単一の非階層パスのみ使用できます。`/#` や複数パスを指定するとエラーになります。
+
+---
+
+## ページネーション
+
+すべてのリスト系 API エンドポイントでページネーションがサポートされています。
+
+### パラメータ
+
+| パラメータ | 説明 | デフォルト | 最大値 |
+|-----------|------|-----------|-------|
+| `limit` | 返却する最大件数 | 20 | 1000（Admin API は 100） |
+| `offset` | スキップする件数 | 0 | - |
+
+### レスポンスヘッダー
+
+各 API タイプで総件数を示すヘッダーが返却されます：
+
+| API | ヘッダー名 | 条件 |
+|-----|-----------|------|
+| NGSIv2 | `Fiware-Total-Count` | 常に返却（全リストエンドポイント） |
+| NGSI-LD | `NGSILD-Results-Count` | 常に返却 |
+| Admin API | `X-Total-Count` | 常に返却 |
+| Catalog API | `X-Total-Count` | 常に返却 |
+
+### Link ヘッダー
+
+すべてのリスト系エンドポイントは [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) に準拠した `Link` ヘッダーを返却し、次ページ (`rel="next"`) および前ページ (`rel="prev"`) の URL を提供します。結果が 1 ページに収まる場合、`Link` ヘッダーは返却されません。
+
+```text
+Link: <https://api.example.com/v2/entities?limit=10&offset=20>; rel="next", <https://api.example.com/v2/entities?limit=10&offset=0>; rel="prev"
+```
+
+### バリデーション
+
+無効なページネーションパラメータは `400 Bad Request` を返します：
+
+| エラー条件 | エラーメッセージ |
+|-----------|-----------------|
+| 負の limit | `Invalid limit: must not be negative` |
+| 負の offset | `Invalid offset: must not be negative` |
+| limit=0 | `Invalid limit: must be greater than 0` |
+| 最大値超過 | `Invalid limit: must not exceed 1000` |
+| 数値以外 | `Invalid limit: must be a valid integer` |
+
+### 使用例
+
+```bash
+# 2 ページ目を取得（1 ページ 10 件）
+curl "http://localhost:3000/v2/entities?limit=10&offset=10" \
+  -H "Fiware-Service: smartcity"
+
+# 総件数ヘッダー付きで取得
+curl "http://localhost:3000/v2/entities?limit=10&options=count" \
+  -H "Fiware-Service: smartcity"
+```
+
+### 注意事項
+
+- `offset` が総件数を超えた場合、空の配列が返されます（エラーではありません）
+- FIWARE Orion 仕様に準拠しています
+
+---
+
+## 認証 API
+
+認証機能を使用して、ユーザー認証とアクセス制御を行うことができます。
+
+### 有効化
+
+認証機能はデフォルトで無効です。以下の環境変数で有効化できます。
+
+**注意**: `AUTH_ENABLED=false` の場合、認証関連のエンドポイント（`/auth/*`, `/me`, `/me/*`, `/admin/*`）は 404 を返します。
+
+**重要**: `AUTH_ENABLED=true` の場合、NGSI API エンドポイント（`/v2/*`, `/ngsi-ld/*`, `/catalog/*`）へのアクセスには認証が必要です。認証なしでアクセスすると `401 Unauthorized` エラーが返されます。
+
+| 環境変数 | デフォルト | 説明 |
+|----------|-----------|------|
+| `AUTH_ENABLED` | `false` | 認証機能の有効化 |
+| `JWT_SECRET` | - | JWT トークン署名用シークレット（32 文字以上推奨） |
+| `JWT_EXPIRES_IN` | `1h` | アクセストークンの有効期限 |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | リフレッシュトークンの有効期限 |
+| `SUPER_ADMIN_EMAIL` | - | 環境変数で設定するスーパー管理者のメールアドレス |
+| `SUPER_ADMIN_PASSWORD` | - | 環境変数で設定するスーパー管理者のパスワード |
+| `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR（カンマ区切り） |
+
+### ロールと権限
+
+| ロール | 説明 | 権限 |
+|--------|------|------|
+| `super_admin` | スーパー管理者 | 全テナント・全ユーザーの管理、テナント作成 / 削除 |
+| `tenant_admin` | テナント管理者 | 自テナント内のユーザー管理 |
+| `user` | 一般ユーザー | 自分のプロファイル閲覧・パスワード変更のみ |
+
+### ログイン
+
+```http
+POST /auth/login
+Content-Type: application/json
+```
+
+**リクエストボディ**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+**レスポンス例**
+
+```json
+{
+  "accessToken": "<access_token>",
+  "refreshToken": "<refresh_token>",
+  "expiresIn": 3600,
+  "tokenType": "Bearer",
+  "user": {
+    "id": "user-123",
+    "email": "user@example.com",
+    "role": "tenant_admin",
+    "tenantId": "tenant-456"
+  }
+}
+```
+
+### トークンリフレッシュ
+
+```http
+POST /auth/refresh
+Content-Type: application/json
+```
+
+**リクエストボディ**
+
+```json
+{
+  "refreshToken": "<refresh_token>"
+}
+```
+
+**レスポンス**: ログインと同じ形式
+
+### 現在のユーザー情報取得
+
+```http
+GET /me
+Authorization: Bearer <accessToken>
+```
+
+**レスポンス例**
+
+```json
+{
+  "id": "user-123",
+  "email": "user@example.com",
+  "role": "tenant_admin",
+  "tenantId": "tenant-456",
+  "tenantName": "My Organization"
+}
+```
+
+### パスワード変更
+
+```http
+POST /me/password
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
+**リクエストボディ**
+
+```json
+{
+  "currentPassword": "OldPassword123!",
+  "newPassword": "NewSecurePassword456!"
+}
+```
+
+**レスポンス**: `204 No Content`
+
+**注意**: パスワード変更後、既存のアクセストークン# API リファレンス
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | 必要なロール |
+|---------------|---------|------|------|--------|-------------|
+| `/me` | GET | 自身のプロフィール取得 | 200 | 401 | user |
+| `/me/password` | POST | パスワード変更 | 204 | 400, 401 | user |
+
+### NGSIv2 / NGSI-LD エンドポイント
+
+詳細なエンドポイント仕様は以下を参照してください：
+- [NGSIv2 API リファレンス](./ngsiv2.md)
+- [NGSI-LD API リファレンス](./ngsild.md)
+
+### Admin API
+
+テナントとユーザーの管理 API です。`super_admin` ロールのみアクセス可能です。
+
+#### テナント管理
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
+|---------------|---------|------|------|--------|-----------------|
+| `/admin/tenants` | GET | テナント一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/admin/tenants` | POST | テナント作成 | 201 | 400, 401, 403, 409 | - |
+| `/admin/tenants/{tenantId}` | GET | テナント取得 | 200 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}` | PATCH | テナント更新 | 204 | 400, 401, 403, 404, 409 | - |
+| `/admin/tenants/{tenantId}` | DELETE | テナント削除 | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/activate` | POST | テナント有効化 | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/deactivate` | POST | テナント無効化 | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | GET | テナント IP 制限取得 | 200 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | PUT | テナント IP 制限更新 | 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | DELETE | テナント IP 制限削除 | 204 | 401, 403, 404 | - |
+
+#### ユーザー管理
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
+|---------------|---------|------|------|--------|-----------------|
+| `/admin/users` | GET | ユーザー一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/admin/users` | POST | ユーザー作成 | 201 | 400, 401, 403, 409 | - |
+| `/admin/users/{userId}` | GET | ユーザー取得 | 200 | 401, 403, 404 | - |
+| `/admin/users/{userId}` | PATCH | ユーザー更新 | 204 | 400, 401, 403, 404, 409 | - |
+| `/admin/users/{userId}` | DELETE | ユーザー削除 | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/activate` | POST | ユーザー有効化 | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/deactivate` | POST | ユーザー無効化 | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/unlock` | POST | ログインロック解除 | 200 | 400, 401, 403, 404 | - |
+
+#### ポリシー管理 (XACML 3.0 認可)
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
+|---------------|---------|------|------|--------|-----------------|
+| `/admin/policies` | GET | ポリシー一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/admin/policies` | POST | ポリシー作成 | 201 | 400, 401, 403, 409 | - |
+| `/admin/policies/{policyId}` | GET | ポリシー取得 | 200 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | PATCH | ポリシー更新 (部分) | 200 | 400, 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | PUT | ポリシー置換 | 200 | 400, 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | DELETE | ポリシー削除 | 204 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}/activate` | POST | ポリシー有効化 | 200 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}/deactivate` | POST | ポリシー無効化 | 200 | 401, 403, 404 | - |
+
+#### OAuth クライアント管理
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
+|---------------|---------|------|------|--------|-----------------|
+| `/admin/oauth-clients` | GET | OAuth クライアント一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/admin/oauth-clients` | POST | OAuth クライアント作成 | 201 | 400, 401, 403 | - |
+| `/admin/oauth-clients/{clientId}` | GET | OAuth クライアント取得 | 200 | 401, 403, 404 | - |
+| `/admin/oauth-clients/{clientId}` | PATCH | OAuth クライアント更新 | 200 | 400, 401, 403, 404 | - |
+| `/admin/oauth-clients/{clientId}` | DELETE | OAuth クライアント削除 | 204 | 401, 403, 404 | - |
+
+#### CADDE 設定管理
+
+CADDE (分野間データ連携基盤) の設定を API 経由で管理します。設定は MongoDB に保存され、環境変数は不要です。
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
+|---------------|---------|------|------|--------|-----------------|
+| `/admin/cadde` | GET | CADDE 設定取得 | 200 | 401, 403 | - |
+| `/admin/cadde` | PUT | CADDE 設定更新 (upsert) | 200 | 400, 401, 403 | - |
+| `/admin/cadde` | DELETE | CADDE 設定削除 (無効化) | 204 | 401, 403 | - |
+
+**リクエストボディ (PUT)**
+
+```json
+{
+  "enabled": true,
+  "authEnabled": true,
+  "defaultProvider": "provider-001",
+  "jwtIssuer": "https://auth.example.com",
+  "jwtAudience": "my-api",
+  "jwksUrl": "https://auth.example.com/.well-known/jwks.json"
+}
+```
+
+| フィールド | 型 | 必須 | 説明 |
+|-----------|------|------|------|
+| `enabled` | boolean | ✅ | CADDE 機能の有効 / 無効 |
+| `authEnabled` | boolean | ✅ | Bearer 認証の有効 / 無効 |
+| `defaultProvider` | string | - | デフォルトプロバイダ ID |
+| `jwtIssuer` | string | - | JWT issuer クレーム検証値 |
+| `jwtAudience` | string | - | JWT audience クレーム検証値 |
+| `jwksUrl` | string | - | JWKS 公開鍵エンドポイント URL (HTTPS 必須) |
+
+#### Rule Engine 管理
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
+|---------------|---------|------|------|--------|-----------------|
+| `/rules` | GET | ルール一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/rules` | POST | ルール作成 | 201 | 400, 401, 403, 409 | - |
+| `/rules/{ruleId}` | GET | ルール取得 | 200 | 401, 403, 404 | - |
+| `/rules/{ruleId}` | PATCH | ルール更新 | 204 | 400, 401, 403, 404 | - |
+| `/rules/{ruleId}` | DELETE | ルール削除 | 204 | 401, 403, 404 | - |
+| `/rules/{ruleId}/activate` | POST | ルール有効化 | 200 | 401, 403, 404 | - |
+| `/rules/{ruleId}/deactivate` | POST | ルール無効化 | 200 | 401, 403, 404 | - |
+
+### Custom Data Models API
+
+テナント固有のカスタムデータモデルを管理する API です。JWT 認証が必要で、XACML ポリシーベース認可により `tenant_admin` および `user` ロールもテナント内のカスタムデータモデルを管理できます。
+
+**関連ドキュメント**: [SMART_DATA_MODELS.md](../features/smart-data-models.md)
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
+|---------------|---------|------|------|--------|-----------------|
+| `/custom-data-models` | GET | カスタムデータモデル一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/custom-data-models` | POST | カスタムデータモデル作成 | 201 | 400, 401, 403, 409 | - |
+| `/custom-data-models/{type}` | GET | カスタムデータモデル取得 | 200 | 401, 403, 404 | - |
+| `/custom-data-models/{type}` | PATCH | カスタムデータモデル更新 | 200 | 400, 401, 403, 404 | - |
+| `/custom-data-models/{type}` | DELETE | カスタムデータモデル削除 | 204 | 401, 403, 404 | - |
+
+#### エンティティバリデーション
+
+カスタムデータモデルが定義されている場合、エンティティの作成・更新時に自動的にバリデーションが実行されます。バリデーションは `isActive: true` のモデルに対してのみ適用されます。
+
+**バリデーション内容:**
+
+| チェック項目 | 説明 |
+|------------|------|
+| 必須フィールド | `required: true` の属性が存在するか |
+| 型チェック | `valueType` に基づく型検証 (string, number, integer, boolean, array, object, GeoJSON) |
+| minLength / maxLength | 文字列の長さ制限 |
+| minimum / maximum | 数値の範囲制限 |
+| pattern | 正規表現パターンマッチ |
+| enum | 許可される値のリスト |
+
+バリデーション失敗時は `400 Bad Request` を返します:
+
+```json
+{
+  "error": "BadRequest",
+  "description": "Entity validation failed: temperature: Value (150) exceeds maximum (100)"
+}
+```
+
+#### JSON Schema 自動生成
+
+カスタムデータモデル作成・更新時に、`propertyDetails` から JSON Schema (Draft 2020-12) が自動生成され、レスポンスの `jsonSchema` フィールドに含まれます。手動で `jsonSchema` を指定することも可能です。
+
+#### @context 解決拡張
+
+NGSI-LD レスポンスにおいて、カスタムデータモデルに `contextUrl` が設定されている場合、エンティティの `@context` にカスタムコンテキストが自動的に含まれます (コアコンテキストと配列で返却)。
+
+### Catalog API
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
+|---------------|---------|------|------|--------|-----------------|
+| `/catalog` | GET | DCAT-AP カタログ取得 | 200 | 401 | - |
+| `/catalog/datasets` | GET | データセット一覧取得 | 200 | 400, 401 | ✅ (max: 1000) |
+| `/catalog/datasets/{datasetId}` | GET | データセット取得 | 200 | 401, 404 | - |
+| `/catalog/datasets/{datasetId}/sample` | GET | サンプルデータ取得 | 200 | 401, 404 | - |
+
+### Vector Tiles API
+
+| エンドポイント | メソッド | 説明 | 成功 | エラー |
+|---------------|---------|------|------|--------|
+| `/v2/tiles` | GET | TileJSON メタデータ取得 (NGSIv2) | 200 | 401 |
+| `/v2/tiles/{z}/{x}/{y}.geojson` | GET | GeoJSON タイル取得 (NGSIv2) | 200 | 400, 401 |
+| `/ngsi-ld/v1/tiles` | GET | TileJSON メタデータ取得 (NGSI-LD) | 200 | 401 |
+| `/ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GET | GeoJSON タイル取得 (NGSI-LD) | 200 | 400, 401 |
+
+### Event Streaming API
+
+WebSocket を使用したリアルタイムのエンティティ変更ストリーミングです。`EVENT_STREAMING_ENABLED=true` で有効化されます。
+
+| エンドポイント | プロトコル | 説明 |
+|---------------|-----------|------|
+| `wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={name}` | WebSocket | エンティティ変更イベントのストリー

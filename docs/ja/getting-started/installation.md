@@ -1,168 +1,353 @@
 ---
-title: セットアップ
-description: GeonicDB SaaS API へのアクセス方法 — エンドポイント URL、API キー設定、推奨 HTTP クライアント、SDK の提供予定。
+title: "開発者ガイド"
+description: "開発環境セットアップ・インストール"
 outline: deep
 ---
+# 開発者向けガイド
 
-# セットアップ
+## 必要要件
 
-GeonicDB はマネージド SaaS サービスとして提供されます。ソフトウェアのインストールは不要 — HTTP API コールでアクセスできます。
+- Node.js 20.x 以上
+- npm 9.x 以上
+- AWS CLI v2 (デプロイ時)
+- AWS SAM CLI (デプロイ時)
+- MongoDB 8.0 以上 (MongoDB Atlas、またはローカル MongoDB)
 
-## API エンドポイント
+## セットアップ
 
-| API | ベース URL |
-|-----|----------|
-| **NGSIv2** | `https://api.geonicdb.geolonia.com/v2/` |
-| **NGSI-LD** | `https://api.geonicdb.geolonia.com/ngsi-ld/v1/` |
-| **Admin** | `https://api.geonicdb.geolonia.com/admin/` |
-| **MCP** | `https://api.geonicdb.geolonia.com/mcp` |
-| **データカタログ** | `https://api.geonicdb.geolonia.com/catalog/` |
-| **ヘルスチェック** | `https://api.geonicdb.geolonia.com/health` |
-| **バージョン** | `https://api.geonicdb.geolonia.com/version` |
-
-## API キー
-
-すべての API リクエストには認証用の `x-api-key` ヘッダーが必要です。
-
-::: tip 準備中
-API キーの登録機能は現在準備中です。利用可能になり次第、以下の手順で取得できます：
-
-1. GeonicDB ダッシュボードでサインアップ
-2. プロジェクトを作成
-3. API キーを生成
-4. `x-api-key` ヘッダーでキーを使用
-:::
-
-### 認証ヘッダー
-
-すべてのリクエストに API キーを含めます：
+### 1. リポジトリのクローン
 
 ```bash
-curl https://api.geonicdb.geolonia.com/v2/entities \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: myproject"
+git clone https://github.com/your-org/vela.git
+cd vela
 ```
 
-### テナント分離
-
-`Fiware-Service` ヘッダーでテナント（プロジェクト）を指定します。テナント間でデータは完全に分離されます。
+### 2. 依存パッケージのインストール
 
 ```bash
-# テナント A のデータ
-curl https://api.geonicdb.geolonia.com/v2/entities \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: tenant-a"
-
-# テナント B のデータ（完全に別）
-curl https://api.geonicdb.geolonia.com/v2/entities \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: tenant-b"
+npm install
 ```
 
-## 推奨 HTTP クライアント
+### 3. 環境変数の設定
 
-### curl（コマンドライン）
-
-GeonicDB とのやり取りの最もシンプルな方法です。このドキュメントの全サンプルは curl を使用しています。
+`.env` ファイルを作成：
 
 ```bash
-# 接続確認
-curl https://api.geonicdb.geolonia.com/version
+# MongoDB 接続設定
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DATABASE=context-broker
+
+# 環境名 (dev/staging/prod)
+ENVIRONMENT=dev
+
+# AWS 設定 (ローカル開発用)
+AWS_REGION=us-east-1
+EVENT_BUS_NAME=local-event-bus
+NOTIFICATION_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/123456789012/local-queue
+
+# ログレベル (DEBUG/INFO/WARN/ERROR/SILENT)
+LOG_LEVEL=DEBUG
 ```
 
-### Postman
+#### 認証・認可の有効化 (オプション)
 
-[Postman](https://www.postman.com/) は API 探索用のグラフィカルインターフェースを提供します：
-
-1. ベース URL を `https://api.geonicdb.geolonia.com` に設定
-2. ヘッダーを追加：
-   - `x-api-key`: API キー
-   - `Fiware-Service`: テナント名
-   - `Content-Type`: `application/json`（POST/PATCH/PUT 時）
-3. OpenAPI 仕様をインポートしてリクエストテンプレートを自動生成：
-   ```text
-   https://api.geonicdb.geolonia.com/openapi.json
-   ```
-
-### HTTPie
-
-[HTTPie](https://httpie.io/) は curl のユーザーフレンドリーな代替ツールです：
+認証機能を有効にする場合は、以下の環境変数を追加：
 
 ```bash
-# インストール
-pip install httpie
+# 認証機能を有効にする (true/false)
+AUTH_ENABLED=true
 
-# リクエスト例
-http GET https://api.geonicdb.geolonia.com/v2/entities \
-  x-api-key:YOUR_API_KEY \
-  Fiware-Service:myproject
+# JWT トークン署名シークレット (32 文字以上推奨)
+# 本番環境では必ず安全なランダム文字列を使用してください
+JWT_SECRET=your-secret-key-change-in-production
+
+# アクセストークン有効期限 (例: 1h, 30m, 1d)
+JWT_EXPIRES_IN=1h
+
+# リフレッシュトークン有効期限 (例: 7d, 30d)
+JWT_REFRESH_EXPIRES_IN=7d
+
+# 環境変数ベースのスーパー管理者 (初期セットアップ用)
+SUPER_ADMIN_EMAIL=admin@example.com
+SUPER_ADMIN_PASSWORD=SuperSecretPassword123!
+
+# Admin API へのアクセスを許可する IP アドレス (カンマ区切り)
+# 空の場合はすべての IP からアクセス可能
+# 例: 192.168.1.0/24,10.0.0.0/8
+ADMIN_ALLOWED_IPS=
 ```
 
-### VS Code REST Client
+#### CADDE 連携の有効化 (オプション)
 
-[REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) 拡張機能を使えば、VS Code から直接 HTTP リクエストを送信できます：
+CADDE (分野間データ連携基盤) 連携機能を有効にする場合：
 
-```http
-### 全エンティティを取得
-GET https://api.geonicdb.geolonia.com/v2/entities
-x-api-key: YOUR_API_KEY
-Fiware-Service: myproject
+```bash
+# CADDE 連携機能を有効にする
+CADDE_ENABLED=true
+
+# CADDE リクエストに Bearer トークン認証を必須にする
+CADDE_AUTH_ENABLED=true
+
+# デフォルトのプロバイダ ID
+CADDE_DEFAULT_PROVIDER=provider-001
+
+# JWT 検証設定 (CADDE_AUTH_ENABLED=true の場合)
+CADDE_JWT_ISSUER=https://auth.example.com
+CADDE_JWT_AUDIENCE=my-api
+CADDE_JWKS_URL=https://auth.example.com/.well-known/jwks.json
 ```
 
-## AI エージェント連携
+### 4. ビルド
 
-### Claude Desktop（MCP）
+```bash
+npm run build
+```
 
-Claude Desktop を GeonicDB の MCP サーバーに接続して、AI によるデータ操作を実現します：
+## 開発コマンド
+
+| コマンド | 説明 |
+|---------|------|
+| `npm start` | ローカル開発サーバーを起動 (インメモリ MongoDB 使用) |
+| `npm run build` | TypeScript をコンパイル |
+| `npm run watch` | ファイル変更を監視して自動コンパイル |
+| `npm test` | 全テストを実行 (ユニット + E2E) |
+| `npm run test:unit` | ユニットテストのみ実行 |
+| `npm run test:e2e` | E2E テストのみ実行 |
+| `npm run test:watch` | ユニットテストをウォッチモードで実行 |
+| `npm run test:coverage` | カバレッジレポートを生成 |
+| `npm run lint` | ESLint でコードをチェック |
+| `npm run lint:fix` | ESLint の問題を自動修正 |
+
+## プロジェクト構造
+
+```json
+vela/
+├── src/
+│   ├── api/                    # API レイヤー
+│   │   ├── ngsiv2/            # NGSIv2 API 実装
+│   │   │   ├── controllers/   # リクエストハンドラ
+│   │   │   ├── routes.ts      # ルーティング
+│   │   │   └── transformers/  # データ変換
+│   │   ├── ngsild/            # NGSI-LD API 実装
+│   │   └── shared/            # 共通ユーティリティ
+│   │       ├── middleware/    # ミドルウェア
+│   │       └── errors/        # エラークラス
+│   │
+│   ├── core/                   # ビジネスロジック
+│   │   ├── entities/          # エンティティ管理
+│   │   ├── subscriptions/     # サブスクリプション管理
+│   │   ├── registrations/     # 登録 (コンテキストソース) 管理
+│   │   └── geo/               # ジオクエリ
+│   │
+│   ├── handlers/               # Lambda ハンドラ
+│   │   ├── api/               # API リクエスト処理
+│   │   ├── streams/           # Change Stream 処理
+│   │   └── subscriptions/     # サブスクリプション処理
+│   │
+│   └── infrastructure/         # インフラクライアント
+│       ├── mongodb/           # MongoDB クライアント
+│       ├── eventbridge/       # EventBridge クライアント
+│       └── logger.ts          # ロガー
+│
+├── tests/
+│   ├── unit/                   # ユニットテスト (Jest)
+│   ├── integration/            # 統合テスト (Jest)
+│   └── e2e/                    # E2E テスト (Cucumber.js + Gherkin)
+│       ├── features/           # Gherkin feature ファイル
+│       │   ├── ngsiv2/         # NGSIv2 API テスト
+│       │   └── ngsi-ld/        # NGSI-LD API テスト
+│       ├── step-definitions/   # ステップ定義
+│       └── support/            # テストサポート
+│
+├── infrastructure/             # SAM テンプレート
+│   ├── template.yaml
+│   └── parameters/
+│
+└── docs/                       # ドキュメント
+```
+
+## テスト
+
+本プロジェクトでは 2 種類のテストフレームワークを使用しています：
+
+- **ユニットテスト / 統合テスト**: Jest
+- **E2E テスト**: Cucumber.js + Gherkin (日本語 BDD 形式)
+
+### 全テストの実行
+
+```bash
+npm test
+```
+
+### ユニットテストの実行
+
+```bash
+# 全ユニットテスト
+npm run test:unit
+
+# ウォッチモード
+npm run test:watch
+
+# 特定のファイル
+npx jest tests/unit/api/ngsiv2/controllers/entities.controller.test.ts
+```
+
+### E2E テストの実行
+
+E2E テストは Cucumber.js を使用し、Gherkin 形式 (日本語) で記述されています。
+FIWARE Orion の API ドキュメントに基づいたテストケースを実装しています。
+
+```bash
+# 全 E2E テスト
+npm run test:e2e
+
+# NGSIv2 テストのみ
+npm run test:e2e:ngsiv2
+
+# NGSI-LD テストのみ
+npm run test:e2e:ngsild
+
+# 特定のタグで実行
+npx cucumber-js --tags "@entities"
+npx cucumber-js --tags "@subscriptions"
+npx cucumber-js --tags "@batch"
+npx cucumber-js --tags "@crs"
+npx cucumber-js --tags "@tutorial"
+npx cucumber-js --tags "@meta"
+```
+
+### E2E テストの feature ファイル構成
+
+```text
+tests/e2e/features/
+├── ngsiv2/
+│   ├── entities.feature            # エンティティ CRUD
+│   ├── attribute-values.feature    # 属性値の直接取得・更新
+│   ├── subscriptions.feature       # サブスクリプション (HTTP 通知)
+│   ├── subscriptions-mqtt.feature  # サブスクリプション (MQTT 通知)
+│   ├── batch.feature               # バッチ操作
+│   ├── query-language.feature      # クエリ言語
+│   ├── types.feature               # エンティティタイプ
+│   ├── multitenancy.feature        # マルチテナンシー
+│   ├── geo-queries.feature         # 地理空間クエリ
+│   ├── spatial-id.feature          # 空間 ID 検索 (ZFXY 形式)
+│   ├── geojson-output.feature      # GeoJSON 出力
+│   ├── crs-transform.feature       # 座標参照系 (CRS) 変換
+│   ├── output-formats.feature      # 出力フォーマット
+│   ├── ordering.feature            # ソート機能
+│   ├── special-types.feature       # 特殊属性タイプ
+│   ├── metadata.feature            # メタデータ
+│   ├── error-handling.feature      # エラーハンドリング
+│   └── orion-tutorial.feature      # Orion 利用手順書に基づくチュートリアル
+├── common/
+│   └── meta.feature                # メタエンドポイント (/version, /health, /.well-known/ngsi-ld)
+└── ngsi-ld/
+    ├── entities.feature            # エンティティ CRUD
+    ├── subscriptions.feature       # サブスクリプション (HTTP 通知)
+    ├── subscriptions-mqtt.feature  # サブスクリプション (MQTT 通知)
+    ├── batch.feature               # バッチ操作
+    ├── multitenancy.feature        # マルチテナンシー
+    ├── spatial-id.feature          # 空間 ID 検索 (ZFXY 形式)
+    ├── geojson-output.feature      # GeoJSON 出力
+    ├── crs-transform.feature       # 座標参照系 (CRS) 変換
+    └── attributes.feature          # 属性一覧・詳細
+```
+
+### Gherkin テストの例
+
+```gherkin
+# language: ja
+
+@ngsiv2 @entities
+機能: NGSIv2 エンティティ CRUD 操作
+
+  背景:
+    前提 テスト用データベースが初期化されている
+    かつ テナントヘッダーが "testservice" に設定されている
+
+  シナリオ: 属性を持つエンティティを作成する
+    もし 以下のエンティティを作成する:
+      | id    | type | temperature.value | temperature.type |
+      | Room1 | Room | 23                | Float            |
+    ならば レスポンスステータスコードは 201 である
+    かつ レスポンスヘッダー "Location" に "Room1" が含まれる
+```
+
+### カバレッジレポート
+
+```bash
+npm run test:coverage
+```
+
+`coverage/lcov-report/index.html` で HTML レポートを確認できます。
+
+## 連携アプリケーション開発 (npm パッケージとして利用)
+
+GeonicDB を npm パッケージとしてインストールし、アプリケーションの開発サーバーと統合できます。
+
+### インストール
+
+```bash
+# GitHub リポジトリから直接インストール
+npm install -D github:geolonia/geonicdb
+
+# peerDependencies もインストール
+npm install -D express mongodb-memory-server
+```
+
+### CLI で起動 (推奨)
+
+`npx geonicdb` コマンドでスタンドアロン起動できます。`--proxy` オプションを使うと、GeonicDB のルートにマッチしないリクエストをアプリ側の開発サーバーに転送します。
+
+```bash
+# 基本的な起動
+npx geonicdb
+
+# ポート指定
+npx geonicdb --port 3001
+
+# プロキシ付き起動 (Vite 等の dev server と統合)
+npx geonicdb --port 3000 --proxy http://localhost:5173
+```
+
+`--proxy` 指定時のリクエストフロー:
+
+```text
+ブラウザ → localhost:3000 (GeonicDB)
+  ├── /v2/*, /ngsi-ld/*, /llms.txt 等 → GeonicDB が処理
+  └── その他 (HTML, JS, CSS 等)     → アプリ側 dev server にプロキシ
+```
+
+> **Note**: URL が重複した場合 (例: アプリ側にも `/llms.txt` がある場合)、GeonicDB 側が優先されます。
+
+### アプリケーションの package.json 設定例
+
+`concurrently` を使って GeonicDB とアプリの開発サーバーを同時起動できます。`--kill-others` により、片方のプロセスが終了するともう片方も自動停止します:
 
 ```json
 {
-  "mcpServers": {
-    "geonicdb": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://api.geonicdb.geolonia.com/mcp",
-        "--header",
-        "x-api-key: YOUR_API_KEY",
-        "--header",
-        "Fiware-Service: myproject"
-      ]
-    }
+  "scripts": {
+    "dev": "concurrently --kill-others 'geonicdb --port 4000 --proxy http://localhost:5173' 'vite --port 5173'"
+  },
+  "devDependencies": {
+    "geonicdb": "github:geolonia/geonicdb",
+    "express": "^5.0.0",
+    "mongodb-memory-server": "^11.0.0",
+    "concurrently": "^9.0.0",
+    "vite": "^7.0.0"
   }
 }
 ```
 
-### OpenAI / Claude API（tools.json）
+Vite 側にもプロキシ設定を追加すると、どちらのポートからアクセスしても API が利用できます:
 
-AI API で使用するツール定義を取得します：
-
-```bash
-curl https://api.geonicdb.geolonia.com/tools.json
-```
-
-返される JSON は Claude Tool Use や OpenAI Function Calling のツール定義としてそのまま使用できます。
-
-## SDK（将来予定）
-
-::: info 計画中
-以下の言語の公式 SDK を計画しています：
-
-- **JavaScript / TypeScript**（npm）
-- **Python**（pip）
-- **Go**（module）
-
-SDK が利用可能になるまでは、REST API と標準 HTTP クライアントをご利用ください。
-:::
-
-## レート制限
-
-::: tip 準備中
-レート制限の詳細は SaaS サービスの開始時に公開されます。API は標準的な HTTP 429（Too Many Requests）レスポンスと `Retry-After` ヘッダーを使用します。
-:::
-
-## 次のステップ
-
-- [はじめてのエンティティ](/ja/getting-started/first-entity) — エンティティの作成と管理
-- [デモアプリ](/ja/getting-started/demo-app) — インタラクティブなデモアプリケーション
-- [クイックスタート](/ja/introduction/quick-start) — CRUD の高速ウォークスルー
+```js
+// vite.config.js
+export default {
+  server: {
+    proxy: {
+      '/v2': 'http://localhost:4000',
+      '/ngsi-ld': 'http://localhost:4000',
+      '/admin': 'http://localhost:4000',
+      '/auth': 'http://localhost:4000',
+      '/ll
