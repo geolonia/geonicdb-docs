@@ -28,6 +28,6 @@
     "vitepress": "^1.6.4",
     "vitest": "^4.0.18",
     "vue": "^3.5.28",
-    "yuuhitsu": "github:geolonia/yuuhitsu"
+    "@geolonia/yuuhitsu": "^0.1.0"
   }
 }
