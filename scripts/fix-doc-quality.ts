@@ -5,7 +5,7 @@ import { join, relative, dirname } from 'node:path'
 // fix-doc-quality.ts
 // Post-translation quality fix script for geonicdb-docs.
 // Fixes: (1) bare code blocks, (2) missing frontmatter titles, (3) file parity
-// Processes docs/en/ (translation output) using docs/ja/ (source) as reference.
+// Processes both docs/ja/ (content inference) and docs/en/ (ja/ as reference).
 // ---------------------------------------------------------------------------
 
 /**
@@ -188,7 +188,7 @@ function collectMdFiles(dir: string): string[] {
 
 /**
  * Run all quality fixes on the docs directory.
- * Processes docs/en/ (translation output) using docs/ja/ (source) as reference.
+ * Processes both docs/ja/ (using content inference) and docs/en/ (using docs/ja/ as reference).
  * Also handles file parity: copies ja-only files to en/ when missing.
  *
  * @param baseDir - Project root directory (defaults to process.cwd())
@@ -209,7 +209,41 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
   let titleFixes = 0
   let parityFixes = 0
 
-  // Process docs/en/ files (translation output) using docs/ja/ as reference
+  // (1) Process docs/ja/ files using content inference (no reference)
+  for (const jaFile of jaFiles) {
+    const relPath = relative(jaDir, jaFile)
+
+    let jaContent = readFileSync(jaFile, 'utf-8')
+    let changed = false
+
+    // Fix bare code blocks by inferring language from content
+    const fixedJa = fixBareCodeBlocks(jaContent, null)
+    if (fixedJa !== jaContent) {
+      jaContent = fixedJa
+      changed = true
+      codeBlockFixes++
+      console.log(`  [code-block] Fixed: ja/${relPath}`)
+    }
+
+    // Fix missing frontmatter title
+    if (!hasFrontmatterTitle(jaContent)) {
+      const title = extractTitleFromHeading(jaContent)
+      if (title) {
+        jaContent = addFrontmatterTitle(jaContent, title)
+        changed = true
+        titleFixes++
+        console.log(`  [frontmatter] Added title "${title}": ja/${relPath}`)
+      } else {
+        console.warn(`  [frontmatter] WARN: no title or H1 found in ja/${relPath}`)
+      }
+    }
+
+    if (changed) {
+      writeFileSync(jaFile, jaContent, 'utf-8')
+    }
+  }
+
+  // (2) Process docs/en/ files (translation output) using docs/ja/ as reference
   if (existsSync(enDir)) {
     const enFiles = collectMdFiles(enDir)
     for (const enFile of enFiles) {
@@ -219,7 +253,7 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
       let enContent = readFileSync(enFile, 'utf-8')
       let changed = false
 
-      // (1) Fix bare code blocks using ja/ as reference
+      // Fix bare code blocks using ja/ as reference
       const jaContent = existsSync(jaFile) ? readFileSync(jaFile, 'utf-8') : null
       const fixed = fixBareCodeBlocks(enContent, jaContent)
       if (fixed !== enContent) {
@@ -229,7 +263,7 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
         console.log(`  [code-block] Fixed: en/${relPath}`)
       }
 
-      // (2) Fix missing frontmatter title
+      // Fix missing frontmatter title
       if (!hasFrontmatterTitle(enContent)) {
         const title = extractTitleFromHeading(enContent)
         if (title) {
