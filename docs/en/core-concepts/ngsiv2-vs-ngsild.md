@@ -1,70 +1,191 @@
 ---
-title: NGSIv2 vs NGSI-LD
-description: A side-by-side comparison of NGSIv2 and NGSI-LD APIs in GeonicDB — unified internal format, cross-API access, attribute mapping, and when to use which API.
+title: "NGSIv2 vs NGSI-LD"
+description: "Interoperability between NGSIv2 and NGSI-LD"
 outline: deep
 ---
+# NGSIv2 / NGSI-LD Interoperability
 
-# NGSIv2 vs NGSI-LD
+GeonicDB supports both NGSIv2 and NGSI-LD in a single Context Broker, enabling interoperability through a protocol-independent internal format.
 
-GeonicDB supports both **NGSIv2** and **NGSI-LD** on the same instance. A unified internal entity format allows data written through one API to be read through the other, with automatic format transformation handled transparently. This page provides a comprehensive comparison of the two APIs.
+## Table of Contents
 
-## Unified Architecture
+- [Overview](#overview)
+- [Unified Internal Format](#unified-internal-format)
+- [Cross-API Access](#cross-api-access)
+- [Attribute Type Mapping Table](#attribute-type-mapping-table)
+- [System Attribute Differences](#system-attribute-differences)
+- [Output Format Differences](#output-format-differences)
+- [Common Features](#common-features)
+- [NGSI-LD Specific Features](#ngsi-ld-specific-features)
+- [Entity ID Notes](#entity-id-notes)
+- [Federation](#federation)
+- [Use Cases and Best Practices](#use-cases-and-best-practices)
 
-Unlike FIWARE Orion (NGSIv2 only) and Orion-LD (NGSI-LD only), GeonicDB serves both APIs from a single deployment backed by a single MongoDB database. Both API layers share the same entity storage and subscription infrastructure.
+---
+
+## Overview
+
+GeonicDB's dual API architecture supports both FIWARE NGSIv2 and ETSI NGSI-LD specifications.
+
+### Architecture
 
 ```text
-┌─────────────────────────────────────────────────┐
-│                   Clients                       │
-│   NGSIv2 apps    │    NGSI-LD apps              │
-└────────┬─────────┴──────────┬───────────────────┘
-         │                    │
-         ▼                    ▼
-┌─────────────────┐  ┌──────────────────┐
-│  NGSIv2 API     │  │  NGSI-LD API     │
-│  /v2/entities   │  │  /ngsi-ld/v1/    │
-│  Transformer    │  │  Transformer     │
-└────────┬────────┘  └────────┬─────────┘
-         │                    │
-         ▼                    ▼
-┌─────────────────────────────────────────────────┐
-│          Unified Internal Entity Format          │
-│        (Service Layer / Business Logic)          │
-└──────────────────────┬──────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────┐
-│                  MongoDB Atlas                   │
-│          (Single Entity Collection)              │
-└─────────────────────────────────────────────────┘
+NGSIv2 API (/v2) ───┐
+                    ├──> Unified Internal Format ──> MongoDB
+NGSI-LD API (LD/v1) ┘
 ```
 
-Each API layer has its own **transformer** that converts between the wire format (NGSIv2 JSON or NGSI-LD JSON-LD) and the unified internal representation. The service layer operates exclusively on the internal format, so business logic — queries, subscriptions, geo-processing — is shared across both APIs.
+- Both APIs share the same MongoDB storage
+- Entities are stored in an API-independent, protocol-agnostic format
+- Conversion from each API format to internal format on request
+- Conversion from internal format to each API format on response
+
+### Interoperability Benefits
+
+- **Migration Flexibility** - Gradual migration from NGSIv2 to NGSI-LD is possible
+- **Integration with Existing Systems** - Coexistence of legacy NGSIv2 clients and new NGSI-LD clients
+- **API Choice Freedom** - Select the optimal API based on use case
+- **Single Data Source** - No need to manage duplicate data
+
+---
+
+## Unified Internal Format
+
+GeonicDB converts data from both APIs into a unified internal format.
+
+### Internal Entity Structure
+
+```typescript
+interface InternalEntity {
+  id: string;                                    // Entity ID
+  type: string;                                  // Entity Type
+  attributes: Record<string, EntityAttribute>;   // Collection of attributes
+  metadata?: EntityMetadata;                     // System metadata
+  scope?: string[];                              // NGSI-LD scope hierarchy
+  distance?: number;                             // Distance in geoquery results
+  expiresAt?: string;                            // Expiration for Transient entities
+}
+
+interface EntityAttribute {
+  type: string;                                  // Attribute type
+  value: AttributeValue;                         // Attribute value
+  metadata?: Record<string, AttributeMetadata>;  // Attribute metadata
+  datasetId?: string;                            // NGSI-LD dataset ID
+}
+
+interface EntityMetadata {
+  createdAt: string;   // Creation timestamp (ISO 8601)
+  modifiedAt: string;  // Last modification timestamp (ISO 8601)
+  version: number;     // Version number
+  deletedAt?: string;  // Deletion timestamp (soft delete)
+}
+```
+
+### MongoDB Storage Format
+
+```typescript
+interface EntityDocument {
+  _id: ObjectId;
+  tenant: string;           // Tenant name (Fiware-Service)
+  servicePath: string;      // Service path
+  entityId: string;         // Entity ID
+  entityType: string;       // Entity Type
+  attributes: Record<string, EntityAttribute>;
+  location?: {              // Separate field for 2dsphere index
+    type: string;
+    value: GeoGeometry;
+  };
+  scope?: string[];
+  createdAt: Date;
+  modifiedAt: Date;
+  version: number;
+  expiresAt?: Date;
+  deletedAt?: Date;
+}
+```
+
+---
 
 ## Cross-API Access
 
-Entities created via one API can be read, updated, and deleted via the other. This is the core benefit of GeonicDB's unified architecture.
+Entities created with NGSIv2 can be retrieved with NGSI-LD (and vice versa).
 
-### Write via NGSIv2, Read via NGSI-LD
+### Example 1: Create with NGSIv2 → Retrieve with NGSI-LD
 
-Create an entity using the NGSIv2 API:
+**Create entity with NGSIv2:**
 
 ```bash
-curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
+curl -X POST http://localhost:3000/v2/entities \
   -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: demo" \
   -d '{
-    "id": "urn:ngsi-ld:TemperatureSensor:001",
-    "type": "TemperatureSensor",
+    "id": "urn:ngsi-ld:Room:001",
+    "type": "Room",
     "temperature": {
       "type": "Number",
       "value": 23.5,
       "metadata": {
-        "unit": { "type": "Text", "value": "CEL" }
+        "unit": {
+          "type": "Text",
+          "value": "Celsius"
+        }
       }
     },
+    "humidity": {
+      "type": "Number",
+      "value": 60
+    }
+  }'
+```
+
+**Retrieve same entity with NGSI-LD:**
+
+```bash
+curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001 \
+  -H "Fiware-Service: demo"
+```
+
+**Response (NGSI-LD format):**
+
+```json
+{
+  "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+  "id": "urn:ngsi-ld:Room:001",
+  "type": "Room",
+  "temperature": {
+    "type": "Property",
+    "value": 23.5,
+    "unitCode": "Celsius"
+  },
+  "humidity": {
+    "type": "Property",
+    "value": 60
+  },
+  "createdAt": "2026-02-08T10:00:00.000Z",
+  "modifiedAt": "2026-02-08T10:00:00.000Z"
+}
+```
+
+### Example 2: Create with NGSI-LD → Retrieve with NGSIv2
+
+**Create entity with NGSI-LD:**
+
+```bash
+curl -X POST http://localhost:3000/ngsi-ld/v1/entities \
+  -H "Content-Type: application/ld+json" \
+  -H "Fiware-Service: demo" \
+  -d '{
+    "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "id": "urn:ngsi-ld:Vehicle:V123",
+    "type": "Vehicle",
+    "speed": {
+      "type": "Property",
+      "value": 55.5,
+      "unitCode": "KMH",
+      "observedAt": "2026-02-08T10:00:00Z"
+    },
     "location": {
-      "type": "geo:json",
+      "type": "GeoProperty",
       "value": {
         "type": "Point",
         "coordinates": [139.7671, 35.6812]
@@ -73,28 +194,35 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
-Read the same entity via the NGSI-LD API:
+**Retrieve same entity with NGSIv2:**
 
 ```bash
-curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:TemperatureSensor:001 \
-  -H "x-api-key: YOUR_API_KEY" \
+curl http://localhost:3000/v2/entities/urn:ngsi-ld:Vehicle:V123 \
   -H "Fiware-Service: demo"
 ```
 
-Response (NGSI-LD normalized format):
+**Response (NGSIv2 format):**
 
 ```json
 {
-  "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-  "id": "urn:ngsi-ld:TemperatureSensor:001",
-  "type": "TemperatureSensor",
-  "temperature": {
-    "type": "Property",
-    "value": 23.5,
-    "unitCode": "CEL"
+  "id": "urn:ngsi-ld:Vehicle:V123",
+  "type": "Vehicle",
+  "speed": {
+    "type": "Number",
+    "value": 55.5,
+    "metadata": {
+      "unit": {
+        "type": "Text",
+        "value": "KMH"
+      },
+      "observedAt": {
+        "type": "DateTime",
+        "value": "2026-02-08T10:00:00Z"
+      }
+    }
   },
   "location": {
-    "type": "GeoProperty",
+    "type": "geo:json",
     "value": {
       "type": "Point",
       "coordinates": [139.7671, 35.6812]
@@ -103,415 +231,196 @@ Response (NGSI-LD normalized format):
 }
 ```
 
-### Write via NGSI-LD, Read via NGSIv2
+---
 
-Create an entity using the NGSI-LD API:
+## Attribute Type Mapping Table
 
-```bash
-curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: demo" \
-  -d '{
-    "id": "urn:ngsi-ld:Room:101",
-    "type": "Room",
-    "temperature": {
-      "type": "Property",
-      "value": 21.0,
-      "unitCode": "CEL",
-      "observedAt": "2026-02-10T09:00:00Z"
-    },
-    "isPartOf": {
-      "type": "Relationship",
-      "object": "urn:ngsi-ld:Building:001"
-    }
-  }'
-```
+GeonicDB converts NGSIv2 types ↔ internal types ↔ NGSI-LD types according to the following rules.
 
-Read via NGSIv2:
+### Basic Data Types
 
-```bash
-curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: demo"
-```
+| NGSIv2 Type | Internal Type | NGSI-LD Type | Description |
+|----------|-------|-----------|------|
+| `Number` | `Number` | `Property` | Numeric value (integer or decimal) |
+| `Text` / `String` | `String` | `Property` | String |
+| `Boolean` | `Boolean` | `Property` | Boolean value |
+| `DateTime` | `DateTime` | `Property` or `TemporalProperty` | ISO 8601 datetime string |
+| `Null` | `Null` | `Property` | null value |
 
-Response (NGSIv2 normalized format):
+### Structured Data Types
+
+| NGSIv2 Type | Internal Type | NGSI-LD Type | Description |
+|----------|-------|-----------|------|
+| `Object` | `Object` | `Property` | JSON object |
+| `Array` | `Array` | `Property` or `ListProperty` | JSON array |
+| `StructuredValue` | `Object` | `Property` | Structured data |
+
+### Geospatial Types
+
+| NGSIv2 Type | Internal Type | NGSI-LD Type | Description |
+|----------|-------|-----------|------|
+| `geo:json` | `GeoJSON` | `GeoProperty` | GeoJSON (Point, LineString, Polygon) |
+| `geo:point` | `GeoJSON` (Point) | `GeoProperty` | Latitude/longitude point |
+
+### NGSI-LD Specific Types
+
+The following NGSI-LD specific types are retained internally but treated as `Property` in the NGSIv2 API.
+
+| NGSI-LD Type | Internal Type | NGSIv2 Conversion | Description |
+|-----------|-------|-----------|------|
+| `Relationship` | `Relationship` | `Relationship` (custom type) | Entity reference (contains `object` property) |
+| `LanguageProperty` | `LanguageProperty` | `StructuredValue` | Multi-language string (contains `languageMap` property) |
+| `JsonProperty` | `JsonProperty` | `Object` | JSON data (contains `json` property) |
+| `VocabProperty` | `VocabProperty` | `Object` | Vocabulary data (contains `vocab` or `vocabMap` property) |
+| `ListProperty` | `ListProperty` | `Array` | Ordered array (contains `valueList` property) |
+| `ListRelationship` | `ListRelationship` | `Array` | Array of entity references (contains `objectList` property) |
+
+### Metadata Type Mapping
+
+| NGSIv2 Metadata Name | NGSI-LD Property | Description |
+|-------------------|------------------|------|
+| `unit` (Text) | `unitCode` (string) | Unit (e.g., "CEL", "KMH") |
+| `observedAt` (DateTime) | `observedAt` (ISO 8601) | Observation timestamp |
+| `datasetId` (Text) | `datasetId` (URI) | Dataset ID |
+
+---
+
+## System Attribute Differences
+
+Entity metadata (creation/modification timestamps) have different names depending on the API.
+
+### NGSIv2 System Attributes
+
+| Attribute Name | Type | Description |
+|-------|---|------|
+| `dateCreated` | `DateTime` | Entity creation timestamp (ISO 8601) |
+| `dateModified` | `DateTime` | Entity last modification timestamp (ISO 8601) |
+
+**Example (NGSIv2 response with `options=dateCreated,dateModified`):**
 
 ```json
 {
-  "id": "urn:ngsi-ld:Room:101",
+  "id": "Room1",
   "type": "Room",
   "temperature": {
     "type": "Number",
-    "value": 21.0,
-    "metadata": {
-      "unit": { "type": "Text", "value": "CEL" },
-      "observedAt": { "type": "DateTime", "value": "2026-02-10T09:00:00Z" }
-    }
+    "value": 23
   },
-  "isPartOf": {
-    "type": "Relationship",
-    "value": "urn:ngsi-ld:Building:001",
-    "metadata": {}
+  "dateCreated": {
+    "type": "DateTime",
+    "value": "2026-02-08T10:00:00.000Z"
+  },
+  "dateModified": {
+    "type": "DateTime",
+    "value": "2026-02-08T11:00:00.000Z"
   }
 }
 ```
 
-## Attribute Type Mapping
+### NGSI-LD System Attributes
 
-GeonicDB automatically converts attribute types between the two API formats. The mapping is deterministic and lossless for all standard types.
+| Attribute Name | Type | Description |
+|-------|---|------|
+| `createdAt` | ISO 8601 string | Entity creation timestamp |
+| `modifiedAt` | ISO 8601 string | Entity last modification timestamp |
 
-| NGSIv2 Type | NGSI-LD Type | Description |
-|-------------|--------------|-------------|
-| `Number` | `Property` | Numeric values (integer or float) |
-| `Text` / `String` | `Property` | String values |
-| `Boolean` | `Property` | Boolean values |
-| `DateTime` | `Property` | ISO 8601 date-time strings |
-| `StructuredValue` | `Property` | Complex JSON objects or arrays |
-| `geo:json` | `GeoProperty` | GeoJSON geometry (Point, Polygon, etc.) |
-| `Relationship` | `Relationship` | Reference to another entity by ID |
-| _(no equivalent)_ | `LanguageProperty` | Multi-language string values (NGSI-LD only) |
+**Note:** When using the `pick` parameter, only `@context`, `id`, and `type` are selected; `createdAt` and `modifiedAt` are not included (exception).
 
-::: info LanguageProperty in NGSIv2
-When a `LanguageProperty` is read via NGSIv2, it is returned as a `StructuredValue` containing the `languageMap` object. The semantic meaning is preserved but the NGSI-LD-specific type is not available.
-:::
-
-## System Attribute Differences
-
-Both APIs track entity creation and modification timestamps, but use different field names.
-
-| NGSIv2 | NGSI-LD | Description |
-|--------|---------|-------------|
-| `dateCreated` | `createdAt` | Entity creation timestamp |
-| `dateModified` | `modifiedAt` | Last modification timestamp |
-
-In **NGSIv2**, system attributes are only included when explicitly requested via query parameters:
-
-```bash
-curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=dateCreated,dateModified" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: demo"
-```
-
-In **NGSI-LD**, system attributes (`createdAt`, `modifiedAt`) are always included in responses by default. They also appear at the attribute level, tracking when each individual attribute was created or last modified.
-
-## Output Format Differences
-
-Each API supports different output format options.
-
-### NGSIv2 Formats
-
-| Format | Parameter | Description |
-|--------|-----------|-------------|
-| Normalized (default) | — | Full format with `type`, `value`, and `metadata` |
-| keyValues | `options=keyValues` | Simplified key-value pairs |
-| values | `options=values` | Ordered attribute values array |
-
-```bash
-# Normalized (default)
-curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101" \
-  -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
-
-# keyValues
-curl "https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101?options=keyValues" \
-  -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
-```
-
-keyValues response:
-
-```json
-{
-  "id": "urn:ngsi-ld:Room:101",
-  "type": "Room",
-  "temperature": 21.0
-}
-```
-
-### NGSI-LD Formats
-
-| Format | Parameter | Description |
-|--------|-----------|-------------|
-| Normalized (default) | — | Full format with `type`, `value`, and sub-attributes |
-| Concise | `options=concise` | Simplified notation (NGSI-LD 1.6+) |
-| keyValues | `options=keyValues` | Simple key-value pairs |
-
-```bash
-# Normalized (default)
-curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101" \
-  -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
-
-# Concise
-curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:101?options=concise" \
-  -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
-```
-
-Concise response:
+**Example (NGSI-LD response, system attributes are always included):**
 
 ```json
 {
   "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-  "id": "urn:ngsi-ld:Room:101",
+  "id": "urn:ngsi-ld:Room:Room1",
   "type": "Room",
-  "temperature": 21.0,
-  "isPartOf": { "object": "urn:ngsi-ld:Building:001" }
+  "temperature": {
+    "type": "Property",
+    "value": 23
+  },
+  "createdAt": "2026-02-08T10:00:00.000Z",
+  "modifiedAt": "2026-02-08T11:00:00.000Z"
 }
 ```
+
+### Internal Representation (MongoDB)
+
+```typescript
+{
+  metadata: {
+    createdAt: "2026-02-08T10:00:00.000Z",  // ISO 8601 string
+    modifiedAt: "2026-02-08T11:00:00.000Z", // ISO 8601 string
+    version: 1
+  }
+}
+```
+
+---
+
+## Output Format Differences
+
+Each API supports multiple response formats.
+
+### NGSIv2 Output Formats
+
+| Format | options Parameter | Description |
+|-----|------------------|------|
+| **normalized** (default) | (none) | Full format including type and metadata |
+| **keyValues** | `options=keyValues` | Key-value pairs only (no metadata) |
+| **values** | `options=values` | Array of attribute values only |
+
+**Examples:**
+
+```bash
+# normalized (default)
+curl http://localhost:3000/v2/entities/Room1
+
+# keyValues
+curl http://localhost:3000/v2/entities/Room1?options=keyValues
+
+# values
+curl 'http://localhost:3000/v2/entities?type=Room&options=values&attrs=temperature,humidity'
+```
+
+### NGSI-LD Output Formats
+
+| Format | Accept Header | Description |
+|-----|---------------|------|
+| **normalized** (default) | `application/ld+json` | Full format including type and metadata |
+| **concise** | `application/ld+json` + `options=concise` | Concise format (abbreviated notation) |
+| **keyValues** | `application/ld+json` + `options=keyValues` | Key-values only |
+
+**Examples:**
+
+```bash
+# normalized (default)
+curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1
+
+# concise
+curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=concise'
+
+# keyValues
+curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=keyValues'
+```
+
+---
 
 ## Common Features
 
-Both APIs share many core capabilities through the unified service layer.
+The following features are shared between both APIs.
 
-| Feature | NGSIv2 | NGSI-LD |
-|---------|--------|---------|
-| Query language (`q` parameter) | ✅ | ✅ |
-| Geo-queries (near, within, intersects, etc.) | ✅ | ✅ |
-| Pagination (limit/offset) | ✅ | ✅ |
-| Subscriptions (HTTP, MQTT, WebSocket) | ✅ | ✅ |
-| Batch operations | ✅ | ✅ |
-| Federation / context providers | ✅ | ✅ |
-| Multi-tenancy | ✅ | ✅ |
+### 1. Query Language
 
-For details on query syntax, see the [Query Language](/en/core-concepts/query-language) page.
+| Feature | NGSIv2 | NGSI-LD | Description |
+|-----|-------|---------|------|
+| **Simple Query** | `q` parameter | `q` parameter | Attribute value filter (e.g., `temperature>20;humidity<80`) |
+| **Metadata Query** | `mq` parameter | `q` parameter (metadata can also be queried) | Metadata filter |
+| **Scope Query** | (not supported) | `scopeQ` parameter | Scope hierarchy filter |
 
-## NGSI-LD-Specific Features
-
-NGSI-LD offers additional capabilities not available in NGSIv2.
-
-### Relationship
-
-A first-class attribute type for entity-to-entity references. The `object` field holds the target entity ID:
-
-```json
-{
-  "isPartOf": {
-    "type": "Relationship",
-    "object": "urn:ngsi-ld:Building:001"
-  }
-}
-```
-
-While NGSIv2 also supports `"type": "Relationship"`, NGSI-LD defines formal semantics and enables relationship traversal.
-
-### LanguageProperty
-
-Multi-language values using a `languageMap`:
-
-```json
-{
-  "name": {
-    "type": "LanguageProperty",
-    "languageMap": {
-      "en": "Tokyo Tower",
-      "ja": "東京タワー",
-      "zh": "东京塔"
-    }
-  }
-}
-```
-
-Use the `lang` query parameter to retrieve a specific language variant.
-
-### Scope
-
-Entity-level scope filtering using the `scope` attribute and `scopeQ` query parameter:
-
-```json
-{
-  "id": "urn:ngsi-ld:Room:101",
-  "type": "Room",
-  "scope": ["/building/floor1"]
-}
-```
+**Basic Examples:**
 
 ```bash
-curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&scopeQ=/building/#" \
-  -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
-```
+# NGSIv2: Entities with temperature above 20 degrees
+curl 'http://localhost:3000/v2/entities?type=Room&q=temperature>20'
 
-### Pick and Omit
-
-Fine-grained attribute selection using `pick` and `omit` query parameters:
-
-```bash
-# Return only temperature and humidity
-curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&pick=temperature,humidity" \
-  -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
-
-# Return all attributes except location
-curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room&omit=location" \
-  -H "x-api-key: YOUR_API_KEY" -H "Fiware-Service: demo"
-```
-
-### JSON-LD @context
-
-NGSI-LD uses `@context` to define vocabulary mappings and provide semantic meaning. The context can be provided inline or via the `Link` header:
-
-```bash
-curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
-  -H "Content-Type: application/ld+json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: demo" \
-  -d '{
-    "@context": [
-      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-      "https://smartdatamodels.org/context.jsonld"
-    ],
-    "id": "urn:ngsi-ld:AirQualityObserved:001",
-    "type": "AirQualityObserved",
-    "PM25": {
-      "type": "Property",
-      "value": 12.3,
-      "observedAt": "2026-02-10T09:00:00Z"
-    }
-  }'
-```
-
-NGSIv2 does not have a `@context` concept — vocabulary is implicit.
-
-## Entity ID Conventions
-
-Both APIs accept arbitrary string entity IDs. However, for cross-API compatibility, the **URN format** is strongly recommended:
-
-```text
-urn:ngsi-ld:{EntityType}:{LocalId}
-```
-
-Examples:
-
-```text
-urn:ngsi-ld:Room:001
-urn:ngsi-ld:Vehicle:ABC123
-urn:ngsi-ld:WeatherObserved:Tokyo-2026-02-10
-```
-
-::: warning Short IDs and NGSI-LD
-NGSI-LD technically requires entity IDs to be valid URIs. While GeonicDB accepts short IDs like `Room1` for convenience, they may cause issues with strict NGSI-LD clients. Always use URN format for production deployments.
-:::
-
-For more detail on entity IDs, types, and attributes, see [NGSI Data Model](/en/core-concepts/ngsi-data-model).
-
-## When to Use Which API
-
-### Choose NGSIv2 when:
-
-- **Migrating from FIWARE Orion** — NGSIv2 is API-compatible with Orion, so existing clients work without changes.
-- **Simple IoT data collection** — Straightforward sensor readings and basic entity management.
-- **Existing NGSIv2 clients** — Libraries, dashboards, or services already using NGSIv2.
-- **Minimal overhead** — No need for JSON-LD, `@context`, or linked data semantics.
-
-### Choose NGSI-LD when:
-
-- **Semantic data modeling** — You need linked data, `@context`, and rich type semantics.
-- **Entity relationships** — First-class `Relationship` attributes with traversal capabilities.
-- **Multi-language support** — `LanguageProperty` for internationalized data.
-- **Smart Data Models** — Using standardized data models from the [Smart Data Models](https://smartdatamodels.org/) program.
-- **New projects** — NGSI-LD is the latest ETSI standard and the recommended choice for greenfield applications.
-
-### Decision Matrix
-
-| Criterion | NGSIv2 | NGSI-LD |
-|-----------|--------|---------|
-| Learning curve | Lower | Moderate |
-| API complexity | Simpler | Richer |
-| Linked data / semantics | No | Yes |
-| Legacy compatibility | Orion-compatible | New standard |
-| Entity relationships | Basic | First-class |
-| Multi-language | No | Yes (`LanguageProperty`) |
-| `@context` support | No | Yes |
-| Query language | `q`, `mq`, `georel` | `q`, `scopeQ`, `georel`, `pick`, `omit` |
-
-## Hybrid Operation Patterns
-
-One of GeonicDB's key strengths is enabling hybrid operation — running both APIs simultaneously on the same data.
-
-### Gradual Migration
-
-Migrate from NGSIv2 to NGSI-LD incrementally. Existing NGSIv2 services continue operating while new services use NGSI-LD:
-
-```text
-┌──────────────────────────┐
-│  Existing NGSIv2 Service │──→ /v2/entities ──┐
-└──────────────────────────┘                   │
-                                                ▼
-                                          ┌──────────┐
-                                          │ GeonicDB  │
-                                          │ (shared  │
-                                          │  data)   │
-                                          └──────────┘
-                                                ▲
-┌──────────────────────────┐                   │
-│  New NGSI-LD Service     │──→ /ngsi-ld/v1/ ──┘
-└──────────────────────────┘
-```
-
-### Read-Optimized Pattern
-
-Use the API format that best suits each use case:
-
-- **IoT devices** write sensor data via NGSIv2 (simpler payload, lower overhead)
-- **Analytics platforms** read the same data via NGSI-LD (richer semantics, `@context` for data integration)
-
-```bash
-# IoT device writes via NGSIv2 (simple)
-curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: smartcity" \
-  -d '{
-    "id": "urn:ngsi-ld:AirQualityObserved:sensor42",
-    "type": "AirQualityObserved",
-    "PM25": { "type": "Number", "value": 15.2 },
-    "PM10": { "type": "Number", "value": 28.7 }
-  }'
-
-# Analytics platform reads via NGSI-LD (semantic)
-curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=AirQualityObserved&options=keyValues" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: smartcity" \
-  -H "Link: <https://smartdatamodels.org/context.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
-```
-
-### Subscription Bridging
-
-Subscriptions created via one API will trigger for entity changes made through either API:
-
-```bash
-# Create a subscription via NGSI-LD
-curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/subscriptions \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: smartcity" \
-  -d '{
-    "type": "Subscription",
-    "entities": [{ "type": "AirQualityObserved" }],
-    "notification": {
-      "endpoint": {
-        "uri": "https://example.com/webhook",
-        "accept": "application/json"
-      }
-    }
-  }'
-```
-
-This subscription fires when an `AirQualityObserved` entity is created or updated via **either** `/v2/entities` or `/ngsi-ld/v1/entities`.
-
-## API Endpoint Reference
-
-| Operation | NGSIv2 | NGSI-LD |
-|-----------|--------|---------|
-| Entity CRUD | `/v2/entities` | `/ngsi-ld/v1/entities` |
-| Subscriptions | `/v2/subscriptions` | `/ngsi-ld/v1/subscriptions` |
-| Batch Operations | `/v2/op/update`, `/v2/op/query` | `/ngsi-ld/v1/entityOperations/*` |
-| Registrations | `/v2/registrations` | `/ngsi-ld/v1/csourceRegistrations` |
-| Types | `/v2/types` | `/ngsi-ld/v1/types` |
-
-For full API details, see the [NGSIv2 API Reference](/en/api-reference/ngsiv2) and [NGSI-LD API Reference](/en/api-reference/ngsild).
-
-## Next Steps
-
-- [NGSI Data Model](/en/core-concepts/ngsi-data-model) — Understand entities, attributes, and metadata
-- [Multi-Tenancy](/en/core-concepts/multi-tenancy) — Data isolation with tenant headers
-- [Query Language](/en/core-concepts/query-language) — Filter entities with powerful query syntax
-- [NGSIv2 API Reference](/en/api-reference/ngsiv2) — Full NGSIv2 endpoint documentation
-- [NGSI-LD API Reference](/en/api-reference/ngsild) — Full NGSI-LD endpoint documentation
+# NGSI-LD: Entities with temperature above 20 degrees
+curl 'http://localhost:3000/ngsi-

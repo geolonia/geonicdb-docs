@@ -1,24 +1,25 @@
 ---
-title: Smart Data Models
-description: Use FIWARE Smart Data Models with automatic @context resolution and MCP-based schema browsing in GeonicDB.
+title: "Smart Data Models"
+description: "FIWARE Smart Data Models Support"
 outline: deep
 ---
+# Smart Data Models Support
 
-# Smart Data Models
-
-GeonicDB integrates with the [FIWARE Smart Data Models](https://smartdatamodels.org/) initiative, providing **automatic @context resolution** for known data model types and an **MCP tool** for browsing the model catalog. This ensures semantic interoperability with the broader FIWARE ecosystem.
+GeonicDB supports data models from the [Smart Data Models](https://smartdatamodels.org/) initiative. Smart Data Models is a catalog of standardized data models widely used in the FIWARE ecosystem and smart city domains.
 
 ## Overview
 
-Smart Data Models are standardized data schemas widely used in smart city and IoT deployments. GeonicDB supports them through two features:
+Smart Data Models support includes two main features:
 
-1. **@context Auto-Completion** — When retrieving NGSI-LD entities of known Smart Data Model types, GeonicDB automatically adds the correct JSON-LD @context
-2. **MCP Tool (`data_models`)** — Browse and search available data models via the MCP interface
+1. **MCP Tools**: Browse the catalog and search for available data models
+2. **@context Auto-completion**: Automatically add appropriate JSON-LD @context for known Smart Data Model entity types
 
 ## Supported Domains
 
+GeonicDB supports major Smart Data Models from the following domains:
+
 | Domain | Example Models |
-|--------|---------------|
+|---------|----------------|
 | **Parking** | OffStreetParking, OnStreetParking, ParkingSpot |
 | **Weather** | WeatherObserved, WeatherForecast |
 | **Transportation** | Vehicle, TrafficFlowObserved, BikeHireDockingStation |
@@ -28,59 +29,170 @@ Smart Data Models are standardized data schemas widely used in smart city and Io
 | **WasteManagement** | WasteContainer, WasteContainerIsle |
 | **Energy** | EnergyMonitor, ThreePhaseAcMeasurement |
 
-## @context Auto-Completion
+Each model includes the following information:
+- Entity type name
+- Domain
+- JSON-LD @context URL
+- Description
+- Schema URL
+- Sample properties
 
-When you retrieve entities via the NGSI-LD API, GeonicDB checks if the entity type matches a known Smart Data Model and automatically includes the appropriate @context.
+## MCP Tool: `data_models`
 
-### Resolution Priority
+An MCP tool is available for browsing the Smart Data Models catalog.
 
-1. **Explicit @context** — A `Link` header or request parameter always takes precedence
-2. **Smart Data Models @context** — Added automatically for known types
-3. **Default NGSI-LD Core @context** — Fallback for custom types
+### Actions
 
-### Example
+#### `list_domains` - Get Domain List
 
-> **Note:** NGSI-LD endpoints use the `/ngsi-ld/v1` base path, while NGSIv2 uses `/v2`. Ensure you're using the correct API path for your client.
+Retrieve a list of all available domains.
 
-**Create a Smart Data Model entity:**
+**Parameters**: None
 
-```bash
-curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
-  -H "Content-Type: application/json" \
-  -H "NGSILD-Tenant: smartcity" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d '{
-    "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-    "id": "urn:ngsi-ld:OffStreetParking:downtown",
-    "type": "OffStreetParking",
+**Response Example**:
+```json
+{
+  "domains": [
+    "Building",
+    "Device",
+    "Energy",
+    "Environment",
+    "Parking",
+    "Transportation",
+    "WasteManagement",
+    "Weather"
+  ],
+  "total": 8
+}
+```
+
+#### `list_models` - Get Model List
+
+Retrieve a list of available data models. Can be filtered by domain or search term.
+
+**Parameters**:
+- `domain` (optional): Filter by domain (e.g., "Parking")
+- `search` (optional): Search by type or description (e.g., "weather")
+- `limit` (optional): Maximum number of results (default: 100)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Response Example**:
+```json
+{
+  "models": [
+    {
+      "type": "OffStreetParking",
+      "domain": "Parking",
+      "contextUrl": "https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld",
+      "description": "Off street parking site with explicit entries and exits",
+      "schemaUrl": "https://github.com/smart-data-models/dataModel.Parking/blob/master/OffStreetParking/schema.json",
+      "exampleProperties": ["name", "location", "totalSpotNumber", "availableSpotNumber", "occupancyDetectionType"]
+    }
+  ],
+  "total": 1
+}
+```
+
+#### `get_model` - Get Specific Model Details
+
+Retrieve data model details for a specified entity type.
+
+**Parameters**:
+- `type` (required): Entity type name (e.g., "OffStreetParking")
+
+**Response Example**:
+```json
+{
+  "type": "OffStreetParking",
+  "domain": "Parking",
+  "contextUrl": "https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld",
+  "description": "Off street parking site with explicit entries and exits",
+  "schemaUrl": "https://github.com/smart-data-models/dataModel.Parking/blob/master/OffStreetParking/schema.json",
+  "exampleProperties": ["name", "location", "totalSpotNumber", "availableSpotNumber", "occupancyDetectionType"],
+  "propertyDetails": {
     "name": {
-      "type": "Property",
-      "value": "Downtown Parking"
-    },
-    "totalSpotNumber": {
-      "type": "Property",
-      "value": 200
+      "ngsiType": "Property",
+      "valueType": "string",
+      "example": "Central Parking Lot",
+      "required": true
     },
     "location": {
-      "type": "GeoProperty",
-      "value": {
-        "type": "Point",
-        "coordinates": [139.7671, 35.6812]
-      }
+      "ngsiType": "GeoProperty",
+      "valueType": "GeoJSON Point or Polygon",
+      "example": { "type": "Point", "coordinates": [139.6917, 35.6895] },
+      "required": true
+    },
+    "totalSpotNumber": {
+      "ngsiType": "Property",
+      "valueType": "number",
+      "example": 200
+    },
+    "availableSpotNumber": {
+      "ngsiType": "Property",
+      "valueType": "number",
+      "example": 45
+    },
+    "occupancyDetectionType": {
+      "ngsiType": "Property",
+      "valueType": "Array<string>",
+      "example": ["balancing", "singleSpaceDetection"]
     }
-  }'
+  }
+}
 ```
 
-**Retrieve with auto-completed @context:**
+**Note**: The `propertyDetails` field is available for major models (WeatherObserved, AirQualityObserved, OffStreetParking, OnStreetParking, TrafficFlowObserved, Vehicle, Device, Building, WasteContainer, EnergyMonitor). Each property includes:
+- `ngsiType`: NGSI-LD property type (Property, GeoProperty, Relationship, LanguageProperty)
+- `valueType`: Value type (number, string, GeoJSON structure, Object, etc.)
+- `example`: Sample value for actual usage
+- `required`: Whether the field is required (optional)
 
+## @context Auto-completion
+
+When retrieving entities via the NGSI-LD API, GeonicDB automatically adds the appropriate @context for known Smart Data Model types.
+
+### How It Works
+
+Priority for @context resolution when retrieving entities:
+
+1. **Explicit @context** (specified in Link header or parameter) - Always takes priority
+2. **Smart Data Models @context** (when entity type is a known SDM) - Auto-completion
+3. **Default NGSI-LD Core @context** - Fallback
+
+### Example: Creating and Retrieving a Smart Data Model Entity
+
+**Creating an Entity**:
 ```bash
-curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown \
-  -H "NGSILD-Tenant: smartcity" \
-  -H "Authorization: Bearer YOUR_API_KEY"
+POST /ngsi-ld/v1/entities
+Content-Type: application/ld+json
+
+{
+  "id": "urn:ngsi-ld:OffStreetParking:downtown",
+  "type": "OffStreetParking",
+  "name": {
+    "type": "Property",
+    "value": "Downtown Parking"
+  },
+  "totalSpotNumber": {
+    "type": "Property",
+    "value": 200
+  },
+  "location": {
+    "type": "GeoProperty",
+    "value": {
+      "type": "Point",
+      "coordinates": [139.7671, 35.6812]
+    }
+  }
+}
 ```
 
-**Response:**
+**Retrieving the Entity**:
+```bash
+GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
+```
 
+**Response** (@context is automatically added):
 ```json
 {
   "@context": [
@@ -107,93 +219,83 @@ curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities/urn:ngsi-ld:OffStreet
 }
 ```
 
-The `@context` array includes both the domain-specific context and the NGSI-LD core context, ensuring full semantic interoperability.
+### Important Notes
 
-## MCP Tool: `data_models`
+- **@context is not stored in storage**: @context is metadata dynamically generated during API response
+- **Explicit @context takes priority**: If you specify @context in the Link header, it overrides SDM auto-completion
+- **Unknown types use default @context**: Custom entity types only receive the NGSI-LD core @context
 
-The `data_models` MCP tool lets AI assistants and programmatic clients browse the Smart Data Models catalog.
+### Examples from Different Domains
 
-### List Domains
-
+**Weather Domain**:
 ```json
 {
-  "action": "list_domains"
-}
-```
-
-**Response:**
-
-```json
-{
-  "domains": [
-    "Building", "Device", "Energy", "Environment",
-    "Parking", "Transportation", "WasteManagement", "Weather"
+  "@context": [
+    "https://raw.githubusercontent.com/smart-data-models/dataModel.Weather/master/context.jsonld",
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
   ],
-  "total": 8
+  "id": "urn:ngsi-ld:WeatherObserved:station01",
+  "type": "WeatherObserved",
+  "temperature": {
+    "type": "Property",
+    "value": 25.5
+  }
 }
 ```
 
-### List Models
-
-Search and filter available data models:
-
+**Transportation Domain**:
 ```json
 {
-  "action": "list_models",
-  "domain": "Parking",
-  "search": "parking",
-  "limit": 10,
-  "offset": 0
-}
-```
-
-**Response:**
-
-```json
-{
-  "models": [
-    {
-      "type": "OffStreetParking",
-      "domain": "Parking",
-      "contextUrl": "https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld",
-      "description": "Off street parking site with explicit entries and exits",
-      "schemaUrl": "https://github.com/smart-data-models/dataModel.Parking/blob/master/OffStreetParking/schema.json",
-      "exampleProperties": ["name", "location", "totalSpotNumber", "availableSpotNumber"]
-    }
+  "@context": [
+    "https://raw.githubusercontent.com/smart-data-models/dataModel.Transportation/master/context.jsonld",
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
   ],
-  "total": 1
+  "id": "urn:ngsi-ld:Vehicle:car123",
+  "type": "Vehicle",
+  "speed": {
+    "type": "Property",
+    "value": 60
+  }
 }
 ```
-
-### Get Model Details
-
-```json
-{
-  "action": "get_model",
-  "type": "OffStreetParking"
-}
-```
-
-Returns the full model definition including @context URL, schema URL, description, and example properties.
 
 ## Benefits
 
-### FIWARE Ecosystem Interoperability
+### Interoperability with FIWARE Ecosystem
 
-- **Standardized property names** compatible with other FIWARE components
-- **Semantic interoperability** via JSON-LD @context for meaningful data exchange
-- **Ecosystem integration** with FIWARE Marketplace and third-party tools
+Using Smart Data Models @context enables:
 
-### AI Assistant Integration
+- **Standardized Property Names**: Compatibility with other FIWARE systems
+- **Semantic Interoperability**: Meaningful data exchange using JSON-LD
+- **Ecosystem Integration**: Integration with FIWARE Marketplace and other FIWARE components
 
-The MCP tool enables AI assistants (such as Claude) to:
+### Improved AI Assistant Capabilities
 
-- Search available data model schemas
-- Suggest appropriate properties when creating entities
-- Follow domain-specific best practices for data modeling
+MCP tools enable AI assistants (like Claude) to:
 
-## Important Notes
+- **Search Data Models**: Find available data model schemas by domain or keyword
+- **Get Property Information**: Retrieve detailed information for each property from `propertyDetails`
+  - Determine NGSI-LD property types (Property, GeoProperty, Relationship)
+  - Understand value types (number, string, GeoJSON structure, etc.)
+  - Use sample values for actual usage examples
+  - Identify required fields
+- **Create Accurate Entities**: Generate correctly structured NGSI-LD entities based on retrieved information
+- **Apply Domain-Specific Best Practices**: Implement according to Smart Data Models standards
 
-- The @context is **not stored in the database** — it is dynamically added to API responses
-- Explicit @context (via `Link` header) always overrides auto-completion
-- Custom entity types that do not match any Smart Data Model receive only the default NGSI-LD core @context
+**Recommended Workflow**:
+1. Search models using `list_models`
+2. Retrieve `propertyDetails` for selected model using `get_model`
+3. Create entities with correct NGSI-LD structure based on `propertyDetails` information
+
+## References
+
+- [Smart Data Models Official Site](https://smartdatamodels.org/)
+- [Smart Data Models GitHub](https://github.com/smart-data-models)
+- [FIWARE Data Models](https://fiware-datamodels.readthedocs.io/)
+- [NGSI-LD Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/)
+
+## Related Documentation
+
+- [MCP.md](../ai-integration/mcp-server.md) - Model Context Protocol Server
+- [AI_INTEGRATION.md](../ai-integration/overview.md) - AI Tool Integration
+- [API_NGSILD.md](../api-reference/ngsild.md) - NGSI-LD API Reference
