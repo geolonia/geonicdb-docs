@@ -43,8 +43,8 @@ jobs:
       - name: Detect changed files
         id: detect
         run: |
-          # sync-docs writes English content to docs/ja/ paths
-          # Check for any .md file changes
+          # sync-docs writes Japanese content into docs/ja/ paths
+          # Check for any .md file changes in docs/ (includes both docs/ja/ and docs/en/)
           CHANGED=$(git diff --name-only -- 'docs/' | grep '\.md$' || true)
           UNTRACKED=$(git ls-files --others --exclude-standard -- 'docs/' | grep '\.md$' || true)
           ALL_CHANGED=$(echo -e "${CHANGED}\n${UNTRACKED}" | sort -u | grep -v '^$' || true)
@@ -79,8 +79,8 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          # sync-docs puts English content into docs/ja/ paths.
-          # Translate each changed ja file from English to Japanese in-place.
+          # sync-docs puts Japanese content into docs/ja/ paths.
+          # Translate each changed ja file from Japanese to English, output to docs/en/.
           JA_FILES=$(grep '^docs/ja/' /tmp/changed_files.txt || true)
           if [ -z "$JA_FILES" ]; then
             echo "No docs/ja/ files to translate"
@@ -91,8 +91,10 @@ jobs:
           echo "Translating $TOTAL files..."
           while IFS= read -r file; do
             if [ -f "$file" ]; then
-              echo "Translating: $file"
-              if ! npx yuuhitsu translate --input "$file" --lang ja --output "$file"; then
+              en_file="${file/docs\/ja\//docs\/en\/}"
+              echo "Translating: $file -> $en_file"
+              mkdir -p "$(dirname "$en_file")"
+              if ! npx yuuhitsu translate --input "$file" --lang en --output "$en_file"; then
                 echo "::error::Failed to translate $file"
                 FAILED=$((FAILED + 1))
               fi
@@ -130,7 +132,7 @@ jobs:
 
             ### Process
             1. Synced docs from geolonia/geonicdb
-            2. Translated changed English docs to Japanese via yuuhitsu
+            2. Translated changed Japanese docs to English via yuuhitsu
             3. Build verification passed
           branch: docs/auto-sync-translate
           base: main
