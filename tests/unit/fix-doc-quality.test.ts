@@ -288,15 +288,37 @@ describe('runQualityFixes', () => {
     const result = runQualityFixes(docsDir)
     const enPath = join(docsDir, 'docs/en/new-page.md')
     expect(existsSync(enPath)).toBe(true)
-    expect(readFileSync(enPath, 'utf-8')).toBe(jaContent)
+    // ja/ file gets frontmatter title added before parity copy, so en/ should have it too
+    const enContent = readFileSync(enPath, 'utf-8')
+    expect(enContent).toContain('title: "New Page"')
+    expect(enContent).toContain('# New Page')
     expect(result.parityFixes).toBe(1)
   })
 
-  it('does not modify docs/ja/ files (en-only processing)', () => {
-    const jaContent = '# Guide\n\n```\n{"key": "value"}\n```\n'
+  it('fixes bare code blocks in ja/ files using content inference', () => {
+    const docsDir = setupDocs({
+      'docs/ja/guide.md': '# Guide\n\n```\n{"key": "value"}\n```\n',
+    })
+    const result = runQualityFixes(docsDir)
+    const jaContent = readFileSync(join(docsDir, 'docs/ja/guide.md'), 'utf-8')
+    expect(jaContent).toContain('```json')
+    expect(result.codeBlockFixes).toBe(1)
+  })
+
+  it('adds frontmatter title to ja/ files without title', () => {
+    const docsDir = setupDocs({
+      'docs/ja/guide.md': '# ガイド\n\nContent\n',
+    })
+    const result = runQualityFixes(docsDir)
+    const jaContent = readFileSync(join(docsDir, 'docs/ja/guide.md'), 'utf-8')
+    expect(jaContent).toContain('title: "ガイド"')
+    expect(result.titleFixes).toBe(1)
+  })
+
+  it('does not re-process ja/ files that already have correct quality', () => {
+    const jaContent = '---\ntitle: "Guide"\n---\n# Guide\n\n```json\n{"key": "value"}\n```\n'
     const docsDir = setupDocs({
       'docs/ja/guide.md': jaContent,
-      'docs/en/guide.md': '# Guide\n\n```json\n{"key": "value"}\n```\n',
     })
     runQualityFixes(docsDir)
     const jaAfter = readFileSync(join(docsDir, 'docs/ja/guide.md'), 'utf-8')
