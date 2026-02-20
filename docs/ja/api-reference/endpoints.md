@@ -265,9 +265,12 @@ Content-Type: application/json
 ```json
 {
   "email": "user@example.com",
-  "password": "SecurePassword123!"
+  "password": "SecurePassword123!",
+  "tenantId": "target-tenant-id"
 }
 ```
+
+> `tenantId` は任意パラメータです。指定するとそのテナントにスコープされた JWT を発行します。省略時はプライマリテナントが使用されます。
 
 **レスポンス例**
 
@@ -2346,7 +2349,7 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 | ユーザー | `/me` | 必須 | `application/json` |
 | NGSIv2 | `/v2` | 必須* | `application/json` |
 | NGSI-LD | `/ngsi-ld/v1` | 必須* | `application/ld+json` |
-| Admin | `/admin` | 必須 (super_admin) | `application/json` |
+| Admin | `/admin` | 必須 (super_admin / tenant_admin) | `application/json` |
 | Catalog | `/catalog` | 必須* | `application/json` |
 
 \* `AUTH_ENABLED=false` の場合は認証不要
@@ -2403,7 +2406,7 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 
 ### Admin API
 
-テナントとユーザーの管理 API です。`super_admin` ロールのみアクセス可能です。
+テナントとユーザーの管理 API です。エンドポイントにより `super_admin` または `tenant_admin` ロールが必要です（`tenant_admin` は自テナントスコープのみ）。
 
 #### テナント管理
 
@@ -2419,6 +2422,9 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 | `/admin/tenants/{tenantId}/ip-restrictions` | GET | テナント IP 制限取得 | 200 | 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}/ip-restrictions` | PUT | テナント IP 制限更新 | 200 | 400, 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}/ip-restrictions` | DELETE | テナント IP 制限削除 | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/users` | GET | テナントメンバー一覧（tenant_admin: 自テナントのみ） | 200 | 401, 403, 404 | ✅ (max: 100) |
+| `/admin/tenants/{tenantId}/users/{userId}` | PUT | ユーザーをテナントに追加（tenant_admin: 自テナントのみ） | 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/users/{userId}` | DELETE | ユーザーをテナントから削除（tenant_admin: 自テナントのみ） | 204 | 400, 401, 403, 404 | - |
 
 #### ユーザー管理
 
@@ -2432,8 +2438,9 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 | `/admin/users/{userId}/activate` | POST | ユーザー有効化 | 204 | 401, 403, 404 | - |
 | `/admin/users/{userId}/deactivate` | POST | ユーザー無効化 | 204 | 401, 403, 404 | - |
 | `/admin/users/{userId}/unlock` | POST | ログインロック解除 | 200 | 400, 401, 403, 404 | - |
+| `/admin/users/{userId}/tenants` | GET | ユーザー所属テナント一覧（本人または super_admin） | 200 | 401, 403 | ✅ (max: 100) |
 
-#### ポリシー管理（XACML 3.0 認可）
+#### ポリシー管理（XACML 3.0 認可、super_admin / tenant_admin）
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |---------------|---------|------|------|--------|-----------------|
@@ -2584,7 +2591,8 @@ WebSocket を使用したリアルタイムのエンティティ変更ストリ�
 | `/v2/*` | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
 | `/ngsi-ld/*` | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
 | `/catalog/*` | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
-| `/admin/*` | ❌ | ❌ | ✅ |
+| `/admin/policies`, `/admin/policy-sets` | ❌ | ✅ (自テナント) | ✅ (全テナント) |
+| `/admin/*` (その他) | ❌ | ❌ | ✅ |
 | `/custom-data-models` | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
 | `/rules` | ❌ | ✅ (自テナント) | ✅ (全テナント) |
 | WebSocket | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |

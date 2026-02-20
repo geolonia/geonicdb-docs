@@ -16,7 +16,7 @@ Documentation for the FIWARE Orion-compatible Context Broker API running on AWS 
 - [NGSIv2 API](#ngsiv2-api) (→ [API_NGSIV2.md](./ngsiv2.md))
 - [NGSI-LD API](#ngsi-ld-api) (→ [API_NGSILD.md](./ngsild.md))
 - [Query Language](#query-language)
-- [Geo-query](#geo-query)
+- [Geo Queries](#geo-queries)
 - [Spatial ID Search](#spatial-id-search)
 - [GeoJSON Output](#geojson-output)
 - [Vector Tiles](#vector-tiles)
@@ -34,8 +34,8 @@ Documentation for the FIWARE Orion-compatible Context Broker API running on AWS 
 This Context Broker provides a RESTful API compliant with the FIWARE NGSI (Next Generation Service Interface) specification.
 
 **📖 Related Documentation:**
-- [NGSIv2 / NGSI-LD Interoperability Guide](../core-concepts/ngsiv2-vs-ngsild.md) - Interoperability, type mapping, best practices
-- [WebSocket Event Streaming](../features/subscriptions.md) - Real-time event subscription, implementation examples, best practices
+- [NGSIv2 / NGSI-LD Interoperability Guide](../core-concepts/ngsiv2-vs-ngsild.md) - Cross-API compatibility, type mapping, and best practices
+- [WebSocket Event Streaming](../features/subscriptions.md) - Real-time event subscriptions, implementation examples, and best practices
 
 ### Base URL
 
@@ -52,7 +52,7 @@ https://{api-gateway-url}/{stage}
 
 ### OPTIONS Method
 
-The `OPTIONS` method is supported on all endpoints. It responds to CORS preflight requests with information about allowed methods and headers.
+All endpoints support the `OPTIONS` method. Returns information about allowed methods and headers in response to CORS preflight requests.
 
 #### Response Format
 
@@ -69,7 +69,7 @@ Access-Control-Allow-Headers: Content-Type, Fiware-Service, Fiware-ServicePath, 
 Access-Control-Max-Age: 86400
 ```
 
-For NGSI-LD endpoints, an additional `Accept-Patch` header is returned:
+For NGSI-LD endpoints, an additional `Accept-Patch` header is included:
 
 ```http
 OPTIONS /ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1
@@ -92,9 +92,9 @@ Access-Control-Max-Age: 86400
 It is recommended to include the following headers in all requests:
 
 | Header | Required | Description | Default |
-|--------|---------|-------------|---------|
-| `Fiware-Service` | Recommended | Tenant name (alphanumeric and underscores only) | `default` |
-| `Fiware-ServicePath` | Recommended | Hierarchical path within tenant (must start with `/`) | `/` (equivalent to `/#` in queries) |
+|--------|----------|-------------|---------|
+| `Fiware-Service` | Recommended | Tenant name (alphanumeric and underscore only) | `default` |
+| `Fiware-ServicePath` | Recommended | Hierarchical path within tenant (starts with `/`) | `/` (equivalent to `/#` for queries) |
 | `Fiware-Correlator` | Optional | Correlation ID for request tracking | Auto-generated |
 
 ### Usage Example
@@ -107,22 +107,22 @@ curl -X GET "https://api.example.com/v2/entities" \
 
 ### Tenant Isolation
 
-- Data from different `Fiware-Service` values are completely isolated
+- Data from different `Fiware-Service` values is completely isolated
 - Within the same tenant, data can be hierarchically organized using `Fiware-ServicePath`
 - Tenant names are automatically converted to lowercase
 
 ### Service Path Specification
 
-Compliant with the [FIWARE Orion specification](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html).
+Complies with the [FIWARE Orion specification](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html).
 
 #### Basic Format
 
 - Only absolute paths starting with `/` are allowed
-- Only alphanumeric characters and underscores are allowed
-- Maximum 10 levels, up to 50 characters per level
+- Only alphanumeric characters and underscores can be used
+- Maximum 10 levels, maximum 50 characters per level
 
 ```bash
-# Get entities from a specific path
+# Get entities at specific path
 curl "http://localhost:3000/v2/entities" \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /Madrid/Gardens"
@@ -139,9 +139,9 @@ curl "http://localhost:3000/v2/entities" \
   -H "Fiware-ServicePath: /Madrid/Gardens/#"
 ```
 
-#### Multiple Path Specification (Comma-separated)
+#### Multiple Path Specification (comma-separated)
 
-Multiple paths can be searched simultaneously using comma separation (up to 10 paths, **query operations only**).
+Multiple paths can be searched simultaneously by separating them with commas (maximum 10 paths, **query operations only**).
 
 ```bash
 # Search both /park1 and /park2
@@ -157,19 +157,19 @@ curl "http://localhost:3000/v2/entities" \
 | Query (GET) | `/` | Search root path only |
 | Write (POST/PUT/PATCH/DELETE) | `/` | Create/update at root path |
 
-**Note**: For write operations, only a single non-hierarchical path can be used. Specifying `/#` or multiple paths will result in an error.
+**Note**: For write operations, only a single non-hierarchical path can be used. Using `/#` or multiple paths will result in an error.
 
 ---
 
 ## Pagination
 
-Pagination is supported on all list-type API endpoints.
+Pagination is supported for all list-based API endpoints.
 
 ### Parameters
 
 | Parameter | Description | Default | Maximum |
 |-----------|-------------|---------|---------|
-| `limit` | Maximum number of items to return | 20 | 1000 (Admin API: 100) |
+| `limit` | Maximum number of items to return | 20 | 1000 (100 for Admin API) |
 | `offset` | Number of items to skip | 0 | - |
 
 ### Response Headers
@@ -185,9 +185,9 @@ Each API type returns a header indicating the total count:
 
 ### Link Header
 
-All list endpoints return a `Link` header compliant with [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288), providing URLs for the next page (`rel="next"`) and previous page (`rel="prev"`). If results fit on one page, the `Link` header is not returned.
+All list endpoints return a `Link` header compliant with [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288), providing URLs for next page (`rel="next"`) and previous page (`rel="prev"`). If the results fit in a single page, the `Link` header is not returned.
 
-```text
+```http
 Link: <https://api.example.com/v2/entities?limit=10&offset=20>; rel="next", <https://api.example.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
 
@@ -206,7 +206,7 @@ Invalid pagination parameters return `400 Bad Request`:
 ### Usage Example
 
 ```bash
-# Get second page (10 items per page)
+# Get page 2 (10 items per page)
 curl "http://localhost:3000/v2/entities?limit=10&offset=10" \
   -H "Fiware-Service: smartcity"
 
@@ -218,13 +218,13 @@ curl "http://localhost:3000/v2/entities?limit=10&options=count" \
 ### Notes
 
 - If `offset` exceeds the total count, an empty array is returned (not an error)
-- Compliant with FIWARE Orion specification
+- Complies with the FIWARE Orion specification
 
 ---
 
 ## Authentication API
 
-Authentication features can be used for user authentication and access control.
+Authentication functionality enables user authentication and access control.
 
 ### Activation
 
@@ -232,25 +232,25 @@ Authentication is disabled by default. It can be enabled with the following envi
 
 **Note**: When `AUTH_ENABLED=false`, authentication-related endpoints (`/auth/*`, `/me`, `/me/*`, `/admin/*`) return 404.
 
-**Important**: When `AUTH_ENABLED=true`, access to NGSI API endpoints (`/v2/*`, `/ngsi-ld/*`, `/catalog/*`) requires authentication. Access without authentication returns a `401 Unauthorized` error.
+**Important**: When `AUTH_ENABLED=true`, authentication is required for NGSI API endpoints (`/v2/*`, `/ngsi-ld/*`, `/catalog/*`). Accessing without authentication returns a `401 Unauthorized` error.
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `AUTH_ENABLED` | `false` | Enable authentication |
+| `AUTH_ENABLED` | `false` | Enable authentication functionality |
 | `JWT_SECRET` | - | Secret for JWT token signing (32+ characters recommended) |
-| `JWT_EXPIRES_IN` | `1h` | Access token expiration |
-| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token expiration |
+| `JWT_EXPIRES_IN` | `1h` | Access token expiration time |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token expiration time |
 | `SUPER_ADMIN_EMAIL` | - | Super admin email address set via environment variable |
 | `SUPER_ADMIN_PASSWORD` | - | Super admin password set via environment variable |
-| `ADMIN_ALLOWED_IPS` | - | Allowed IPs/CIDRs for admin API access (comma-separated) |
+| `ADMIN_ALLOWED_IPS` | - | IP/CIDR allowed to access admin API (comma-separated) |
 
 ### Roles and Permissions
 
 | Role | Description | Permissions |
 |------|-------------|-------------|
-| `super_admin` | Super administrator | Manage all tenants and users, create/delete tenants |
-| `tenant_admin` | Tenant administrator | Manage users within own tenant |
-| `user` | General user | View own profile and change password only |
+| `super_admin` | Super administrator | All tenant and user management, tenant creation/deletion |
+| `tenant_admin` | Tenant administrator | User management within own tenant |
+| `user` | Regular user | Own profile viewing and password change only |
 
 ### Login
 
@@ -264,9 +264,12 @@ Content-Type: application/json
 ```json
 {
   "email": "user@example.com",
-  "password": "SecurePassword123!"
+  "password": "SecurePassword123!",
+  "tenantId": "target-tenant-id"
 }
 ```
+
+> `tenantId` is an optional parameter. If specified, issues a JWT scoped to that tenant. If omitted, the primary tenant is used.
 
 **Response Example**
 
@@ -340,7 +343,7 @@ Content-Type: application/json
 
 **Response**: `204 No Content`
 
-**Note**: After changing password, all existing access tokens and refresh tokens are invalidated. Please log in again to obtain new tokens.
+**Note**: After password change, all existing access tokens and refresh tokens are invalidated. Please log in again to obtain new tokens.
 
 ### Logout
 
@@ -355,7 +358,7 @@ Invalidates all sessions. All access tokens and refresh tokens issued to this us
 
 ### Admin API
 
-The Admin API is accessible only to users with `super_admin` or `tenant_admin` roles.
+The Admin API is only accessible to users with `super_admin` or `tenant_admin` roles.
 
 #### List Users
 
@@ -433,7 +436,7 @@ Authorization: Bearer <accessToken>
 
 #### Unlock Login Lock
 
-Unlocks accounts locked due to brute force protection.
+Unlocks an account locked by brute force protection.
 
 ```http
 POST /admin/users/{userId}/unlock
@@ -515,11 +518,11 @@ Authorization: Bearer <accessToken>
 
 ### Custom Data Model Management
 
-> **Note**: Custom Data Model APIs have been moved to `/custom-data-models`. See [Custom Data Models API](#custom-data-models-api) section for details.
+> **Note**: The Custom Data Models API has moved to `/custom-data-models`. See the [Custom Data Models API](#custom-data-models-api) section for details.
 
 ### IP Restrictions
 
-By setting the `ADMIN_ALLOWED_IPS` environment variable, you can allow access to the Admin API (`/admin/*`) only from specific IP addresses:
+By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the admin API (`/admin/*`) to specific IP addresses only:
 
 ```bash
 # Single IP
@@ -529,87 +532,91 @@ ADMIN_ALLOWED_IPS=192.168.1.100
 ADMIN_ALLOWED_IPS=192.168.1.100,10.0.0.50
 
 # CIDR notation
-ADMIN_ALLOWED_IPS=192.168.1.0/24,10.0.0.0/8
-```
+ADMIN_ALLOWED_IPS=192.168.1.0/24,10.0.0.0/8| `/oauth/token` | POST | OAuth token acquisition (M2M) | 200 | 400, 401 |
 
-Access from unauthorized IPs results in a `403 Forbidden` error.
+### User Endpoints
 
-#### Per-Tenant IP Restrictions
+Endpoints for authenticated users to manage their own information.
 
-Individual IP restrictions can be configured per tenant. When tenant-specific settings exist, they take preced|---------------|---------|------|------|--------|-----------|
-| `/me` | GET | Get Own Profile | 200 | 401 | user |
-| `/me/password` | POST | Change Password | 204 | 400, 401 | user |
+| Endpoint | Method | Description | Success | Error | Minimum Role |
+|----------|--------|-------------|---------|-------|-------------|
+| `/me` | GET | Get own profile | 200 | 401 | user |
+| `/me/password` | POST | Change password | 204 | 400, 401 | user |
 
 ### NGSIv2 / NGSI-LD Endpoints
 
-For detailed endpoint specifications, please refer to:
+For detailed endpoint specifications, refer to:
 - [NGSIv2 API Reference](./ngsiv2.md)
 - [NGSI-LD API Reference](./ngsild.md)
 
 ### Admin API
 
-Management API for tenants and users. Only accessible to the `super_admin` role.
+Management API for tenants and users. Requires `super_admin` or `tenant_admin` role depending on the endpoint (`tenant_admin` has access only within their own tenant scope).
 
 #### Tenant Management
 
 | Endpoint | Method | Description | Success | Error | Pagination |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/tenants` | GET | List Tenants | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/admin/tenants` | POST | Create Tenant | 201 | 400, 401, 403, 409 | - |
-| `/admin/tenants/{tenantId}` | GET | Get Tenant | 200 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}` | PATCH | Update Tenant | 204 | 400, 401, 403, 404, 409 | - |
-| `/admin/tenants/{tenantId}` | DELETE | Delete Tenant | 204 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/activate` | POST | Activate Tenant | 204 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/deactivate` | POST | Deactivate Tenant | 204 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/ip-restrictions` | GET | Get Tenant IP Restrictions | 200 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/ip-restrictions` | PUT | Update Tenant IP Restrictions | 200 | 400, 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/ip-restrictions` | DELETE | Delete Tenant IP Restrictions | 204 | 401, 403, 404 | - |
+|----------|--------|-------------|---------|-------|-----------|
+| `/admin/tenants` | GET | List tenants | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/admin/tenants` | POST | Create tenant | 201 | 400, 401, 403, 409 | - |
+| `/admin/tenants/{tenantId}` | GET | Get tenant | 200 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}` | PATCH | Update tenant | 204 | 400, 401, 403, 404, 409 | - |
+| `/admin/tenants/{tenantId}` | DELETE | Delete tenant | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/activate` | POST | Activate tenant | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/deactivate` | POST | Deactivate tenant | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | GET | Get tenant IP restrictions | 200 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | PUT | Update tenant IP restrictions | 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | DELETE | Delete tenant IP restrictions | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/users` | GET | List tenant members (tenant_admin: own tenant only) | 200 | 401, 403, 404 | ✅ (max: 100) |
+| `/admin/tenants/{tenantId}/users/{userId}` | PUT | Add user to tenant (tenant_admin: own tenant only) | 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/users/{userId}` | DELETE | Remove user from tenant (tenant_admin: own tenant only) | 204 | 400, 401, 403, 404 | - |
 
 #### User Management
 
 | Endpoint | Method | Description | Success | Error | Pagination |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/users` | GET | List Users | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/admin/users` | POST | Create User | 201 | 400, 401, 403, 409 | - |
-| `/admin/users/{userId}` | GET | Get User | 200 | 401, 403, 404 | - |
-| `/admin/users/{userId}` | PATCH | Update User | 204 | 400, 401, 403, 404, 409 | - |
-| `/admin/users/{userId}` | DELETE | Delete User | 204 | 401, 403, 404 | - |
-| `/admin/users/{userId}/activate` | POST | Activate User | 204 | 401, 403, 404 | - |
-| `/admin/users/{userId}/deactivate` | POST | Deactivate User | 204 | 401, 403, 404 | - |
-| `/admin/users/{userId}/unlock` | POST | Unlock Login | 200 | 400, 401, 403, 404 | - |
+|----------|--------|-------------|---------|-------|-----------|
+| `/admin/users` | GET | List users | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/admin/users` | POST | Create user | 201 | 400, 401, 403, 409 | - |
+| `/admin/users/{userId}` | GET | Get user | 200 | 401, 403, 404 | - |
+| `/admin/users/{userId}` | PATCH | Update user | 204 | 400, 401, 403, 404, 409 | - |
+| `/admin/users/{userId}` | DELETE | Delete user | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/activate` | POST | Activate user | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/deactivate` | POST | Deactivate user | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/unlock` | POST | Unlock login | 200 | 400, 401, 403, 404 | - |
+| `/admin/users/{userId}/tenants` | GET | List user's tenants (self or super_admin) | 200 | 401, 403 | ✅ (max: 100) |
 
-#### Policy Management (XACML 3.0 Authorization)
+#### Policy Management (XACML 3.0 authorization, super_admin / tenant_admin)
 
 | Endpoint | Method | Description | Success | Error | Pagination |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/policies` | GET | List Policies | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/admin/policies` | POST | Create Policy | 201 | 400, 401, 403, 409 | - |
-| `/admin/policies/{policyId}` | GET | Get Policy | 200 | 401, 403, 404 | - |
-| `/admin/policies/{policyId}` | PATCH | Update Policy (Partial) | 200 | 400, 401, 403, 404 | - |
-| `/admin/policies/{policyId}` | PUT | Replace Policy | 200 | 400, 401, 403, 404 | - |
-| `/admin/policies/{policyId}` | DELETE | Delete Policy | 204 | 401, 403, 404 | - |
-| `/admin/policies/{policyId}/activate` | POST | Activate Policy | 200 | 401, 403, 404 | - |
-| `/admin/policies/{policyId}/deactivate` | POST | Deactivate Policy | 200 | 401, 403, 404 | - |
+|----------|--------|-------------|---------|-------|-----------|
+| `/admin/policies` | GET | List policies | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/admin/policies` | POST | Create policy | 201 | 400, 401, 403, 409 | - |
+| `/admin/policies/{policyId}` | GET | Get policy | 200 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | PATCH | Update policy (partial) | 200 | 400, 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | PUT | Replace policy | 200 | 400, 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | DELETE | Delete policy | 204 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}/activate` | POST | Activate policy | 200 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}/deactivate` | POST | Deactivate policy | 200 | 401, 403, 404 | - |
 
 #### OAuth Client Management
 
 | Endpoint | Method | Description | Success | Error | Pagination |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/oauth-clients` | GET | List OAuth Clients | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/admin/oauth-clients` | POST | Create OAuth Client | 201 | 400, 401, 403 | - |
-| `/admin/oauth-clients/{clientId}` | GET | Get OAuth Client | 200 | 401, 403, 404 | - |
-| `/admin/oauth-clients/{clientId}` | PATCH | Update OAuth Client | 200 | 400, 401, 403, 404 | - |
-| `/admin/oauth-clients/{clientId}` | DELETE | Delete OAuth Client | 204 | 401, 403, 404 | - |
+|----------|--------|-------------|---------|-------|-----------|
+| `/admin/oauth-clients` | GET | List OAuth clients | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/admin/oauth-clients` | POST | Create OAuth client | 201 | 400, 401, 403 | - |
+| `/admin/oauth-clients/{clientId}` | GET | Get OAuth client | 200 | 401, 403, 404 | - |
+| `/admin/oauth-clients/{clientId}` | PATCH | Update OAuth client | 200 | 400, 401, 403, 404 | - |
+| `/admin/oauth-clients/{clientId}` | DELETE | Delete OAuth client | 204 | 401, 403, 404 | - |
 
 #### CADDE Configuration Management
 
-Manage CADDE (Cross-domain Data Exchange Platform) configuration via API. Configuration is stored in MongoDB and no environment variables are required.
+Manage CADDE (Cross-domain Advanced Data Distribution and Exchange) settings via API. Settings are stored in MongoDB and no environment variables are required.
 
 | Endpoint | Method | Description | Success | Error | Pagination |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/cadde` | GET | Get CADDE Configuration | 200 | 401, 403 | - |
-| `/admin/cadde` | PUT | Update CADDE Configuration (upsert) | 200 | 400, 401, 403 | - |
-| `/admin/cadde` | DELETE | Delete CADDE Configuration (disable) | 204 | 401, 403 | - |
+|----------|--------|-------------|---------|-------|-----------|
+| `/admin/cadde` | GET | Get CADDE configuration | 200 | 401, 403 | - |
+| `/admin/cadde` | PUT | Update CADDE configuration (upsert) | 200 | 400, 401, 403 | - |
+| `/admin/cadde` | DELETE | Delete CADDE configuration (disable) | 204 | 401, 403 | - |
 
 **Request Body (PUT)**
 
@@ -622,11 +629,11 @@ Manage CADDE (Cross-domain Data Exchange Platform) configuration via API. Config
   "jwtAudience": "my-api",
   "jwksUrl": "https://auth.example.com/.well-known/jwks.json"
 }
-```
+```http
 
 | Field | Type | Required | Description |
-|-----------|------|------|------|
-| `enabled` | boolean | ✅ | Enable/disable CADDE feature |
+|-------|------|----------|-------------|
+| `enabled` | boolean | ✅ | Enable/disable CADDE functionality |
 | `authEnabled` | boolean | ✅ | Enable/disable Bearer authentication |
 | `defaultProvider` | string | - | Default provider ID |
 | `jwtIssuer` | string | - | JWT issuer claim validation value |
@@ -636,86 +643,86 @@ Manage CADDE (Cross-domain Data Exchange Platform) configuration via API. Config
 #### Rule Engine Management
 
 | Endpoint | Method | Description | Success | Error | Pagination |
-|---------------|---------|------|------|--------|-----------------|
-| `/rules` | GET | List Rules | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/rules` | POST | Create Rule | 201 | 400, 401, 403, 409 | - |
-| `/rules/{ruleId}` | GET | Get Rule | 200 | 401, 403, 404 | - |
-| `/rules/{ruleId}` | PATCH | Update Rule | 204 | 400, 401, 403, 404 | - |
-| `/rules/{ruleId}` | DELETE | Delete Rule | 204 | 401, 403, 404 | - |
-| `/rules/{ruleId}/activate` | POST | Activate Rule | 200 | 401, 403, 404 | - |
-| `/rules/{ruleId}/deactivate` | POST | Deactivate Rule | 200 | 401, 403, 404 | - |
+|----------|--------|-------------|---------|-------|-----------|
+| `/rules` | GET | List rules | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/rules` | POST | Create rule | 201 | 400, 401, 403, 409 | - |
+| `/rules/{ruleId}` | GET | Get rule | 200 | 401, 403, 404 | - |
+| `/rules/{ruleId}` | PATCH | Update rule | 204 | 400, 401, 403, 404 | - |
+| `/rules/{ruleId}` | DELETE | Delete rule | 204 | 401, 403, 404 | - |
+| `/rules/{ruleId}/activate` | POST | Activate rule | 200 | 401, 403, 404 | - |
+| `/rules/{ruleId}/deactivate` | POST | Deactivate rule | 200 | 401, 403, 404 | - |
 
 ### Custom Data Models API
 
-API for managing tenant-specific custom data models. JWT authentication is required, and with XACML policy-based authorization, both `tenant_admin` and `user` roles can manage custom data models within their tenant.
+API for managing tenant-specific custom data models. Requires JWT authentication, and XACML policy-based authorization allows `tenant_admin` and `user` roles to also manage custom data models within their tenant.
 
 **Related Documentation**: [SMART_DATA_MODELS.md](../features/smart-data-models.md)
 
 | Endpoint | Method | Description | Success | Error | Pagination |
-|---------------|---------|------|------|--------|-----------------|
-| `/custom-data-models` | GET | List Custom Data Models | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/custom-data-models` | POST | Create Custom Data Model | 201 | 400, 401, 403, 409 | - |
-| `/custom-data-models/{type}` | GET | Get Custom Data Model | 200 | 401, 403, 404 | - |
-| `/custom-data-models/{type}` | PATCH | Update Custom Data Model | 200 | 400, 401, 403, 404 | - |
-| `/custom-data-models/{type}` | DELETE | Delete Custom Data Model | 204 | 401, 403, 404 | - |
+|----------|--------|-------------|---------|-------|-----------|
+| `/custom-data-models` | GET | List custom data models | 200 | 400, 401, 403 | ✅ (max: 100) |
+| `/custom-data-models` | POST | Create custom data model | 201 | 400, 401, 403, 409 | - |
+| `/custom-data-models/{type}` | GET | Get custom data model | 200 | 401, 403, 404 | - |
+| `/custom-data-models/{type}` | PATCH | Update custom data model | 200 | 400, 401, 403, 404 | - |
+| `/custom-data-models/{type}` | DELETE | Delete custom data model | 204 | 401, 403, 404 | - |
 
 #### Entity Validation
 
-When custom data models are defined, validation is automatically performed during entity creation and updates. Validation is only applied to models with `isActive: true`.
+When a custom data model is defined, validation is automatically performed during entity creation and updates. Validation is applied only to models with `isActive: true`.
 
 **Validation Checks:**
 
 | Check Item | Description |
-|------------|------|
-| Required Fields | Check if attributes with `required: true` exist |
-| Type Check | Type validation based on `valueType` (string, number, integer, boolean, array, object, GeoJSON) |
+|-----------|-------------|
+| Required fields | Check if attributes with `required: true` exist |
+| Type check | Type validation based on `valueType` (string, number, integer, boolean, array, object, GeoJSON) |
 | minLength / maxLength | String length constraints |
 | minimum / maximum | Numeric range constraints |
 | pattern | Regular expression pattern matching |
 | enum | List of allowed values |
 
-When validation fails, returns `400 Bad Request`:
+Returns `400 Bad Request` on validation failure:
 
 ```json
 {
   "error": "BadRequest",
   "description": "Entity validation failed: temperature: Value (150) exceeds maximum (100)"
 }
-```
+```http
 
-#### JSON Schema Auto-generation
+#### Automatic JSON Schema Generation
 
-When creating or updating custom data models, a JSON Schema (Draft 2020-12) is automatically generated from `propertyDetails` and included in the `jsonSchema` field of the response. You can also manually specify `jsonSchema`.
+When creating or updating a custom data model, a JSON Schema (Draft 2020-12) is automatically generated from `propertyDetails` and included in the response's `jsonSchema` field. You can also manually specify `jsonSchema`.
 
 #### @context Resolution Extension
 
-In NGSI-LD responses, if a custom data model has `contextUrl` set, the custom context is automatically included in the entity's `@context` (returned as an array with the core context).
+In NGSI-LD responses, if a custom data model has a `contextUrl` configured, the custom context is automatically included in the entity's `@context` (returned as an array with the core context).
 
 ### Catalog API
 
 | Endpoint | Method | Description | Success | Error | Pagination |
-|---------------|---------|------|------|--------|-----------------|
-| `/catalog` | GET | Get DCAT-AP Catalog | 200 | 401 | - |
-| `/catalog/datasets` | GET | List Datasets | 200 | 400, 401 | ✅ (max: 1000) |
-| `/catalog/datasets/{datasetId}` | GET | Get Dataset | 200 | 401, 404 | - |
-| `/catalog/datasets/{datasetId}/sample` | GET | Get Sample Data | 200 | 401, 404 | - |
+|----------|--------|-------------|---------|-------|-----------|
+| `/catalog` | GET | Get DCAT-AP catalog | 200 | 401 | - |
+| `/catalog/datasets` | GET | List datasets | 200 | 400, 401 | ✅ (max: 1000) |
+| `/catalog/datasets/{datasetId}` | GET | Get dataset | 200 | 401, 404 | - |
+| `/catalog/datasets/{datasetId}/sample` | GET | Get sample data | 200 | 401, 404 | - |
 
 ### Vector Tiles API
 
 | Endpoint | Method | Description | Success | Error |
-|---------------|---------|------|------|--------|
-| `/v2/tiles` | GET | Get TileJSON Metadata (NGSIv2) | 200 | 401 |
-| `/v2/tiles/{z}/{x}/{y}.geojson` | GET | Get GeoJSON Tile (NGSIv2) | 200 | 400, 401 |
-| `/ngsi-ld/v1/tiles` | GET | Get TileJSON Metadata (NGSI-LD) | 200 | 401 |
-| `/ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GET | Get GeoJSON Tile (NGSI-LD) | 200 | 400, 401 |
+|----------|--------|-------------|---------|--------|
+| `/v2/tiles` | GET | Get TileJSON metadata (NGSIv2) | 200 | 401 |
+| `/v2/tiles/{z}/{x}/{y}.geojson` | GET | Get GeoJSON tile (NGSIv2) | 200 | 400, 401 |
+| `/ngsi-ld/v1/tiles` | GET | Get TileJSON metadata (NGSI-LD) | 200 | 401 |
+| `/ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GET | Get GeoJSON tile (NGSI-LD) | 200 | 400, 401 |
 
 ### Event Streaming API
 
 Real-time entity change streaming using WebSocket. Enabled with `EVENT_STREAMING_ENABLED=true`.
 
 | Endpoint | Protocol | Description |
-|---------------|-----------|------|
-| `wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={name}` | WebSocket | Stream entity change events (authentication via `Authorization` header) |
+|----------|----------|-------------|
+| `wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={name}` | WebSocket | Entity change event streaming (authentication via `Authorization` header) |
 
 For details, see [Event Streaming Documentation](../features/subscriptions.md).
 
@@ -723,13 +730,14 @@ For details, see [Event Streaming Documentation](../features/subscriptions.md).
 
 | API Category | user | tenant_admin | super_admin |
 |-------------|------|--------------|-------------|
-| Public Endpoints | ✅ | ✅ | ✅ |
+| Public endpoints | ✅ | ✅ | ✅ |
 | `/auth/*` | ✅ | ✅ | ✅ |
 | `/me/*` | ✅ | ✅ | ✅ |
 | `/v2/*` | ✅ (own tenant) | ✅ (own tenant) | ✅ (all tenants) |
 | `/ngsi-ld/*` | ✅ (own tenant) | ✅ (own tenant) | ✅ (all tenants) |
 | `/catalog/*` | ✅ (own tenant) | ✅ (own tenant) | ✅ (all tenants) |
-| `/admin/*` | ❌ | ❌ | ✅ |
+| `/admin/policies`, `/admin/policy-sets` | ❌ | ✅ (own tenant) | ✅ (all tenants) |
+| `/admin/*` (others) | ❌ | ❌ | ✅ |
 | `/custom-data-models` | ✅ (own tenant) | ✅ (own tenant) | ✅ (all tenants) |
 | `/rules` | ❌ | ✅ (own tenant) | ✅ (all tenants) |
 | WebSocket | ✅ (own tenant) | ✅ (own tenant) | ✅ (all tenants) |
@@ -743,4 +751,4 @@ For details, see [Event Streaming Documentation](../features/subscriptions.md).
 - [FIWARE Orion Context Broker Documentation](https://fiware-orion.readthedocs.io/)
 - [IPA Spatial ID Guidelines](https://www.ipa.go.jp/digital/architecture/guidelines/4dspatio-temporal-guideline.html)
 - [Digital Agency Spatial ID](https://www.digital.go.jp/policies/mobility_and_infrastructure/spatial-id)
-- [RFC 7946 GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946)
+- [RFC 7946 GeoJSON](https
