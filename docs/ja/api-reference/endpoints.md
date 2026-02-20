@@ -188,7 +188,7 @@ curl "http://localhost:3000/v2/entities" \
 
 すべてのリスト系エンドポイントは [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) に準拠した `Link` ヘッダーを返却し、次ページ (`rel="next"`) および前ページ (`rel="prev"`) の URL を提供します。結果が1ページに収まる場合、`Link` ヘッダーは返却されません。
 
-```text
+```http
 Link: <https://api.example.com/v2/entities?limit=10&offset=20>; rel="next", <https://api.example.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
 
@@ -1403,7 +1403,7 @@ NGSI-LDでGeoJSON出力する場合、`@context`がFeatureCollectionレベルに
 
 GeoJSON出力時のレスポンスヘッダー：
 
-```text
+```http
 Content-Type: application/geo+json
 ```
 
@@ -1975,7 +1975,7 @@ CADDEリクエストに対するレスポンスには、以下の来歴ヘッダ
 
 `CADDE_AUTH_ENABLED=true` の場合、CADDEリクエストにはBearer認証が必要です：
 
-```text
+```http
 Authorization: Bearer <token>
 ```
 
