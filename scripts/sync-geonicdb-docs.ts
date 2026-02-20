@@ -128,6 +128,9 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   'TELEMETRY.md': [
     { dest: 'features/telemetry.md', title: 'テレメトリ', description: 'OpenTelemetry 対応' },
   ],
+  'CHANGELOG.md': [
+    { dest: 'changelog.md', title: '変更履歴', description: 'GeonicDB の変更履歴' },
+  ],
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +209,16 @@ function main() {
   const outputBase = join(process.cwd(), 'docs', 'ja')
   const sourceFiles = readdirSync(docsDir).filter(f => f.endsWith('.md'))
 
+  // Add CHANGELOG.md from repository root if it exists
+  // Fallback: skip if CHANGELOG.md is not present in the repository root
+  const changelogPath = join(geonicdbRepoPath, 'CHANGELOG.md')
+  if (existsSync(changelogPath)) {
+    sourceFiles.push('CHANGELOG.md')
+    console.log(`  Found CHANGELOG.md at repository root: ${changelogPath}`)
+  } else {
+    console.log(`  SKIP: CHANGELOG.md not found at repository root (${changelogPath})`)
+  }
+
   console.log(`Found ${sourceFiles.length} source files in ${docsDir}`)
 
   let synced = 0
@@ -219,7 +232,14 @@ function main() {
       continue
     }
 
-    const rawContent = readFileSync(join(docsDir, srcFile), 'utf-8')
+    // CHANGELOG.md is in the repository root, not in docs/
+    // Fallback to docs/ if root version doesn't exist
+    const rootChangelog = join(geonicdbRepoPath, srcFile)
+    const docsChangelog = join(docsDir, srcFile)
+    const srcPath = srcFile === 'CHANGELOG.md' && existsSync(rootChangelog)
+      ? rootChangelog
+      : docsChangelog
+    const rawContent = readFileSync(srcPath, 'utf-8')
 
     for (const mapping of mappings) {
       const destPath = join(outputBase, mapping.dest)

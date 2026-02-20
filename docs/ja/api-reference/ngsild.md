@@ -38,7 +38,7 @@ NGSI-LD API は `Accept` ヘッダーによるコンテンツネゴシエーシ�
 
 `Accept: application/json` の場合、レスポンスに `Link` ヘッダーが付与されます：
 
-```text
+```http
 Link: <https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
 ```
 
@@ -58,7 +58,7 @@ GET /ngsi-ld/v1/entities
 
 **リクエストヘッダー**
 
-```text
+```http
 Accept: application/ld+json
 Link: <https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
 ```
