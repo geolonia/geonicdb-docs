@@ -5,6 +5,7 @@ import { join, relative, dirname } from 'node:path'
 // fix-doc-quality.ts
 // Post-translation quality fix script for geonicdb-docs.
 // Fixes: (1) bare code blocks, (2) missing frontmatter titles, (3) file parity
+// Processes docs/en/ (translation output) using docs/ja/ (source) as reference.
 // ---------------------------------------------------------------------------
 
 /**
@@ -31,22 +32,22 @@ export function inferLanguage(content: string): string {
 }
 
 /**
- * Fix bare code blocks (``` without language) in ja content.
- * Uses corresponding en content for position-matched language lookup.
- * Falls back to content-based inference if en has no language either.
+ * Fix bare code blocks (``` without language) in target content.
+ * Uses referenceContent for position-matched language lookup.
+ * Falls back to content-based inference if reference has no language either.
  */
-export function fixBareCodeBlocks(jaContent: string, enContent: string | null): string {
-  // Extract code block language identifiers from en content by order
-  const enLanguages: (string | null)[] = []
-  if (enContent) {
-    const enLines = enContent.split('\n')
+export function fixBareCodeBlocks(targetContent: string, referenceContent: string | null): string {
+  // Extract code block language identifiers from reference content by order
+  const refLanguages: (string | null)[] = []
+  if (referenceContent) {
+    const refLines = referenceContent.split('\n')
     let inBlock = false
-    for (const line of enLines) {
+    for (const line of refLines) {
       const trimmed = line.trimStart()
       if (trimmed.startsWith('```')) {
         if (!inBlock) {
           const lang = trimmed.slice(3).trim()
-          enLanguages.push(lang || null)
+          refLanguages.push(lang || null)
           inBlock = true
         } else {
           inBlock = false
@@ -55,7 +56,7 @@ export function fixBareCodeBlocks(jaContent: string, enContent: string | null): 
     }
   }
 
-  const lines = jaContent.split('\n')
+  const lines = targetContent.split('\n')
   const result: string[] = []
   let inBlock = false
   let blockIndex = 0
@@ -78,9 +79,9 @@ export function fixBareCodeBlocks(jaContent: string, enContent: string | null): 
             j++
           }
 
-          // Try position-matched en language first
-          const enLang = enLanguages[blockIndex] ?? null
-          const resolvedLang = enLang ?? inferLanguage(contentLines.join('\n'))
+          // Try position-matched reference language first
+          const refLang = refLanguages[blockIndex] ?? null
+          const resolvedLang = refLang ?? inferLanguage(contentLines.join('\n'))
 
           // Preserve original indentation before the backticks
           const indent = line.slice(0, line.length - trimmed.length)
@@ -162,8 +163,14 @@ export function addFrontmatterTitle(content: string, title: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Main: run all quality fixes
+// Quality fix runner (exported for testability)
 // ---------------------------------------------------------------------------
+
+export interface QualityFixResult {
+  codeBlockFixes: number
+  titleFixes: number
+  parityFixes: number
+}
 
 function collectMdFiles(dir: string): string[] {
   const results: string[] = []
@@ -179,8 +186,16 @@ function collectMdFiles(dir: string): string[] {
   return results.sort()
 }
 
-function main() {
-  const docsDir = join(process.cwd(), 'docs')
+/**
+ * Run all quality fixes on the docs directory.
+ * Processes docs/en/ (translation output) using docs/ja/ (source) as reference.
+ * Also handles file parity: copies ja-only files to en/ when missing.
+ *
+ * @param baseDir - Project root directory (defaults to process.cwd())
+ * @returns Counts of fixes applied
+ */
+export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResult {
+  const docsDir = join(baseDir, 'docs')
   const jaDir = join(docsDir, 'ja')
   const enDir = join(docsDir, 'en')
 
@@ -194,42 +209,46 @@ function main() {
   let titleFixes = 0
   let parityFixes = 0
 
-  for (const jaFile of jaFiles) {
-    const relPath = relative(jaDir, jaFile)
-    const enFile = join(enDir, relPath)
+  // Process docs/en/ files (translation output) using docs/ja/ as reference
+  if (existsSync(enDir)) {
+    const enFiles = collectMdFiles(enDir)
+    for (const enFile of enFiles) {
+      const relPath = relative(enDir, enFile)
+      const jaFile = join(jaDir, relPath)
 
-    let jaContent = readFileSync(jaFile, 'utf-8')
-    let changed = false
+      let enContent = readFileSync(enFile, 'utf-8')
+      let changed = false
 
-    // (1) Fix bare code blocks
-    const enContent = existsSync(enFile) ? readFileSync(enFile, 'utf-8') : null
-    const fixed = fixBareCodeBlocks(jaContent, enContent)
-    if (fixed !== jaContent) {
-      jaContent = fixed
-      changed = true
-      codeBlockFixes++
-      console.log(`  [code-block] Fixed: ja/${relPath}`)
-    }
-
-    // (2) Fix missing frontmatter title
-    if (!hasFrontmatterTitle(jaContent)) {
-      const title = extractTitleFromHeading(jaContent)
-      if (title) {
-        jaContent = addFrontmatterTitle(jaContent, title)
+      // (1) Fix bare code blocks using ja/ as reference
+      const jaContent = existsSync(jaFile) ? readFileSync(jaFile, 'utf-8') : null
+      const fixed = fixBareCodeBlocks(enContent, jaContent)
+      if (fixed !== enContent) {
+        enContent = fixed
         changed = true
-        titleFixes++
-        console.log(`  [frontmatter] Added title "${title}": ja/${relPath}`)
-      } else {
-        console.warn(`  [frontmatter] WARN: no title or H1 found in ja/${relPath}`)
+        codeBlockFixes++
+        console.log(`  [code-block] Fixed: en/${relPath}`)
       }
-    }
 
-    if (changed) {
-      writeFileSync(jaFile, jaContent, 'utf-8')
+      // (2) Fix missing frontmatter title
+      if (!hasFrontmatterTitle(enContent)) {
+        const title = extractTitleFromHeading(enContent)
+        if (title) {
+          enContent = addFrontmatterTitle(enContent, title)
+          changed = true
+          titleFixes++
+          console.log(`  [frontmatter] Added title "${title}": en/${relPath}`)
+        } else {
+          console.warn(`  [frontmatter] WARN: no title or H1 found in en/${relPath}`)
+        }
+      }
+
+      if (changed) {
+        writeFileSync(enFile, enContent, 'utf-8')
+      }
     }
   }
 
-  // (3) File parity: copy ja-only files to en/
+  // (3) File parity: copy ja-only files to en/ when en counterpart is missing
   for (const jaFile of jaFiles) {
     const relPath = relative(jaDir, jaFile)
     const enFile = join(enDir, relPath)
@@ -244,6 +263,15 @@ function main() {
   }
 
   console.log(`\nDone: ${codeBlockFixes} code-block fixes, ${titleFixes} title fixes, ${parityFixes} parity fixes.`)
+  return { codeBlockFixes, titleFixes, parityFixes }
+}
+
+// ---------------------------------------------------------------------------
+// Main entry point
+// ---------------------------------------------------------------------------
+
+function main() {
+  runQualityFixes(process.cwd())
 }
 
 // Only run main when executed directly (not when imported by tests)

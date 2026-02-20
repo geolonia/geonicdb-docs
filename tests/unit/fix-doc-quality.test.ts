@@ -1,10 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
+import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import {
   inferLanguage,
   fixBareCodeBlocks,
   extractTitleFromHeading,
   addFrontmatterTitle,
   hasFrontmatterTitle,
+  runQualityFixes,
 } from '../../scripts/fix-doc-quality.js'
 
 // ---------------------------------------------------------------------------
@@ -216,5 +220,96 @@ describe('addFrontmatterTitle', () => {
     expect(result).toContain('description: bar')
     expect(result).toContain('outline: deep')
     expect(result).toContain('title: "Test"')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// runQualityFixes — en-side processing (integration tests)
+// ---------------------------------------------------------------------------
+describe('runQualityFixes', () => {
+  let tmpDir: string
+
+  afterEach(() => {
+    if (tmpDir && existsSync(tmpDir)) {
+      rmSync(tmpDir, { recursive: true })
+    }
+  })
+
+  function setupDocs(files: Record<string, string>): string {
+    tmpDir = join(tmpdir(), `fix-doc-quality-test-${Date.now()}`)
+    for (const [relPath, content] of Object.entries(files)) {
+      const fullPath = join(tmpDir, relPath)
+      mkdirSync(join(tmpDir, relPath.split('/').slice(0, -1).join('/')), { recursive: true })
+      writeFileSync(fullPath, content, 'utf-8')
+    }
+    return tmpDir
+  }
+
+  it('fixes bare code blocks in en/ files using ja/ as reference', () => {
+    const docsDir = setupDocs({
+      'docs/ja/guide.md': '# Guide\n\n```json\n{"key": "value"}\n```\n',
+      'docs/en/guide.md': '# Guide\n\n```\n{"key": "value"}\n```\n',
+    })
+    const result = runQualityFixes(docsDir)
+    const enContent = readFileSync(join(docsDir, 'docs/en/guide.md'), 'utf-8')
+    expect(enContent).toContain('```json')
+    expect(result.codeBlockFixes).toBe(1)
+  })
+
+  it('adds frontmatter title to en/ files without title', () => {
+    const docsDir = setupDocs({
+      'docs/ja/guide.md': '---\ntitle: "ガイド"\n---\n# Guide\n\nContent\n',
+      'docs/en/guide.md': '# Guide\n\nContent\n',
+    })
+    const result = runQualityFixes(docsDir)
+    const enContent = readFileSync(join(docsDir, 'docs/en/guide.md'), 'utf-8')
+    expect(enContent).toContain('title: "Guide"')
+    expect(result.titleFixes).toBe(1)
+  })
+
+  it('does not modify en/ files that already have correct code blocks and title', () => {
+    const original = '---\ntitle: "Guide"\n---\n# Guide\n\n```json\n{"key":"value"}\n```\n'
+    const docsDir = setupDocs({
+      'docs/ja/guide.md': original,
+      'docs/en/guide.md': original,
+    })
+    const result = runQualityFixes(docsDir)
+    const enContent = readFileSync(join(docsDir, 'docs/en/guide.md'), 'utf-8')
+    expect(enContent).toBe(original)
+    expect(result.codeBlockFixes).toBe(0)
+    expect(result.titleFixes).toBe(0)
+  })
+
+  it('copies ja-only files to en/ when en counterpart is missing (parity)', () => {
+    const jaContent = '# New Page\n\nContent\n'
+    const docsDir = setupDocs({
+      'docs/ja/new-page.md': jaContent,
+    })
+    const result = runQualityFixes(docsDir)
+    const enPath = join(docsDir, 'docs/en/new-page.md')
+    expect(existsSync(enPath)).toBe(true)
+    expect(readFileSync(enPath, 'utf-8')).toBe(jaContent)
+    expect(result.parityFixes).toBe(1)
+  })
+
+  it('does not modify docs/ja/ files (en-only processing)', () => {
+    const jaContent = '# Guide\n\n```\n{"key": "value"}\n```\n'
+    const docsDir = setupDocs({
+      'docs/ja/guide.md': jaContent,
+      'docs/en/guide.md': '# Guide\n\n```json\n{"key": "value"}\n```\n',
+    })
+    runQualityFixes(docsDir)
+    const jaAfter = readFileSync(join(docsDir, 'docs/ja/guide.md'), 'utf-8')
+    expect(jaAfter).toBe(jaContent)
+  })
+
+  it('returns zero counts when docs/en/ is empty and no ja files', () => {
+    const docsDir = setupDocs({
+      'docs/ja/.gitkeep': '',
+    })
+    const result = runQualityFixes(docsDir)
+    expect(result.codeBlockFixes).toBe(0)
+    expect(result.titleFixes).toBe(0)
+    expect(result.parityFixes).toBe(0)
   })
 })
