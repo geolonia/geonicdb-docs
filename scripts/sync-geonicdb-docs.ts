@@ -233,9 +233,12 @@ function main() {
     }
 
     // CHANGELOG.md is in the repository root, not in docs/
-    const srcPath = srcFile === 'CHANGELOG.md'
-      ? join(geonicdbRepoPath, srcFile)
-      : join(docsDir, srcFile)
+    // Fallback to docs/ if root version doesn't exist
+    const rootChangelog = join(geonicdbRepoPath, srcFile)
+    const docsChangelog = join(docsDir, srcFile)
+    const srcPath = srcFile === 'CHANGELOG.md' && existsSync(rootChangelog)
+      ? rootChangelog
+      : docsChangelog
     const rawContent = readFileSync(srcPath, 'utf-8')
 
     for (const mapping of mappings) {
