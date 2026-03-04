@@ -131,6 +131,9 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   'CHANGELOG.md': [
     { dest: 'changelog.md', title: '変更履歴', description: 'GeonicDB の変更履歴' },
   ],
+  'CLI.md': [
+    { dest: 'reference/cli.md', title: 'CLI リファレンス', description: 'GeonicDB CLI (geonic) コマンドリファレンス' },
+  ],
 }
 
 // ---------------------------------------------------------------------------

@@ -90,6 +90,12 @@ function sidebar(): DefaultTheme.Sidebar {
         ],
       },
       {
+        text: 'Reference',
+        items: [
+          { text: 'CLI Reference', link: '/en/reference/cli' },
+        ],
+      },
+      {
         text: 'Security (Coming Soon)',
         items: [
           { text: 'Overview', link: '/en/security/' },

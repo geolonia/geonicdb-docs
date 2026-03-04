@@ -103,6 +103,12 @@ function sidebar(): DefaultTheme.Sidebar {
         ],
       },
       {
+        text: 'リファレンス',
+        items: [
+          { text: 'CLI リファレンス', link: '/ja/reference/cli' },
+        ],
+      },
+      {
         text: 'セキュリティ (Coming Soon)',
         items: [
           { text: '概要', link: '/ja/security/' },
