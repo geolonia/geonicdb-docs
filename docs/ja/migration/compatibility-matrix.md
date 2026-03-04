@@ -3,414 +3,414 @@ title: "互換性マトリクス"
 description: "FIWARE Orion との互換性比較"
 outline: deep
 ---
-# GeonicDB vs FIWARE Orion 機能比較表
+# GeonicDB vs FIWARE Orion Feature Comparison
 
-本ドキュメントでは、GeonicDB と FIWARE Orion Context Broker の機能を比較します。
+This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 
-## 概要
+## Overview
 
-| 項目 | GeonicDB | FIWARE Orion |
+| Item | GeonicDB | FIWARE Orion |
 |------|-------------------|--------------|
-| **実装言語** | TypeScript/Node.js | C++ |
-| **アーキテクチャ** | サーバーレス (AWS Lambda) | モノリシック (Docker) |
-| **データベース** | MongoDB Atlas | MongoDB |
-| **ライセンス** | AGPL v3.0 | AGPL v3.0 |
-| **対応API** | NGSIv2 + NGSI-LD | NGSIv2 (Orion) / NGSI-LD (Orion-LD) |
-| **スケーラビリティ** | 自動スケーリング (Lambda) | 手動スケーリング (コンテナ) |
-| **コスト** | 従量課金 | 固定インフラコスト |
+| **Implementation language** | TypeScript/Node.js | C++ |
+| **Architecture** | Serverless (AWS Lambda) | Monolithic (Docker) |
+| **Database** | MongoDB Atlas | MongoDB |
+| **License** | AGPL v3.0 | AGPL v3.0 |
+| **Supported APIs** | NGSIv2 + NGSI-LD | NGSIv2 (Orion) / NGSI-LD (Orion-LD) |
+| **Scalability** | Auto-scaling (Lambda) | Manual scaling (container) |
+| **Cost** | Pay-per-use | Fixed infrastructure cost |
 
-## API対応状況
+## API Support Status
 
 ### NGSIv2 API
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| `POST /v2/entities` | ✅ | ✅ | エンティティ作成 |
-| `GET /v2/entities` | ✅ | ✅ | エンティティ一覧 |
-| `GET /v2/entities/{id}` | ✅ | ✅ | エンティティ取得 |
-| `DELETE /v2/entities/{id}` | ✅ | ✅ | エンティティ削除 |
-| `PATCH /v2/entities/{id}/attrs` | ✅ | ✅ | 属性更新 |
-| `POST /v2/entities/{id}/attrs` | ✅ | ✅ | 属性追加 |
-| `PUT /v2/entities/{id}/attrs` | ✅ | ✅ | 属性置換 |
-| `GET /v2/entities/{id}/attrs/{attr}` | ✅ | ✅ | 属性取得 |
-| `PUT /v2/entities/{id}/attrs/{attr}` | ✅ | ✅ | 属性更新 |
-| `DELETE /v2/entities/{id}/attrs/{attr}` | ✅ | ✅ | 属性削除 |
-| `GET /v2/entities/{id}/attrs/{attr}/value` | ✅ | ✅ | 属性値直接取得 |
-| `PUT /v2/entities/{id}/attrs/{attr}/value` | ✅ | ✅ | 属性値直接更新 |
-| `POST /v2/op/update` | ✅ | ✅ | バッチ更新 |
-| `POST /v2/op/query` | ✅ | ✅ | バッチクエリ |
-| `POST /v2/op/notify` | ✅ | ✅ | 通知受信 |
-| `GET /v2/types` | ✅ | ✅ | エンティティタイプ一覧 |
-| `GET /v2/types/{type}` | ✅ | ✅ | エンティティタイプ取得 |
-| `POST /v2/subscriptions` | ✅ | ✅ | サブスクリプション作成 |
-| `GET /v2/subscriptions` | ✅ | ✅ | サブスクリプション一覧 |
-| `GET /v2/subscriptions/{id}` | ✅ | ✅ | サブスクリプション取得 |
-| `PATCH /v2/subscriptions/{id}` | ✅ | ✅ | サブスクリプション更新 |
-| `DELETE /v2/subscriptions/{id}` | ✅ | ✅ | サブスクリプション削除 |
-| `POST /v2/registrations` | ✅ | ✅ | 登録作成 |
-| `GET /v2/registrations` | ✅ | ✅ | 登録一覧 |
-| `GET /v2/registrations/{id}` | ✅ | ✅ | 登録取得 |
-| `PATCH /v2/registrations/{id}` | ✅ | ✅ | 登録更新 |
-| `DELETE /v2/registrations/{id}` | ✅ | ✅ | 登録削除 |
-| `GET /version` | ✅ | ✅ | バージョン情報 |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| `POST /v2/entities` | ✅ | ✅ | Create entity |
+| `GET /v2/entities` | ✅ | ✅ | List entities |
+| `GET /v2/entities/{id}` | ✅ | ✅ | Get entity |
+| `DELETE /v2/entities/{id}` | ✅ | ✅ | Delete entity |
+| `PATCH /v2/entities/{id}/attrs` | ✅ | ✅ | Update attributes |
+| `POST /v2/entities/{id}/attrs` | ✅ | ✅ | Add attributes |
+| `PUT /v2/entities/{id}/attrs` | ✅ | ✅ | Replace attributes |
+| `GET /v2/entities/{id}/attrs/{attr}` | ✅ | ✅ | Get attribute |
+| `PUT /v2/entities/{id}/attrs/{attr}` | ✅ | ✅ | Update attribute |
+| `DELETE /v2/entities/{id}/attrs/{attr}` | ✅ | ✅ | Delete attribute |
+| `GET /v2/entities/{id}/attrs/{attr}/value` | ✅ | ✅ | Get attribute value directly |
+| `PUT /v2/entities/{id}/attrs/{attr}/value` | ✅ | ✅ | Update attribute value directly |
+| `POST /v2/op/update` | ✅ | ✅ | Batch update |
+| `POST /v2/op/query` | ✅ | ✅ | Batch query |
+| `POST /v2/op/notify` | ✅ | ✅ | Receive notification |
+| `GET /v2/types` | ✅ | ✅ | List entity types |
+| `GET /v2/types/{type}` | ✅ | ✅ | Get entity type |
+| `POST /v2/subscriptions` | ✅ | ✅ | Create subscription |
+| `GET /v2/subscriptions` | ✅ | ✅ | List subscriptions |
+| `GET /v2/subscriptions/{id}` | ✅ | ✅ | Get subscription |
+| `PATCH /v2/subscriptions/{id}` | ✅ | ✅ | Update subscription |
+| `DELETE /v2/subscriptions/{id}` | ✅ | ✅ | Delete subscription |
+| `POST /v2/registrations` | ✅ | ✅ | Create registration |
+| `GET /v2/registrations` | ✅ | ✅ | List registrations |
+| `GET /v2/registrations/{id}` | ✅ | ✅ | Get registration |
+| `PATCH /v2/registrations/{id}` | ✅ | ✅ | Update registration |
+| `DELETE /v2/registrations/{id}` | ✅ | ✅ | Delete registration |
+| `GET /version` | ✅ | ✅ | Version information |
 
 ### NGSI-LD API
 
-| 機能 | GeonicDB | FIWARE Orion-LD | 備考 |
-|------|:------------------:|:---------------:|------|
-| `POST /ngsi-ld/v1/entities` | ✅ | ✅ | エンティティ作成 |
-| `GET /ngsi-ld/v1/entities` | ✅ | ✅ | エンティティ一覧 |
-| `GET /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | エンティティ取得 |
-| `PUT /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | エンティティ置換 |
-| `PATCH /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | エンティティ更新（merge-patch+json対応、`urn:ngsi-ld:null`、keyValues/concise入力） |
-| `POST /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | 属性追加 |
-| `DELETE /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | エンティティ削除 |
-| `GET /ngsi-ld/v1/entities/{id}/attrs` | ✅ | ✅ | 全属性取得 |
-| `GET /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | 属性取得 |
-| `POST /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | 属性置換 |
-| `PATCH /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | 属性部分更新 |
-| `DELETE /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | 属性削除 |
-| `POST /ngsi-ld/v1/entityOperations/create` | ✅ | ✅ | バッチ作成 |
-| `POST /ngsi-ld/v1/entityOperations/upsert` | ✅ | ✅ | バッチ作成/更新 |
-| `POST /ngsi-ld/v1/entityOperations/update` | ✅ | ✅ | バッチ更新 |
-| `POST /ngsi-ld/v1/entityOperations/delete` | ✅ | ✅ | バッチ削除 |
-| `POST /ngsi-ld/v1/entityOperations/query` | ✅ | ✅ | バッチクエリ |
-| `POST /ngsi-ld/v1/subscriptions` | ✅ | ✅ | サブスクリプション作成 |
-| `GET /ngsi-ld/v1/subscriptions` | ✅ | ✅ | サブスクリプション一覧 |
-| `GET /ngsi-ld/v1/subscriptions/{id}` | ✅ | ✅ | サブスクリプション取得 |
-| `PATCH /ngsi-ld/v1/subscriptions/{id}` | ✅ | ✅ | サブスクリプション更新 |
-| `DELETE /ngsi-ld/v1/subscriptions/{id}` | ✅ | ✅ | サブスクリプション削除 |
-| `POST /ngsi-ld/v1/csourceRegistrations` | ✅ | ✅ | 登録作成 |
-| `GET /ngsi-ld/v1/csourceRegistrations` | ✅ | ✅ | 登録一覧 |
-| `GET /ngsi-ld/v1/csourceRegistrations/{id}` | ✅ | ✅ | 登録取得 |
-| `PATCH /ngsi-ld/v1/csourceRegistrations/{id}` | ✅ | ✅ | 登録更新 |
-| `DELETE /ngsi-ld/v1/csourceRegistrations/{id}` | ✅ | ✅ | 登録削除 |
-| `POST /ngsi-ld/v1/csourceSubscriptions` | ✅ | ❌ | CSRサブスクリプション作成 (※) |
-| `GET /ngsi-ld/v1/csourceSubscriptions` | ✅ | ❌ | CSRサブスクリプション一覧 (※) |
-| `GET /ngsi-ld/v1/csourceSubscriptions/{id}` | ✅ | ❌ | CSRサブスクリプション取得 (※) |
-| `PATCH /ngsi-ld/v1/csourceSubscriptions/{id}` | ✅ | ❌ | CSRサブスクリプション更新 (※) |
-| `DELETE /ngsi-ld/v1/csourceSubscriptions/{id}` | ✅ | ❌ | CSRサブスクリプション削除 (※) |
-| `GET /ngsi-ld/v1/attributes` | ✅ | ✅ | 属性一覧 |
-| `GET /ngsi-ld/v1/attributes/{attrName}` | ✅ | ✅ | 属性詳細 |
-| `GET /.well-known/ngsi-ld` | ✅ | ✅ | APIディスカバリー |
-| JSON-LD @context サポート | ✅ | ✅ | Linked Dataコンテキスト |
-| **Temporal API** | ✅ | ⚠️ 制限あり | 時系列データ管理 |
-| **JSON-LD コンテキスト管理** | ✅ | ✅ | `/ngsi-ld/v1/jsonldContexts` |
-| **EntityMap 操作** | ✅ | ❌ | エンティティマッピング・変換 |
-| **スナップショット操作** | ✅ | ❌ | ポイントインタイム・スナップショット |
-| **適合性情報** | ✅ | ✅ | `/ngsi-ld/v1/info/conformance` |
-| **ソースアイデンティティ** | ✅ | ✅ | `/ngsi-ld/v1/info/sourceIdentity` |
-| **ベクトルタイル** | ✅ | ❌ | `/ngsi-ld/v1/tiles` GeoJSON ベクトルタイル |
+| Feature | GeonicDB | FIWARE Orion-LD | Notes |
+|---------|:------------------:|:---------------:|-------|
+| `POST /ngsi-ld/v1/entities` | ✅ | ✅ | Create entity |
+| `GET /ngsi-ld/v1/entities` | ✅ | ✅ | List entities |
+| `GET /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | Get entity |
+| `PUT /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | Replace entity |
+| `PATCH /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | Update entity (supports merge-patch+json, urn:ngsi-ld:null, keyValues/concise input) |
+| `POST /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | Add attributes |
+| `DELETE /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | Delete entity |
+| `GET /ngsi-ld/v1/entities/{id}/attrs` | ✅ | ✅ | Get all attributes |
+| `GET /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Get attribute |
+| `POST /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Replace attribute |
+| `PATCH /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Partially update attribute |
+| `DELETE /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Delete attribute |
+| `POST /ngsi-ld/v1/entityOperations/create` | ✅ | ✅ | Batch create |
+| `POST /ngsi-ld/v1/entityOperations/upsert` | ✅ | ✅ | Batch create/update |
+| `POST /ngsi-ld/v1/entityOperations/update` | ✅ | ✅ | Batch update |
+| `POST /ngsi-ld/v1/entityOperations/delete` | ✅ | ✅ | Batch delete |
+| `POST /ngsi-ld/v1/entityOperations/query` | ✅ | ✅ | Batch query |
+| `POST /ngsi-ld/v1/subscriptions` | ✅ | ✅ | Create subscription |
+| `GET /ngsi-ld/v1/subscriptions` | ✅ | ✅ | List subscriptions |
+| `GET /ngsi-ld/v1/subscriptions/{id}` | ✅ | ✅ | Get subscription |
+| `PATCH /ngsi-ld/v1/subscriptions/{id}` | ✅ | ✅ | Update subscription |
+| `DELETE /ngsi-ld/v1/subscriptions/{id}` | ✅ | ✅ | Delete subscription |
+| `POST /ngsi-ld/v1/csourceRegistrations` | ✅ | ✅ | Create registration |
+| `GET /ngsi-ld/v1/csourceRegistrations` | ✅ | ✅ | List registrations |
+| `GET /ngsi-ld/v1/csourceRegistrations/{id}` | ✅ | ✅ | Get registration |
+| `PATCH /ngsi-ld/v1/csourceRegistrations/{id}` | ✅ | ✅ | Update registration |
+| `DELETE /ngsi-ld/v1/csourceRegistrations/{id}` | ✅ | ✅ | Delete registration |
+| `POST /ngsi-ld/v1/csourceSubscriptions` | ✅ | ❌ | Create CSR subscription (*) |
+| `GET /ngsi-ld/v1/csourceSubscriptions` | ✅ | ❌ | List CSR subscriptions (*) |
+| `GET /ngsi-ld/v1/csourceSubscriptions/{id}` | ✅ | ❌ | Get CSR subscription (*) |
+| `PATCH /ngsi-ld/v1/csourceSubscriptions/{id}` | ✅ | ❌ | Update CSR subscription (*) |
+| `DELETE /ngsi-ld/v1/csourceSubscriptions/{id}` | ✅ | ❌ | Delete CSR subscription (*) |
+| `GET /ngsi-ld/v1/attributes` | ✅ | ✅ | List attributes |
+| `GET /ngsi-ld/v1/attributes/{attrName}` | ✅ | ✅ | Attribute details |
+| `GET /.well-known/ngsi-ld` | ✅ | ✅ | API discovery |
+| JSON-LD @context support | ✅ | ✅ | Linked Data context |
+| **Temporal API** | ✅ | ⚠️ Limited | Time-series data management |
+| **JSON-LD context management** | ✅ | ✅ | `/ngsi-ld/v1/jsonldContexts` |
+| **EntityMap operations** | ✅ | ❌ | Entity mapping and transformation |
+| **Snapshot operations** | ✅ | ❌ | Point-in-time snapshots |
+| **Conformance information** | ✅ | ✅ | `/ngsi-ld/v1/info/conformance` |
+| **Source identity** | ✅ | ✅ | `/ngsi-ld/v1/info/sourceIdentity` |
+| **Vector tiles** | ✅ | ❌ | `/ngsi-ld/v1/tiles` GeoJSON vector tiles |
 
-> **※ csourceSubscriptions について**
-> Context Source Registration (CSR) のサブスクリプション機能は ETSI GS CIM 009 仕様で定義されています。GeonicDB は仕様準拠の実装を提供していますが、Orion-LD では現在未実装です（実装予定、参照: [Orion-LD Issue #280](https://github.com/FIWARE/context.Orion-LD/issues/280)）。
+> **Note on csourceSubscriptions**
+> The Context Source Registration (CSR) subscription feature is defined in the ETSI GS CIM 009 specification. GeonicDB provides a spec-compliant implementation, while Orion-LD does not currently implement it (implementation planned; see [Orion-LD Issue #280](https://github.com/FIWARE/context.Orion-LD/issues/280)).
 
-### NGSI-LD 属性タイプ
+### NGSI-LD Attribute Types
 
-| 機能 | GeonicDB | FIWARE Orion-LD | 備考 |
-|------|:------------------:|:---------------:|------|
-| Property | ✅ | ✅ | 基本属性 |
-| Relationship | ✅ | ✅ | エンティティ間関連 |
-| GeoProperty | ✅ | ✅ | 地理空間属性 |
-| LanguageProperty | ✅ | ✅ | 多言語属性 |
-| JsonProperty | ✅ | ✅ | JSON値属性 |
-| VocabProperty | ✅ | ✅ | 語彙属性（vocab/vocabMap） |
-| ListProperty | ✅ | ✅ | リスト値属性 |
-| ListRelationship | ✅ | ✅ | リスト関連属性 |
-| TemporalProperty | ✅ | ✅ | 時間属性 |
-| **Multi-attribute** | ✅ | ✅ | datasetIdによる複数インスタンス |
-| `datasetId` クエリパラメータ | ✅ | ✅ | 特定インスタンスの削除 |
-| `deleteAll` クエリパラメータ | ✅ | ✅ | 全インスタンスの削除 |
+| Feature | GeonicDB | FIWARE Orion-LD | Notes |
+|---------|:------------------:|:---------------:|-------|
+| Property | ✅ | ✅ | Basic attribute |
+| Relationship | ✅ | ✅ | Inter-entity association |
+| GeoProperty | ✅ | ✅ | Geospatial attribute |
+| LanguageProperty | ✅ | ✅ | Multilingual attribute |
+| JsonProperty | ✅ | ✅ | JSON value attribute |
+| VocabProperty | ✅ | ✅ | Vocabulary attribute (vocab/vocabMap) |
+| ListProperty | ✅ | ✅ | List value attribute |
+| ListRelationship | ✅ | ✅ | List relationship attribute |
+| TemporalProperty | ✅ | ✅ | Temporal attribute |
+| **Multi-attribute** | ✅ | ✅ | Multiple instances via datasetId |
+| `datasetId` query parameter | ✅ | ✅ | Delete a specific instance |
+| `deleteAll` query parameter | ✅ | ✅ | Delete all instances |
 
-### NGSI-LD 出力形式
+### NGSI-LD Output Formats
 
-| 機能 | GeonicDB | FIWARE Orion-LD | 備考 |
-|------|:------------------:|:---------------:|------|
-| normalized | ✅ | ✅ | 完全形式（デフォルト） |
-| concise | ✅ | ✅ | 簡潔形式（typeを省略） |
-| keyValues / simplified | ✅ | ✅ | 値のみ |
+| Feature | GeonicDB | FIWARE Orion-LD | Notes |
+|---------|:------------------:|:---------------:|-------|
+| normalized | ✅ | ✅ | Full format (default) |
+| concise | ✅ | ✅ | Concise format (type omitted) |
+| keyValues / simplified | ✅ | ✅ | Values only |
 
-## クエリ機能
+## Query Features
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
 | **Simple Query Language (q)** | ✅ | ✅ | |
-| 比較演算子 (`==`, `!=`, `<`, `>`, `<=`, `>=`) | ✅ | ✅ | |
-| 論理演算子 (`;` AND, `\|` OR) | ✅ | ✅ | |
-| 範囲クエリ (`..`) | ✅ | ✅ | |
-| パターンマッチ (`~=`) | ✅ | ✅ | 正規表現対応 |
-| `idPattern` (正規表現) | ✅ | ✅ | |
-| `typePattern` (正規表現) | ✅ | ✅ | |
-| **Scope クエリ (NGSI-LD)** | ✅ | ✅ | |
-| `scopeQ` パラメータ | ✅ | ✅ | 階層的スコープによるエンティティ分類・検索 |
-| 完全一致 (`/path`) | ✅ | ✅ | |
-| 全子孫検索 (`/path/#`) | ✅ | ✅ | |
-| 直接の子検索 (`/path/+`) | ✅ | ✅ | |
-| OR条件 (`;`) | ✅ | ✅ | |
-| **ページネーション** | ✅ | ✅ | |
-| `limit` パラメータ | ✅ (max: 1000) | ✅ (max: 1000) | |
-| `offset` パラメータ | ✅ | ✅ | |
-| **出力形式** | | | |
-| `keyValues` | ✅ | ✅ | 簡易形式 |
-| `values` | ✅ | ✅ | 値のみ |
-| `unique` | ✅ | ✅ | `values`と組み合わせて重複排除 |
-| `sysAttrs` | ✅ | ✅ | システム属性（dateCreated, dateModified）を含む |
-| `normalized` (デフォルト) | ✅ | ✅ | 完全形式 |
-| **属性選択** | | | |
-| `attrs` パラメータ | ✅ | ✅ | 含める属性 |
-| `metadata` パラメータ | ✅ | ✅ | メタデータ出力制御（on/off） |
-| **ソート** | | | |
-| `orderBy` パラメータ | ✅ | ✅ | entityId, entityType, modifiedAt でソート |
-| `orderDirection` パラメータ | ✅ | ✅ | asc/desc でソート方向を指定 |
+| Comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`) | ✅ | ✅ | |
+| Logical operators (`;` AND, `\|` OR) | ✅ | ✅ | |
+| Range query (`..`) | ✅ | ✅ | |
+| Pattern match (`~=`) | ✅ | ✅ | Regular expression support |
+| `idPattern` (regular expression) | ✅ | ✅ | |
+| `typePattern` (regular expression) | ✅ | ✅ | |
+| **Scope query (NGSI-LD)** | ✅ | ✅ | |
+| `scopeQ` parameter | ✅ | ✅ | Entity classification and search by hierarchical scope |
+| Exact match (`/path`) | ✅ | ✅ | |
+| All descendants (`/path/#`) | ✅ | ✅ | |
+| Direct children (`/path/+`) | ✅ | ✅ | |
+| OR condition (`;`) | ✅ | ✅ | |
+| **Pagination** | ✅ | ✅ | |
+| `limit` parameter | ✅ (max: 1000) | ✅ (max: 1000) | |
+| `offset` parameter | ✅ | ✅ | |
+| **Output formats** | | | |
+| `keyValues` | ✅ | ✅ | Simplified format |
+| `values` | ✅ | ✅ | Values only |
+| `unique` | ✅ | ✅ | Deduplicate when combined with `values` |
+| `sysAttrs` | ✅ | ✅ | Include system attributes (dateCreated, dateModified) |
+| `normalized` (default) | ✅ | ✅ | Full format |
+| **Attribute selection** | | | |
+| `attrs` parameter | ✅ | ✅ | Attributes to include |
+| `metadata` parameter | ✅ | ✅ | Metadata output control (on/off) |
+| **Sorting** | | | |
+| `orderBy` parameter | ✅ | ✅ | Sort by entityId, entityType, modifiedAt |
+| `orderDirection` parameter | ✅ | ✅ | Specify sort direction with asc/desc |
 
-## 地理空間機能
+## Geospatial Features
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| **ジオクエリ** | ✅ | ✅ | |
-| `georel=near` | ✅ | ✅ | Pointジオメトリのみ対応、距離ソートなし |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| **Geo-queries** | ✅ | ✅ | |
+| `georel=near` | ✅ | ✅ | Point geometry only, no distance sorting |
 | `georel=within` | ✅ | ✅ | |
 | `georel=coveredBy` | ✅ | ✅ | |
 | `georel=intersects` | ✅ | ✅ | |
 | `georel=disjoint` | ✅ | ✅ | |
 | `georel=equals` | ✅ | ✅ | |
 | `georel=contains` | ✅ | ✅ | |
-| **ジオメトリタイプ** | | | |
+| **Geometry types** | | | |
 | Point | ✅ | ✅ | |
 | LineString | ✅ | ✅ | |
 | Polygon | ✅ | ✅ | |
-| Box | ✅ | ✅ | バウンディングボックス（2点で矩形指定） |
+| Box | ✅ | ✅ | Bounding box (rectangular area specified by 2 points) |
 | MultiPoint | ✅ | ✅ | |
 | MultiLineString | ✅ | ✅ | |
 | MultiPolygon | ✅ | ✅ | |
-| **GeoJSON出力** | ✅ | ✅ | `options=geojson` |
-| **ベクトルタイル** | ✅ | ❌ | TileJSON 3.0準拠、自動クラスタリング |
-| **空間ID (ZFXY)** | ✅ | ❌ | 日本デジタル庁標準 |
+| **GeoJSON output** | ✅ | ✅ | `options=geojson` |
+| **Vector tiles** | ✅ | ❌ | TileJSON 3.0 compliant, automatic clustering |
+| **Spatial ID (ZFXY)** | ✅ | ❌ | Japan Digital Agency standard |
 
-## サブスクリプション/通知機能
+## Subscription/Notification Features
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| **Subject 条件** | | | |
-| エンティティID指定 | ✅ | ✅ | |
-| エンティティIDパターン | ✅ | ✅ | 正規表現 |
-| エンティティタイプ指定 | ✅ | ✅ | |
-| エンティティタイプパターン | ✅ | ✅ | 正規表現 |
-| 属性条件 (`attrs`) | ✅ | ✅ | |
-| クエリ言語条件 (`q`) | ✅ | ✅ | |
-| ジオ条件 | ✅ | ✅ | |
-| **Notification 設定** | | | |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| **Subject conditions** | | | |
+| Entity ID specification | ✅ | ✅ | |
+| Entity ID pattern | ✅ | ✅ | Regular expression |
+| Entity type specification | ✅ | ✅ | |
+| Entity type pattern | ✅ | ✅ | Regular expression |
+| Attribute condition (`attrs`) | ✅ | ✅ | |
+| Query language condition (`q`) | ✅ | ✅ | |
+| Geo condition | ✅ | ✅ | |
+| **Notification settings** | | | |
 | HTTP Webhook | ✅ | ✅ | |
 | MQTT | ✅ | ✅ | |
-| **WebSocket イベントストリーミング** | ✅ | ❌ | リアルタイムエンティティ変更配信 |
-| カスタムヘッダー | ✅ | ✅ | |
-| `httpCustom.method` | ✅ | ✅ | カスタムHTTPメソッド |
-| `httpCustom.qs` | ✅ | ✅ | クエリ文字列パラメータ（マクロ置換対応） |
-| `httpCustom.payload` | ✅ | ✅ | カスタムペイロードテンプレート（マクロ置換対応） |
-| マクロ置換 (`${id}`, `${type}`, `${attr}`) | ✅ | ✅ | payload/qsで使用可能 |
-| `httpCustom.json` | ❌ | ✅ | JSONテンプレート（将来対応予定） |
-| `httpCustom.ngsi` | ❌ | ✅ | NGSIパッチ（将来対応予定） |
-| JEXL式 | ❌ | ✅ | 将来対応予定 |
+| **WebSocket event streaming** | ✅ | ❌ | Real-time entity change delivery |
+| Custom headers | ✅ | ✅ | |
+| `httpCustom.method` | ✅ | ✅ | Custom HTTP method |
+| `httpCustom.qs` | ✅ | ✅ | Query string parameters (macro substitution supported) |
+| `httpCustom.payload` | ✅ | ✅ | Custom payload template (macro substitution supported) |
+| Macro substitution (`${id}`, `${type}`, `${attr}`) | ✅ | ✅ | Usable in payload/qs |
+| `httpCustom.json` | ❌ | ✅ | JSON template (planned for future support) |
+| `httpCustom.ngsi` | ❌ | ✅ | NGSI patch (planned for future support) |
+| JEXL expressions | ❌ | ✅ | Planned for future support |
 | `attrsFormat` | ✅ | ✅ | |
 | `exceptAttrs` | ✅ | ✅ | |
-| `onlyChangedAttrs` | ✅ | ✅ | 変更された属性のみ通知に含める |
-| **制御** | | | |
-| `expires` (有効期限) | ✅ | ✅ | |
-| `throttling` (スロットリング) | ✅ | ✅ | |
-| `status` (一時停止) | ✅ | ✅ | |
-| **統計情報** | | | |
+| `onlyChangedAttrs` | ✅ | ✅ | Include only changed attributes in notification |
+| **Control** | | | |
+| `expires` (expiry) | ✅ | ✅ | |
+| `throttling` | ✅ | ✅ | |
+| `status` (pause) | ✅ | ✅ | |
+| **Statistics** | | | |
 | `timesSent` | ✅ | ✅ | |
 | `lastNotification` | ✅ | ✅ | |
 | `lastFailure` | ✅ | ✅ | |
 | `lastSuccess` | ✅ | ✅ | |
-| **通知配信** | | | |
-| 順序保証 | ✅ (SQS FIFO) | ⚠️ 制限あり | |
-| 再試行機能 | ✅ | ✅ | |
+| **Notification delivery** | | | |
+| Ordering guarantee | ✅ (SQS FIFO) | ⚠️ Limited | |
+| Retry functionality | ✅ | ✅ | |
 | Dead Letter Queue | ✅ | ❌ | |
 
-## 登録/コンテキストプロバイダー
+## Registration / Context Providers
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
 | **Registration CRUD** | ✅ | ✅ | |
-| エンティティタイプ登録 | ✅ | ✅ | |
-| 属性登録 | ✅ | ✅ | |
-| **フェデレーションクエリ** | ✅ | ✅ | 分散クエリ転送（getEntity/queryEntities） |
-| **フェデレーション更新** | ✅ | ✅ | 分散更新転送（updateEntity/deleteEntity/deleteAttribute） |
-| **分散オペレーション機能** | | | |
-| CSR変更通知 (Ngsild-Trigger) | ✅ | ❌ | CSR作成/更新/削除時の自動通知（ETSI GS CIM 009 - 5.11） |
-| ループ検出 (Via header) | ✅ | ❌ | 分散フェデレーションのループ防止（ETSI GS CIM 009 - 6.3.5） |
-| 警告ヘッダー (NGSI-LD-Warning) | ✅ | ❌ | フェデレーション失敗時の警告伝播（ETSI GS CIM 009 - 6.3.6） |
-| 分散タイプ/属性探索 | ✅ | ❌ | /types と /attributes がCSRも含む（ETSI GS CIM 009 - 5.9.3.3） |
-| **モード** | | | |
-| inclusive | ✅ | ✅ | ローカル+リモートを統合（NGSI-LD標準、NGSIv2拡張） |
-| exclusive | ✅ | ✅ | リモートのみ返却（NGSI-LD標準、NGSIv2拡張） |
-| redirect | ✅ | ✅ | 303リダイレクト（NGSI-LD標準、NGSIv2拡張） |
-| auxiliary | ✅ | ✅ | ローカル優先、不足分をリモートで補完（NGSI-LD標準、NGSIv2拡張） |
+| Entity type registration | ✅ | ✅ | |
+| Attribute registration | ✅ | ✅ | |
+| **Federation query** | ✅ | ✅ | Distributed query forwarding (getEntity/queryEntities) |
+| **Federation update** | ✅ | ✅ | Distributed update forwarding (updateEntity/deleteEntity/deleteAttribute) |
+| **Distributed operation features** | | | |
+| CSR change notification (Ngsild-Trigger) | ✅ | ❌ | Automatic notification on CSR create/update/delete (ETSI GS CIM 009 - 5.11) |
+| Loop detection (Via header) | ✅ | ❌ | Loop prevention for distributed federation (ETSI GS CIM 009 - 6.3.5) |
+| Warning header (NGSILD-Warning) | ✅ | ❌ | Warning propagation on federation failure (ETSI GS CIM 009 - 6.3.6) |
+| Distributed type/attribute discovery | ✅ | ❌ | /types and /attributes include CSRs (ETSI GS CIM 009 - 5.9.3.3) |
+| **Modes** | | | |
+| inclusive | ✅ | ✅ | Merge local and remote (NGSI-LD standard, NGSIv2 extension) |
+| exclusive | ✅ | ✅ | Return remote only (NGSI-LD standard, NGSIv2 extension) |
+| redirect | ✅ | ✅ | 303 redirect (NGSI-LD standard, NGSIv2 extension) |
+| auxiliary | ✅ | ✅ | Local priority, supplement with remote for missing data (NGSI-LD standard, NGSIv2 extension) |
 
-## マルチテナンシー
+## Multi-tenancy
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| `Fiware-Service` ヘッダー | ✅ | ✅ | テナント識別 |
-| `Fiware-ServicePath` ヘッダー | ✅ | ✅ | 階層的パス |
-| テナント自動分離 | ✅ | ✅ | |
-| 階層的ServicePath | ✅ | ✅ | |
-| 階層検索（`/#`） | ✅ | ✅ | `/path/#` で子パスも含めて検索 |
-| 複数パス指定 | ✅ | ✅ | カンマ区切りで最大10パス |
-| ヘッダー省略時の全検索 | ✅ | ✅ | クエリ時にヘッダー省略で全パス検索 |
-| `Fiware-Correlator` ヘッダー | ✅ | ✅ | リクエスト追跡 |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| `Fiware-Service` header | ✅ | ✅ | Tenant identification |
+| `Fiware-ServicePath` header | ✅ | ✅ | Hierarchical path |
+| Automatic tenant isolation | ✅ | ✅ | |
+| Hierarchical service path | ✅ | ✅ | |
+| Hierarchical search (`/#`) | ✅ | ✅ | Search including child paths with `/path/#` |
+| Multiple path specification | ✅ | ✅ | Up to 10 paths, comma-separated |
+| Search all paths when header omitted | ✅ | ✅ | Omitting header in queries searches all paths |
+| `Fiware-Correlator` header | ✅ | ✅ | Request tracking |
 
-## 認証・認可
+## Authentication and Authorization
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| **組み込み認証** | ✅ | ❌ | JWT認証・ロールベースアクセス制御 |
-| JWT認証 | ✅ | ❌ | アクセストークン・リフレッシュトークン |
-| ロールベースアクセス制御 | ✅ | ❌ | super_admin, tenant_admin, user |
-| **OIDC 外部 IdP 連携** | ✅ | ❌ | OpenID Connect による外部認証プロバイダー連携 |
-| **XACML ポリシーセット** | ✅ | ❌ | ポリシーセットによる階層的アクセス制御 |
-| **外部認証連携** | | | |
-| OAuth 2.0 | ⚠️ API Gateway経由 | ⚠️ PEP Proxy経由 | |
-| Keyrock IdM連携 | ⚠️ API互換 | ✅ | API互換性により連携可能（未検証） |
-| Wilma PEP Proxy | ⚠️ API互換 | ✅ | API互換性により連携可能（未検証） |
-| AWS Cognito | ✅ | ❌ | API Gateway連携 |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| **Built-in authentication** | ✅ | ❌ | JWT authentication and role-based access control |
+| JWT authentication | ✅ | ❌ | Access tokens and refresh tokens |
+| Role-based access control | ✅ | ❌ | super_admin, tenant_admin, user |
+| **OIDC external IdP integration** | ✅ | ❌ | External authentication provider via OpenID Connect |
+| **XACML policy sets** | ✅ | ❌ | Hierarchical access control management via policy sets |
+| **External authentication integration** | | | |
+| OAuth 2.0 | ⚠️ Via API Gateway | ⚠️ Via PEP Proxy | |
+| Keyrock IdM integration | ⚠️ API compatible | ✅ | Integration possible via API compatibility (unverified) |
+| Wilma PEP Proxy | ⚠️ API compatible | ✅ | Integration possible via API compatibility (unverified) |
+| AWS Cognito | ✅ | ❌ | API Gateway integration |
 | AWS IAM | ✅ | ❌ | Lambda Authorizer |
 
-## データ連携基盤
+## Data Integration Platform
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| **CADDE連携** | ✅ | ❌ | 分野間データ連携基盤 |
-| `x-cadde-*` ヘッダー対応 | ✅ | ❌ | リソースURL・プロバイダ情報 |
-| 来歴情報ヘッダー | ✅ | ❌ | `x-cadde-provenance-*` |
-| Bearer認証（CADDE） | ✅ | ❌ | オプション |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| **CADDE integration** | ✅ | ❌ | Cross-domain data exchange platform |
+| `x-cadde-*` header support | ✅ | ❌ | Resource URL and provider information |
+| Provenance information headers | ✅ | ❌ | `x-cadde-provenance-*` |
+| Bearer authentication (CADDE) | ✅ | ❌ | Optional |
 
-## データカタログ
+## Data Catalog
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| **DCAT-AP カタログ** | ✅ | ❌ | EU データポータル標準 |
-| `GET /catalog` | ✅ | ❌ | DCAT-AP JSON-LD 形式 |
-| `GET /catalog/datasets` | ✅ | ❌ | データセット一覧 |
-| `GET /catalog/datasets/{id}` | ✅ | ❌ | データセット詳細 |
-| `GET /catalog/datasets/{id}/sample` | ✅ | ❌ | サンプルデータ取得 |
-| **CKAN 互換 API** | ✅ | ❌ | オープンデータポータル連携 |
-| `/catalog/ckan/package_list` | ✅ | ❌ | パッケージID一覧 |
-| `/catalog/ckan/package_show` | ✅ | ❌ | パッケージ詳細 |
-| `/catalog/ckan/current_package_list_with_resources` | ✅ | ❌ | ページネーション対応一覧 |
-| **CKAN ハーベスタ対応** | ✅ | ❌ | 自動データ収集対応 |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| **DCAT-AP catalog** | ✅ | ❌ | EU data portal standard |
+| `GET /catalog` | ✅ | ❌ | DCAT-AP JSON-LD format |
+| `GET /catalog/datasets` | ✅ | ❌ | List datasets |
+| `GET /catalog/datasets/{id}` | ✅ | ❌ | Dataset details |
+| `GET /catalog/datasets/{id}/sample` | ✅ | ❌ | Get sample data |
+| **CKAN-compatible API** | ✅ | ❌ | Open data portal integration |
+| `/catalog/ckan/package_list` | ✅ | ❌ | List package IDs |
+| `/catalog/ckan/package_show` | ✅ | ❌ | Package details |
+| `/catalog/ckan/current_package_list_with_resources` | ✅ | ❌ | Paginated list |
+| **CKAN harvester support** | ✅ | ❌ | Automatic data harvesting support |
 
-## AI連携
+## AI Integration
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| **MCP (Model Context Protocol)** | ✅ | ❌ | Streamable HTTP トランスポート、ステートレス |
-| MCP ツール提供 | ✅ | ❌ | エンティティ CRUD・クエリ等を AI ツールとして公開 |
-| MCP 認証 (JWT) | ✅ | ❌ | テナント分離対応 |
-| **llms.txt** | ✅ | ❌ | AI/LLM 向け API ドキュメント (`GET /llms.txt`) |
-| **tools.json** | ✅ | ❌ | AI エージェント向けツール定義 (`GET /tools.json`) |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| **MCP (Model Context Protocol)** | ✅ | ❌ | Streamable HTTP transport, stateless |
+| MCP tool exposure | ✅ | ❌ | Entity CRUD, queries, etc. exposed as AI tools |
+| MCP authentication (JWT) | ✅ | ❌ | Tenant isolation support |
+| **llms.txt** | ✅ | ❌ | API documentation for AI/LLM (`GET /llms.txt`) |
+| **tools.json** | ✅ | ❌ | Tool definitions for AI agents (`GET /tools.json`) |
 | **OpenAPI 3.0** | ✅ | ✅ | `GET /openapi.json` |
 
-## 運用・モニタリング
+## Operations and Monitoring
 
-| 機能 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| **ヘルスチェック** | ✅ | ✅ | |
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| **Health check** | ✅ | ✅ | |
 | `/health` | ✅ | ✅ | |
 | `/health/live` | ✅ | ❌ | Kubernetes Liveness |
 | `/health/ready` | ✅ | ❌ | Kubernetes Readiness |
-| **ログ** | | | |
-| 構造化ログ (JSON) | ✅ | ✅ | |
-| 監査ログ | ✅ | ❌ | 書き込み操作の who/what/when を構造化 JSON で出力 |
-| AWS CloudWatch連携 | ✅ | ❌ | |
-| **トレーシング** | | | |
+| **Logging** | | | |
+| Structured logging (JSON) | ✅ | ✅ | |
+| Audit logging | ✅ | ❌ | Structured JSON output of who/what/when for write operations |
+| AWS CloudWatch integration | ✅ | ❌ | |
+| **Tracing** | | | |
 | AWS X-Ray | ✅ | ❌ | |
-| OpenTelemetry | ✅ | ⚠️ 制限あり | OTLP over HTTP/gRPC |
-| **メトリクス** | | | |
+| OpenTelemetry | ✅ | ⚠️ Limited | OTLP over HTTP/gRPC |
+| **Metrics** | | | |
 | CloudWatch Metrics | ✅ | ❌ | |
-| Prometheus | ✅ | ✅ | /metrics エンドポイント |
+| Prometheus | ✅ | ✅ | /metrics endpoint |
 
-## デプロイメント
+## Deployment
 
-| 項目 | GeonicDB | FIWARE Orion | 備考 |
-|------|:------------------:|:------------:|------|
-| **デプロイ方式** | | | |
+| Item | GeonicDB | FIWARE Orion | Notes |
+|------|:------------------:|:------------:|-------|
+| **Deployment methods** | | | |
 | AWS SAM | ✅ | ❌ | |
 | Docker | ❌ | ✅ | |
 | Docker Compose | ❌ | ✅ | |
-| Kubernetes | ⚠️ 未検証 | ✅ | |
-| **依存サービス** | | | |
+| Kubernetes | ⚠️ Unverified | ✅ | |
+| **Dependent services** | | | |
 | MongoDB | ✅ | ✅ | |
-| EventBridge | ✅ | ❌ | イベント駆動 |
-| SQS | ✅ | ❌ | 通知キュー |
-| **環境** | | | |
-| AWS | ✅ | ⚠️ 可能 | |
-| オンプレミス | ❌ | ✅ | |
-| GCP/Azure | ❌ | ⚠️ 可能 | |
+| EventBridge | ✅ | ❌ | Event-driven |
+| SQS | ✅ | ❌ | Notification queue |
+| **Environments** | | | |
+| AWS | ✅ | ⚠️ Possible | |
+| On-premises | ❌ | ✅ | |
+| GCP/Azure | ❌ | ⚠️ Possible | |
 
-## 独自機能
+## Unique Features
 
-### GeonicDB のみ
+### GeonicDB Only
 
-| 機能 | 説明 |
-|------|------|
-| **MCP (Model Context Protocol)** | [MCP](https://modelcontextprotocol.io/) 対応の AI ツールエンドポイント (`POST /mcp`)。Claude Desktop 等の AI クライアントから直接操作可能 |
-| **llms.txt 対応** | [llms.txt 標準](https://llmstxt.org/)に準拠したAI/LLM向けAPIドキュメント (`GET /llms.txt`) |
-| **空間ID (ZFXY) サポート** | 日本デジタル庁/IPA「空間IDガイドライン」準拠の3D空間識別 |
-| **ベクトルタイル** | TileJSON 3.0準拠のGeoJSONベクトルタイル出力、自動クラスタリング対応 |
-| **DCAT-AP カタログ** | EU データポータル標準の JSON-LD カタログ出力 (`GET /catalog`) |
-| **CKAN 互換 API** | オープンデータポータル CKAN のハーベスタと連携可能 |
-| **CADDE連携** | 分野間データ連携基盤（CADDE）コネクタとの連携機能 |
-| **WebSocket イベントストリーミング** | AWS API Gateway WebSocket API によるリアルタイムエンティティ変更配信。エンティティタイプ・IDパターンでフィルタリング可能 |
-| **スナップショット** | エンティティのポイントインタイム・スナップショット作成・復元（`/ngsi-ld/v1/snapshots`） |
-| **EntityMap** | エンティティの分散マッピング・変換定義（`/ngsi-ld/v1/entityMaps`） |
-| **適合性情報** | NGSI-LD 適合性情報エンドポイント（`/ngsi-ld/v1/info/conformance`）、ソースアイデンティティ（`/ngsi-ld/v1/info/sourceIdentity`） |
-| **OIDC 外部 IdP 連携** | OpenID Connect による外部認証プロバイダー連携 |
-| **XACML ポリシーセット** | ポリシーセットによる階層的アクセス制御管理 |
-| **Temporal バッチ操作** | `temporal/entityOperations/create`, `upsert`, `delete`（ETSI GS CIM 009 仕様外の独自拡張） |
-| **Time Series Collection** | MongoDB Time Series Collection による時系列データの最適化ストレージ、`$dateTrunc` 集計、TTL データ保持ポリシー |
-| **サーバーレスアーキテクチャ** | AWS Lambda による自動スケーリング・従量課金 |
-| **SQS FIFO 通知キュー** | 順序保証された通知配信 |
-| **Dead Letter Queue** | 失敗通知の隔離・再処理 |
-| **MongoDB Change Stream** | リアルタイムイベント検出 |
-| **AWS X-Ray トレーシング** | 分散トレーシング対応 |
-| **Kubernetes Probes** | `/health/live`, `/health/ready` エンドポイント |
+| Feature | Description |
+|---------|-------------|
+| **MCP (Model Context Protocol)** | [MCP](https://modelcontextprotocol.io/)-compatible AI tool endpoint (`POST /mcp`). Directly operable from AI clients such as Claude Desktop |
+| **llms.txt support** | API documentation for AI/LLM conforming to the [llms.txt standard](https://llmstxt.org/) (`GET /llms.txt`) |
+| **Spatial ID (ZFXY) support** | 3D spatial identification compliant with Japan's Digital Agency/IPA "Spatial ID Guidelines" |
+| **Vector tiles** | GeoJSON vector tile output compliant with TileJSON 3.0, with automatic clustering support |
+| **DCAT-AP catalog** | JSON-LD catalog output conforming to EU data portal standard (`GET /catalog`) |
+| **CKAN-compatible API** | Compatible with the CKAN open data portal harvester |
+| **CADDE integration** | Integration functionality with CADDE (cross-domain data exchange platform) connectors |
+| **WebSocket event streaming** | Real-time entity change delivery via AWS API Gateway WebSocket API. Filterable by entity type and ID pattern |
+| **Snapshots** | Point-in-time snapshot creation and restoration for entities (`/ngsi-ld/v1/snapshots`) |
+| **EntityMap** | Distributed entity mapping and transformation definitions (`/ngsi-ld/v1/entityMaps`) |
+| **Conformance information** | NGSI-LD conformance information endpoint (`/ngsi-ld/v1/info/conformance`), source identity (`/ngsi-ld/v1/info/sourceIdentity`) |
+| **OIDC external IdP integration** | External authentication provider integration via OpenID Connect |
+| **XACML policy sets** | Hierarchical access control management via policy sets |
+| **Temporal batch operations** | `temporal/entityOperations/create`, `upsert`, `delete` (proprietary extension beyond ETSI GS CIM 009 specification) |
+| **Time Series Collection** | Optimized time-series data storage via MongoDB Time Series Collection, `$dateTrunc` aggregation, TTL data retention policy |
+| **Serverless architecture** | Auto-scaling and pay-per-use via AWS Lambda |
+| **SQS FIFO notification queue** | Ordered notification delivery |
+| **Dead Letter Queue** | Isolation and reprocessing of failed notifications |
+| **MongoDB Change Stream** | Real-time event detection |
+| **AWS X-Ray tracing** | Distributed tracing support |
+| **Kubernetes Probes** | `/health/live`, `/health/ready` endpoints |
 
-### FIWARE Orion のみ
+### FIWARE Orion Only
 
-※ Keyrock IdM / Wilma PEP Proxy については、GeonicDB も API 互換性により連携可能です（上記「認証・認可」セクション参照）。
+Note: Regarding Keyrock IdM / Wilma PEP Proxy, GeonicDB can also integrate via API compatibility (see "Authentication and Authorization" section above).
 
-## 推奨ユースケース
+## Recommended Use Cases
 
-### GeonicDB が適している場合
+### When GeonicDB Is the Better Choice
 
-- AWS インフラを既に利用している
-- サーバーレスアーキテクチャを採用したい
-- 自動スケーリング・従量課金が必要
-- 日本の空間ID標準への対応が必要
-- CADDE（分野間データ連携基盤）との連携が必要
-- 運用コストを最小化したい
-- AI/LLM との連携を想定（llms.txt 対応）
+- Already using AWS infrastructure
+- Adopting a serverless architecture
+- Need auto-scaling and pay-per-use billing
+- Require support for Japan's Spatial ID standard
+- Need integration with CADDE (cross-domain data exchange platform)
+- Want to minimize operational costs
+- Planning AI/LLM integration (llms.txt support)
 
-### FIWARE Orion が適している場合
+### When FIWARE Orion Is the Better Choice
 
-- オンプレミス環境での運用が必要
-- FIWARE エコシステムの他コンポーネント (Keyrock, Wilma等) と連携
-- Docker/Kubernetes での運用を想定
-- AWS 以外のクラウドやマルチクラウド環境で運用
+- Need to operate in an on-premises environment
+- Integrating with other FIWARE ecosystem components (Keyrock, Wilma, etc.)
+- Planning to operate on Docker/Kubernetes
+- Operating on non-AWS cloud or multi-cloud environments
 
-## 参考情報
+## References
 
-- [GeonicDB リポジトリ](https://github.com/geolonia/geonicdb)
-- [FIWARE Orion ドキュメント](https://fiware-orion.readthedocs.io/)
-- [FIWARE Orion-LD リポジトリ](https://github.com/FIWARE/context.Orion-LD)
-- [NGSIv2 仕様](https://fiware-orion.readthedocs.io/en/master/orion-api.html)
-- [NGSI-LD 仕様 (ETSI)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/)
-- [CADDE（分野間データ連携基盤）](https://www.cio.go.jp/cadde)
-- [DCAT-AP（EU データポータル標準）](https://joinup.ec.europa.eu/collection/semic-support-centre/solution/dcat-application-profile-data-portals-europe)
-- [CKAN API ドキュメント](https://docs.ckan.org/en/latest/api/)
+- [GeonicDB Repository](https://github.com/geolonia/geonicdb)
+- [FIWARE Orion Documentation](https://fiware-orion.readthedocs.io/)
+- [FIWARE Orion-LD Repository](https://github.com/FIWARE/context.Orion-LD)
+- [NGSIv2 Specification](https://fiware-orion.readthedocs.io/en/master/orion-api.html)
+- [NGSI-LD Specification (ETSI)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/)
+- [CADDE (Cross-Domain Data Exchange Platform)](https://www.cio.go.jp/cadde)
+- [DCAT-AP (EU Data Portal Standard)](https://joinup.ec.europa.eu/collection/semic-support-centre/solution/dcat-application-profile-data-portals-europe)
+- [CKAN API Documentation](https://docs.ckan.org/en/latest/api/)
 
 ---
 
-*最終更新: 2026年2月*
+*Last updated: February 2026*

@@ -5,59 +5,59 @@ outline: deep
 ---
 # GeonicDB Context Broker API Documentation
 
-AWS Lambda 上で動作する FIWARE Orion 互換の Context Broker API ドキュメントです。NGSIv2 および NGSI-LD の両方の API をサポートしています。
+This is the API documentation for the FIWARE Orion-compatible Context Broker running on AWS Lambda. It supports both NGSIv2 and NGSI-LD APIs.
 
-## 目次
+## Table of Contents
 
-- [概要](#概要)
-- [認証とマルチテナンシー](#認証とマルチテナンシー)
-- [ページネーション](#ページネーション)
-- [認証 API](#認証-api)
-- [メタエンドポイント](#メタエンドポイント)
-- [NGSIv2 API](#ngsiv2-api)（→ [API_NGSIV2.md](./ngsiv2.md)）
-- [NGSI-LD API](./ngsild.md)
-- [クエリ言語](#クエリ言語)
-- [ジオクエリ](#ジオクエリ)
-- [空間ID検索](#空間id検索)
-- [GeoJSON出力](#geojson出力)
-- [ベクトルタイル](#ベクトルタイル)
-- [座標参照系（CRS）](#座標参照系crs)
-- [データカタログ API](#データカタログ-api)
-- [CADDE連携](#cadde連携)
-- [イベントストリーミング](#イベントストリーミング)
-- [エラーレスポンス](#エラーレスポンス)
-- [実装状況](#実装状況)
+- [Overview](#overview)
+- [Authentication and Multi-Tenancy](#authentication-and-multi-tenancy)
+- [Pagination](#pagination)
+- [Authentication API](#authentication-api)
+- [Meta Endpoints](#meta-endpoints)
+- [NGSIv2 API](#ngsiv2-api) (→ [API_NGSIV2.md](./ngsiv2.md))
+- [NGSI-LD API](#ngsi-ld-api) (→ [API_NGSILD.md](./ngsild.md))
+- [Query Language](#query-language)
+- [Geo-Queries](#geo-queries)
+- [Spatial ID Search](#spatial-id-search)
+- [GeoJSON Output](#geojson-output)
+- [Vector Tiles](#vector-tiles)
+- [Coordinate Reference System (CRS)](#coordinate-reference-system-crs)
+- [Data Catalog API](#data-catalog-api)
+- [CADDE Integration](#cadde-integration)
+- [Event Streaming](#event-streaming)
+- [Error Responses](#error-responses)
+- [Implementation Status](#implementation-status)
 
 ---
 
-## 概要
+## Overview
 
-このContext Brokerは、FIWARE NGSI（Next Generation Service Interface）仕様に準拠したRESTful APIを提供します。
+This Context Broker provides a RESTful API conforming to the FIWARE NGSI (Next Generation Service Interface) specification.
 
-**📖 関連ドキュメント:**
-- [NGSIv2 / NGSI-LD 相互互換性ガイド](../core-concepts/ngsiv2-vs-ngsild.md) - 両APIの相互運用性、型マッピング、ベストプラクティス
-- [WebSocket イベントストリーミング](../features/subscriptions.md) - リアルタイムイベントサブスクリプション、実装例、ベストプラクティス
+**Related Documentation:**
+- [NGSIv2 / NGSI-LD Interoperability Guide](../core-concepts/ngsiv2-vs-ngsild.md) - Interoperability between both APIs, type mappings, and best practices
+- [WebSocket Event Streaming](../features/subscriptions.md) - Real-time event subscriptions, implementation examples, and best practices
 
-### ベースURL
+### Base URL
 
 ```text
 https://{api-gateway-url}/{stage}
 ```
 
-### サポートするAPI
+### Supported APIs
 
-| API バージョン | ベースパス | Content-Type |
-|--------------|-----------|--------------|
+| API Version | Base Path | Content-Type |
+|-------------|-----------|--------------|
 | NGSIv2 | `/v2` | `application/json` |
 | NGSI-LD | `/ngsi-ld/v1` | `application/ld+json` |
 
-### OPTIONS メソッド
+### OPTIONS Method
 
-すべてのエンドポイントで `OPTIONS` メソッドがサポートされています。CORS プリフライトリクエストに対して、許可されるメソッドとヘッダーの情報を返します。
+The `OPTIONS` method is supported on all endpoints. It returns information about allowed methods and headers in response to CORS preflight requests.
 
-#### レスポンス形式
+#### Response Format
 
-OPTIONS リクエストは `204 No Content` を返し、以下のヘッダーを含みます：
+OPTIONS requests return `204 No Content` with the following headers:
 
 ```http
 OPTIONS /v2/entities/urn:ngsi-ld:Room:Room1
@@ -70,7 +70,7 @@ Access-Control-Allow-Headers: Content-Type, Fiware-Service, Fiware-ServicePath, 
 Access-Control-Max-Age: 86400
 ```
 
-NGSI-LD エンドポイントでは、追加で `Accept-Patch` ヘッダーも返されます：
+For NGSI-LD endpoints, an additional `Accept-Patch` header is also returned:
 
 ```http
 OPTIONS /ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1
@@ -84,21 +84,35 @@ Access-Control-Allow-Headers: Content-Type, NGSILD-Tenant, Fiware-Service, Link,
 Access-Control-Max-Age: 86400
 ```
 
+### Entity ID Uniqueness (GeonicDB Extension)
+
+> **GeonicDB Extension**: This behavior differs from the standard NGSIv2 specification, which allows entities with the same ID but different types to coexist.
+
+In GeonicDB, entity IDs are unique within the scope of a **tenant** (`Fiware-Service`) and **service path** (`Fiware-ServicePath`). The entity `type` is **not** part of the uniqueness constraint.
+
+**Key behaviors:**
+
+- Creating an entity with the same ID as an existing entity (even with a different `type`) returns `409 AlreadyExists`
+- Batch upsert operations match entities by `entityId` only (type can be overwritten)
+- The NGSIv2 `?type=` query parameter for type disambiguation among same-ID entities is no longer applicable
+
+This design aligns with the NGSI-LD specification, where entity IDs are URIs and are inherently unique. By enforcing ID uniqueness across both APIs, GeonicDB provides a consistent data model for NGSIv2/NGSI-LD interoperability.
+
 ---
 
-## 認証とマルチテナンシー
+## Authentication and Multi-Tenancy
 
-### 必須ヘッダー
+### Required Headers
 
-すべてのリクエストには以下のヘッダーを含めることを推奨します：
+All requests are recommended to include the following headers:
 
-| ヘッダー | 必須 | 説明 | デフォルト |
-|---------|------|------|-----------|
-| `Fiware-Service` | 推奨 | テナント名（英数字とアンダースコアのみ） | `default` |
-| `Fiware-ServicePath` | 推奨 | テナント内の階層パス（`/`で始まる） | `/`（クエリ時は`/#`相当） |
-| `Fiware-Correlator` | 任意 | リクエスト追跡用の相関ID | 自動生成 |
+| Header | Required | Description | Default |
+|--------|----------|-------------|---------|
+| `Fiware-Service` | Recommended | Tenant name (alphanumeric and underscores only) | `default` |
+| `Fiware-ServicePath` | Recommended | Hierarchical path within the tenant (starts with `/`) | `/` (equivalent to `/#` for queries) |
+| `Fiware-Correlator` | Optional | Correlation ID for request tracing | Auto-generated |
 
-### 使用例
+### Usage Example
 
 ```bash
 curl -X GET "https://api.example.com/v2/entities" \
@@ -106,173 +120,182 @@ curl -X GET "https://api.example.com/v2/entities" \
   -H "Fiware-ServicePath: /buildings/floor1"
 ```
 
-### テナント分離
+### Tenant Isolation
 
-- 異なる `Fiware-Service` のデータは完全に分離されます
-- 同じテナント内でも `Fiware-ServicePath` でデータを階層的に整理できます
-- テナント名は自動的に小文字に変換されます
+- Data from different `Fiware-Service` values is completely isolated
+- Within the same tenant, `Fiware-ServicePath` can be used to organize data hierarchically
+- Tenant names are automatically converted to lowercase
 
-### ServicePath仕様
+### Service Path Specification
 
-[FIWARE Orion仕様](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html)に準拠しています。
+Conforms to the [FIWARE Orion specification](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html).
 
-#### 基本形式
+#### Basic Format
 
-- `/` で始まる絶対パスのみ使用可能
-- 英数字とアンダースコアのみ使用可能
-- 最大10階層、各レベル最大50文字
+- Only absolute paths starting with `/` are allowed
+- Only alphanumeric characters and underscores are allowed
+- Maximum 10 levels, up to 50 characters per level
 
 ```bash
-# 特定パスのエンティティを取得
+# Retrieve entities at a specific path
 curl "http://localhost:3000/v2/entities" \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /Madrid/Gardens"
 ```
 
-#### 階層検索（/#）
+#### Hierarchical Search (`/#`)
 
-`/#` サフィックスを使用すると、指定パスとその子パスすべてを検索できます（**クエリ操作のみ**）。
+Using the `/#` suffix allows searching the specified path and all its child paths (**query operations only**).
 
 ```bash
-# /Madrid/Gardens とその子パス全てを検索
+# Search /Madrid/Gardens and all its child paths
 curl "http://localhost:3000/v2/entities" \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /Madrid/Gardens/#"
 ```
 
-#### 複数パス指定（カンマ区切り）
+#### Multiple Paths (Comma-Separated)
 
-カンマで区切って複数のパスを同時に検索できます（最大10パス、**クエリ操作のみ**）。
+Multiple paths can be searched simultaneously by separating them with commas (maximum 10 paths, **query operations only**).
 
 ```bash
-# /park1 と /park2 の両方を検索
+# Search both /park1 and /park2
 curl "http://localhost:3000/v2/entities" \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /park1, /park2"
 ```
 
-#### デフォルト動作
+#### Default Behavior
 
-| 操作 | ヘッダー省略時 | 説明 |
-|------|---------------|------|
-| クエリ（GET） | `/` | ルートパスのみ検索 |
-| 書き込み（POST/PUT/PATCH/DELETE） | `/` | ルートパスに作成・更新 |
+| Operation | When Header is Omitted | Description |
+|-----------|------------------------|-------------|
+| Query (GET) | `/` | Search root path only |
+| Write (POST/PUT/PATCH/DELETE) | `/` | Create/update in root path |
 
-**注意**: 書き込み操作では、単一の非階層パスのみ使用できます。`/#` や複数パスを指定するとエラーになります。
+**Note**: Write operations can only use a single non-hierarchical path. Specifying `/#` or multiple paths will result in an error.
 
 ---
 
-## ページネーション
+## Pagination
 
-すべてのリスト系APIエンドポイントでページネーションがサポートされています。
+Pagination is supported on all list-type API endpoints.
 
-### パラメータ
+### Parameters
 
-| パラメータ | 説明 | デフォルト | 最大値 |
-|-----------|------|-----------|-------|
-| `limit` | 返却する最大件数 | 20 | 1000（Admin APIは100） |
-| `offset` | スキップする件数 | 0 | - |
+| Parameter | Description | Default | Maximum |
+|-----------|-------------|---------|---------|
+| `limit` | Maximum number of results to return | 20 | 1000 (Admin API: 100) |
+| `offset` | Number of results to skip | 0 | - |
 
-### レスポンスヘッダー
+### Response Headers
 
-各APIタイプで総件数を示すヘッダーが返却されます：
+A header indicating the total count is returned for each API type:
 
-| API | ヘッダー名 | 条件 |
-|-----|-----------|------|
-| NGSIv2 | `Fiware-Total-Count` | 常に返却（全リストエンドポイント） |
-| NGSI-LD | `NGSILD-Results-Count` | 常に返却 |
-| Admin API | `X-Total-Count` | 常に返却 |
-| Catalog API | `X-Total-Count` | 常に返却 |
+| API | Header Name | Condition |
+|-----|-------------|-----------|
+| NGSIv2 | `Fiware-Total-Count` | Always returned (all list endpoints) |
+| NGSI-LD | `NGSILD-Results-Count` | Always returned |
+| Admin API | `X-Total-Count` | Always returned |
+| Catalog API | `X-Total-Count` | Always returned |
 
-### Link ヘッダー
+### Link Header
 
-すべてのリスト系エンドポイントは [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) に準拠した `Link` ヘッダーを返却し、次ページ (`rel="next"`) および前ページ (`rel="prev"`) の URL を提供します。結果が1ページに収まる場合、`Link` ヘッダーは返却されません。
+All list endpoints return a `Link` header conforming to [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288), providing URLs for the next page (`rel="next"`) and previous page (`rel="prev"`). If results fit on a single page, the `Link` header is not returned.
 
 ```http
 Link: <https://api.example.com/v2/entities?limit=10&offset=20>; rel="next", <https://api.example.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
 
-### バリデーション
+### Validation
 
-無効なページネーションパラメータは `400 Bad Request` を返します：
+Invalid pagination parameters return `400 Bad Request`:
 
-| エラー条件 | エラーメッセージ |
-|-----------|-----------------|
-| 負のlimit | `Invalid limit: must not be negative` |
-| 負のoffset | `Invalid offset: must not be negative` |
+| Error Condition | Error Message |
+|-----------------|---------------|
+| Negative limit | `Invalid limit: must not be negative` |
+| Negative offset | `Invalid offset: must not be negative` |
 | limit=0 | `Invalid limit: must be greater than 0` |
-| 最大値超過 | `Invalid limit: must not exceed 1000` |
-| 数値以外 | `Invalid limit: must be a valid integer` |
+| Exceeds maximum | `Invalid limit: must not exceed 1000` |
+| Non-numeric | `Invalid limit: must be a valid integer` |
 
-### 使用例
+### Usage Examples
 
 ```bash
-# 2ページ目を取得（1ページ10件）
+# Retrieve the second page (10 results per page)
 curl "http://localhost:3000/v2/entities?limit=10&offset=10" \
   -H "Fiware-Service: smartcity"
 
-# 総件数ヘッダー付きで取得
+# Retrieve with total count header
 curl "http://localhost:3000/v2/entities?limit=10&options=count" \
   -H "Fiware-Service: smartcity"
 ```
 
-### 注意事項
+### Notes
 
-- `offset`が総件数を超えた場合、空の配列が返されます（エラーではありません）
-- FIWARE Orion仕様に準拠しています
+- If `offset` exceeds the total count, an empty array is returned (not an error)
+- Conforms to the FIWARE Orion specification
 
 ---
 
-## 認証 API
+## Authentication API
 
-認証機能を使用して、ユーザー認証とアクセス制御を行うことができます。
+The authentication feature allows user authentication and access control.
 
-### 有効化
+### Enabling
 
-認証機能はデフォルトで無効です。以下の環境変数で有効化できます。
+Authentication is disabled by default. It can be enabled with the following environment variables.
 
-**注意**: `AUTH_ENABLED=false` の場合、認証関連のエンドポイント（`/auth/*`, `/me`, `/me/*`, `/admin/*`）は 404 を返します。
+**Note**: When `AUTH_ENABLED=false`, authentication-related endpoints (`/auth/*`, `/me`, `/me/*`, `/admin/*`) return 404.
 
-**重要**: `AUTH_ENABLED=true` の場合、NGSI API エンドポイント（`/v2/*`, `/ngsi-ld/*`, `/catalog/*`）へのアクセスには認証が必要です。認証なしでアクセスすると `401 Unauthorized` エラーが返されます。
+**Important**: When `AUTH_ENABLED=true`, access to NGSI API endpoints (`/v2/*`, `/ngsi-ld/*`, `/catalog/*`) requires authentication. Accessing without authentication returns a `401 Unauthorized` error.
 
-| 環境変数 | デフォルト | 説明 |
-|----------|-----------|------|
-| `AUTH_ENABLED` | `false` | 認証機能の有効化 |
-| `JWT_SECRET` | - | JWTトークン署名用シークレット（32文字以上推奨） |
-| `JWT_EXPIRES_IN` | `1h` | アクセストークンの有効期限 |
-| `JWT_REFRESH_EXPIRES_IN` | `7d` | リフレッシュトークンの有効期限 |
-| `SUPER_ADMIN_EMAIL` | - | 環境変数で設定するスーパー管理者のメールアドレス |
-| `SUPER_ADMIN_PASSWORD` | - | 環境変数で設定するスーパー管理者のパスワード |
-| `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR（カンマ区切り） |
+| Environment Variable | Default | Description |
+|----------------------|---------|-------------|
+| `AUTH_ENABLED` | `false` | Enable authentication |
+| `JWT_SECRET` | - | Secret for JWT token signing (32+ characters recommended) |
+| `JWT_EXPIRES_IN` | `1h` | Access token expiration |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh token expiration |
+| `SUPER_ADMIN_EMAIL` | - | Super admin email address set via environment variable |
+| `SUPER_ADMIN_PASSWORD` | - | Super admin password set via environment variable |
+| `ADMIN_ALLOWED_IPS` | - | IPs/CIDRs allowed to access the Admin API (comma-separated) |
 
-### ロールと権限
+### Roles and Permissions
 
-| ロール | 説明 | 権限 |
-|--------|------|------|
-| `super_admin` | スーパー管理者 | 全テナント・全ユーザーの管理、テナント作成/削除 |
-| `tenant_admin` | テナント管理者 | 自テナント内のユーザー管理 |
-| `user` | 一般ユーザー | 自分のプロファイル閲覧・パスワード変更のみ |
+| Role | Description | Permissions |
+|------|-------------|-------------|
+| `super_admin` | Super administrator | Manage all tenants and users, create/delete tenants |
+| `tenant_admin` | Tenant administrator | Manage users within their own tenant |
+| `user` | General user | View own profile and change password only |
 
-### ログイン
+### Login
 
 ```http
 POST /auth/login
 Content-Type: application/json
 ```
 
-**リクエストボディ**
+**Request Body**
 
 ```json
 {
   "email": "user@example.com",
   "password": "SecurePassword123!",
-  "tenantId": "target-tenant-id"
+  "tenantId": "target-tenant-id",
+  "resourceScopes": [
+    { "entityTypes": ["TemperatureSensor"], "ops": ["read", "write"] },
+    { "entityTypes": ["HumiditySensor"], "attrs": ["humidity"], "ops": ["read"] }
+  ]
 }
 ```
 
-> `tenantId` は任意パラメータです。指定するとそのテナントにスコープされた JWT を発行します。省略時はプライマリテナントが使用されます。
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `email` | string | Yes | Email address |
+| `password` | string | Yes | Password |
+| `tenantId` | string | No | If specified, issues a JWT scoped to that tenant. Defaults to primary tenant if omitted |
+| `resourceScopes` | ResourceScope[] | No | Entity-level access control scopes. Full access if omitted. See AUTH.md for details |
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -289,14 +312,14 @@ Content-Type: application/json
 }
 ```
 
-### トークンリフレッシュ
+### Token Refresh
 
 ```http
 POST /auth/refresh
 Content-Type: application/json
 ```
 
-**リクエストボディ**
+**Request Body**
 
 ```json
 {
@@ -304,16 +327,16 @@ Content-Type: application/json
 }
 ```
 
-**レスポンス**: ログインと同じ形式
+**Response**: Same format as login
 
-### 現在のユーザー情報取得
+### Get Current User Info
 
 ```http
 GET /me
 Authorization: Bearer <accessToken>
 ```
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -325,7 +348,7 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-### パスワード変更
+### Change Password
 
 ```http
 POST /me/password
@@ -333,7 +356,7 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-**リクエストボディ**
+**Request Body**
 
 ```json
 {
@@ -342,42 +365,42 @@ Content-Type: application/json
 }
 ```
 
-**レスポンス**: `204 No Content`
+**Response**: `204 No Content`
 
-**注意**: パスワード変更後、既存のアクセストークンとリフレッシュトークンは全て無効化されます。再度ログインして新しいトークンを取得してください。
+**Note**: After changing your password, all existing access tokens and refresh tokens are invalidated. Please log in again to obtain new tokens.
 
-### ログアウト
+### Logout
 
 ```http
 POST /auth/logout
 Authorization: Bearer <accessToken>
 ```
 
-全セッションを無効化します。このユーザーに対して発行された全てのアクセストークンとリフレッシュトークンが即座に無効化されます。
+Invalidates all sessions. All access tokens and refresh tokens issued for this user are immediately invalidated.
 
-**レスポンス**: `204 No Content`
+**Response**: `204 No Content`
 
-### 管理 API
+### Admin API
 
-管理 API は `super_admin` または `tenant_admin` ロールを持つユーザーのみアクセス可能です。
+The Admin API is accessible only to users with the `super_admin` or `tenant_admin` role.
 
-#### ユーザー一覧
+#### List Users
 
 ```http
 GET /admin/users
 Authorization: Bearer <accessToken>
 ```
 
-**クエリパラメータ**
+**Query Parameters**
 
-| パラメータ | 説明 |
-|-----------|------|
-| `tenantId` | テナントIDでフィルタ（super_admin のみ） |
-| `role` | ロールでフィルタ |
-| `limit` | 取得件数 |
-| `offset` | オフセット |
+| Parameter | Description |
+|-----------|-------------|
+| `tenantId` | Filter by tenant ID (super_admin only) |
+| `role` | Filter by role |
+| `limit` | Number of results to retrieve |
+| `offset` | Offset |
 
-#### ユーザー作成
+#### Create User
 
 ```http
 POST /admin/users
@@ -385,7 +408,7 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-**リクエストボディ**
+**Request Body**
 
 ```json
 {
@@ -396,14 +419,14 @@ Content-Type: application/json
 }
 ```
 
-#### ユーザー取得
+#### Get User
 
 ```http
 GET /admin/users/{userId}
 Authorization: Bearer <accessToken>
 ```
 
-#### ユーザー更新
+#### Update User
 
 ```http
 PATCH /admin/users/{userId}
@@ -411,7 +434,7 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-**リクエストボディ**
+**Request Body**
 
 ```json
 {
@@ -420,14 +443,14 @@ Content-Type: application/json
 }
 ```
 
-#### ユーザー削除
+#### Delete User
 
 ```http
 DELETE /admin/users/{userId}
 Authorization: Bearer <accessToken>
 ```
 
-#### ユーザー有効化/無効化
+#### Activate/Deactivate User
 
 ```http
 POST /admin/users/{userId}/activate
@@ -435,16 +458,16 @@ POST /admin/users/{userId}/deactivate
 Authorization: Bearer <accessToken>
 ```
 
-#### ログインロック解除
+#### Unlock Login
 
-ブルートフォース保護によりロックされたアカウントを解除します。
+Unlocks an account locked by brute-force protection.
 
 ```http
 POST /admin/users/{userId}/unlock
 Authorization: Bearer <accessToken>
 ```
 
-**レスポンス (200):**
+**Response (200):**
 
 ```json
 {
@@ -456,16 +479,16 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-### テナント管理（super_admin のみ）
+### Tenant Management (super_admin only)
 
-#### テナント一覧
+#### List Tenants
 
 ```http
 GET /admin/tenants
 Authorization: Bearer <accessToken>
 ```
 
-#### テナント作成
+#### Create Tenant
 
 ```http
 POST /admin/tenants
@@ -473,7 +496,7 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-**リクエストボディ**
+**Request Body**
 
 ```json
 {
@@ -485,14 +508,14 @@ Content-Type: application/json
 }
 ```
 
-#### テナント取得
+#### Get Tenant
 
 ```http
 GET /admin/tenants/{tenantId}
 Authorization: Bearer <accessToken>
 ```
 
-#### テナント更新
+#### Update Tenant
 
 ```http
 PATCH /admin/tenants/{tenantId}
@@ -500,16 +523,16 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-#### テナント削除
+#### Delete Tenant
 
 ```http
 DELETE /admin/tenants/{tenantId}
 Authorization: Bearer <accessToken>
 ```
 
-**注意**: ユーザーが存在するテナントは削除できません。
+**Cascade Deletion**: When a tenant is deleted, all associated data (entities, subscriptions, registrations, rules, policies, users, memberships, and all 16 collections) is automatically cascade-deleted. Before deletion begins, the tenant is automatically deactivated to block new API requests.
 
-#### テナント有効化/無効化
+#### Activate/Deactivate Tenant
 
 ```http
 POST /admin/tenants/{tenantId}/activate
@@ -517,30 +540,30 @@ POST /admin/tenants/{tenantId}/deactivate
 Authorization: Bearer <accessToken>
 ```
 
-### カスタムデータモデル管理
+### Custom Data Model Management
 
-> **注意**: カスタムデータモデル API は `/custom-data-models` に移動しました。詳細は [Custom Data Models API](#custom-data-models-api) セクションを参照してください。
+> **Note**: The custom data model API has moved to `/custom-data-models`. See the [Custom Data Models API](#custom-data-models-api) section for details.
 
-### IP 制限
+### IP Restrictions
 
-`ADMIN_ALLOWED_IPS` 環境変数を設定すると、管理 API (`/admin/*`) へのアクセスを特定の IP アドレスからのみ許可できます：
+By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API (`/admin/*`) to specific IP addresses:
 
 ```bash
-# 単一 IP
+# Single IP
 ADMIN_ALLOWED_IPS=192.168.1.100
 
-# 複数 IP
+# Multiple IPs
 ADMIN_ALLOWED_IPS=192.168.1.100,10.0.0.50
 
-# CIDR 表記
+# CIDR notation
 ADMIN_ALLOWED_IPS=192.168.1.0/24,10.0.0.0/8
 ```
 
-許可されていない IP からのアクセスは `403 Forbidden` エラーになります。
+Access from unauthorized IPs will result in a `403 Forbidden` error.
 
-#### テナント別 IP 制限
+#### Per-Tenant IP Restrictions
 
-テナントごとに独自の IP 制限を設定できます。テナント設定が存在する場合はグローバル設定（`ADMIN_ALLOWED_IPS`）よりも優先されます。
+Individual IP restrictions can be configured per tenant. If a tenant-level setting exists, it takes priority over the global setting (`ADMIN_ALLOWED_IPS`).
 
 ```http
 GET /admin/tenants/{tenantId}/ip-restrictions
@@ -549,31 +572,31 @@ DELETE /admin/tenants/{tenantId}/ip-restrictions
 Authorization: Bearer <accessToken>
 ```
 
-スコープは `admin`（管理 API のみ）と `all`（全 API）の2種類です。詳細は AUTH.md を参照してください。
+The scope can be either `admin` (Admin API only) or `all` (all APIs). See AUTH.md for details.
 
-### Rule Engine 管理（super_admin, tenant_admin）
+### Rule Engine Management (super_admin, tenant_admin)
 
-エンティティ変更を自動処理するルールを管理します。super_admin は全テナントのルールを管理でき、tenant_admin は自テナントのルールのみ管理できます。
+Manage rules that automatically process entity changes. super_admin can manage rules for all tenants; tenant_admin can only manage rules for their own tenant.
 
-- 📘 **REACTIVCORE_RULES.md** - ユーザー向けガイド（使用例、Admin API等）
+- **REACTIVCORE_RULES.md** - User guide (usage examples, Admin API, etc.)
 
-#### ルール一覧
+#### List Rules
 
 ```http
 GET /rules
 Authorization: Bearer <accessToken>
 ```
 
-**クエリパラメータ**
+**Query Parameters**
 
-| パラメータ | 説明 |
-|-----------|------|
-| `limit` | 取得件数（デフォルト: 20、最大: 100） |
-| `offset` | オフセット（デフォルト: 0） |
-| `servicePath` | ServicePathでフィルタ |
-| `isActive` | 有効/無効でフィルタ（`true` / `false`） |
+| Parameter | Description |
+|-----------|-------------|
+| `limit` | Number of results (default: 20, max: 100) |
+| `offset` | Offset (default: 0) |
+| `servicePath` | Filter by service path |
+| `isActive` | Filter by active/inactive (`true` / `false`) |
 
-#### ルール作成
+#### Create Rule
 
 ```http
 POST /rules
@@ -581,13 +604,13 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-**リクエストボディ**
+**Request Body**
 
 ```json
 {
   "ruleId": "high-temperature-alert",
-  "name": "高温警告",
-  "description": "温度が30度を超えたら警告属性を追加",
+  "name": "High Temperature Warning",
+  "description": "Add a warning attribute when temperature exceeds 30 degrees",
   "conditions": [
     {
       "type": "entityType",
@@ -612,14 +635,14 @@ Content-Type: application/json
 }
 ```
 
-#### ルール取得
+#### Get Rule
 
 ```http
 GET /rules/{ruleId}
 Authorization: Bearer <accessToken>
 ```
 
-#### ルール更新
+#### Update Rule
 
 ```http
 PATCH /rules/{ruleId}
@@ -627,16 +650,16 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-レスポンス：`204 No Content`
+Response: `204 No Content`
 
-#### ルール削除
+#### Delete Rule
 
 ```http
 DELETE /rules/{ruleId}
 Authorization: Bearer <accessToken>
 ```
 
-#### ルール有効化/無効化
+#### Activate/Deactivate Rule
 
 ```http
 POST /rules/{ruleId}/activate
@@ -646,51 +669,53 @@ Authorization: Bearer <accessToken>
 
 ---
 
-## OAuth 2.0 API（M2M認証）
+## OAuth 2.0 API (M2M Authentication)
 
-OAuth 2.0 Client Credentials Grant フローを使用した、Machine-to-Machine（M2M）認証をサポートしています。
+Machine-to-Machine (M2M) authentication using the OAuth 2.0 Client Credentials Grant flow is supported.
 
-**主要エンドポイント:**
-- `POST /oauth/token` - トークン取得（Basic認証）
-- `POST /admin/oauth-clients` - クライアント作成（Admin）
-- `GET /admin/oauth-clients` - クライアント一覧（Admin）
-- `POST /admin/oauth-clients/{clientId}/regenerate-secret` - シークレット再生成（Admin）
+**Key Endpoints:**
+- `POST /oauth/token` - Token acquisition (Basic authentication)
+- `POST /admin/oauth-clients` - Client creation (Admin)
+- `GET /admin/oauth-clients` - List clients (Admin)
+- `POST /admin/oauth-clients/{clientId}/regenerate-secret` - Regenerate secret (Admin)
 
-**有効化:** 環境変数 `OAUTH_ENABLED=true`（デフォルト: `true`）
+**Enabling:** Environment variable `OAUTH_ENABLED=true` (default: `true`)
 
-**利用可能なスコープ:**
-- リソーススコープ: `read:entities`, `write:entities`, `read:subscriptions`, `write:subscriptions`, など
-- 管理スコープ: `admin:users`, `admin:tenants`, `admin:policies`
-- 特殊スコープ: `permanent`（無期限トークン）, `jwt`（JWT API アクセス）
+**Available Scopes:**
+- Resource scopes: `read:entities`, `write:entities`, `read:subscriptions`, `write:subscriptions`, etc.
+- Admin scopes: `admin:users`, `admin:tenants`, `admin:policies`
+- Special scopes: `permanent` (unlimited token), `jwt` (JWT API access)
 
-**詳細:** AUTH.md の OAuth 2.0 セクションを参照してください。
+**Resource Scopes:** Specifying the `resource_scopes` parameter (JSON string) in `POST /oauth/token` issues a token with entity-level access control. See AUTH.md for details.
+
+**Details:** See the OAuth 2.0 section in AUTH.md.
 
 ---
 
-## メタエンドポイント
+## Meta Endpoints
 
-メタエンドポイントは認証不要で、システムの状態や API 情報を提供します。
+Meta endpoints require no authentication and provide system status and API information.
 
-### API ドキュメント（llms.txt形式）
+### API Documentation (llms.txt Format)
 
 ```http
 GET /llms.txt
 ```
 
-AI フレンドリーな [llms.txt](https://llmstxt.org/) 形式で API ドキュメントを返します。Markdown 形式で、AIエージェントや LLM が API を理解しやすい構造になっています。
+Returns API documentation in the AI-friendly [llms.txt](https://llmstxt.org/) format. Uses Markdown format structured for easy understanding by AI agents and LLMs.
 
-**レスポンス**
+**Response**
 - Content-Type: `text/markdown; charset=utf-8`
 
-### API ドキュメント（JSON形式）
+### API Documentation (JSON Format)
 
 ```http
 GET /api.json
 ```
 
-API エンドポイントの一覧を JSON 形式で返します。
+Returns a list of API endpoints in JSON format.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -708,27 +733,27 @@ API エンドポイントの一覧を JSON 形式で返します。
 }
 ```
 
-### OpenAPI 仕様
+### OpenAPI Specification
 
 ```http
 GET /openapi.json
 ```
 
-OpenAPI 3.0 仕様を JSON 形式で返します。Swagger UI や各種 API クライアント生成ツールで利用できます。
+Returns the OpenAPI 3.0 specification in JSON format. Can be used with Swagger UI and various API client generation tools.
 
-**レスポンス**
+**Response**
 - Content-Type: `application/json`
-- OpenAPI バージョン: 3.0.3
+- OpenAPI version: 3.0.3
 
-### バージョン情報
+### Version Information
 
 ```http
 GET /version
 ```
 
-FIWARE Orion 互換のバージョン情報を返します。
+Returns FIWARE Orion-compatible version information.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -737,7 +762,7 @@ FIWARE Orion 互換のバージョン情報を返します。
     "uptime": "0 d, 1 h, 30 m, 45 s",
     "git_hash": "787ae22",
     "compile_time": "2026-01-25T00:00:00Z",
-    "compiled_by": "vela",
+    "compiled_by": "geonicdb",
     "compiled_in": "aws-lambda",
     "release_date": "2026-01-25",
     "machine": "x64",
@@ -750,15 +775,15 @@ FIWARE Orion 互換のバージョン情報を返します。
 }
 ```
 
-### NGSI-LD API ディスカバリ
+### NGSI-LD API Discovery
 
 ```http
 GET /.well-known/ngsi-ld
 ```
 
-NGSI-LD API のサポート情報を返します。
+Returns NGSI-LD API support information.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -768,63 +793,98 @@ NGSI-LD API のサポート情報を返します。
 }
 ```
 
-### ヘルスチェック
+### Health Checks
 
-#### 基本ヘルス
+All health check endpoints return `region` and `regionRole` for multi-region HA support. Route 53 failover monitors these endpoints and switches to the secondary when the primary returns `503`.
+
+#### Basic Health
 
 ```http
 GET /health
 ```
 
-サービスの基本的な稼働状態を返します。
+Returns the basic operational status of the service.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
   "status": "healthy",
-  "timestamp": "2026-01-25T10:30:00Z"
+  "timestamp": "2026-01-25T10:30:00Z",
+  "region": "ap-northeast-1",
+  "regionRole": "primary"
 }
 ```
 
-#### Liveness プローブ
+#### Liveness Probe
 
 ```http
 GET /health/live
 ```
 
-Kubernetes の Liveness プローブ用。サービスが実行中かどうかを確認します。
+For Kubernetes / Route 53 liveness probes. Checks whether the service is running.
 
-**レスポンス**
-- 成功: `200 OK`
-- ステータス: `healthy`
+**Response Example**
 
-#### Readiness プローブ
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-25T10:30:00Z",
+  "region": "ap-northeast-1",
+  "regionRole": "primary"
+}
+```
+
+#### Readiness Probe
 
 ```http
 GET /health/ready
 ```
 
-Kubernetes の Readiness プローブ用。MongoDB への接続を含むサービスの準備状態を確認します。
+For Kubernetes / Route 53 readiness probes. Checks MongoDB connectivity, and optionally performs deep health checks for DynamoDB and EventBridge.
 
-**レスポンス**
-- 成功: `200 OK` with `status: "healthy"`
-- 失敗: `503 Service Unavailable` with `status: "unhealthy"`
+**Enabling Deep Health Checks via Environment Variables**
 
-### 統計情報・メトリクス
+| Environment Variable | Description |
+|---------|------|
+| `HEALTH_CHECK_DYNAMODB=true` | Add DynamoDB DescribeTable connectivity check |
+| `HEALTH_CHECK_EVENTBRIDGE=true` | Add EventBridge DescribeEventBus connectivity check |
 
-FIWARE Orion 互換の統計情報エンドポイントと Prometheus 形式のメトリクスエンドポイントを提供します。
+**Response**
+- Success: `200 OK` with `status: "healthy"`
+- Failure: `503 Service Unavailable` with `status: "unhealthy"`
 
-#### 統計情報
+**Response Example (with deep health checks enabled)**
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-01-25T10:30:00Z",
+  "region": "ap-northeast-1",
+  "regionRole": "primary",
+  "checks": {
+    "mongodb": { "status": "healthy", "latencyMs": 12 },
+    "dynamodb": { "status": "healthy", "latencyMs": 8 },
+    "eventbridge": { "status": "healthy", "latencyMs": 15 }
+  },
+  "totalLatencyMs": 35
+}
+```
+
+### Statistics and Metrics
+
+Provides a FIWARE Orion-compatible statistics endpoint and a Prometheus-format metrics endpoint.
+
+#### Statistics
 
 ```http
 GET /statistics
 Authorization: Bearer <token>
 ```
 
-サーバーの稼働統計情報を FIWARE Orion 互換の形式で返します。認証が有効な場合（`AUTH_ENABLED=true`）、認証済みユーザーのみアクセス可能です。
+Returns server operational statistics in FIWARE Orion-compatible format. When authentication is enabled (`AUTH_ENABLED=true`), only authenticated users can access this endpoint.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -855,16 +915,16 @@ Authorization: Bearer <token>
 }
 ```
 
-#### キャッシュ統計
+#### Cache Statistics
 
 ```http
 GET /cache/statistics
 Authorization: Bearer <token>
 ```
 
-サブスクリプションおよびレジストレーションのキャッシュ統計を返します。認証が有効な場合（`AUTH_ENABLED=true`）、認証済みユーザーのみアクセス可能です。
+Returns cache statistics for subscriptions and registrations. When authentication is enabled (`AUTH_ENABLED=true`), only authenticated users can access this endpoint.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -885,70 +945,70 @@ Authorization: Bearer <token>
 }
 ```
 
-#### Prometheus メトリクス
+#### Prometheus Metrics
 
 ```http
 GET /metrics
 Authorization: Bearer <token>
 ```
 
-Prometheus 形式（exposition format）でメトリクスを返します。認証が有効な場合（`AUTH_ENABLED=true`）、認証済みユーザーのみアクセス可能です。Kubernetes 環境での監視や Grafana ダッシュボードとの連携に使用できます。
+Returns metrics in Prometheus exposition format. When authentication is enabled (`AUTH_ENABLED=true`), only authenticated users can access this endpoint. Can be used for monitoring in Kubernetes environments and integration with Grafana dashboards.
 
-**レスポンス**
+**Response**
 - Content-Type: `text/plain; version=0.0.4`
 
-**レスポンス例**
+**Response Example**
 
 ```text
-# HELP vela_uptime_seconds Server uptime in seconds
-# TYPE vela_uptime_seconds gauge
-vela_uptime_seconds 3600
+# HELP geonicdb_uptime_seconds Server uptime in seconds
+# TYPE geonicdb_uptime_seconds gauge
+geonicdb_uptime_seconds 3600
 
-# HELP vela_entities_total Total number of entities
-# TYPE vela_entities_total gauge
-vela_entities_total 1000
+# HELP geonicdb_entities_total Total number of entities
+# TYPE geonicdb_entities_total gauge
+geonicdb_entities_total 1000
 
-# HELP vela_subscriptions_total Total number of subscriptions
-# TYPE vela_subscriptions_total gauge
-vela_subscriptions_total 50
+# HELP geonicdb_subscriptions_total Total number of subscriptions
+# TYPE geonicdb_subscriptions_total gauge
+geonicdb_subscriptions_total 50
 
-# HELP vela_registrations_total Total number of registrations
-# TYPE vela_registrations_total gauge
-vela_registrations_total 20
+# HELP geonicdb_registrations_total Total number of registrations
+# TYPE geonicdb_registrations_total gauge
+geonicdb_registrations_total 20
 
-# HELP vela_http_requests_total Total HTTP requests
-# TYPE vela_http_requests_total counter
-vela_http_requests_total{endpoint="entities"} 1000
-vela_http_requests_total{endpoint="subscriptions"} 300
+# HELP geonicdb_http_requests_total Total HTTP requests
+# TYPE geonicdb_http_requests_total counter
+geonicdb_http_requests_total{endpoint="entities"} 1000
+geonicdb_http_requests_total{endpoint="subscriptions"} 300
 
-# HELP vela_notifications_sent_total Total notifications sent
-# TYPE vela_notifications_sent_total counter
-vela_notifications_sent_total 500
+# HELP geonicdb_notifications_sent_total Total notifications sent
+# TYPE geonicdb_notifications_sent_total counter
+geonicdb_notifications_sent_total 500
 
-# HELP vela_notifications_failed_total Total notifications failed
-# TYPE vela_notifications_failed_total counter
-vela_notifications_failed_total 10
+# HELP geonicdb_notifications_failed_total Total notifications failed
+# TYPE geonicdb_notifications_failed_total counter
+geonicdb_notifications_failed_total 10
 ```
 
-#### AI インテグレーション
+#### AI Integration
 
-##### AI ツール定義
+##### AI Tool Definitions
 
 ```http
 GET /tools.json
 ```
 
-Claude Tool Use / OpenAI Function Calling 互換のツール定義を JSON 形式で返します。AI エージェントがAPIをツールとして利用するためのスキーマです。
+Returns tool definitions in JSON format compatible with Claude Tool Use / OpenAI Function Calling. This is the schema for AI agents to use the API as tools.
 
-**提供ツール**: `list_entities`, `get_entity`, `search_by_location`, `search_by_attribute`, `create_entity`, `update_entity`, `delete_entity`, `list_entity_types`, `get_temporal_data`, `subscribe`
+**Provided Tools**: `list_entities`, `get_entity`, `search_by_location`, `search_by_attribute`, `create_entity`, `update_entity`, `delete_entity`, `list_entity_types`, `get_temporal_data`, `subscribe`
 
-##### AI プラグインマニフェスト
+##### AI Plugin Manifest
 
 ```http
 GET /.well-known/ai-plugin.json
 ```
 
-AI プラグインマニフェストを返します。API の概要、ツール定義 URL、OpenAPI 仕様 URL 等を含みます。
+Returns the AI plugin manifest. Includes an overview of the API, tool definition URL, OpenAPI specification URL, etc.
 
 ##### MCP (Model Context Protocol)
 
@@ -958,15 +1018,15 @@ Content-Type: application/json
 Accept: application/json, text/event-stream
 ```
 
-MCP Streamable HTTP エンドポイント。MCP 対応 AI クライアント（Claude Desktop 等）から直接接続できます。ステートレスモード（JSON レスポンス）で動作し、上記 10 ツールすべてを MCP tools/call で利用可能です。
+MCP Streamable HTTP endpoint. Can be connected directly from MCP-compatible AI clients (such as Claude Desktop). Operates in stateless mode (JSON response), with all 10 tools available via MCP tools/call.
 
-`AUTH_ENABLED=true` の場合、Bearer トークン（JWT）による認証が必要です。テナントアクセス制御も適用されます。
+When `AUTH_ENABLED=true`, authentication via Bearer token (JWT) is required. Tenant access control also applies.
 
-**Claude Desktop 設定例**:
+**Claude Desktop Configuration Example**:
 ```json
 {
   "mcpServers": {
-    "vela": {
+    "geonicdb": {
       "command": "npx",
       "args": [
         "mcp-remote",
@@ -978,20 +1038,20 @@ MCP Streamable HTTP エンドポイント。MCP 対応 AI クライアント（C
   }
 }
 ```
-※ `headers` は `AUTH_ENABLED=true` の場合のみ必要です。
+Note: `headers` is only required when `AUTH_ENABLED=true`.
 
-詳細は [AI_INTEGRATION.md](../ai-integration/overview.md) を参照してください。
+For details, see [AI_INTEGRATION.md](../ai-integration/overview.md).
 
-#### テナント別メトリクス（Admin API）
+#### Per-Tenant Metrics (Admin API)
 
 ```http
 GET /admin/metrics
 Authorization: Bearer <accessToken>
 ```
 
-テナントおよびServicePath別のメトリクスを返します。`super_admin` ロールが必要です。
+Returns metrics by tenant and service path. Requires the `super_admin` role.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -1018,187 +1078,187 @@ Authorization: Bearer <accessToken>
 
 ## NGSIv2 API
 
-NGSIv2 API の詳細は [API_NGSIV2.md](./ngsiv2.md) を参照してください。
+For details on the NGSIv2 API, see [API_NGSIV2.md](./ngsiv2.md).
 
 ---
 
 ## NGSI-LD API
 
-NGSI-LD API の詳細は [NGSI-LD APIリファレンス](./ngsild.md) を参照してください。
+For details on the NGSI-LD API, see [API_NGSILD.md](./ngsild.md).
 
 ---
 
-## クエリ言語
+## Query Language
 
-`q` パラメータで属性値によるフィルタリングが可能です。
+Filtering by attribute values is possible using the `q` parameter.
 
-### 基本構文
+### Basic Syntax
 
-| 演算子 | 説明 | 例 |
-|--------|------|-----|
-| `==` | 等しい | `temperature==23` |
-| `!=` | 等しくない | `status!=inactive` |
-| `>` | より大きい | `temperature>20` |
-| `<` | より小さい | `temperature<30` |
-| `>=` | 以上 | `temperature>=20` |
-| `<=` | 以下 | `temperature<=30` |
-| `..` | 範囲 | `temperature==20..30` |
-| `~=` | パターンマッチ（正規表現） | `name~=Room.*` |
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `==` | Equal to | `temperature==23` |
+| `!=` | Not equal to | `status!=inactive` |
+| `>` | Greater than | `temperature>20` |
+| `<` | Less than | `temperature<30` |
+| `>=` | Greater than or equal to | `temperature>=20` |
+| `<=` | Less than or equal to | `temperature<=30` |
+| `..` | Range | `temperature==20..30` |
+| `~=` | Pattern match (regular expression) | `name~=Room.*` |
 
-### 複数条件
+### Multiple Conditions
 
-セミコロン（`;`）で AND 条件を結合：
+Combine AND conditions with semicolons (`;`):
 
 ```text
 q=temperature>20;pressure<800
 ```
 
-パイプ（`|`）で OR 条件を結合（`;` は `|` より優先度が高い）：
+Combine OR conditions with pipes (`|`) (`;` has higher precedence than `|`):
 
 ```text
 q=temperature==23|temperature==35
 q=temperature>25;humidity<40|status==active
 ```
 
-### 範囲クエリ
+### Range Query
 
-`==` 演算子と `..` を組み合わせて範囲フィルタリング（境界値を含む）：
+Combine the `==` operator with `..` for range filtering (inclusive of boundaries):
 
 ```text
-q=temperature==20..30    # 20以上30以下
+q=temperature==20..30    # 20 or above and 30 or below
 ```
 
-### 文字列マッチング
+### String Matching
 
 ```text
-q=status~=act     # 部分一致（正規表現）
-q=name==Room1     # 完全一致
+q=status~=act     # Partial match (regular expression)
+q=name==Room1     # Exact match
 ```
 
 ---
 
-## ジオクエリ
+## Geo-Queries
 
-位置情報を持つエンティティを空間的にクエリできます。
+Entities with location information can be queried spatially.
 
-### パラメータ
+### Parameters
 
-| パラメータ | 説明 |
-|-----------|------|
-| `georel` | 空間関係（coveredBy, within, intersects, disjoint, equals） |
-| `geometry` | ジオメトリタイプ（point, polygon, line, box） |
-| `coords` | 座標（NGSIv2: 緯度,経度 形式、NGSI-LD: 経度,緯度 形式、複数点はセミコロン区切り） |
+| Parameter | Description |
+|-----------|-------------|
+| `georel` | Spatial relationship (coveredBy, within, intersects, disjoint, equals) |
+| `geometry` | Geometry type (point, polygon, line, box) |
+| `coords` | Coordinates (NGSIv2: latitude,longitude format; NGSI-LD: longitude,latitude format; multiple points separated by semicolons) |
 
-> **注意**: `georel`、`geometry`、`coords`（NGSI-LDでは`coordinates`）は全て同時に指定する必要があります。一部のみ指定した場合は `400 Bad Request` が返されます（ETSI GS CIM 009 V1.9.1 clause 4.10）。
+> **Note**: `georel`, `geometry`, and `coords` (or `coordinates` in NGSI-LD) must all be specified together. Specifying only some of them returns `400 Bad Request` (ETSI GS CIM 009 V1.9.1 clause 4.10).
 
-### 座標の指定形式
+### Coordinate Format
 
-NGSIv2では **緯度,経度** の順序で指定します（NGSIv2仕様準拠）。NGSI-LDでは **経度,緯度** の順序です（GeoJSON標準に準拠）。
+In NGSIv2, coordinates are specified in **latitude,longitude** order (conforming to the NGSIv2 specification). In NGSI-LD, coordinates are in **longitude,latitude** order (conforming to the GeoJSON standard).
 
-> **⚠️ 重要**: NGSIv2 の緯度,経度 順序は GeoJSON 標準（経度,緯度）からの逸脱です。NGSI-LD ではこの問題が修正され、GeoJSON と同じ経度,緯度 順序を使用します。API を使用する際は、使用している API バージョンに応じて座標順序を正しく指定してください。
+> **Important**: The latitude,longitude order in NGSIv2 is a deviation from the GeoJSON standard (longitude,latitude). This was corrected in NGSI-LD, which uses the same longitude,latitude order as GeoJSON. When using the API, make sure to specify coordinates in the correct order for the API version being used.
 
 ```text
-# NGSIv2（緯度,経度）
-coords=35.6812,139.7671              # 単一点
-coords=34,138;34,141;37,141;37,138;34,138  # ポリゴン（セミコロン区切り）
+# NGSIv2 (latitude,longitude)
+coords=35.6812,139.7671              # Single point
+coords=34,138;34,141;37,141;37,138;34,138  # Polygon (semicolon-separated)
 
-# NGSI-LD（経度,緯度）
-coordinates=[139.7671,35.6812]       # 単一点
+# NGSI-LD (longitude,latitude)
+coordinates=[139.7671,35.6812]       # Single point
 ```
 
-### 領域内検索（coveredBy / within）
+### Area Search (coveredBy / within)
 
-ポリゴン内のエンティティを検索：
+Search for entities within a polygon:
 
 ```http
 GET /v2/entities?georel=coveredBy&geometry=polygon&coords=34,138;34,141;37,141;37,138;34,138
 ```
 
-### 交差検索（intersects）
+### Intersection Search (intersects)
 
-ジオメトリと交差するエンティティを検索：
+Search for entities intersecting a geometry:
 
 ```http
 GET /v2/entities?georel=intersects&geometry=box&coords=35.67,139.76;35.69,139.78
 ```
 
-### 非交差検索（disjoint）
+### Disjoint Search (disjoint)
 
-ジオメトリと交差しないエンティティを検索：
+Search for entities not intersecting a geometry:
 
 ```http
 GET /v2/entities?georel=disjoint&geometry=polygon&coords=34,138;34,141;37,141;37,138;34,138
 ```
 
-### 近接検索（near）
+### Proximity Search (near)
 
-指定座標から一定距離内のエンティティを検索します。
+Search for entities within a certain distance from the specified coordinates.
 
-#### パラメータ
+#### Parameters
 
-| パラメータ | 説明 |
-|-----------|------|
-| `maxDistance` | 最大距離（メートル） |
-| `minDistance` | 最小距離（メートル） |
-| `orderByDistance` | `true` を指定すると距離順でソートし、各エンティティに距離情報（`@distance`）を付与 |
+| Parameter | Description |
+|-----------|-------------|
+| `maxDistance` | Maximum distance (meters) |
+| `minDistance` | Minimum distance (meters) |
+| `orderByDistance` | When set to `true`, sorts results by distance and attaches distance information (`@distance`) to each entity |
 
-#### 基本的な使用例（NGSIv2）
+#### Basic Usage (NGSIv2)
 
 ```http
-# 東京駅から5km以内のエンティティを検索
+# Search for entities within 5km of Tokyo Station
 GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.7671
 
-# 東京駅から100km以上離れたエンティティを検索
+# Search for entities more than 100km from Tokyo Station
 GET /v2/entities?georel=near;minDistance:100000&geometry=point&coords=35.6812,139.7671
 
-# ドーナツ型検索（500m〜10kmの範囲）
+# Donut-shaped search (500m to 10km range)
 GET /v2/entities?georel=near;minDistance:500;maxDistance:10000&geometry=point&coords=35.6812,139.7671
 ```
 
-#### NGSI-LDでの使用例
+#### Usage in NGSI-LD
 
-NGSI-LDでは `==` を使用してパラメータを指定します：
+In NGSI-LD, parameters are specified using `==`:
 
 ```http
-# 東京駅から5km以内のエンティティを検索
+# Search for entities within 5km of Tokyo Station
 GET /ngsi-ld/v1/entities?georel=near;maxDistance==5000&geometry=Point&coordinates=[139.7671,35.6812]
 
-# 東京駅から100km以上離れたエンティティを検索
+# Search for entities more than 100km from Tokyo Station
 GET /ngsi-ld/v1/entities?georel=near;minDistance==100000&geometry=Point&coordinates=[139.7671,35.6812]
 
-# ドーナツ型検索（500m〜10kmの範囲）
+# Donut-shaped search (500m to 10km range)
 GET /ngsi-ld/v1/entities?georel=near;minDistance==500;maxDistance==10000&geometry=Point&coordinates=[139.7671,35.6812]
 ```
 
-#### georel 構文の比較表
+#### georel Syntax Comparison
 
-NGSIv2 と NGSI-LD では georel パラメータの修飾子構文が異なります：
+The georel parameter modifier syntax differs between NGSIv2 and NGSI-LD:
 
-| 機能 | NGSIv2 | NGSI-LD | 説明 |
-|------|--------|---------|------|
-| 最大距離指定 | `georel=near;maxDistance:5000` | `georel=near;maxDistance==5000` | `:` vs `==` の違い |
-| 最小距離指定 | `georel=near;minDistance:1000` | `georel=near;minDistance==1000` | `:` vs `==` の違い |
-| 距離範囲指定 | `georel=near;minDistance:500;maxDistance:10000` | `georel=near;minDistance==500;maxDistance==10000` | `:` vs `==` の違い |
+| Feature | NGSIv2 | NGSI-LD | Description |
+|---------|--------|---------|-------------|
+| Max distance | `georel=near;maxDistance:5000` | `georel=near;maxDistance==5000` | `:` vs `==` difference |
+| Min distance | `georel=near;minDistance:1000` | `georel=near;minDistance==1000` | `:` vs `==` difference |
+| Distance range | `georel=near;minDistance:500;maxDistance:10000` | `georel=near;minDistance==500;maxDistance==10000` | `:` vs `==` difference |
 
-> **構文の違いの理由**: NGSIv2 では `:` を使用してパラメータ値を指定しますが、NGSI-LD では ETSI 仕様に従い `==` を使用します。API を呼び出す際は、使用している API バージョンに対応する構文を使用してください。
+> **Reason for syntax difference**: NGSIv2 uses `:` to specify parameter values, while NGSI-LD uses `==` in accordance with the ETSI specification. When calling the API, use the syntax corresponding to the API version being used.
 
-#### 距離順ソートと距離情報の取得
+#### Distance Sorting and Distance Information
 
-`orderByDistance=true` パラメータを指定すると、以下の機能が有効になります：
+Specifying the `orderByDistance=true` parameter enables the following features:
 
-1. **距離順ソート**: 結果が指定座標からの距離の昇順でソートされます
-2. **距離情報の付与**: 各エンティティに `@distance` 属性が追加され、指定座標からの距離（メートル）が返却されます
+1. **Distance sorting**: Results are sorted in ascending order of distance from the specified coordinates
+2. **Distance information**: A `@distance` attribute is added to each entity, returning the distance (in meters) from the specified coordinates
 
-この機能は MongoDB の `$geoNear` aggregation pipeline を使用して実装されています。
+This feature is implemented using MongoDB's `$geoNear` aggregation pipeline.
 
-##### NGSIv2での使用例
+##### Usage in NGSIv2
 
 ```http
-# 東京駅から5km以内のエンティティを距離順で取得
+# Retrieve entities within 5km of Tokyo Station sorted by distance
 GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.7671&orderByDistance=true
 ```
 
-レスポンス例：
+Response example:
 ```json
 [
   {
@@ -1224,137 +1284,137 @@ GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.
 ]
 ```
 
-##### NGSI-LDでの使用例
+##### Usage in NGSI-LD
 
 ```http
-# 東京駅から5km以内のエンティティを距離順で取得
+# Retrieve entities within 5km of Tokyo Station sorted by distance
 GET /ngsi-ld/v1/entities?georel=near;maxDistance==5000&geometry=Point&coordinates=[139.7671,35.6812]&orderByDistance=true
 ```
 
-##### 降順ソート
+##### Descending Sort
 
-`orderDirection=desc` を併用すると、距離の降順（遠い順）でソートできます：
+Use `orderDirection=desc` together to sort by distance in descending order (farthest first):
 
 ```http
 GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.7671&orderByDistance=true&orderDirection=desc
 ```
 
-#### 制限事項
+#### Limitations
 
-- **Pointジオメトリのみ対応**: `geometry=point` (NGSIv2) または `geometry=Point` (NGSI-LD) のみサポート
+- **Point geometry only**: Only `geometry=point` (NGSIv2) or `geometry=Point` (NGSI-LD) is supported
 
-### エラーハンドリング
+### Error Handling
 
-ジオクエリのパラメータが不正な場合、`400 Bad Request` が返されます。
+If geo-query parameters are invalid, `400 Bad Request` is returned.
 
-| エラー条件 | エラーメッセージ例 |
-|-----------|------------------|
-| 無効な `georel` 値 | `Invalid georel: xxx. Supported values: near, coveredBy, within, contains, intersects, disjoint, equals` |
-| 無効な `geometry` 値 | `Unsupported geometry type: xxx. Supported types: point, polygon, linestring, line, box` |
-| 座標数不足（Point） | `Point geometry requires at least 2 coordinates, but got 1` |
-| 座標数不足（Polygon） | `Polygon geometry requires at least 4 coordinate pairs (8 values), but got 6 values` |
-| 座標数不足（LineString） | `LineString geometry requires at least 2 coordinate pairs (4 values), but got 2 values` |
-| 座標数不足（Box） | `Box geometry requires 2 coordinate pairs (4 values), but got 2 values` |
-| 座標値が不正 | `Invalid coordinate value: xxx` |
-| 緯度が範囲外 | `Latitude out of range: 91. Must be between -90 and 90.` |
-| 経度が範囲外 | `Longitude out of range: 181. Must be between -180 and 180.` |
-| `near` で距離未指定 | `The 'near' georel requires maxDistance and/or minDistance modifier` |
-| `near` でPoint以外 | `The 'near' georel requires Point geometry, but 'polygon' was provided` |
+| Error Condition | Example Error Message |
+|----------------|-----------------------|
+| Invalid `georel` value | `Invalid georel: xxx. Supported values: near, coveredBy, within, contains, intersects, disjoint, equals` |
+| Invalid `geometry` value | `Unsupported geometry type: xxx. Supported types: point, polygon, linestring, line, box` |
+| Insufficient coordinates (Point) | `Point geometry requires at least 2 coordinates, but got 1` |
+| Insufficient coordinates (Polygon) | `Polygon geometry requires at least 4 coordinate pairs (8 values), but got 6 values` |
+| Insufficient coordinates (LineString) | `LineString geometry requires at least 2 coordinate pairs (4 values), but got 2 values` |
+| Insufficient coordinates (Box) | `Box geometry requires 2 coordinate pairs (4 values), but got 2 values` |
+| Invalid coordinate value | `Invalid coordinate value: xxx` |
+| Latitude out of range | `Latitude out of range: 91. Must be between -90 and 90.` |
+| Longitude out of range | `Longitude out of range: 181. Must be between -180 and 180.` |
+| `near` without distance | `The 'near' georel requires maxDistance and/or minDistance modifier` |
+| `near` with non-Point geometry | `The 'near' georel requires Point geometry, but 'polygon' was provided` |
 
 ---
 
-## 空間ID検索
+## Spatial ID Search
 
-デジタル庁/IPAが策定した3次元空間識別規格（ZFXY形式）に基づく空間検索をサポートしています。
+Supports spatial search based on the 3D spatial identification standard (ZFXY format) established by Japan's Digital Agency / IPA.
 
-### ZFXY形式
+### ZFXY Format
 
-| 要素 | 説明 | 範囲 |
-|-----|------|-----|
-| Z | ズームレベル | 0-28 |
-| F | 鉛直方向（高度レベル） | 整数 |
-| X | 東西方向（経度タイル） | 0 〜 2^z-1 |
-| Y | 南北方向（緯度タイル） | 0 〜 2^z-1 |
+| Element | Description | Range |
+|---------|-------------|-------|
+| Z | Zoom level | 0-28 |
+| F | Vertical direction (altitude level) | Integer |
+| X | East-west direction (longitude tile) | 0 to 2^z-1 |
+| Y | North-south direction (latitude tile) | 0 to 2^z-1 |
 
-形式: `{z}/{f}/{x}/{y}` (例: `20/0/929593/410773`)
+Format: `{z}/{f}/{x}/{y}` (example: `20/0/929593/410773`)
 
-### NGSIv2での使用
+### Usage in NGSIv2
 
 ```http
 GET /v2/entities?spatialId=20/0/929593/410773
 ```
 
-### NGSI-LDでの使用
+### Usage in NGSI-LD
 
 ```http
 GET /ngsi-ld/v1/entities?spatialId=20/0/929593/410773
 ```
 
-### 階層展開（spatialIdDepth）
+### Hierarchical Expansion (spatialIdDepth)
 
-`spatialIdDepth` パラメータを指定すると、指定した空間IDを中心に周囲のタイルに展開して検索します。
+Specifying the `spatialIdDepth` parameter expands the search to surrounding tiles centered on the specified spatial ID.
 
 ```http
-# depth=1: 3x3タイル（9タイル）に展開
+# depth=1: Expands to a 3x3 tile grid (9 tiles)
 GET /v2/entities?spatialId=20/0/929593/410773&spatialIdDepth=1
 
-# depth=2: 5x5タイル（25タイル）に展開
+# depth=2: Expands to a 5x5 tile grid (25 tiles)
 GET /v2/entities?spatialId=20/0/929593/410773&spatialIdDepth=2
 ```
 
-| spatialIdDepth | 展開範囲 | タイル数 |
-|----------------|---------|---------|
-| 0（デフォルト） | 指定タイルのみ | 1 |
+| spatialIdDepth | Expansion Range | Tile Count |
+|----------------|-----------------|------------|
+| 0 (default) | Specified tile only | 1 |
 | 1 | 3x3 | 9 |
 | 2 | 5x5 | 25 |
 | 3 | 7x7 | 49 |
 | 4 | 9x9 | 81 |
 
-### 使用例
+### Usage Examples
 
 ```bash
-# 東京駅付近（ズームレベル20）のエンティティを検索
+# Search for entities near Tokyo Station (zoom level 20)
 curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773" \
   -H "Fiware-Service: smartcity"
 
-# 周囲3x3タイルに展開して検索
+# Search with expansion to surrounding 3x3 tiles
 curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773&spatialIdDepth=1" \
   -H "Fiware-Service: smartcity"
 ```
 
 ---
 
-## GeoJSON出力
+## GeoJSON Output
 
-エンティティをRFC 7946準拠のGeoJSON FeatureCollection形式で出力できます。
+Entities can be output in RFC 7946-compliant GeoJSON FeatureCollection format.
 
-### NGSIv2での使用
+### Usage in NGSIv2
 
-`options=geojson` パラメータまたは `Accept: application/geo+json` ヘッダーを使用します：
+Use the `options=geojson` parameter or the `Accept: application/geo+json` header:
 
 ```http
-# optionsパラメータ
+# options parameter
 GET /v2/entities?type=Store&options=geojson
 
-# Acceptヘッダー
+# Accept header
 GET /v2/entities?type=Store
 Accept: application/geo+json
 ```
 
-### NGSI-LDでの使用
+### Usage in NGSI-LD
 
-`format=geojson` パラメータまたは `Accept: application/geo+json` ヘッダーを使用します：
+Use the `format=geojson` parameter or the `Accept: application/geo+json` header:
 
 ```http
-# formatパラメータ
+# format parameter
 GET /ngsi-ld/v1/entities?type=Store&format=geojson
 
-# Acceptヘッダー
+# Accept header
 GET /ngsi-ld/v1/entities?type=Store
 Accept: application/geo+json
 ```
 
-### レスポンス形式
+### Response Format
 
 ```json
 {
@@ -1369,7 +1429,7 @@ Accept: application/geo+json
       },
       "properties": {
         "type": "Store",
-        "name": "東京店",
+        "name": "Tokyo Store",
         "category": "retail"
       }
     },
@@ -1382,7 +1442,7 @@ Accept: application/geo+json
       },
       "properties": {
         "type": "Store",
-        "name": "品川店",
+        "name": "Shinagawa Store",
         "category": "retail"
       }
     }
@@ -1390,9 +1450,9 @@ Accept: application/geo+json
 }
 ```
 
-### NGSI-LDでの@context
+### @context in NGSI-LD
 
-NGSI-LDでGeoJSON出力する場合、`@context`がFeatureCollectionレベルに含まれます：
+When outputting GeoJSON in NGSI-LD, `@context` is included at the FeatureCollection level:
 
 ```json
 {
@@ -1404,64 +1464,64 @@ NGSI-LDでGeoJSON出力する場合、`@context`がFeatureCollectionレベルに
 
 ### Content-Type
 
-GeoJSON出力時のレスポンスヘッダー：
+Response header for GeoJSON output:
 
 ```http
 Content-Type: application/geo+json
 ```
 
-### 使用例
+### Usage Examples
 
 ```bash
-# NGSIv2でGeoJSON出力
+# GeoJSON output in NGSIv2
 curl "http://localhost:3000/v2/entities?type=Store&options=geojson" \
   -H "Fiware-Service: smartcity"
 
-# NGSI-LDでGeoJSON出力（formatパラメータ）
+# GeoJSON output in NGSI-LD (format parameter)
 curl "http://localhost:3000/ngsi-ld/v1/entities?type=Store&format=geojson" \
   -H "Fiware-Service: smartcity"
 
-# NGSI-LDでGeoJSON出力（Acceptヘッダー）
+# GeoJSON output in NGSI-LD (Accept header)
 curl "http://localhost:3000/ngsi-ld/v1/entities?type=Store" \
   -H "Fiware-Service: smartcity" \
   -H "Accept: application/geo+json"
 
-# 空間ID検索とGeoJSON出力を組み合わせ
+# Combine spatial ID search with GeoJSON output
 curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773&options=geojson" \
   -H "Fiware-Service: smartcity"
 ```
 
-### 注意事項
+### Notes
 
-- `location` 属性がないエンティティは `geometry: null` として出力されます
-- GeoJSON出力では `keyValues` オプションと同時に使用できます
-- Polygon、LineString、MultiPoint等のジオメトリタイプもサポートされます
+- Entities without a `location` attribute are output as `geometry: null`
+- GeoJSON output can be used together with the `keyValues` option
+- Geometry types including Polygon, LineString, MultiPoint, etc. are supported
 
 ---
 
-## ベクトルタイル
+## Vector Tiles
 
-エンティティをXYZタイルスキームに基づいたGeoJSONベクトルタイルとして出力できます。大量のエンティティを効率的に地図上に表示するために最適化されています。
+Entities can be output as GeoJSON vector tiles based on the XYZ tile scheme. Optimized for efficiently displaying large numbers of entities on a map.
 
-### エンドポイント
+### Endpoints
 
-| エンドポイント | 説明 |
-|---------------|------|
-| `GET /v2/tiles` | TileJSONメタデータ（NGSIv2） |
-| `GET /v2/tiles/{z}/{x}/{y}.geojson` | GeoJSONタイル（NGSIv2） |
-| `GET /ngsi-ld/v1/tiles` | TileJSONメタデータ（NGSI-LD） |
-| `GET /ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GeoJSONタイル（NGSI-LD） |
+| Endpoint | Description |
+|----------|-------------|
+| `GET /v2/tiles` | TileJSON metadata (NGSIv2) |
+| `GET /v2/tiles/{z}/{x}/{y}.geojson` | GeoJSON tile (NGSIv2) |
+| `GET /ngsi-ld/v1/tiles` | TileJSON metadata (NGSI-LD) |
+| `GET /ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GeoJSON tile (NGSI-LD) |
 
-### TileJSONメタデータ
+### TileJSON Metadata
 
-TileJSON 3.0仕様に準拠したメタデータを返します：
+Returns metadata conforming to the TileJSON 3.0 specification:
 
 ```bash
 curl "http://localhost:3000/v2/tiles" \
   -H "Fiware-Service: smartcity"
 ```
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -1476,36 +1536,36 @@ curl "http://localhost:3000/v2/tiles" \
 }
 ```
 
-### GeoJSONタイル取得
+### Retrieve GeoJSON Tile
 
-XYZ座標を指定してタイル内のエンティティをGeoJSON形式で取得します：
+Retrieve entities within a tile in GeoJSON format by specifying XYZ coordinates:
 
 ```bash
-# 東京周辺のズームレベル14タイル
+# Zoom level 14 tile around Tokyo
 curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson" \
   -H "Fiware-Service: smartcity"
 ```
 
-**クエリパラメータ**
+**Query Parameters**
 
-| パラメータ | 説明 |
-|-----------|------|
-| `type` | エンティティタイプでフィルタ |
-| `attrs` | 出力する属性をカンマ区切りで指定 |
+| Parameter | Description |
+|-----------|-------------|
+| `type` | Filter by entity type |
+| `attrs` | Specify attributes to output as a comma-separated list |
 
-**使用例**
+**Usage Examples**
 
 ```bash
-# 特定タイプのエンティティのみ取得
+# Retrieve only a specific entity type
 curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?type=Store" \
   -H "Fiware-Service: smartcity"
 
-# 特定の属性のみ取得
+# Retrieve only specific attributes
 curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" \
   -H "Fiware-Service: smartcity"
 ```
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -1521,7 +1581,7 @@ curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" 
       "properties": {
         "entityId": "Store1",
         "entityType": "Store",
-        "name": "東京駅店"
+        "name": "Tokyo Station Store"
       }
     }
   ],
@@ -1534,11 +1594,11 @@ curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" 
 }
 ```
 
-### クラスタリング
+### Clustering
 
-タイル内のエンティティ数が閾値（デフォルト: 1000）を超えた場合、自動的にクラスタリングされます。クラスタリング時は、タイル内の全エンティティの重心座標を持つ単一のクラスタFeatureが返されます。
+When the number of entities in a tile exceeds the threshold (default: 1000), they are automatically clustered. When clustered, a single cluster Feature with the centroid coordinates of all entities in the tile is returned.
 
-**クラスタリング時のレスポンス例**
+**Response Example When Clustered**
 
 ```json
 {
@@ -1571,20 +1631,20 @@ curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" 
 }
 ```
 
-**レスポンスヘッダー**
+**Response Headers**
 
-| ヘッダー | 説明 |
-|---------|------|
-| `X-Tile-Mode` | `individual`（個別エンティティ）または `clustered`（クラスタリング） |
-| `X-Total-Count` | タイル内の総エンティティ数 |
+| Header | Description |
+|--------|-------------|
+| `X-Tile-Mode` | `individual` (individual entities) or `clustered` (clustering) |
+| `X-Total-Count` | Total number of entities in the tile |
 
-### 設定
+### Configuration
 
-| 環境変数 | デフォルト | 説明 |
-|----------|-----------|------|
-| `MAX_ENTITIES_PER_REQUEST` | `1000` | クラスタリングを行う閾値（この値以上でクラスタリング） |
+| Environment Variable | Default | Description |
+|----------------------|---------|-------------|
+| `MAX_ENTITIES_PER_REQUEST` | `1000` | Threshold for clustering (clustering occurs at or above this value) |
 
-### 参考
+### References
 
 - [TileJSON 3.0 Specification](https://github.com/mapbox/tilejson-spec/tree/master/3.0.0)
 - [RFC 7946 GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946)
@@ -1592,75 +1652,75 @@ curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" 
 
 ---
 
-## 座標参照系（CRS）
+## Coordinate Reference System (CRS)
 
-座標参照系（Coordinate Reference System）を指定することで、異なる測地系間で座標変換を行うことができます。
+By specifying a Coordinate Reference System, coordinates can be transformed between different geodetic systems.
 
-### 対応CRS
+### Supported CRS
 
-| CRS | EPSG | 説明 | 用途 |
-|-----|------|------|------|
-| WGS84 | EPSG:4326 | 世界測地系1984（デフォルト） | GPS、国際標準 |
-| JGD2011 | EPSG:6668 | 日本測地系2011 | 日本国内の高精度測量 |
-| Web Mercator | EPSG:3857 | Webメルカトル図法 | Google Maps, OpenStreetMap等 |
+| CRS | EPSG | Description | Use Case |
+|-----|------|-------------|----------|
+| WGS84 | EPSG:4326 | World Geodetic System 1984 (default) | GPS, international standard |
+| JGD2011 | EPSG:6668 | Japanese Geodetic Datum 2011 | High-precision surveying in Japan |
+| Web Mercator | EPSG:3857 | Web Mercator projection | Google Maps, OpenStreetMap, etc. |
 
-### CRSの指定方法
+### How to Specify CRS
 
 #### NGSIv2
 
-`crs` クエリパラメータで EPSG コードを指定します：
+Specify the EPSG code using the `crs` query parameter:
 
 ```http
-# JGD2011座標で取得
+# Retrieve with JGD2011 coordinates
 GET /v2/entities?type=Store&crs=EPSG:6668
 
-# Web Mercator座標で取得
+# Retrieve with Web Mercator coordinates
 GET /v2/entities?type=Store&crs=EPSG:3857
 ```
 
 #### NGSI-LD
 
-NGSI-LD では EPSG 短縮形式と URN 形式の両方をサポートします：
+NGSI-LD supports both EPSG short form and URN format:
 
 ```http
-# EPSG短縮形式
+# EPSG short form
 GET /ngsi-ld/v1/entities?type=Store&crs=EPSG:6668
 
-# URN形式（ETSI準拠）
+# URN format (ETSI-compliant)
 GET /ngsi-ld/v1/entities?type=Store&crs=urn:ogc:def:crs:EPSG::6668
 ```
 
-### レスポンスヘッダー
+### Response Headers
 
-CRSを指定したリクエストへのレスポンスには、`Content-Crs` ヘッダーが含まれます：
+Responses to requests specifying a CRS include the `Content-Crs` header:
 
 ```text
 Content-Crs: EPSG:6668
 ```
 
-NGSI-LD で URN 形式を指定した場合は、URN 形式で返却されます：
+When a URN format is specified in NGSI-LD, it is returned in URN format:
 
 ```text
 Content-Crs: urn:ogc:def:crs:EPSG::6668
 ```
 
-### 座標の入出力
+### Coordinate Input/Output
 
-#### クエリ時（入力）
+#### When Querying (Input)
 
-ジオクエリの座標は指定したCRSで解釈されます：
+Geo-query coordinates are interpreted in the specified CRS:
 
 ```http
-# JGD2011座標で近傍検索
+# Proximity search with JGD2011 coordinates
 GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.7671&crs=EPSG:6668
 ```
 
-#### エンティティ作成時
+#### When Creating Entities
 
-エンティティ作成時に `crs` パラメータを指定すると、入力座標が指定CRSとして解釈され、内部的にWGS84に変換されて保存されます：
+Specifying the `crs` parameter when creating an entity causes the input coordinates to be interpreted as the specified CRS and internally converted to WGS84 for storage:
 
 ```bash
-# Web Mercator座標でエンティティを作成
+# Create entity with Web Mercator coordinates
 curl -X POST "http://localhost:3000/v2/entities?crs=EPSG:3857" \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
@@ -1677,36 +1737,36 @@ curl -X POST "http://localhost:3000/v2/entities?crs=EPSG:3857" \
   }'
 ```
 
-#### レスポンス時（出力）
+#### When Retrieving (Output)
 
-取得時に `crs` パラメータを指定すると、座標が指定CRSに変換されて返却されます：
+Specifying the `crs` parameter when retrieving returns coordinates converted to the specified CRS:
 
 ```bash
-# JGD2011座標で取得
+# Retrieve with JGD2011 coordinates
 curl "http://localhost:3000/v2/entities/Store1?crs=EPSG:6668" \
   -H "Fiware-Service: smartcity"
 ```
 
-### 座標変換の精度
+### Coordinate Conversion Accuracy
 
-| 変換 | 精度 |
-|------|------|
-| WGS84 ↔ JGD2011 | 数cm〜十数cm程度 |
-| WGS84 ↔ Web Mercator | 計算精度に依存（緯度±85度内） |
+| Conversion | Accuracy |
+|------------|----------|
+| WGS84 ↔ JGD2011 | Several cm to tens of cm |
+| WGS84 ↔ Web Mercator | Depends on calculation precision (within ±85 degrees latitude) |
 
-### 使用例
+### Usage Examples
 
-#### NGSIv2での使用例
+#### Usage in NGSIv2
 
 ```bash
-# JGD2011座標でエンティティを作成
+# Create entity with JGD2011 coordinates
 curl -X POST "http://localhost:3000/v2/entities?crs=EPSG:6668" \
   -H "Content-Type: application/json" \
   -H "Fiware-Service: smartcity" \
   -d '{
     "id": "TokyoTower",
     "type": "Landmark",
-    "name": { "type": "Text", "value": "東京タワー" },
+    "name": { "type": "Text", "value": "Tokyo Tower" },
     "location": {
       "type": "geo:json",
       "value": {
@@ -1716,15 +1776,15 @@ curl -X POST "http://localhost:3000/v2/entities?crs=EPSG:6668" \
     }
   }'
 
-# Web Mercator座標で取得
+# Retrieve with Web Mercator coordinates
 curl "http://localhost:3000/v2/entities/TokyoTower?crs=EPSG:3857" \
   -H "Fiware-Service: smartcity"
 ```
 
-#### NGSI-LDでの使用例
+#### Usage in NGSI-LD
 
 ```bash
-# URN形式でCRSを指定してエンティティを作成
+# Create entity specifying CRS in URN format
 curl -X POST "http://localhost:3000/ngsi-ld/v1/entities?crs=urn:ogc:def:crs:EPSG::6668" \
   -H "Content-Type: application/ld+json" \
   -H "Fiware-Service: smartcity" \
@@ -1732,7 +1792,7 @@ curl -X POST "http://localhost:3000/ngsi-ld/v1/entities?crs=urn:ogc:def:crs:EPSG
     "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
     "id": "urn:ngsi-ld:Landmark:TokyoTower",
     "type": "Landmark",
-    "name": { "type": "Property", "value": "東京タワー" },
+    "name": { "type": "Property", "value": "Tokyo Tower" },
     "location": {
       "type": "GeoProperty",
       "value": {
@@ -1742,26 +1802,26 @@ curl -X POST "http://localhost:3000/ngsi-ld/v1/entities?crs=urn:ogc:def:crs:EPSG
     }
   }'
 
-# JGD2011座標で一覧取得
+# Retrieve list with JGD2011 coordinates
 curl "http://localhost:3000/ngsi-ld/v1/entities?type=Landmark&crs=EPSG:6668" \
   -H "Fiware-Service: smartcity"
 ```
 
-### エラー
+### Errors
 
-| エラー | HTTPコード | 説明 |
-|--------|-----------|------|
-| Unsupported CRS | 400 | サポートされていないCRSコードを指定 |
-| Invalid CRS format | 400 | 不正なCRS形式を指定 |
-| Coordinates out of range | 400 | Web Mercatorで緯度±85度を超える座標 |
+| Error | HTTP Code | Description |
+|-------|-----------|-------------|
+| Unsupported CRS | 400 | Specified CRS code is not supported |
+| Invalid CRS format | 400 | Invalid CRS format specified |
+| Coordinates out of range | 400 | Coordinates exceeding ±85 degrees latitude in Web Mercator |
 
-### 制限事項
+### Limitations
 
-- Web Mercator（EPSG:3857）は緯度±85度を超える領域をサポートしていません
-- 内部的にはすべての座標をWGS84で保存します
-- 座標変換には [proj4](https://github.com/proj4js/proj4js) ライブラリを使用しています
+- Web Mercator (EPSG:3857) does not support areas beyond ±85 degrees latitude
+- All coordinates are internally stored in WGS84
+- The [proj4](https://github.com/proj4js/proj4js) library is used for coordinate conversion
 
-### 参考情報
+### References
 
 - [OGC API Features CRS Extension](https://docs.ogc.org/is/18-058r1/18-058r1.html)
 - [EPSG Geodetic Parameter Registry](https://epsg.io/)
@@ -1769,19 +1829,19 @@ curl "http://localhost:3000/ngsi-ld/v1/entities?type=Landmark&crs=EPSG:6668" \
 
 ---
 
-## データカタログ API
+## Data Catalog API
 
-エンティティタイプ情報を DCAT-AP 形式で出力し、CKAN ハーベスト対応エンドポイントを提供します。
+Outputs entity type information in DCAT-AP format and provides CKAN harvest-compatible endpoints.
 
-### DCAT-AP カタログ
+### DCAT-AP Catalog
 
 ```http
 GET /catalog
 ```
 
-DCAT-AP 形式のカタログ全体を JSON-LD で出力します。
+Outputs the entire catalog in DCAT-AP format as JSON-LD.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -1801,56 +1861,56 @@ DCAT-AP 形式のカタログ全体を JSON-LD で出力します。
 }
 ```
 
-### データセット一覧
+### Dataset List
 
 ```http
 GET /catalog/datasets
 ```
 
-データセット一覧を DCAT 形式で出力します。
+Outputs a list of datasets in DCAT format.
 
-**クエリパラメータ**
+**Query Parameters**
 
-| パラメータ | 説明 |
-|-----------|------|
-| `limit` | 取得するデータセット数 |
-| `offset` | スキップするデータセット数 |
+| Parameter | Description |
+|-----------|-------------|
+| `limit` | Number of datasets to retrieve |
+| `offset` | Number of datasets to skip |
 
-### 個別データセット
+### Individual Dataset
 
 ```http
 GET /catalog/datasets/{datasetId}
 ```
 
-個別のデータセット（エンティティタイプ）の詳細情報を出力します。
+Outputs detailed information about an individual dataset (entity type).
 
-### サンプルデータ
+### Sample Data
 
 ```http
 GET /catalog/datasets/{datasetId}/sample
 ```
 
-データセットのサンプルデータを取得します。
+Retrieves sample data for a dataset.
 
-**クエリパラメータ**
+**Query Parameters**
 
-| パラメータ | 説明 | デフォルト |
-|-----------|------|-----------|
-| `limit` | 取得するサンプル数 | 5 |
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `limit` | Number of samples to retrieve | 5 |
 
-### CKAN 互換 API
+### CKAN-Compatible API
 
-CKAN のデータカタログハーベスタと互換性のある API を提供します。
+Provides an API compatible with CKAN data catalog harvesters.
 
-#### パッケージ一覧
+#### Package List
 
 ```http
 GET /catalog/ckan/package_list
 ```
 
-すべてのパッケージ（データセット）の ID 一覧を取得します。
+Retrieves a list of IDs for all packages (datasets).
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -1859,15 +1919,15 @@ GET /catalog/ckan/package_list
 }
 ```
 
-#### パッケージ詳細
+#### Package Details
 
 ```http
 GET /catalog/ckan/package_show?id={package_id}
 ```
 
-特定のパッケージの詳細情報を取得します。
+Retrieves detailed information for a specific package.
 
-**レスポンス例**
+**Response Example**
 
 ```json
 {
@@ -1888,39 +1948,39 @@ GET /catalog/ckan/package_show?id={package_id}
 }
 ```
 
-#### パッケージ一覧（リソース付き）
+#### Package List with Resources
 
 ```http
 GET /catalog/ckan/current_package_list_with_resources
 ```
 
-ページネーション対応のパッケージ一覧（リソース情報付き）を取得します。
+Retrieves a paginated list of packages with resource information.
 
-**クエリパラメータ**
+**Query Parameters**
 
-| パラメータ | 説明 |
-|-----------|------|
-| `limit` | 取得するパッケージ数 |
-| `offset` | スキップするパッケージ数 |
+| Parameter | Description |
+|-----------|-------------|
+| `limit` | Number of packages to retrieve |
+| `offset` | Number of packages to skip |
 
-詳細は 外部連携ドキュメント を参照してください。
+For details, see the External Integration Documentation.
 
 ---
 
-## CADDE連携
+## CADDE Integration
 
-CADDE（Connector Architecture for Decentralized Data Exchange / 分野間データ連携基盤）コネクタとの連携機能を提供します。
+Provides integration functionality with CADDE (Connector Architecture for Decentralized Data Exchange) connectors.
 
-### 概要
+### Overview
 
-CADDEは、異なる分野間でのデータ連携を実現する日本のデータ連携アーキテクチャです。本Context BrokerはCADDEコネクタからのリクエストを受け付け、来歴情報（プロベナンス）を付与したレスポンスを返します。
+CADDE is a Japanese data exchange architecture that enables data sharing across different sectors. This Context Broker accepts requests from CADDE connectors and returns responses with provenance information.
 
-### 有効化
+### Enabling
 
-CADDE機能はデフォルトで無効です。Admin API (`PUT /admin/cadde`) を使用して設定を管理します：
+CADDE functionality is disabled by default. Use the Admin API (`PUT /admin/cadde`) to manage the configuration:
 
 ```bash
-# CADDE設定を有効化
+# Enable CADDE configuration
 curl -X PUT "https://api.example.com/admin/cadde" \
   -H "Authorization: Bearer <super_admin_token>" \
   -H "Content-Type: application/json" \
@@ -1931,75 +1991,75 @@ curl -X PUT "https://api.example.com/admin/cadde" \
   }'
 ```
 
-| 設定項目 | デフォルト | 説明 |
-|----------|-----------|------|
-| `enabled` | `false` | CADDE機能の有効化 |
-| `authEnabled` | `false` | Bearer認証の有効化 |
-| `defaultProvider` | - | デフォルトプロバイダID |
-| `jwtIssuer` | - | JWT検証時の期待されるissuer（iss）クレーム |
-| `jwtAudience` | - | JWT検証時の期待されるaudience（aud）クレーム |
-| `jwksUrl` | - | 署名検証用のJWKSエンドポイントURL（HTTPS必須） |
+| Configuration Item | Default | Description |
+|--------------------|---------|-------------|
+| `enabled` | `false` | Enable CADDE functionality |
+| `authEnabled` | `false` | Enable Bearer authentication |
+| `defaultProvider` | - | Default provider ID |
+| `jwtIssuer` | - | Expected issuer (`iss`) claim for JWT validation |
+| `jwtAudience` | - | Expected audience (`aud`) claim for JWT validation |
+| `jwksUrl` | - | JWKS endpoint URL for signature verification (HTTPS required) |
 
-設定はMongoDBに保存されるため、デプロイ後にAPI経由で動的に変更可能です。
+Configuration is stored in MongoDB, enabling dynamic changes via API after deployment.
 
-### リクエストヘッダー
+### Request Headers
 
-CADDEコネクタからのリクエストには以下のヘッダーが含まれます：
+Requests from CADDE connectors include the following headers:
 
-| ヘッダー | 必須 | 説明 |
-|---------|------|------|
-| `x-cadde-resource-url` | - | アクセス対象のリソースURL |
-| `x-cadde-resource-api-type` | - | APIタイプ（例: `api/ngsi`） |
-| `x-cadde-provider` | - | データ提供者ID |
-| `x-cadde-options` | - | 追加オプション（テナントヘッダー等） |
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-cadde-resource-url` | - | URL of the resource being accessed |
+| `x-cadde-resource-api-type` | - | API type (e.g., `api/ngsi`) |
+| `x-cadde-provider` | - | Data provider ID |
+| `x-cadde-options` | - | Additional options (tenant headers, etc.) |
 
-### x-cadde-options形式
+### x-cadde-options Format
 
-`x-cadde-options` ヘッダーでテナント情報等を指定できます：
+Tenant information and other details can be specified in the `x-cadde-options` header:
 
 ```text
 x-cadde-options: Fiware-Service:smartcity, Fiware-ServicePath:/sensors
 ```
 
-このヘッダーで指定された値は、通常のHTTPヘッダーよりも優先されます。
+Values specified in this header take priority over regular HTTP headers.
 
-### 来歴（プロベナンス）レスポンスヘッダー
+### Provenance Response Headers
 
-CADDEリクエストに対するレスポンスには、以下の来歴ヘッダーが付与されます：
+Responses to CADDE requests include the following provenance headers:
 
-| ヘッダー | 説明 |
-|---------|------|
-| `x-cadde-provenance-id` | リクエストの一意識別子（Fiware-Correlatorを使用） |
-| `x-cadde-provenance-timestamp` | レスポンス生成時刻（ISO 8601形式） |
-| `x-cadde-provenance-provider` | データ提供者ID |
-| `x-cadde-provenance-resource-url` | アクセスされたリソースURL |
+| Header | Description |
+|--------|-------------|
+| `x-cadde-provenance-id` | Unique identifier for the request (uses Fiware-Correlator) |
+| `x-cadde-provenance-timestamp` | Response generation time (ISO 8601 format) |
+| `x-cadde-provenance-provider` | Data provider ID |
+| `x-cadde-provenance-resource-url` | URL of the resource accessed |
 
-### 認証
+### Authentication
 
-`CADDE_AUTH_ENABLED=true` の場合、CADDEリクエストにはBearer認証が必要です：
+When `CADDE_AUTH_ENABLED=true`, CADDE requests require Bearer authentication:
 
 ```http
 Authorization: Bearer <token>
 ```
 
-トークンが存在しない場合、`401 Unauthorized` エラーが返されます。
+If no token is present, a `401 Unauthorized` error is returned.
 
-#### JWT検証（オプション）
+#### JWT Validation (Optional)
 
-`CADDE_JWKS_URL` を設定すると、Bearerトークンの完全なJWT検証が有効になります：
+Setting `CADDE_JWKS_URL` enables full JWT validation for Bearer tokens:
 
-| 機能 | 説明 |
-|------|------|
-| **署名検証** | RS256またはES256アルゴリズムをサポート。JWKSエンドポイントから公開鍵を自動取得 |
-| **有効期限検証** | `exp`（有効期限）クレームを検証し、期限切れトークンを拒否 |
-| **発行時刻検証** | `iat`（発行時刻）クレームを検証し、未来に発行されたトークンを拒否 |
-| **issuer検証** | `CADDE_JWT_ISSUER` が設定されている場合、`iss` クレームを検証 |
-| **audience検証** | `CADDE_JWT_AUDIENCE` が設定されている場合、`aud` クレームを検証 |
+| Feature | Description |
+|---------|-------------|
+| **Signature verification** | Supports RS256 or ES256 algorithms. Automatically fetches public keys from the JWKS endpoint |
+| **Expiration verification** | Validates the `exp` (expiration) claim and rejects expired tokens |
+| **Issued-at verification** | Validates the `iat` (issued-at) claim and rejects tokens issued in the future |
+| **Issuer verification** | Validates the `iss` claim if `CADDE_JWT_ISSUER` is configured |
+| **Audience verification** | Validates the `aud` claim if `CADDE_JWT_AUDIENCE` is configured |
 
-**設定例：**
+**Configuration Example:**
 
 ```bash
-# Admin API経由で完全なJWT検証を有効化
+# Enable full JWT validation via Admin API
 curl -X PUT "https://api.example.com/admin/cadde" \
   -H "Authorization: Bearer <super_admin_token>" \
   -H "Content-Type: application/json" \
@@ -2012,43 +2072,43 @@ curl -X PUT "https://api.example.com/admin/cadde" \
   }'
 ```
 
-**エラーレスポンス：**
+**Error Responses:**
 
-JWT検証失敗時は、詳細なエラーメッセージが返されます：
+When JWT validation fails, detailed error messages are returned:
 
-| エラー | 説明 |
-|--------|------|
-| `Malformed JWT token` | トークン形式が不正 |
-| `Invalid token signature` | 署名が無効 |
-| `Token has expired` | トークンが有効期限切れ |
-| `Invalid token issuer` | issuerクレームが一致しない |
-| `Invalid token audience` | audienceクレームが一致しない |
-| `Unsupported signing algorithm` | サポートされていないアルゴリズム（RS256/ES256以外） |
-| `Unable to fetch signing keys` | JWKSエンドポイントへのアクセスに失敗 |
-| `Signing key not found` | 指定されたkidの鍵がJWKSに存在しない |
+| Error | Description |
+|-------|-------------|
+| `Malformed JWT token` | Invalid token format |
+| `Invalid token signature` | Invalid signature |
+| `Token has expired` | Token has expired |
+| `Invalid token issuer` | Issuer claim does not match |
+| `Invalid token audience` | Audience claim does not match |
+| `Unsupported signing algorithm` | Unsupported algorithm (other than RS256/ES256) |
+| `Unable to fetch signing keys` | Failed to access the JWKS endpoint |
+| `Signing key not found` | The key with the specified kid does not exist in JWKS |
 
-**注意：** `jwksUrl` が設定されていない場合、トークンの存在確認のみが行われます（後方互換性のため）。
+**Note:** If `jwksUrl` is not configured, only the presence of the token is checked (for backward compatibility).
 
-### 使用例
+### Usage Examples
 
 ```bash
-# CADDEヘッダー付きでエンティティを取得
+# Retrieve entities with CADDE headers
 curl "http://localhost:3000/v2/entities" \
   -H "x-cadde-resource-url: http://localhost:3000/v2/entities" \
   -H "x-cadde-resource-api-type: api/ngsi" \
   -H "x-cadde-provider: provider-001" \
   -H "x-cadde-options: Fiware-Service:smartcity, Fiware-ServicePath:/"
 
-# レスポンスヘッダー例:
+# Example response headers:
 # x-cadde-provenance-id: 550e8400-e29b-41d4-a716-446655440000
 # x-cadde-provenance-timestamp: 2026-01-26T12:00:00.000Z
 # x-cadde-provenance-provider: provider-001
 # x-cadde-provenance-resource-url: https://localhost/v2/entities
 ```
 
-### NGSI-LD APIでの使用
+### Usage with NGSI-LD API
 
-NGSI-LD APIでも同様にCADDEヘッダーを使用できます：
+CADDE headers can also be used with the NGSI-LD API:
 
 ```bash
 curl "http://localhost:3000/ngsi-ld/v1/entities" \
@@ -2060,64 +2120,64 @@ curl "http://localhost:3000/ngsi-ld/v1/entities" \
 
 ### CADDE Connector v4 API
 
-CADDEコネクタv4仕様に準拠した専用エンドポイントです（CADDE設定が有効時のみ利用可能、`PUT /admin/cadde` で設定）。
+Dedicated endpoints conforming to the CADDE connector v4 specification (available only when CADDE configuration is enabled, configured via `PUT /admin/cadde`).
 
-参考: https://github.com/CADDE-sip/connector
+Reference: https://github.com/CADDE-sip/connector
 
-#### エンドポイント一覧
+#### Endpoint List
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/cadde/api/v4/catalog` | カタログ検索（横断検索/詳細検索） |
-| GET | `/cadde/api/v4/entities` | NGSIデータ交換 |
+| GET | `/cadde/api/v4/catalog` | Catalog search (cross-domain search / detailed search) |
+| GET | `/cadde/api/v4/entities` | NGSI data exchange |
 
-#### カタログ検索（`/cadde/api/v4/catalog`）
+#### Catalog Search (`/cadde/api/v4/catalog`)
 
-`x-cadde-search` ヘッダーで検索タイプを指定します：
+Specify the search type using the `x-cadde-search` header:
 
-| 検索タイプ | ヘッダー値 | 説明 |
-|-----------|-----------|------|
-| 横断検索 | `x-cadde-search: meta` | データセット一覧をCKAN形式で返却（`q`パラメータでキーワードフィルタ可能） |
-| 詳細検索 | `x-cadde-search: detail` | 個別データセットの詳細を返却（`id`または`fq`パラメータで指定） |
+| Search Type | Header Value | Description |
+|-------------|--------------|-------------|
+| Cross-domain search | `x-cadde-search: meta` | Returns dataset list in CKAN format (keyword filtering via `q` parameter) |
+| Detailed search | `x-cadde-search: detail` | Returns details of an individual dataset (specified via `id` or `fq` parameter) |
 
-レスポンスにはCADDE固有フィールドが追加されます：
-- `caddec_dataset_id_for_detail`: 詳細検索用のデータセットID
-- `caddec_provider_id`: プロバイダID（`CADDE_DEFAULT_PROVIDER`が設定されている場合）
-- `caddec_resource_type`: リソースタイプ（`api/ngsi`）
+CADDE-specific fields are added to the response:
+- `caddec_dataset_id_for_detail`: Dataset ID for detailed search
+- `caddec_provider_id`: Provider ID (if `CADDE_DEFAULT_PROVIDER` is configured)
+- `caddec_resource_type`: Resource type (`api/ngsi`)
 
 ```bash
-# 横断検索
+# Cross-domain search
 curl "http://localhost:3000/cadde/api/v4/catalog?q=sensor" \
   -H "x-cadde-search: meta" \
   -H "x-cadde-resource-url: https://example.com/cadde/api/v4/catalog" \
   -H "Fiware-Service: smartcity"
 
-# 詳細検索
+# Detailed search
 curl "http://localhost:3000/cadde/api/v4/catalog?id=sensor" \
   -H "x-cadde-search: detail" \
   -H "x-cadde-resource-url: https://example.com/cadde/api/v4/catalog" \
   -H "Fiware-Service: smartcity"
 ```
 
-#### NGSIデータ交換（`/cadde/api/v4/entities`）
+#### NGSI Data Exchange (`/cadde/api/v4/entities`)
 
-`x-cadde-resource-url` ヘッダーからクエリパラメータを解析してエンティティを取得します。
+Parses query parameters from the `x-cadde-resource-url` header to retrieve entities.
 
-| ヘッダー | 必須 | 説明 |
-|---------|------|------|
-| `x-cadde-resource-url` | ✅ | リソースURL（type, id, q, attrs, limit, offset をクエリパラメータとして含む） |
-| `x-cadde-resource-api-type` | - | レスポンス形式：`api/ngsi`（デフォルト）または `api/ngsi-ld` |
-| `x-cadde-provider` | - | データ提供者ID |
+| Header | Required | Description |
+|--------|----------|-------------|
+| `x-cadde-resource-url` | Yes | Resource URL (containing type, id, q, attrs, limit, offset as query parameters) |
+| `x-cadde-resource-api-type` | - | Response format: `api/ngsi` (default) or `api/ngsi-ld` |
+| `x-cadde-provider` | - | Data provider ID |
 
 ```bash
-# NGSIv2形式でエンティティを取得
+# Retrieve entities in NGSIv2 format
 curl "http://localhost:3000/cadde/api/v4/entities" \
   -H "x-cadde-resource-url: https://example.com/v2/entities?type=Sensor&q=temperature>20" \
   -H "x-cadde-resource-api-type: api/ngsi" \
   -H "x-cadde-provider: provider-001" \
   -H "Fiware-Service: smartcity"
 
-# NGSI-LD形式でエンティティを取得
+# Retrieve entities in NGSI-LD format
 curl "http://localhost:3000/cadde/api/v4/entities" \
   -H "x-cadde-resource-url: https://example.com/ngsi-ld/v1/entities?type=Sensor" \
   -H "x-cadde-resource-api-type: api/ngsi-ld" \
@@ -2125,58 +2185,58 @@ curl "http://localhost:3000/cadde/api/v4/entities" \
   -H "Fiware-Service: smartcity"
 ```
 
-#### エラーレスポンス形式
+#### Error Response Format
 
-CADDE v4エンドポイントのエラーレスポンスは以下の形式です：
+Error responses for CADDE v4 endpoints are in the following format:
 
 ```json
 { "detail": "Resource not found", "status": 404 }
 ```
 
-#### 認証
+#### Authentication
 
-CADDE v4エンドポイントはGeonicDBの認証（`requireAuth`）をバイパスします。認証はCADDE JWT検証（`processCaddeRequestAsync`）が担当します。
+CADDE v4 endpoints bypass GeonicDB authentication (`requireAuth`). Authentication is handled by CADDE JWT validation (`processCaddeRequestAsync`).
 
-### 参考情報
+### References
 
-- [CADDE（分野間データ連携基盤）](https://www.cio.go.jp/cadde)
+- [CADDE (Cross-sector Data Exchange Infrastructure)](https://www.cio.go.jp/cadde)
 - [CADDE-sip/connector](https://github.com/CADDE-sip/connector)
 - [DATA-EX](https://data-ex.jp/)
 
 ---
 
-## イベントストリーミング
+## Event Streaming
 
-WebSocket API Gateway を使用したリアルタイムのエンティティ変更ストリーミングです。`EVENT_STREAMING_ENABLED=true` で有効になります。
+Real-time entity change streaming using WebSocket API Gateway. Enabled with `EVENT_STREAMING_ENABLED=true`.
 
-### 接続
+### Connection
 
 ```text
 wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 ```
 
-### クライアントメッセージ
+### Client Messages
 
-| アクション | 説明 |
-|-----------|------|
-| `subscribe` | エンティティタイプ/IDパターンでフィルタ設定 |
-| `ping` | キープアライブ（`pong` 応答） |
+| Action | Description |
+|--------|-------------|
+| `subscribe` | Set filters by entity type/ID pattern |
+| `ping` | Keep-alive (`pong` response) |
 
-### サーバーイベント
+### Server Events
 
-| タイプ | 説明 |
-|--------|------|
-| `entityCreated` | エンティティが作成された |
-| `entityUpdated` | エンティティが更新された |
-| `entityDeleted` | エンティティが削除された |
+| Type | Description |
+|------|-------------|
+| `entityCreated` | An entity was created |
+| `entityUpdated` | An entity was updated |
+| `entityDeleted` | An entity was deleted |
 
-詳細は [Event Streaming ドキュメント](../features/subscriptions.md) を参照してください。
+For details, see the [Event Streaming Documentation](../features/subscriptions.md).
 
 ---
 
-## エラーレスポンス
+## Error Responses
 
-### NGSIv2 エラー形式
+### NGSIv2 Error Format
 
 ```json
 {
@@ -2185,10 +2245,10 @@ wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 }
 ```
 
-### NGSI-LD エラー形式 (RFC 7807 ProblemDetails)
+### NGSI-LD Error Format (RFC 7807 ProblemDetails)
 
-NGSI-LD API のエラーレスポンスは [RFC 7807](https://tools.ietf.org/html/rfc7807) ProblemDetails 形式で返されます。
-Content-Type は `application/json` です（ETSI GS CIM 009 仕様に準拠するため、RFC 7807 の `application/problem+json` ではなく標準 JSON MIME タイプを使用します）。
+NGSI-LD API error responses are returned in [RFC 7807](https://tools.ietf.org/html/rfc7807) ProblemDetails format.
+Content-Type is `application/json` (to conform to the ETSI GS CIM 009 specification, standard JSON MIME type is used instead of RFC 7807's `application/problem+json`).
 
 ```json
 {
@@ -2199,69 +2259,69 @@ Content-Type は `application/json` です（ETSI GS CIM 009 仕様に準拠す�
 }
 ```
 
-### HTTP ステータスコード
+### HTTP Status Codes
 
-| コード | 説明 |
-|--------|------|
-| `200` | 成功（データあり） |
-| `201` | 作成成功 |
-| `204` | 成功（データなし） |
-| `207` | 部分成功（バッチ操作） |
-| `400` | 不正なリクエスト |
-| `403` | アクセス禁止（認可エラー） |
-| `404` | リソースが見つからない |
-| `405` | メソッド不許可（NGSI-LD、`Allow` ヘッダー付き） |
-| `409` | 競合（既に存在する等） |
-| `500` | サーバー内部エラー |
-
----
-
-## 実装状況
-
-### 実装済み機能
-
-| 機能 | NGSIv2 | NGSI-LD |
-|------|--------|---------|
-| エンティティ CRUD | ✅ | ✅ |
-| 属性操作 | ✅ | ✅ |
-| 属性値の直接取得・更新 | ✅ | - |
-| バッチ操作 | ✅ | ✅ |
-| サブスクリプション（HTTP通知） | ✅ | ✅ |
-| サブスクリプション（MQTT通知） | ✅ | ✅ |
-| イベントストリーミング（WebSocket） | ✅ | ✅ |
-| エンティティタイプ | ✅ | - |
-| クエリ言語 (q パラメータ) | ✅ | ✅ |
-| ソート (orderBy, orderDirection) | ✅ | ✅ |
-| メタデータ制御 (metadata / sysAttrs) | ✅ | ✅ |
-| ジオクエリ (coveredBy, within, intersects, disjoint) | ✅ | ✅ |
-| 空間ID検索 (ZFXY形式) | ✅ | ✅ |
-| GeoJSON出力 | ✅ | ✅ |
-| 座標参照系（CRS）変換 | ✅ | ✅ |
-| マルチテナンシー | ✅ | ✅ |
-| ページネーション | ✅ | ✅ |
-| keyValues 形式 | ✅ | ✅ |
-| 登録（Registrations） | ✅ | ✅ |
-| コンテキストプロバイダー（フェデレーション/クエリ転送） | ✅ | ✅ |
-| コンテキストプロバイダー（更新転送） | ✅ | ✅ |
-| CADDE連携 | ✅ | ✅ |
-| 認証 API（JWT ベース） | ✅ | ✅ |
-| ユーザー・テナント管理 API | ✅ | ✅ |
-| `/version` エンドポイント | ✅ | - |
-| `/.well-known/ngsi-ld` | - | ✅ |
-| ヘルスチェック (`/health`) | ✅ | ✅ |
-
-### 制限事項
-
-| 機能 | 状態 | 備考 |
-|------|------|------|
-| `near` ジオクエリ（近接検索） | ✅ 対応 | Pointジオメトリのみ、`orderByDistance=true` で距離ソート・距離情報返却対応 |
-| `minDistance` / `maxDistance` | ✅ 対応 | メートル単位で指定 |
+| Code | Description |
+|------|-------------|
+| `200` | Success (with data) |
+| `201` | Created successfully |
+| `204` | Success (no data) |
+| `207` | Partial success (batch operations) |
+| `400` | Bad request |
+| `403` | Forbidden (authorization error) |
+| `404` | Resource not found |
+| `405` | Method not allowed (NGSI-LD, with `Allow` header) |
+| `409` | Conflict (already exists, etc.) |
+| `500` | Internal server error |
 
 ---
 
-## 使用例
+## Implementation Status
 
-### cURL を使用したエンティティ作成
+### Implemented Features
+
+| Feature | NGSIv2 | NGSI-LD |
+|---------|--------|---------|
+| Entity CRUD | Yes | Yes |
+| Attribute operations | Yes | Yes |
+| Direct attribute value retrieval/update | Yes | - |
+| Batch operations | Yes | Yes |
+| Subscriptions (HTTP notifications) | Yes | Yes |
+| Subscriptions (MQTT notifications) | Yes | Yes |
+| Event streaming (WebSocket) | Yes | Yes |
+| Entity types | Yes | - |
+| Query language (q parameter) | Yes | Yes |
+| Sorting (orderBy, orderDirection) | Yes | Yes |
+| Metadata control (metadata / sysAttrs) | Yes | Yes |
+| Geo-queries (coveredBy, within, intersects, disjoint) | Yes | Yes |
+| Spatial ID search (ZFXY format) | Yes | Yes |
+| GeoJSON output | Yes | Yes |
+| Coordinate Reference System (CRS) conversion | Yes | Yes |
+| Multi-tenancy | Yes | Yes |
+| Pagination | Yes | Yes |
+| keyValues format | Yes | Yes |
+| Registrations | Yes | Yes |
+| Context providers (federation/query forwarding) | Yes | Yes |
+| Context providers (update forwarding) | Yes | Yes |
+| CADDE integration | Yes | Yes |
+| Authentication API (JWT-based) | Yes | Yes |
+| User/tenant management API | Yes | Yes |
+| `/version` endpoint | Yes | - |
+| `/.well-known/ngsi-ld` | - | Yes |
+| Health check (`/health`) | Yes | Yes |
+
+### Limitations
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `near` geo-query (proximity search) | Supported | Point geometry only; supports distance sorting and distance information with `orderByDistance=true` |
+| `minDistance` / `maxDistance` | Supported | Specified in meters |
+
+---
+
+## Usage Examples
+
+### Creating an Entity with cURL
 
 ```bash
 curl -X POST "https://api.example.com/v2/entities" \
@@ -2276,7 +2336,7 @@ curl -X POST "https://api.example.com/v2/entities" \
   }'
 ```
 
-### エンティティの取得
+### Retrieving an Entity
 
 ```bash
 curl -X GET "https://api.example.com/v2/entities/Room1" \
@@ -2284,21 +2344,21 @@ curl -X GET "https://api.example.com/v2/entities/Room1" \
   -H "Fiware-ServicePath: /buildings"
 ```
 
-### 条件付きクエリ
+### Conditional Query
 
 ```bash
 curl -X GET "https://api.example.com/v2/entities?type=Room&q=temperature>25" \
   -H "Fiware-Service: smartcity"
 ```
 
-### ジオクエリ（ポリゴン内検索）
+### Geo-Query (Polygon Area Search)
 
 ```bash
 curl -X GET "https://api.example.com/v2/entities?type=Place&georel=coveredBy&geometry=polygon&coords=34,138;34,141;37,141;37,138;34,138" \
   -H "Fiware-Service: smartcity"
 ```
 
-### サブスクリプションの作成
+### Creating a Subscription
 
 ```bash
 curl -X POST "https://api.example.com/v2/subscriptions" \
@@ -2320,7 +2380,7 @@ curl -X POST "https://api.example.com/v2/subscriptions" \
   }'
 ```
 
-### NGSI-LD エンティティの作成
+### Creating an NGSI-LD Entity
 
 ```bash
 curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
@@ -2336,144 +2396,145 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 
 ---
 
-## エンドポイント一覧
+## Endpoint Reference
 
-このセクションでは、GeonicDB の全 API エンドポイントについて、ページネーション、認証認可、ステータスコードの情報をまとめています。
+This section summarizes pagination, authentication/authorization, and status code information for all GeonicDB API endpoints.
 
-### API 分類
+### API Categories
 
-| API カテゴリ | ベースパス | 認証 | Content-Type |
-|-------------|-----------|------|--------------|
-| メタ/ヘルス | `/` | 不要*† | `application/json` |
-| 認証 | `/auth` | 不要 | `application/json` |
-| ユーザー | `/me` | 必須 | `application/json` |
-| NGSIv2 | `/v2` | 必須* | `application/json` |
-| NGSI-LD | `/ngsi-ld/v1` | 必須* | `application/ld+json` |
-| Admin | `/admin` | 必須 (super_admin / tenant_admin) | `application/json` |
-| Catalog | `/catalog` | 必須* | `application/json` |
+| API Category | Base Path | Authentication | Content-Type |
+|--------------|-----------|----------------|--------------|
+| Meta/Health | `/` | Not required*† | `application/json` |
+| Authentication | `/auth` | Not required | `application/json` |
+| User | `/me` | Required | `application/json` |
+| NGSIv2 | `/v2` | Required* | `application/json` |
+| NGSI-LD | `/ngsi-ld/v1` | Required* | `application/ld+json` |
+| Admin | `/admin` | Required (super_admin / tenant_admin) | `application/json` |
+| Catalog | `/catalog` | Required* | `application/json` |
 
-\* `AUTH_ENABLED=false` の場合は認証不要
+\* Authentication not required when `AUTH_ENABLED=false`
 
-† `/statistics`, `/cache/statistics`, `/metrics` は `AUTH_ENABLED=true` の場合認証必須
+† `/statistics`, `/cache/statistics`, `/metrics` require authentication when `AUTH_ENABLED=true`
 
-### 公開エンドポイント（メタ/ヘルス）
+### Public Endpoints (Meta/Health)
 
-認証不要でアクセス可能なエンドポイントです。
+Endpoints accessible without authentication.
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー |
-|---------------|---------|------|------|--------|
-| `/llms.txt` | GET | API ドキュメント (llms.txt) | 200 | - |
-| `/version` | GET | FIWARE Orion 互換バージョン情報 | 200 | - |
-| `/health` | GET | 基本ヘルスチェック | 200 | - |
+| Endpoint | Method | Description | Success | Error |
+|----------|--------|-------------|---------|-------|
+| `/llms.txt` | GET | API documentation (llms.txt) | 200 | - |
+| `/version` | GET | FIWARE Orion-compatible version information | 200 | - |
+| `/health` | GET | Basic health check | 200 | - |
 | `/health/live` | GET | Kubernetes liveness probe | 200 | - |
 | `/health/ready` | GET | Kubernetes readiness probe | 200 | 503 |
-| `/.well-known/ngsi-ld` | GET | NGSI-LD API ディスカバリ | 200 | - |
-| `/api.json` | GET | API リファレンス (JSON) | 200 | - |
-| `/openapi.json` | GET | OpenAPI 3.0 仕様 | 200 | - |
-| `/statistics` | GET | FIWARE Orion 互換統計情報（認証必須） | 200 | 401 |
-| `/cache/statistics` | GET | キャッシュ統計（認証必須） | 200 | 401 |
-| `/metrics` | GET | Prometheus メトリクス（認証必須） | 200 | 401 |
-| `/tools.json` | GET | AI ツール定義 (Claude Tool Use / OpenAI Function Calling) | 200 | - |
-| `/.well-known/ai-plugin.json` | GET | AI プラグインマニフェスト | 200 | - |
-| `/mcp` | POST | MCP (Model Context Protocol) Streamable HTTP エンドポイント | 200 | 400, 405, 500 |
+| `/.well-known/ngsi-ld` | GET | NGSI-LD API discovery | 200 | - |
+| `/api.json` | GET | API reference (JSON) | 200 | - |
+| `/openapi.json` | GET | OpenAPI 3.0 specification | 200 | - |
+| `/statistics` | GET | FIWARE Orion-compatible statistics (authentication required) | 200 | 401 |
+| `/cache/statistics` | GET | Cache statistics (authentication required) | 200 | 401 |
+| `/metrics` | GET | Prometheus metrics (authentication required) | 200 | 401 |
+| `/tools.json` | GET | AI tool definitions (Claude Tool Use / OpenAI Function Calling) | 200 | - |
+| `/.well-known/ai-plugin.json` | GET | AI plugin manifest | 200 | - |
+| `/mcp` | POST | MCP (Model Context Protocol) Streamable HTTP endpoint | 200 | 400, 405, 500 |
 
-### 認証エンドポイント
+### Authentication Endpoints
 
-- `/auth/*` は `AUTH_ENABLED=true` の場合のみ利用可能
-- `/oauth/token` は `OAUTH_ENABLED=true` の場合のみ利用可能
+- `/auth/*` is available only when `AUTH_ENABLED=true`
+- `/oauth/token` is available only when `OAUTH_ENABLED=true`
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー |
-|---------------|---------|------|------|--------|
-| `/auth/login` | POST | ユーザーログイン（JWT） | 200 | 400, 401 |
-| `/auth/refresh` | POST | トークンリフレッシュ | 200 | 400, 401 |
-| `/auth/logout` | POST | ログアウト（全セッション無効化、認証必須） | 204 | 401 |
-| `/oauth/token` | POST | OAuth トークン取得（M2M） | 200 | 400, 401 |
+| Endpoint | Method | Description | Success | Error |
+|----------|--------|-------------|---------|-------|
+| `/auth/login` | POST | User login (JWT) | 200 | 400, 401 |
+| `/auth/refresh` | POST | Token refresh | 200 | 400, 401 |
+| `/auth/logout` | POST | Logout (invalidate all sessions, authentication required) | 204 | 401 |
+| `/oauth/token` | POST | OAuth token acquisition (M2M) | 200 | 400, 401 |
 
-### ユーザーエンドポイント
+### User Endpoints
 
-認証済みユーザーが自身の情報を管理するエンドポイントです。
+Endpoints for authenticated users to manage their own information.
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | 最小ロール |
-|---------------|---------|------|------|--------|-----------|
-| `/me` | GET | 自身のプロフィール取得 | 200 | 401 | user |
-| `/me/password` | POST | パスワード変更 | 204 | 400, 401 | user |
+| Endpoint | Method | Description | Success | Error | Minimum Role |
+|----------|--------|-------------|---------|-------|--------------|
+| `/me` | GET | Retrieve own profile | 200 | 401 | user |
+| `/me/password` | POST | Change password | 204 | 400, 401 | user |
 
-### NGSIv2 / NGSI-LD エンドポイント
+### NGSIv2 / NGSI-LD Endpoints
 
-詳細なエンドポイント仕様は以下を参照してください：
-- [NGSIv2 API リファレンス](./ngsiv2.md)
-- [NGSI-LD API リファレンス](./ngsild.md)
+For detailed endpoint specifications, see:
+- [NGSIv2 API Reference](./ngsiv2.md)
+- [NGSI-LD API Reference](./ngsild.md)
 
 ### Admin API
 
-テナントとユーザーの管理 API です。エンドポイントにより `super_admin` または `tenant_admin` ロールが必要です（`tenant_admin` は自テナントスコープのみ）。
+API for managing tenants and users. Endpoints require either `super_admin` or `tenant_admin` role (`tenant_admin` has own-tenant scope only).
 
-#### テナント管理
+#### Tenant Management
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/tenants` | GET | テナント一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/admin/tenants` | POST | テナント作成 | 201 | 400, 401, 403, 409 | - |
-| `/admin/tenants/{tenantId}` | GET | テナント取得 | 200 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}` | PATCH | テナント更新 | 204 | 400, 401, 403, 404, 409 | - |
-| `/admin/tenants/{tenantId}` | DELETE | テナント削除 | 204 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/activate` | POST | テナント有効化 | 204 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/deactivate` | POST | テナント無効化 | 204 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/ip-restrictions` | GET | テナント IP 制限取得 | 200 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/ip-restrictions` | PUT | テナント IP 制限更新 | 200 | 400, 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/ip-restrictions` | DELETE | テナント IP 制限削除 | 204 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/users` | GET | テナントメンバー一覧（tenant_admin: 自テナントのみ） | 200 | 401, 403, 404 | ✅ (max: 100) |
-| `/admin/tenants/{tenantId}/users/{userId}` | PUT | ユーザーをテナントに追加（tenant_admin: 自テナントのみ） | 200 | 400, 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/users/{userId}` | DELETE | ユーザーをテナントから削除（tenant_admin: 自テナントのみ） | 204 | 400, 401, 403, 404 | - |
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/admin/tenants` | GET | List tenants | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/admin/tenants` | POST | Create tenant | 201 | 400, 401, 403, 409 | - |
+| `/admin/tenants/{tenantId}` | GET | Get tenant | 200 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}` | PATCH | Update tenant | 204 | 400, 401, 403, 404, 409 | - |
+| `/admin/tenants/{tenantId}` | DELETE | Delete tenant (Crypto-Shredding with `?shred=true`) | 204 / 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/deletion-report` | GET | Get deletion report | 200 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/activate` | POST | Activate tenant | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/deactivate` | POST | Deactivate tenant | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | GET | Get tenant IP restrictions | 200 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | PUT | Update tenant IP restrictions | 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/ip-restrictions` | DELETE | Delete tenant IP restrictions | 204 | 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/users` | GET | List tenant members (tenant_admin: own tenant only) | 200 | 401, 403, 404 | Yes (max: 100) |
+| `/admin/tenants/{tenantId}/users/{userId}` | PUT | Add user to tenant (tenant_admin: own tenant only) | 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/users/{userId}` | DELETE | Remove user from tenant (tenant_admin: own tenant only) | 204 | 400, 401, 403, 404 | - |
 
-#### ユーザー管理
+#### User Management
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/users` | GET | ユーザー一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/admin/users` | POST | ユーザー作成 | 201 | 400, 401, 403, 409 | - |
-| `/admin/users/{userId}` | GET | ユーザー取得 | 200 | 401, 403, 404 | - |
-| `/admin/users/{userId}` | PATCH | ユーザー更新 | 204 | 400, 401, 403, 404, 409 | - |
-| `/admin/users/{userId}` | DELETE | ユーザー削除 | 204 | 401, 403, 404 | - |
-| `/admin/users/{userId}/activate` | POST | ユーザー有効化 | 204 | 401, 403, 404 | - |
-| `/admin/users/{userId}/deactivate` | POST | ユーザー無効化 | 204 | 401, 403, 404 | - |
-| `/admin/users/{userId}/unlock` | POST | ログインロック解除 | 200 | 400, 401, 403, 404 | - |
-| `/admin/users/{userId}/tenants` | GET | ユーザー所属テナント一覧（本人または super_admin） | 200 | 401, 403 | ✅ (max: 100) |
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/admin/users` | GET | List users | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/admin/users` | POST | Create user | 201 | 400, 401, 403, 409 | - |
+| `/admin/users/{userId}` | GET | Get user | 200 | 401, 403, 404 | - |
+| `/admin/users/{userId}` | PATCH | Update user | 204 | 400, 401, 403, 404, 409 | - |
+| `/admin/users/{userId}` | DELETE | Delete user | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/activate` | POST | Activate user | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/deactivate` | POST | Deactivate user | 204 | 401, 403, 404 | - |
+| `/admin/users/{userId}/unlock` | POST | Unlock login | 200 | 400, 401, 403, 404 | - |
+| `/admin/users/{userId}/tenants` | GET | List tenants the user belongs to (self or super_admin) | 200 | 401, 403 | Yes (max: 100) |
 
-#### ポリシー管理（XACML 3.0 認可、super_admin / tenant_admin）
+#### Policy Management (XACML 3.0 Authorization, super_admin / tenant_admin)
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/policies` | GET | ポリシー一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/admin/policies` | POST | ポリシー作成 | 201 | 400, 401, 403, 409 | - |
-| `/admin/policies/{policyId}` | GET | ポリシー取得 | 200 | 401, 403, 404 | - |
-| `/admin/policies/{policyId}` | PATCH | ポリシー更新（部分） | 200 | 400, 401, 403, 404 | - |
-| `/admin/policies/{policyId}` | PUT | ポリシー置換 | 200 | 400, 401, 403, 404 | - |
-| `/admin/policies/{policyId}` | DELETE | ポリシー削除 | 204 | 401, 403, 404 | - |
-| `/admin/policies/{policyId}/activate` | POST | ポリシー有効化 | 200 | 401, 403, 404 | - |
-| `/admin/policies/{policyId}/deactivate` | POST | ポリシー無効化 | 200 | 401, 403, 404 | - |
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/admin/policies` | GET | List policies | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/admin/policies` | POST | Create policy | 201 | 400, 401, 403, 409 | - |
+| `/admin/policies/{policyId}` | GET | Get policy | 200 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | PATCH | Partial policy update | 200 | 400, 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | PUT | Replace policy | 200 | 400, 401, 403, 404 | - |
+| `/admin/policies/{policyId}` | DELETE | Delete policy | 204 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}/activate` | POST | Activate policy | 200 | 401, 403, 404 | - |
+| `/admin/policies/{policyId}/deactivate` | POST | Deactivate policy | 200 | 401, 403, 404 | - |
 
-#### OAuth クライアント管理
+#### OAuth Client Management
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/oauth-clients` | GET | OAuth クライアント一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/admin/oauth-clients` | POST | OAuth クライアント作成 | 201 | 400, 401, 403 | - |
-| `/admin/oauth-clients/{clientId}` | GET | OAuth クライアント取得 | 200 | 401, 403, 404 | - |
-| `/admin/oauth-clients/{clientId}` | PATCH | OAuth クライアント更新 | 200 | 400, 401, 403, 404 | - |
-| `/admin/oauth-clients/{clientId}` | DELETE | OAuth クライアント削除 | 204 | 401, 403, 404 | - |
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/admin/oauth-clients` | GET | List OAuth clients | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/admin/oauth-clients` | POST | Create OAuth client | 201 | 400, 401, 403 | - |
+| `/admin/oauth-clients/{clientId}` | GET | Get OAuth client | 200 | 401, 403, 404 | - |
+| `/admin/oauth-clients/{clientId}` | PATCH | Update OAuth client | 200 | 400, 401, 403, 404 | - |
+| `/admin/oauth-clients/{clientId}` | DELETE | Delete OAuth client | 204 | 401, 403, 404 | - |
 
-#### CADDE 設定管理
+#### CADDE Configuration Management
 
-CADDE（分野間データ連携基盤）の設定をAPI経由で管理します。設定はMongoDBに保存され、環境変数は不要です。
+Manage CADDE (cross-sector data exchange infrastructure) configuration via API. Configuration is stored in MongoDB and no environment variables are needed.
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
-|---------------|---------|------|------|--------|-----------------|
-| `/admin/cadde` | GET | CADDE 設定取得 | 200 | 401, 403 | - |
-| `/admin/cadde` | PUT | CADDE 設定更新（upsert） | 200 | 400, 401, 403 | - |
-| `/admin/cadde` | DELETE | CADDE 設定削除（無効化） | 204 | 401, 403 | - |
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/admin/cadde` | GET | Get CADDE configuration | 200 | 401, 403 | - |
+| `/admin/cadde` | PUT | Update CADDE configuration (upsert) | 200 | 400, 401, 403 | - |
+| `/admin/cadde` | DELETE | Delete CADDE configuration (disable) | 204 | 401, 403 | - |
 
-**リクエストボディ（PUT）**
+**Request Body (PUT)**
 
 ```json
 {
@@ -2486,57 +2547,57 @@ CADDE（分野間データ連携基盤）の設定をAPI経由で管理します
 }
 ```
 
-| フィールド | 型 | 必須 | 説明 |
-|-----------|------|------|------|
-| `enabled` | boolean | ✅ | CADDE機能の有効/無効 |
-| `authEnabled` | boolean | ✅ | Bearer認証の有効/無効 |
-| `defaultProvider` | string | - | デフォルトプロバイダID |
-| `jwtIssuer` | string | - | JWT issuerクレーム検証値 |
-| `jwtAudience` | string | - | JWT audienceクレーム検証値 |
-| `jwksUrl` | string | - | JWKS公開鍵エンドポイントURL（HTTPS必須） |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `enabled` | boolean | Yes | Enable/disable CADDE functionality |
+| `authEnabled` | boolean | Yes | Enable/disable Bearer authentication |
+| `defaultProvider` | string | - | Default provider ID |
+| `jwtIssuer` | string | - | JWT issuer claim validation value |
+| `jwtAudience` | string | - | JWT audience claim validation value |
+| `jwksUrl` | string | - | JWKS public key endpoint URL (HTTPS required) |
 
-#### Rule Engine 管理
+#### Rule Engine Management
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
-|---------------|---------|------|------|--------|-----------------|
-| `/rules` | GET | ルール一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/rules` | POST | ルール作成 | 201 | 400, 401, 403, 409 | - |
-| `/rules/{ruleId}` | GET | ルール取得 | 200 | 401, 403, 404 | - |
-| `/rules/{ruleId}` | PATCH | ルール更新 | 204 | 400, 401, 403, 404 | - |
-| `/rules/{ruleId}` | DELETE | ルール削除 | 204 | 401, 403, 404 | - |
-| `/rules/{ruleId}/activate` | POST | ルール有効化 | 200 | 401, 403, 404 | - |
-| `/rules/{ruleId}/deactivate` | POST | ルール無効化 | 200 | 401, 403, 404 | - |
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/rules` | GET | List rules | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/rules` | POST | Create rule | 201 | 400, 401, 403, 409 | - |
+| `/rules/{ruleId}` | GET | Get rule | 200 | 401, 403, 404 | - |
+| `/rules/{ruleId}` | PATCH | Update rule | 204 | 400, 401, 403, 404 | - |
+| `/rules/{ruleId}` | DELETE | Delete rule | 204 | 401, 403, 404 | - |
+| `/rules/{ruleId}/activate` | POST | Activate rule | 200 | 401, 403, 404 | - |
+| `/rules/{ruleId}/deactivate` | POST | Deactivate rule | 200 | 401, 403, 404 | - |
 
 ### Custom Data Models API
 
-テナント固有のカスタムデータモデルを管理する API です。JWT 認証が必要で、XACML ポリシーベース認可により `tenant_admin` および `user` ロールもテナント内のカスタムデータモデルを管理できます。
+API for managing tenant-specific custom data models. Requires JWT authentication; XACML policy-based authorization allows `tenant_admin` and `user` roles to manage custom data models within their tenant.
 
-**関連ドキュメント**: [SMART_DATA_MODELS.md](../features/smart-data-models.md)
+**Related Documentation**: [SMART_DATA_MODELS.md](../features/smart-data-models.md)
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
-|---------------|---------|------|------|--------|-----------------|
-| `/custom-data-models` | GET | カスタムデータモデル一覧取得 | 200 | 400, 401, 403 | ✅ (max: 100) |
-| `/custom-data-models` | POST | カスタムデータモデル作成 | 201 | 400, 401, 403, 409 | - |
-| `/custom-data-models/{type}` | GET | カスタムデータモデル取得 | 200 | 401, 403, 404 | - |
-| `/custom-data-models/{type}` | PATCH | カスタムデータモデル更新 | 200 | 400, 401, 403, 404 | - |
-| `/custom-data-models/{type}` | DELETE | カスタムデータモデル削除 | 204 | 401, 403, 404 | - |
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/custom-data-models` | GET | List custom data models | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/custom-data-models` | POST | Create custom data model | 201 | 400, 401, 403, 409 | - |
+| `/custom-data-models/{type}` | GET | Get custom data model | 200 | 401, 403, 404 | - |
+| `/custom-data-models/{type}` | PATCH | Update custom data model | 200 | 400, 401, 403, 404 | - |
+| `/custom-data-models/{type}` | DELETE | Delete custom data model | 204 | 401, 403, 404 | - |
 
-#### エンティティバリデーション
+#### Entity Validation
 
-カスタムデータモデルが定義されている場合、エンティティの作成・更新時に自動的にバリデーションが実行されます。バリデーションは `isActive: true` のモデルに対してのみ適用されます。
+When a custom data model is defined, validation is automatically performed when creating or updating entities. Validation applies only to models with `isActive: true`.
 
-**バリデーション内容:**
+**Validation Checks:**
 
-| チェック項目 | 説明 |
-|------------|------|
-| 必須フィールド | `required: true` の属性が存在するか |
-| 型チェック | `valueType` に基づく型検証（string, number, integer, boolean, array, object, GeoJSON） |
-| minLength / maxLength | 文字列の長さ制限 |
-| minimum / maximum | 数値の範囲制限 |
-| pattern | 正規表現パターンマッチ |
-| enum | 許可される値のリスト |
+| Check | Description |
+|-------|-------------|
+| Required fields | Whether attributes with `required: true` are present |
+| Type check | Type validation based on `valueType` (string, number, integer, boolean, array, object, GeoJSON) |
+| minLength / maxLength | String length constraints |
+| minimum / maximum | Numeric range constraints |
+| pattern | Regular expression pattern match |
+| enum | List of permitted values |
 
-バリデーション失敗時は `400 Bad Request` を返します:
+Validation failures return `400 Bad Request`:
 
 ```json
 {
@@ -2545,65 +2606,65 @@ CADDE（分野間データ連携基盤）の設定をAPI経由で管理します
 }
 ```
 
-#### JSON Schema 自動生成
+#### Automatic JSON Schema Generation
 
-カスタムデータモデル作成・更新時に、`propertyDetails` から JSON Schema (Draft 2020-12) が自動生成され、レスポンスの `jsonSchema` フィールドに含まれます。手動で `jsonSchema` を指定することも可能です。
+When a custom data model is created or updated, a JSON Schema (Draft 2020-12) is automatically generated from `propertyDetails` and included in the `jsonSchema` field of the response. It is also possible to specify `jsonSchema` manually.
 
-#### @context 解決拡張
+#### @context Resolution Extension
 
-NGSI-LD レスポンスにおいて、カスタムデータモデルに `contextUrl` が設定されている場合、エンティティの `@context` にカスタムコンテキストが自動的に含まれます（コアコンテキストと配列で返却）。
+In NGSI-LD responses, if a custom data model has a `contextUrl` configured, the custom context is automatically included in the entity's `@context` (returned as an array together with the core context).
 
 ### Catalog API
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
-|---------------|---------|------|------|--------|-----------------|
-| `/catalog` | GET | DCAT-AP カタログ取得 | 200 | 401 | - |
-| `/catalog/datasets` | GET | データセット一覧取得 | 200 | 400, 401 | ✅ (max: 1000) |
-| `/catalog/datasets/{datasetId}` | GET | データセット取得 | 200 | 401, 404 | - |
-| `/catalog/datasets/{datasetId}/sample` | GET | サンプルデータ取得 | 200 | 401, 404 | - |
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/catalog` | GET | Get DCAT-AP catalog | 200 | 401 | - |
+| `/catalog/datasets` | GET | List datasets | 200 | 400, 401 | Yes (max: 1000) |
+| `/catalog/datasets/{datasetId}` | GET | Get dataset | 200 | 401, 404 | - |
+| `/catalog/datasets/{datasetId}/sample` | GET | Get sample data | 200 | 401, 404 | - |
 
 ### Vector Tiles API
 
-| エンドポイント | メソッド | 説明 | 成功 | エラー |
-|---------------|---------|------|------|--------|
-| `/v2/tiles` | GET | TileJSON メタデータ取得 (NGSIv2) | 200 | 401 |
-| `/v2/tiles/{z}/{x}/{y}.geojson` | GET | GeoJSON タイル取得 (NGSIv2) | 200 | 400, 401 |
-| `/ngsi-ld/v1/tiles` | GET | TileJSON メタデータ取得 (NGSI-LD) | 200 | 401 |
-| `/ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GET | GeoJSON タイル取得 (NGSI-LD) | 200 | 400, 401 |
+| Endpoint | Method | Description | Success | Error |
+|----------|--------|-------------|---------|-------|
+| `/v2/tiles` | GET | Get TileJSON metadata (NGSIv2) | 200 | 401 |
+| `/v2/tiles/{z}/{x}/{y}.geojson` | GET | Get GeoJSON tile (NGSIv2) | 200 | 400, 401 |
+| `/ngsi-ld/v1/tiles` | GET | Get TileJSON metadata (NGSI-LD) | 200 | 401 |
+| `/ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GET | Get GeoJSON tile (NGSI-LD) | 200 | 400, 401 |
 
 ### Event Streaming API
 
-WebSocket を使用したリアルタイムのエンティティ変更ストリーミングです。`EVENT_STREAMING_ENABLED=true` で有効化されます。
+Real-time entity change streaming using WebSocket. Enabled with `EVENT_STREAMING_ENABLED=true`.
 
-| エンドポイント | プロトコル | 説明 |
-|---------------|-----------|------|
-| `wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={name}` | WebSocket | エンティティ変更イベントのストリーミング（認証は `Authorization` ヘッダーで送信） |
+| Endpoint | Protocol | Description |
+|----------|----------|-------------|
+| `wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={name}` | WebSocket | Stream entity change events (authentication sent via `Authorization` header) |
 
-詳細は [Event Streaming ドキュメント](../features/subscriptions.md) を参照してください。
+For details, see the [Event Streaming Documentation](../features/subscriptions.md).
 
-### アクセス権限まとめ
+### Access Permissions Summary
 
-| API カテゴリ | user | tenant_admin | super_admin |
-|-------------|------|--------------|-------------|
-| 公開エンドポイント | ✅ | ✅ | ✅ |
-| `/auth/*` | ✅ | ✅ | ✅ |
-| `/me/*` | ✅ | ✅ | ✅ |
-| `/v2/*` | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
-| `/ngsi-ld/*` | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
-| `/catalog/*` | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
-| `/admin/policies`, `/admin/policy-sets` | ❌ | ✅ (自テナント) | ✅ (全テナント) |
-| `/admin/*` (その他) | ❌ | ❌ | ✅ |
-| `/custom-data-models` | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
-| `/rules` | ❌ | ✅ (自テナント) | ✅ (全テナント) |
-| WebSocket | ✅ (自テナント) | ✅ (自テナント) | ✅ (全テナント) |
+| API Category | user | tenant_admin | super_admin |
+|--------------|------|--------------|-------------|
+| Public endpoints | Yes | Yes | Yes |
+| `/auth/*` | Yes | Yes | Yes |
+| `/me/*` | Yes | Yes | Yes |
+| `/v2/*` | Yes (own tenant) | Yes (own tenant) | Yes (all tenants) |
+| `/ngsi-ld/*` | Yes (own tenant) | Yes (own tenant) | Yes (all tenants) |
+| `/catalog/*` | Yes (own tenant) | Yes (own tenant) | Yes (all tenants) |
+| `/admin/policies`, `/admin/policy-sets` | No | Yes (own tenant) | Yes (all tenants) |
+| `/admin/*` (other) | No | No | Yes |
+| `/custom-data-models` | Yes (own tenant) | Yes (own tenant) | Yes (all tenants) |
+| `/rules` | No | Yes (own tenant) | Yes (all tenants) |
+| WebSocket | Yes (own tenant) | Yes (own tenant) | Yes (all tenants) |
 
 ---
 
-## 関連リンク
+## Related Links
 
 - [FIWARE NGSI v2 Specification](https://fiware.github.io/specifications/ngsiv2/stable/)
 - [ETSI NGSI-LD Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
 - [FIWARE Orion Context Broker Documentation](https://fiware-orion.readthedocs.io/)
-- [IPA 空間IDガイドライン](https://www.ipa.go.jp/digital/architecture/guidelines/4dspatio-temporal-guideline.html)
-- [デジタル庁 空間ID](https://www.digital.go.jp/policies/mobility_and_infrastructure/spatial-id)
+- [IPA Spatial ID Guidelines](https://www.ipa.go.jp/digital/architecture/guidelines/4dspatio-temporal-guideline.html)
+- [Digital Agency Spatial ID](https://www.digital.go.jp/policies/mobility_and_infrastructure/spatial-id)
 - [RFC 7946 GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946)

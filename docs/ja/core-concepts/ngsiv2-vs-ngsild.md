@@ -3,95 +3,95 @@ title: "NGSIv2 vs NGSI-LD"
 description: "NGSIv2 と NGSI-LD の相互運用性"
 outline: deep
 ---
-# NGSIv2 / NGSI-LD 相互互換性
+# NGSIv2 / NGSI-LD Interoperability
 
-GeonicDB は NGSIv2 と NGSI-LD の両方を単一の Context Broker でサポートしており、プロトコル非依存の内部フォーマットを通じて相互運用が可能です。
+GeonicDB supports both NGSIv2 and NGSI-LD in a single Context Broker, enabling interoperability through a protocol-agnostic internal format.
 
-## 目次
+## Table of Contents
 
-- [概要](#概要)
-- [統一内部フォーマット](#統一内部フォーマット)
-- [クロスAPIアクセス](#クロスapiアクセス)
-- [属性型マッピング表](#属性型マッピング表)
-- [システム属性の違い](#システム属性の違い)
-- [出力フォーマットの違い](#出力フォーマットの違い)
-- [共通機能](#共通機能)
-- NGSI-LD固有機能
-- [エンティティIDの注意点](#エンティティidの注意点)
-- [フェデレーション](#フェデレーション)
-- [ユースケースとベストプラクティス](#ユースケースとベストプラクティス)
+- [Overview](#overview)
+- [Unified Internal Format](#unified-internal-format)
+- [Cross-API Access](#cross-api-access)
+- [Attribute Type Mapping Table](#attribute-type-mapping-table)
+- [System Attribute Differences](#system-attribute-differences)
+- [Output Format Differences](#output-format-differences)
+- [Shared Features](#shared-features)
+- [NGSI-LD-Specific Features](#ngsi-ld-specific-features)
+- [Entity ID Considerations](#entity-id-considerations)
+- [Federation](#federation)
+- [Use Cases and Best Practices](#use-cases-and-best-practices)
 
 ---
 
-## 概要
+## Overview
 
-GeonicDB のデュアル API アーキテクチャは、FIWARE NGSIv2 と ETSI NGSI-LD の両方の仕様をサポートします。
+GeonicDB's dual API architecture supports both the FIWARE NGSIv2 and ETSI NGSI-LD specifications.
 
-### アーキテクチャ
+### Architecture
 
 ```text
 NGSIv2 API (/v2) ───┐
-                    ├──> 統一内部フォーマット ──> MongoDB
-NGSI-LD API (LD/v1) ┘
+                    ├──> Unified Internal Format ──> MongoDB
+NGSI-LD API (/ngsi-ld/v1) ┘
 ```
 
-- 両 API は同一の MongoDB ストレージを共有
-- エンティティは API に依存しないプロトコル非依存形式で保存
-- リクエスト時に各 API 形式から内部形式に変換
-- レスポンス時に内部形式から各 API 形式に変換
+- Both APIs share the same MongoDB storage
+- Entities are stored in a protocol-agnostic format independent of the API used
+- On request: each API format is converted to the internal format
+- On response: the internal format is converted back to each API format
 
-### 相互運用性のメリット
+### Benefits of Interoperability
 
-- **移行の柔軟性** - NGSIv2 から NGSI-LD への段階的移行が可能
-- **既存システムとの統合** - 古い NGSIv2 クライアントと新しい NGSI-LD クライアントの共存
-- **API 選択の自由** - ユースケースに応じて最適な API を選択
-- **単一データソース** - 重複データの管理不要
+- **Migration flexibility** - Enables gradual migration from NGSIv2 to NGSI-LD
+- **Integration with existing systems** - Allows coexistence of legacy NGSIv2 clients and new NGSI-LD clients
+- **Freedom of API choice** - Select the optimal API for each use case
+- **Single data source** - No need to manage duplicate data
 
 ---
 
-## 統一内部フォーマット
+## Unified Internal Format
 
-GeonicDB は両 API からのデータを統一内部フォーマットに変換します。
+GeonicDB converts data from both APIs into a unified internal format.
 
-### 内部エンティティ構造
+### Internal Entity Structure
 
 ```typescript
 interface InternalEntity {
-  id: string;                                    // エンティティID
-  type: string;                                  // エンティティタイプ
-  attributes: Record<string, EntityAttribute>;   // 属性の集合
-  metadata?: EntityMetadata;                     // システムメタデータ
-  scope?: string[];                              // NGSI-LD スコープ階層
-  distance?: number;                             // ジオクエリ結果の距離
-  expiresAt?: string;                            // Transient エンティティの期限
+  id: string;                                    // Entity ID
+  type: string;                                  // Entity type
+  attributes: Record<string, EntityAttribute>;   // Set of attributes
+  metadata?: EntityMetadata;                     // System metadata
+  scope?: string[];                              // NGSI-LD scope hierarchy
+  distance?: number;                             // Distance in geo-query results
+  expiresAt?: string;                            // Expiry for Transient entities
 }
 
 interface EntityAttribute {
-  type: string;                                  // 属性型
-  value: AttributeValue;                         // 属性値
-  metadata?: Record<string, AttributeMetadata>;  // 属性メタデータ
-  datasetId?: string;                            // NGSI-LD データセットID
+  type: string;                                  // Attribute type
+  value: AttributeValue;                         // Attribute value
+  metadata?: Record<string, AttributeMetadata>;  // Attribute metadata
+  datasetId?: string;                            // NGSI-LD dataset ID
 }
 
 interface EntityMetadata {
-  createdAt: string;   // 作成日時 (ISO 8601)
-  modifiedAt: string;  // 更新日時 (ISO 8601)
-  version: number;     // バージョン番号
-  deletedAt?: string;  // 削除日時（論理削除）
+  createdAt: string;   // Creation timestamp (ISO 8601)
+  modifiedAt: string;  // Last modified timestamp (ISO 8601)
+  version: number;     // Version number
+  deletedAt?: string;  // Deletion timestamp (soft delete)
 }
 ```
 
-### MongoDB ストレージ形式
+### MongoDB Storage Format
 
 ```typescript
 interface EntityDocument {
   _id: ObjectId;
-  tenant: string;           // テナント名 (Fiware-Service)
-  servicePath: string;      // サービスパス
-  entityId: string;         // エンティティID
-  entityType: string;       // エンティティタイプ
+  tenant: string;           // Tenant name (Fiware-Service)
+  servicePath: string;      // Service path
+  entityId: string;         // Entity ID
+  entityType: string;       // Entity type
   attributes: Record<string, EntityAttribute>;
-  location?: {              // 2dsphere インデックス用の分離フィールド
+  location?: {              // Separate field for 2dsphere index
     type: string;
     value: GeoGeometry;
   };
@@ -106,13 +106,13 @@ interface EntityDocument {
 
 ---
 
-## クロスAPIアクセス
+## Cross-API Access
 
-NGSIv2 で作成したエンティティを NGSI-LD で取得できます（逆も同様）。
+Entities created with NGSIv2 can be retrieved via NGSI-LD (and vice versa).
 
-### 例1: NGSIv2 で作成 → NGSI-LD で取得
+### Example 1: Create with NGSIv2 → Retrieve with NGSI-LD
 
-**NGSIv2 でエンティティ作成:**
+**Create entity with NGSIv2:**
 
 ```bash
 curl -X POST http://localhost:3000/v2/entities \
@@ -138,14 +138,14 @@ curl -X POST http://localhost:3000/v2/entities \
   }'
 ```
 
-**NGSI-LD で同じエンティティを取得:**
+**Retrieve the same entity with NGSI-LD:**
 
 ```bash
 curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001 \
   -H "Fiware-Service: demo"
 ```
 
-**レスポンス (NGSI-LD 形式):**
+**Response (NGSI-LD format):**
 
 ```json
 {
@@ -166,9 +166,9 @@ curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001 \
 }
 ```
 
-### 例2: NGSI-LD で作成 → NGSIv2 で取得
+### Example 2: Create with NGSI-LD → Retrieve with NGSIv2
 
-**NGSI-LD でエンティティ作成:**
+**Create entity with NGSI-LD:**
 
 ```bash
 curl -X POST http://localhost:3000/ngsi-ld/v1/entities \
@@ -194,14 +194,14 @@ curl -X POST http://localhost:3000/ngsi-ld/v1/entities \
   }'
 ```
 
-**NGSIv2 で同じエンティティを取得:**
+**Retrieve the same entity with NGSIv2:**
 
 ```bash
 curl http://localhost:3000/v2/entities/urn:ngsi-ld:Vehicle:V123 \
   -H "Fiware-Service: demo"
 ```
 
-**レスポンス (NGSIv2 形式):**
+**Response (NGSIv2 format):**
 
 ```json
 {
@@ -233,70 +233,70 @@ curl http://localhost:3000/v2/entities/urn:ngsi-ld:Vehicle:V123 \
 
 ---
 
-## 属性型マッピング表
+## Attribute Type Mapping Table
 
-GeonicDB は以下のルールで NGSIv2 型 ↔ 内部型 ↔ NGSI-LD 型を変換します。
+GeonicDB converts between NGSIv2 types, internal types, and NGSI-LD types according to the following rules.
 
-### 基本データ型
+### Basic Data Types
 
-| NGSIv2 型 | 内部型 | NGSI-LD 型 | 説明 |
-|----------|-------|-----------|------|
-| `Number` | `Number` | `Property` | 数値 (整数・小数) |
-| `Text` / `String` | `String` | `Property` | 文字列 |
-| `Boolean` | `Boolean` | `Property` | 真偽値 |
-| `DateTime` | `DateTime` | `Property` または `TemporalProperty` | ISO 8601 日時文字列 |
-| `Null` | `Null` | `Property` | null 値 |
+| NGSIv2 Type | Internal Type | NGSI-LD Type | Description |
+|-------------|---------------|--------------|-------------|
+| `Number` | `Number` | `Property` | Numeric (integer or decimal) |
+| `Text` / `String` | `String` | `Property` | String |
+| `Boolean` | `Boolean` | `Property` | Boolean |
+| `DateTime` | `DateTime` | `Property` or `TemporalProperty` | ISO 8601 datetime string |
+| `Null` | `Null` | `Property` | null value |
 
-### 構造化データ型
+### Structured Data Types
 
-| NGSIv2 型 | 内部型 | NGSI-LD 型 | 説明 |
-|----------|-------|-----------|------|
-| `Object` | `Object` | `Property` | JSON オブジェクト |
-| `Array` | `Array` | `Property` または `ListProperty` | JSON 配列 |
-| `StructuredValue` | `Object` | `Property` | 構造化データ |
+| NGSIv2 Type | Internal Type | NGSI-LD Type | Description |
+|-------------|---------------|--------------|-------------|
+| `Object` | `Object` | `Property` | JSON object |
+| `Array` | `Array` | `Property` or `ListProperty` | JSON array |
+| `StructuredValue` | `Object` | `Property` | Structured data |
 
-### 地理空間型
+### Geospatial Types
 
-| NGSIv2 型 | 内部型 | NGSI-LD 型 | 説明 |
-|----------|-------|-----------|------|
+| NGSIv2 Type | Internal Type | NGSI-LD Type | Description |
+|-------------|---------------|--------------|-------------|
 | `geo:json` | `GeoJSON` | `GeoProperty` | GeoJSON (Point, LineString, Polygon) |
-| `geo:point` | `GeoJSON` (Point) | `GeoProperty` | 緯度・経度の点 |
+| `geo:point` | `GeoJSON` (Point) | `GeoProperty` | Latitude/longitude point |
 
-### NGSI-LD 固有型
+### NGSI-LD-Specific Types
 
-以下の NGSI-LD 固有型は内部的に保持されますが、NGSIv2 API では `Property` として扱われます。
+The following NGSI-LD-specific types are preserved internally but are treated as `Property` by the NGSIv2 API.
 
-| NGSI-LD 型 | 内部型 | NGSIv2 変換 | 説明 |
-|-----------|-------|-----------|------|
-| `Relationship` | `Relationship` | `Relationship` (カスタム型) | エンティティ参照 (`object` プロパティを含む) |
-| `LanguageProperty` | `LanguageProperty` | `StructuredValue` | 多言語文字列 (`languageMap` プロパティを含む) |
-| `JsonProperty` | `JsonProperty` | `Object` | JSON データ (`json` プロパティを含む) |
-| `VocabProperty` | `VocabProperty` | `Object` | 語彙データ (`vocab` または `vocabMap` プロパティを含む) |
-| `ListProperty` | `ListProperty` | `Array` | 順序付き配列 (`valueList` プロパティを含む) |
-| `ListRelationship` | `ListRelationship` | `Array` | エンティティ参照の配列 (`objectList` プロパティを含む) |
+| NGSI-LD Type | Internal Type | NGSIv2 Conversion | Description |
+|--------------|---------------|-------------------|-------------|
+| `Relationship` | `Relationship` | `Relationship` (custom type) | Entity reference (includes `object` property) |
+| `LanguageProperty` | `LanguageProperty` | `StructuredValue` | Multilingual string (includes `languageMap` property) |
+| `JsonProperty` | `JsonProperty` | `Object` | JSON data (includes `json` property) |
+| `VocabProperty` | `VocabProperty` | `Object` | Vocabulary data (includes `vocab` or `vocabMap` property) |
+| `ListProperty` | `ListProperty` | `Array` | Ordered array (includes `valueList` property) |
+| `ListRelationship` | `ListRelationship` | `Array` | Array of entity references (includes `objectList` property) |
 
-### メタデータ型マッピング
+### Metadata Type Mapping
 
-| NGSIv2 メタデータ名 | NGSI-LD プロパティ | 説明 |
-|-------------------|------------------|------|
-| `unit` (Text) | `unitCode` (string) | 単位 (例: "CEL", "KMH") |
-| `observedAt` (DateTime) | `observedAt` (ISO 8601) | 観測日時 |
-| `datasetId` (Text) | `datasetId` (URI) | データセットID |
+| NGSIv2 Metadata Name | NGSI-LD Property | Description |
+|----------------------|------------------|-------------|
+| `unit` (Text) | `unitCode` (string) | Unit (e.g., "CEL", "KMH") |
+| `observedAt` (DateTime) | `observedAt` (ISO 8601) | Observation timestamp |
+| `datasetId` (Text) | `datasetId` (URI) | Dataset ID |
 
 ---
 
-## システム属性の違い
+## System Attribute Differences
 
-エンティティのメタデータ（作成日時・更新日時）は API によって名前が異なります。
+Entity metadata (creation and modification timestamps) use different names depending on the API.
 
-### NGSIv2 のシステム属性
+### NGSIv2 System Attributes
 
-| 属性名 | 型 | 説明 |
-|-------|---|------|
-| `dateCreated` | `DateTime` | エンティティ作成日時 (ISO 8601) |
-| `dateModified` | `DateTime` | エンティティ最終更新日時 (ISO 8601) |
+| Attribute Name | Type | Description |
+|----------------|------|-------------|
+| `dateCreated` | `DateTime` | Entity creation timestamp (ISO 8601) |
+| `dateModified` | `DateTime` | Entity last modified timestamp (ISO 8601) |
 
-**例 (NGSIv2 レスポンス with `options=dateCreated,dateModified`):**
+**Example (NGSIv2 response with `options=dateCreated,dateModified`):**
 
 ```json
 {
@@ -317,16 +317,16 @@ GeonicDB は以下のルールで NGSIv2 型 ↔ 内部型 ↔ NGSI-LD 型を変
 }
 ```
 
-### NGSI-LD のシステム属性
+### NGSI-LD System Attributes
 
-| 属性名 | 型 | 説明 |
-|-------|---|------|
-| `createdAt` | ISO 8601 文字列 | エンティティ作成日時 |
-| `modifiedAt` | ISO 8601 文字列 | エンティティ最終更新日時 |
+| Attribute Name | Type | Description |
+|----------------|------|-------------|
+| `createdAt` | ISO 8601 string | Entity creation timestamp |
+| `modifiedAt` | ISO 8601 string | Entity last modified timestamp |
 
-**注記:** `pick` パラメータを使用した場合、`@context`、`id`、`type` のみが選択され、`createdAt` および `modifiedAt` は含まれません（例外）。
+**Note:** When using the `pick` parameter, the response includes the explicitly requested attributes along with `@context`, `id`, and `type` (which are always present). However, `createdAt` and `modifiedAt` are not returned even if `pick` is used — these system attributes require the `sysAttrs` option.
 
-**例 (NGSI-LD レスポンス, システム属性は常に含まれる):**
+**Example (NGSI-LD response, system attributes always included):**
 
 ```json
 {
@@ -342,13 +342,13 @@ GeonicDB は以下のルールで NGSIv2 型 ↔ 内部型 ↔ NGSI-LD 型を変
 }
 ```
 
-### 内部表現（MongoDB）
+### Internal Representation (MongoDB)
 
 ```typescript
 {
   metadata: {
-    createdAt: "2026-02-08T10:00:00.000Z",  // ISO 8601 文字列
-    modifiedAt: "2026-02-08T11:00:00.000Z", // ISO 8601 文字列
+    createdAt: "2026-02-08T10:00:00.000Z",  // ISO 8601 string
+    modifiedAt: "2026-02-08T11:00:00.000Z", // ISO 8601 string
     version: 1
   }
 }
@@ -356,22 +356,22 @@ GeonicDB は以下のルールで NGSIv2 型 ↔ 内部型 ↔ NGSI-LD 型を変
 
 ---
 
-## 出力フォーマットの違い
+## Output Format Differences
 
-各 API は複数のレスポンス形式をサポートします。
+Each API supports multiple response formats.
 
-### NGSIv2 の出力形式
+### NGSIv2 Output Formats
 
-| 形式 | options パラメータ | 説明 |
-|-----|------------------|------|
-| **normalized** (デフォルト) | (なし) | 型とメタデータを含む完全な形式 |
-| **keyValues** | `options=keyValues` | キー・値のペアのみ（メタデータなし） |
-| **values** | `options=values` | 属性値の配列のみ |
+| Format | options Parameter | Description |
+|--------|-------------------|-------------|
+| **normalized** (default) | (none) | Full format including type and metadata |
+| **keyValues** | `options=keyValues` | Key-value pairs only (no metadata) |
+| **values** | `options=values` | Array of attribute values only |
 
-**例:**
+**Examples:**
 
 ```bash
-# normalized (デフォルト)
+# normalized (default)
 curl http://localhost:3000/v2/entities/Room1
 
 # keyValues
@@ -381,18 +381,18 @@ curl http://localhost:3000/v2/entities/Room1?options=keyValues
 curl 'http://localhost:3000/v2/entities?type=Room&options=values&attrs=temperature,humidity'
 ```
 
-### NGSI-LD の出力形式
+### NGSI-LD Output Formats
 
-| 形式 | Accept ヘッダー | 説明 |
-|-----|---------------|------|
-| **normalized** (デフォルト) | `application/ld+json` | 型とメタデータを含む完全な形式 |
-| **concise** | `application/ld+json` + `options=concise` | 簡潔な形式（省略記法） |
-| **keyValues** | `application/ld+json` + `options=keyValues` | キー・値のみ |
+| Format | Accept Header | Description |
+|--------|---------------|-------------|
+| **normalized** (default) | `application/ld+json` | Full format including type and metadata |
+| **concise** | `application/ld+json` + `options=concise` | Concise format (abbreviated notation) |
+| **keyValues** | `application/ld+json` + `options=keyValues` | Key-value pairs only |
 
-**例:**
+**Examples:**
 
 ```bash
-# normalized (デフォルト)
+# normalized (default)
 curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1
 
 # concise
@@ -404,145 +404,145 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=k
 
 ---
 
-## 共通機能
+## Shared Features
 
-以下の機能は両 API で共有されます。
+The following features are shared by both APIs.
 
-### 1. クエリ言語
+### 1. Query Language
 
-| 機能 | NGSIv2 | NGSI-LD | 説明 |
-|-----|-------|---------|------|
-| **シンプルクエリ** | `q` パラメータ | `q` パラメータ | 属性値フィルタ（例: `temperature>20;humidity<80`) |
-| **メタデータクエリ** | `mq` パラメータ | `q` パラメータ (メタデータもクエリ可能) | メタデータフィルタ |
-| **スコープクエリ** | (非対応) | `scopeQ` パラメータ | スコープ階層フィルタ |
+| Feature | NGSIv2 | NGSI-LD | Description |
+|---------|--------|---------|-------------|
+| **Simple Query** | `q` parameter | `q` parameter | Attribute value filter (e.g., `temperature>20;humidity<80`) |
+| **Metadata Query** | `mq` parameter | `q` parameter (metadata also queryable) | Metadata filter |
+| **Scope Query** | (not supported) | `scopeQ` parameter | Scope hierarchy filter |
 
-**基本例:**
+**Basic examples:**
 
 ```bash
-# NGSIv2: 温度が20度以上のエンティティ
+# NGSIv2: Entities with temperature greater than 20
 curl 'http://localhost:3000/v2/entities?type=Room&q=temperature>20'
 
-# NGSI-LD: 温度が20度以上のエンティティ
+# NGSI-LD: Entities with temperature greater than 20
 curl 'http://localhost:3000/ngsi-ld/v1/entities?type=Room&q=temperature>20'
 ```
 
-#### メタデータクエリ (mq) の詳細
+#### Metadata Query (mq) Details
 
-NGSIv2 の `mq` パラメータは、属性のメタデータに対するクエリをサポートします。
+The NGSIv2 `mq` parameter supports queries against attribute metadata.
 
-**サポートされる演算子:**
+**Supported operators:**
 
-| 演算子 | 説明 | 例 |
-|-------|------|------|
-| `==` | 等しい | `mq=temperature.accuracy==0.95` |
-| `!=` | 等しくない | `mq=temperature.accuracy!=0` |
-| `>`, `<`, `>=`, `<=` | 比較演算子 | `mq=temperature.accuracy>0.9` |
-| `~=` | パターンマッチ | `mq=temperature.unit~=Cel.*` |
-| `..` | 範囲（包含） | `mq=temperature.accuracy==0.9..1.0` |
-| `,` | リスト（OR） | `mq=temperature.unit==Celsius,Fahrenheit` |
-| `;` | AND条件 | `mq=temperature.accuracy>0.9;temperature.unit==Celsius` |
-| `|` | OR条件 | `mq=temperature.accuracy>0.9|humidity.accuracy>0.8` |
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `==` | Equal to | `mq=temperature.accuracy==0.95` |
+| `!=` | Not equal to | `mq=temperature.accuracy!=0` |
+| `>`, `<`, `>=`, `<=` | Comparison operators | `mq=temperature.accuracy>0.9` |
+| `~=` | Pattern match | `mq=temperature.unit~=Cel.*` |
+| `..` | Range (inclusive) | `mq=temperature.accuracy==0.9..1.0` |
+| `,` | List (OR) | `mq=temperature.unit==Celsius,Fahrenheit` |
+| `;` | AND condition | `mq=temperature.accuracy>0.9;temperature.unit==Celsius` |
+| `|` | OR condition | `mq=temperature.accuracy>0.9|humidity.accuracy>0.8` |
 
-**例:**
+**Examples:**
 
 ```bash
-# 精度が0.9以上のtemperature属性を持つエンティティ
+# Entities with a temperature attribute having accuracy greater than 0.9
 curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.accuracy>0.9'
 
-# 精度が0.9から1.0の範囲のtemperature属性を持つエンティティ
+# Entities with a temperature attribute having accuracy in the range 0.9 to 1.0
 curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.accuracy==0.9..1.0'
 
-# 単位がCelsiusまたはFahrenheitのtemperature属性を持つエンティティ
+# Entities with a temperature attribute having unit Celsius or Fahrenheit
 curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.unit==Celsius,Fahrenheit'
 
-# 複合条件: 精度が0.9以上かつ単位がCelsius
+# Compound condition: accuracy greater than 0.9 AND unit is Celsius
 curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.accuracy>0.9;temperature.unit==Celsius'
 ```
 
-#### スコープクエリ (scopeQ) の詳細
+#### Scope Query (scopeQ) Details
 
-NGSI-LD の `scopeQ` パラメータは、エンティティのスコープ階層に対するクエリをサポートします。
+The NGSI-LD `scopeQ` parameter supports queries against the entity scope hierarchy.
 
-**サポートされる演算子:**
+**Supported operators:**
 
-| 演算子 | 説明 | 例 |
-|-------|------|------|
-| `/path` | 完全一致 | `scopeQ=/Japan/Tokyo` |
-| `/path/+` | 1階層下のみ | `scopeQ=/Japan/+` (Tokyoなど) |
-| `/path/#` | すべての子孫 | `scopeQ=/Japan/#` (Tokyo, Tokyo/Shibuya など) |
-| `;` | AND条件（複数スコープ） | `scopeQ=/Japan/Tokyo;/IoT` |
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `/path` | Exact match | `scopeQ=/Japan/Tokyo` |
+| `/path/+` | One level below only | `scopeQ=/Japan/+` (e.g., Tokyo) |
+| `/path/#` | All descendants | `scopeQ=/Japan/#` (e.g., Tokyo, Tokyo/Shibuya) |
+| `;` | AND condition (multiple scopes) | `scopeQ=/Japan/Tokyo;/IoT` |
 
-**例:**
+**Examples:**
 
 ```bash
-# /Japan/Tokyo スコープを持つエンティティ（完全一致）
+# Entities with scope /Japan/Tokyo (exact match)
 curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo'
 
-# /Japan の直下（1階層下のみ）のエンティティ
+# Entities directly under /Japan (one level below only)
 curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/+'
 
-# /Japan のすべての子孫エンティティ
+# All descendant entities under /Japan
 curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/%23'
 
-# 複数スコープを持つエンティティ（AND条件）
+# Entities with multiple scopes (AND condition)
 curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo;/IoT'
 ```
 
-### 2. ジオクエリ
+### 2. Geo-Queries
 
-| ジオクエリ演算子 | NGSIv2 | NGSI-LD | 説明 |
-|---------------|-------|---------|------|
-| `near` | ✅ | ✅ | 指定点の近く |
-| `coveredBy` | ✅ | ✅ | 領域内に完全に含まれる |
-| `within` | ✅ | ✅ | 領域と交差または含まれる |
-| `intersects` | ✅ | ✅ | 領域と交差する |
-| `disjoint` | ✅ | ✅ | 領域と交差しない |
+| Geo-query Operator | NGSIv2 | NGSI-LD | Description |
+|--------------------|--------|---------|-------------|
+| `near` | ✅ | ✅ | Near a specified point |
+| `coveredBy` | ✅ | ✅ | Completely contained within a region |
+| `within` | ✅ | ✅ | Intersects or is contained within a region |
+| `intersects` | ✅ | ✅ | Intersects a region |
+| `disjoint` | ✅ | ✅ | Does not intersect a region |
 
-**例:**
+**Examples:**
 
 ```bash
-# NGSIv2: 東京駅から1km圏内のエンティティ
+# NGSIv2: Entities within 1km of Tokyo Station
 curl 'http://localhost:3000/v2/entities?georel=near;maxDistance:1000&geometry=point&coords=35.6812,139.7671'
 
-# NGSI-LD: 東京駅から1km圏内のエンティティ
+# NGSI-LD: Entities within 1km of Tokyo Station
 curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&geometry=Point&coordinates=%5B139.7671,35.6812%5D'
 ```
 
-### 3. ページネーション
+### 3. Pagination
 
-| ヘッダー | NGSIv2 | NGSI-LD | 説明 |
-|---------|-------|---------|------|
-| **総数** | `Fiware-Total-Count` | `NGSILD-Results-Count` | クエリ結果の総数 |
-| **Next Link** | `Link` (rel="next") | `Link` (rel="next") | 次のページへのリンク |
+| Header | NGSIv2 | NGSI-LD | Description |
+|--------|--------|---------|-------------|
+| **Total count** | `Fiware-Total-Count` | `NGSILD-Results-Count` | Total number of query results |
+| **Next Link** | `Link` (rel="next") | `Link` (rel="next") | Link to the next page |
 
-詳細は [DEVELOPMENT.md](../getting-started/installation.md) の「API 仕様」セクションを参照。
+For details, see the "API Specification" section in [DEVELOPMENT.md](../getting-started/installation.md).
 
-### 4. サブスクリプション
+### 4. Subscriptions
 
-| 通知方式 | NGSIv2 | NGSI-LD | 説明 |
-|---------|-------|---------|------|
-| **HTTP Webhook** | ✅ | ✅ | REST エンドポイントへのPOST |
-| **MQTT** | ✅ | ✅ | MQTT Broker への Publish (QoS 0/1/2, TLS) |
-| **WebSocket** | ✅ | ✅ | リアルタイムイベントストリーム |
+| Notification Method | NGSIv2 | NGSI-LD | Description |
+|--------------------|--------|---------|-------------|
+| **HTTP Webhook** | ✅ | ✅ | POST to a REST endpoint |
+| **MQTT** | ✅ | ✅ | Publish to an MQTT broker (QoS 0/1/2, TLS) |
+| **WebSocket** | ✅ | ✅ | Real-time event stream |
 
-### 5. フェデレーション（コンテキストソース登録）
+### 5. Federation (Context Source Registration)
 
-| 機能 | NGSIv2 | NGSI-LD | 説明 |
-|-----|-------|---------|------|
-| **登録API** | `/v2/registrations` | `/ngsi-ld/v1/csourceRegistrations` | リモートプロバイダー登録 |
-| **並列クエリ** | ✅ | ✅ | 複数プロバイダーへの同時クエリ |
-| **結果統合** | ✅ | ✅ | ローカルとリモート結果のマージ |
-| **ループ検出** | ✅ | ✅ | `Via` ヘッダーでループを検出 |
+| Feature | NGSIv2 | NGSI-LD | Description |
+|---------|--------|---------|-------------|
+| **Registration API** | `/v2/registrations` | `/ngsi-ld/v1/csourceRegistrations` | Remote provider registration |
+| **Parallel queries** | ✅ | ✅ | Simultaneous queries to multiple providers |
+| **Result merging** | ✅ | ✅ | Merge of local and remote results |
+| **Loop detection** | ✅ | ✅ | Loop detection via `Via` header |
 
 ---
 
-## NGSI-LD固有機能
+## NGSI-LD-Specific Features
 
-以下の機能は NGSI-LD API でのみサポートされ、NGSIv2 API では直接対応していません。
+The following features are only supported by the NGSI-LD API and are not directly available in the NGSIv2 API.
 
-### 1. Relationship（リレーションシップ）
+### 1. Relationship
 
-エンティティ間の関連を表現します。
+Represents associations between entities.
 
 **NGSI-LD:**
 
@@ -557,7 +557,7 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&ge
 }
 ```
 
-**NGSIv2 で取得した場合:**
+**When retrieved via NGSIv2:**
 
 ```json
 {
@@ -572,9 +572,9 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&ge
 }
 ```
 
-### 2. LanguageProperty（多言語プロパティ）
+### 2. LanguageProperty (Multilingual Property)
 
-複数言語の文字列を保持します。
+Holds strings in multiple languages.
 
 **NGSI-LD:**
 
@@ -592,9 +592,9 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&ge
 }
 ```
 
-**NGSI-LD で `lang=ja` 指定時:**
+**When using `lang=ja` with NGSI-LD:**
 
-`lang` クエリパラメータを使用すると、LanguageProperty は通常の Property に変換され、指定された言語の値が `value` フィールドに設定されます。
+When using the `lang` query parameter, a LanguageProperty is converted to a standard Property, with the value for the specified language set in the `value` field.
 
 ```bash
 curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja'
@@ -612,7 +612,7 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja'
 }
 ```
 
-**NGSIv2 で取得した場合:**
+**When retrieved via NGSIv2:**
 
 ```json
 {
@@ -630,9 +630,9 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja'
 }
 ```
 
-### 3. Scope（スコープ階層）
+### 3. Scope (Scope Hierarchy)
 
-エンティティの論理的な階層を表現します。
+Represents the logical hierarchy of an entity.
 
 **NGSI-LD:**
 
@@ -644,34 +644,34 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja'
 }
 ```
 
-**スコープクエリ:**
+**Scope query:**
 
 ```bash
-# /Japan/Tokyo 配下のすべてのエンティティ
+# All entities under /Japan/Tokyo
 curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo'
 ```
 
-**NGSIv2 での対応:**
+**NGSIv2 compatibility:**
 
-- NGSIv2 API では `scope` は通常の属性として扱われます
-- `scopeQ` クエリはサポートされません
+- In the NGSIv2 API, `scope` is treated as a regular attribute
+- The `scopeQ` query is not supported
 
-### 4. 属性の射影（pick / omit パラメータ）
+### 4. Attribute Projection (pick / omit Parameters)
 
-NGSI-LD では、`pick` および `omit` クエリパラメータを使用して、レスポンスに含める属性を制御できます。
+In NGSI-LD, the `pick` and `omit` query parameters can be used to control which attributes are included in the response.
 
-#### pick パラメータ（属性の選択）
+#### pick Parameter (Attribute Selection)
 
-指定した属性のみをレスポンスに含めます。
+Includes only the specified attributes in the response.
 
-**例:**
+**Example:**
 
 ```bash
-# temperature と humidity 属性のみを取得
+# Retrieve only the temperature and humidity attributes
 curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?pick=temperature,humidity'
 ```
 
-**レスポンス:**
+**Response:**
 
 ```json
 {
@@ -689,18 +689,18 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?pick=temper
 }
 ```
 
-#### omit パラメータ（属性の除外）
+#### omit Parameter (Attribute Exclusion)
 
-指定した属性をレスポンスから除外します。
+Excludes the specified attributes from the response.
 
-**例:**
+**Example:**
 
 ```bash
-# location 属性を除外して取得
+# Retrieve without the location attribute
 curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?omit=location'
 ```
 
-**レスポンス:**
+**Response:**
 
 ```json
 {
@@ -718,25 +718,25 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?omit=locati
 }
 ```
 
-**注意点:**
+**Notes:**
 
-- `pick` と `omit` は同時に使用できません
-- `pick` 使用時: `@context`、`id`、`type` と指定した属性のみが含まれます。`createdAt`、`modifiedAt` は含まれません。
-- `omit` 使用時: 指定した属性以外の全属性が含まれます。`id`、`type` は除外できません（ETSI GS CIM 009 V1.9.1 仕様に準拠）
+- `pick` and `omit` cannot be used simultaneously
+- When using `pick`: only `@context`, `id`, `type`, and the specified attributes are included. `createdAt` and `modifiedAt` are not included.
+- When using `omit`: all attributes except the specified ones are included. `id` and `type` cannot be excluded (per ETSI GS CIM 009 V1.9.1 specification)
 
-**NGSIv2 での対応:**
+**NGSIv2 compatibility:**
 
-- NGSIv2 API では `attrs` パラメータが同様の機能を提供します（pick のみ）
-- `omit` に相当する機能は NGSIv2 にはありません
+- In the NGSIv2 API, the `attrs` parameter provides equivalent functionality (pick only)
+- There is no NGSIv2 equivalent for `omit`
 
 ```bash
-# NGSIv2 で temperature と humidity のみを取得（pick 相当）
+# Retrieve only temperature and humidity with NGSIv2 (equivalent to pick)
 curl 'http://localhost:3000/v2/entities/urn:ngsi-ld:Room:001?attrs=temperature,humidity'
 ```
 
-### 5. @context（JSON-LD コンテキスト）
+### 5. @context (JSON-LD Context)
 
-NGSI-LD ではエンティティに `@context` を含めることで語彙を定義できます。
+In NGSI-LD, including `@context` in an entity defines the vocabulary.
 
 **NGSI-LD:**
 
@@ -752,26 +752,44 @@ NGSI-LD ではエンティティに `@context` を含めることで語彙を定
 }
 ```
 
-**NGSIv2 での対応:**
+**NGSIv2 compatibility:**
 
-- NGSIv2 には `@context` の概念がありません
-- GeonicDB は Smart Data Models の自動補完に対応していますが、NGSIv2 API では `@context` は返されません
+- NGSIv2 has no concept of `@context`
+- GeonicDB supports automatic completion of Smart Data Models `@context`, but `@context` is not returned by the NGSIv2 API
 
 ---
 
-## エンティティIDの注意点
+## Entity ID Considerations
 
-### NGSI-LD の URI 要件
+### Entity ID Uniqueness (GeonicDB Extension)
 
-NGSI-LD 仕様では、エンティティ ID は URI 形式であることが推奨されます。
+> **GeonicDB Extension**: In GeonicDB, entity IDs are unique within the scope of a tenant (`Fiware-Service`) and service path (`Fiware-ServicePath`). The entity `type` is **not** part of the uniqueness constraint.
 
-**推奨形式 (URN):**
+This is a deliberate design decision that unifies the ID semantics across both APIs:
+
+- **NGSI-LD** treats entity IDs as URIs, which are inherently unique
+- **NGSIv2** (standard) allows entities with the same ID but different types to coexist — GeonicDB **does not** support this behavior
+
+**Impact:**
+- **Direct creation** (`POST /v2/entities`, `POST /ngsi-ld/v1/entities`): Creating an entity with the same ID as an existing entity (even with a different `type`) returns `409 AlreadyExists`
+- **Batch update** (`POST /v2/op/update` with `append`/`appendStrict`): Matches entities by `entityId` only. Attributes are updated but the original `type` is preserved
+- **Batch upsert** (`POST /ngsi-ld/v1/entityOperations/upsert`): Matches entities by `entityId` only. Attributes are updated (type handling follows upsert semantics)
+- **Batch create** (`POST /ngsi-ld/v1/entityOperations/create`): Returns `207` with per-entity error details for duplicate IDs
+- The NGSIv2 `?type=` parameter for type disambiguation among same-ID entities is no longer applicable
+
+This unification eliminates a class of interoperability issues where NGSIv2 type-based disambiguation would conflict with NGSI-LD's unique ID model.
+
+### NGSI-LD URI Requirements
+
+The NGSI-LD specification recommends that entity IDs be in URI format.
+
+**Recommended format (URN):**
 
 ```text
 urn:ngsi-ld:{EntityType}:{LocalId}
 ```
 
-**例:**
+**Examples:**
 
 ```text
 urn:ngsi-ld:Room:001
@@ -779,36 +797,36 @@ urn:ngsi-ld:Vehicle:ABC123
 urn:ngsi-ld:WeatherObserved:Tokyo-2026-02-08
 ```
 
-**NGSIv2 との互換性:**
+**NGSIv2 compatibility:**
 
-- NGSIv2 では任意の文字列を ID として使用可能 (例: `Room1`, `sensor-abc`)
-- NGSI-LD で URN 形式を使用すると、両 API で互換性が保たれます
-- NGSIv2 で URN 形式以外の ID を使用した場合でも、NGSI-LD API でアクセス可能です
+- NGSIv2 allows any string to be used as an ID (e.g., `Room1`, `sensor-abc`)
+- Using URN format with NGSI-LD maintains compatibility across both APIs
+- Entities created in NGSIv2 with non-URN IDs are still accessible via the NGSI-LD API
 
-**ベストプラクティス:**
+**Best practices:**
 
-- 相互運用性を重視する場合は、すべてのエンティティに URN 形式を使用することを推奨
-- 既存の NGSIv2 システムから移行する場合、ID の書き換えは不要（両 API でアクセス可能）
+- When prioritizing interoperability, using URN format for all entities is recommended
+- When migrating from existing NGSIv2 systems, ID rewriting is not required (accessible via both APIs)
 
 ---
 
-## フェデレーション
+## Federation
 
-GeonicDB のフェデレーション機能は、リモートコンテキストプロバイダーのプロトコルを自動判別します。
+GeonicDB's federation feature automatically detects the protocol of remote context providers.
 
-### プロトコル自動判別
+### Automatic Protocol Detection
 
-登録されたリモートプロバイダーに対して、GeonicDB は以下の順序でプロトコルを検出します：
+For registered remote providers, GeonicDB detects the protocol in the following order:
 
-1. **明示的な指定** - 登録時に `information.format` で指定された場合、そのプロトコルを使用
-2. **自動検出** - URL パスから自動判別:
-   - `/v2/` を含む → NGSIv2
-   - `/ngsi-ld/` を含む → NGSI-LD
-   - それ以外 → NGSIv2 (デフォルト)
+1. **Explicit specification** - If `information.format` is specified at registration time, that protocol is used
+2. **Auto-detection** - Automatic detection from the URL path:
+   - Contains `/v2/` → NGSIv2
+   - Contains `/ngsi-ld/` → NGSI-LD
+   - Otherwise → NGSIv2 (default)
 
-### NGSIv2 からのフェデレーション
+### Federation from NGSIv2
 
-**NGSIv2 で登録:**
+**Register with NGSIv2:**
 
 ```bash
 curl -X POST http://localhost:3000/v2/registrations \
@@ -829,23 +847,23 @@ curl -X POST http://localhost:3000/v2/registrations \
   }'
 ```
 
-**NGSIv2 でクエリすると、NGSI-LD プロバイダーに自動転送:**
+**Querying with NGSIv2 automatically forwards to the NGSI-LD provider:**
 
 ```bash
 curl http://localhost:3000/v2/entities/urn:ngsi-ld:Vehicle:V999 \
   -H "Fiware-Service: demo"
 ```
 
-**動作:**
+**Behavior:**
 
-1. GeonicDB はローカルに `urn:ngsi-ld:Vehicle:V999` が存在しないことを検出
-2. 登録情報から `http://remote-provider.example.com/ngsi-ld/v1` を特定
-3. NGSI-LD プロトコルでクエリを転送: `GET /ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:V999`
-4. レスポンスを NGSI-LD → 内部形式 → NGSIv2 に変換してクライアントに返却
+1. GeonicDB detects that `urn:ngsi-ld:Vehicle:V999` does not exist locally
+2. Identifies `http://remote-provider.example.com/ngsi-ld/v1` from the registration information
+3. Forwards the query using the NGSI-LD protocol: `GET /ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:V999`
+4. Converts the response from NGSI-LD → internal format → NGSIv2 and returns it to the client
 
-### NGSI-LD からのフェデレーション
+### Federation from NGSI-LD
 
-**NGSI-LD で登録:**
+**Register with NGSI-LD:**
 
 ```bash
 curl -X POST http://localhost:3000/ngsi-ld/v1/csourceRegistrations \
@@ -865,85 +883,85 @@ curl -X POST http://localhost:3000/ngsi-ld/v1/csourceRegistrations \
   }'
 ```
 
-**NGSI-LD でクエリすると、NGSIv2 プロバイダーに自動転送:**
+**Querying with NGSI-LD automatically forwards to the NGSIv2 provider:**
 
 ```bash
 curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:S888 \
   -H "Fiware-Service: demo"
 ```
 
-**動作:**
+**Behavior:**
 
-1. GeonicDB はローカルに `urn:ngsi-ld:Sensor:S888` が存在しないことを検出
-2. 登録情報から `http://legacy-system.example.com/v2` を特定
-3. NGSIv2 プロトコルでクエリを転送: `GET /v2/entities/urn:ngsi-ld:Sensor:S888`
-4. レスポンスを NGSIv2 → 内部形式 → NGSI-LD に変換してクライアントに返却
+1. GeonicDB detects that `urn:ngsi-ld:Sensor:S888` does not exist locally
+2. Identifies `http://legacy-system.example.com/v2` from the registration information
+3. Forwards the query using the NGSIv2 protocol: `GET /v2/entities/urn:ngsi-ld:Sensor:S888`
+4. Converts the response from NGSIv2 → internal format → NGSI-LD and returns it to the client
 
 ---
 
-## ユースケースとベストプラクティス
+## Use Cases and Best Practices
 
-### どちらのAPIを使うべきか？
+### Which API Should You Use?
 
-#### NGSIv2 を選ぶべき場合
+#### When to Choose NGSIv2
 
-- **既存の FIWARE Orion 互換システム** - レガシーシステムとの統合
-- **シンプルなIoTデータ管理** - センサーデータの収集・可視化
-- **学習コストを抑えたい** - NGSI-LD よりもシンプルな仕様
-- **既存ドキュメント・ツールの豊富さ** - NGSIv2 のエコシステムが充実
+- **Existing FIWARE Orion-compatible systems** - Integration with legacy systems
+- **Simple IoT data management** - Sensor data collection and visualization
+- **Lower learning curve** - Simpler specification than NGSI-LD
+- **Rich existing documentation and tools** - Mature NGSIv2 ecosystem
 
-**推奨ユースケース:**
+**Recommended use cases:**
 
-- IoT センサーネットワーク
-- スマートシティの基本的なデータ収集
-- プロトタイピング・PoC
+- IoT sensor networks
+- Basic smart city data collection
+- Prototyping and PoC
 
-#### NGSI-LD を選ぶべき場合
+#### When to Choose NGSI-LD
 
-- **セマンティックWeb / Linked Data** - JSON-LD と RDF の活用
-- **複雑なエンティティ関係** - Relationship や LanguageProperty の活用
-- **国際標準への準拠** - ETSI 標準に準拠したシステム
-- **将来の拡張性** - NGSI-LD は今後も仕様が拡張される予定
+- **Semantic Web / Linked Data** - Leveraging JSON-LD and RDF
+- **Complex entity relationships** - Using Relationship and LanguageProperty
+- **International standard compliance** - Systems conforming to ETSI standards
+- **Future extensibility** - The NGSI-LD specification continues to be extended
 
-**推奨ユースケース:**
+**Recommended use cases:**
 
-- Smart Data Models を活用したデータカタログ
-- 多言語対応が必要なシステム
-- エンティティ間の複雑な関係を表現する必要があるシステム
-- データ連携・オープンデータ公開
+- Data catalogs leveraging Smart Data Models
+- Systems requiring multilingual support
+- Systems needing to express complex relationships between entities
+- Data integration and open data publication
 
-#### ハイブリッド運用
+#### Hybrid Operation
 
-GeonicDB では両 API を同時に使用できます。
+GeonicDB allows both APIs to be used simultaneously.
 
-**推奨パターン:**
+**Recommended patterns:**
 
-1. **段階的移行** - レガシー NGSIv2 システムを稼働させながら、新機能を NGSI-LD で開発
-2. **外部 API と内部 API の分離** - 外部向けには NGSI-LD (標準準拠)、内部システムには NGSIv2 (シンプル)
-3. **クライアント選択** - モバイルアプリは NGSIv2 (軽量)、データカタログは NGSI-LD (セマンティック)
+1. **Gradual migration** - Keep legacy NGSIv2 systems running while developing new features with NGSI-LD
+2. **Separation of external and internal APIs** - Use NGSI-LD (standards-compliant) for external-facing APIs, NGSIv2 (simpler) for internal systems
+3. **Client selection** - NGSIv2 (lightweight) for mobile apps, NGSI-LD (semantic) for data catalogs
 
-### ベストプラクティス
+### Best Practices
 
-#### 1. エンティティ ID は URN 形式を使用
+#### 1. Use URN Format for Entity IDs
 
-**推奨:**
+**Recommended:**
 
 ```text
 urn:ngsi-ld:Room:001
 ```
 
-**非推奨:**
+**Not recommended:**
 
 ```text
 Room1
 sensor-abc
 ```
 
-理由: NGSI-LD 仕様に準拠し、両 API での互換性が保たれます。
+Reason: Conforms to the NGSI-LD specification and maintains compatibility across both APIs.
 
-#### 2. 地理空間データは GeoJSON を使用
+#### 2. Use GeoJSON for Geospatial Data
 
-**推奨 (NGSIv2):**
+**Recommended (NGSIv2):**
 
 ```json
 {
@@ -957,7 +975,7 @@ sensor-abc
 }
 ```
 
-**推奨 (NGSI-LD):**
+**Recommended (NGSI-LD):**
 
 ```json
 {
@@ -971,13 +989,13 @@ sensor-abc
 }
 ```
 
-理由: ジオクエリは GeoJSON 形式のみサポートされます。
+Reason: Geo-queries only support GeoJSON format.
 
-#### 3. Smart Data Models の活用
+#### 3. Leverage Smart Data Models
 
-GeonicDB は Smart Data Models の `@context` を自動補完します。
+GeonicDB automatically completes Smart Data Models `@context`.
 
-**推奨 (NGSI-LD):**
+**Recommended (NGSI-LD):**
 
 ```json
 {
@@ -990,57 +1008,57 @@ GeonicDB は Smart Data Models の `@context` を自動補完します。
 }
 ```
 
-理由: `type` が Smart Data Models のモデル名と一致する場合、自動的に適切な `@context` が補完されます。
+Reason: When `type` matches a Smart Data Models model name, the appropriate `@context` is automatically completed.
 
-#### 4. サブスクリプションは用途に応じて選択
+#### 4. Choose Subscriptions Based on Purpose
 
-| 用途 | 推奨チャネル | 理由 |
-|-----|-----------|------|
-| Web アプリ (リアルタイム更新) | WebSocket | 低遅延、サーバー不要 |
-| サーバー間連携 | HTTP Webhook | 信頼性、リトライ機能 |
-| IoT デバイス | MQTT | 軽量、QoS 保証 |
+| Purpose | Recommended Channel | Reason |
+|---------|---------------------|--------|
+| Web apps (real-time updates) | WebSocket | Low latency, no server required |
+| Server-to-server integration | HTTP Webhook | Reliability, retry functionality |
+| IoT devices | MQTT | Lightweight, QoS guarantees |
 
-#### 5. テナント分離の活用
+#### 5. Leverage Tenant Isolation
 
-`Fiware-Service` ヘッダーでテナントを分離します。
+Use the `Fiware-Service` header to isolate tenants.
 
 ```bash
-# テナント "demo" にエンティティ作成
+# Create entity in tenant "demo"
 curl -X POST http://localhost:3000/v2/entities \
   -H "Fiware-Service: demo" \
   -d '{...}'
 
-# テナント "prod" にエンティティ作成
+# Create entity in tenant "prod"
 curl -X POST http://localhost:3000/v2/entities \
   -H "Fiware-Service: prod" \
   -d '{...}'
 ```
 
-理由: 開発環境・本番環境の分離、顧客ごとのデータ分離が可能です。
+Reason: Enables separation of development and production environments, and isolation of data per customer.
 
 ---
 
-## まとめ
+## Summary
 
-| 項目 | NGSIv2 | NGSI-LD | GeonicDB の相互運用性 |
-|-----|-------|---------|-------------------|
-| **プロトコル** | REST/JSON | REST/JSON-LD | 両方サポート、統一内部フォーマット |
-| **エンティティID** | 任意の文字列 | URI (URN推奨) | 両方サポート、URN推奨 |
-| **属性型** | シンプル (Number, Text, etc.) | セマンティック (Property, Relationship, etc.) | 自動変換、型マッピング表参照 |
-| **システム属性** | `dateCreated`, `dateModified` | `createdAt`, `modifiedAt` | 内部で統一、API ごとに変換 |
-| **ジオクエリ** | ✅ | ✅ | 共通機能 |
-| **サブスクリプション** | ✅ (HTTP, MQTT, WebSocket) | ✅ (HTTP, MQTT, WebSocket) | 共通機能 |
-| **フェデレーション** | ✅ | ✅ | プロトコル自動判別 |
-| **ユースケース** | IoT, レガシーシステム | セマンティックWeb, オープンデータ | 両方を同時に使用可能 |
+| Item | NGSIv2 | NGSI-LD | GeonicDB Interoperability |
+|------|--------|---------|--------------------------|
+| **Protocol** | REST/JSON | REST/JSON-LD | Both supported, unified internal format |
+| **Entity ID** | Any string | URI (URN recommended) | Both supported, URN recommended. **ID is unique per tenant + servicePath** (type disambiguation removed) |
+| **Attribute types** | Simple (Number, Text, etc.) | Semantic (Property, Relationship, etc.) | Automatic conversion, see type mapping table |
+| **System attributes** | `dateCreated`, `dateModified` | `createdAt`, `modifiedAt` | Unified internally, converted per API |
+| **Geo-queries** | ✅ | ✅ | Shared feature |
+| **Subscriptions** | ✅ (HTTP, MQTT, WebSocket) | ✅ (HTTP, MQTT, WebSocket) | Shared feature |
+| **Federation** | ✅ | ✅ | Automatic protocol detection |
+| **Use cases** | IoT, legacy systems | Semantic Web, open data | Both can be used simultaneously |
 
-GeonicDB を使用することで、NGSIv2 と NGSI-LD の両方のエコシステムを活用し、段階的な移行や最適な API の選択が可能になります。
+By using GeonicDB, you can leverage both the NGSIv2 and NGSI-LD ecosystems, enabling gradual migration and optimal API selection.
 
 ---
 
-## 関連ドキュメント
+## Related Documentation
 
-- [API 共通仕様](../api-reference/endpoints.md)
+- [API Common Specification](../api-reference/endpoints.md)
 - [NGSIv2 API](../api-reference/ngsiv2.md)
 - [NGSI-LD API](../api-reference/ngsild.md)
 - [Smart Data Models](../features/smart-data-models.md)
-- [FIWARE Orion 比較](../migration/compatibility-matrix.md)
+- [FIWARE Orion Comparison](../migration/compatibility-matrix.md)
