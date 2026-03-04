@@ -1,6 +1,6 @@
 ---
 title: "NGSIv2 API"
-description: "NGSIv2 API リファレンス"
+description: "NGSIv2 API reference"
 outline: deep
 ---
 # NGSIv2 API

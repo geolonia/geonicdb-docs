@@ -45,8 +45,8 @@ jobs:
       - name: Detect changed files
         id: detect
         run: |
-          # sync-docs writes Japanese content into docs/ja/ paths
-          # Check for any .md file changes in docs/ (includes both docs/ja/ and docs/en/)
+          # sync-docs copies English source docs into docs/en/ paths
+          # Check for any .md file changes in docs/en/
           CHANGED=$(git diff --name-only -- 'docs/' | grep '\.md$' || true)
           UNTRACKED=$(git ls-files --others --exclude-standard -- 'docs/' | grep '\.md$' || true)
           ALL_CHANGED=$(echo -e "${CHANGED}\n${UNTRACKED}" | sort -u | grep -v '^$' || true)
@@ -76,37 +76,37 @@ jobs:
           fi
           echo "yuuhitsu CLI is available"
 
-      - name: Translate changed files
+      - name: Translate English docs to Japanese
         if: steps.detect.outputs.has_changes == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          # sync-docs puts Japanese content into docs/ja/ paths.
-          # Translate each changed ja file from Japanese to English, output to docs/en/.
-          JA_FILES=$(grep '^docs/ja/' /tmp/changed_files.txt || true)
-          if [ -z "$JA_FILES" ]; then
-            echo "No docs/ja/ files to translate"
+          # sync-docs copies English source docs into docs/en/.
+          # Translate each changed en file to Japanese, output to docs/ja/.
+          EN_FILES=$(grep '^docs/en/' /tmp/changed_files.txt || true)
+          if [ -z "$EN_FILES" ]; then
+            echo "No docs/en/ files to translate"
             exit 0
           fi
-          TOTAL=$(echo "$JA_FILES" | wc -l)
+          TOTAL=$(echo "$EN_FILES" | wc -l)
           FAILED=0
-          echo "Translating $TOTAL files..."
+          echo "Translating $TOTAL files to Japanese..."
           while IFS= read -r file; do
             if [ -f "$file" ]; then
-              en_file="${file/docs\/ja\//docs\/en\/}"
-              echo "Translating: $file -> $en_file"
-              mkdir -p "$(dirname "$en_file")"
-              if ! npx yuuhitsu translate --input "$file" --lang en --output "$en_file"; then
-                echo "::error::Failed to translate $file"
+              ja_file="${file/docs\/en\//docs\/ja\/}"
+              echo "Translating: $file -> $ja_file"
+              mkdir -p "$(dirname "$ja_file")"
+              if ! npx yuuhitsu translate --input "$file" --lang ja --output "$ja_file"; then
+                echo "::error::Failed to translate $file to Japanese"
                 FAILED=$((FAILED + 1))
               fi
             fi
-          done <<< "$JA_FILES"
+          done <<< "$EN_FILES"
           if [ "$FAILED" -gt 0 ]; then
             echo "::error::$FAILED/$TOTAL translations failed"
             exit 1
           fi
-          echo "All $TOTAL files translated successfully"
+          echo "All $TOTAL files translated to Japanese successfully"
 
       - name: Post-translation quality fixes (docs/ja/ and docs/en/)
         if: steps.detect.outputs.has_changes == 'true'
@@ -155,8 +155,8 @@ jobs:
             ${{ steps.detect.outputs.file_list }}
 
             ### Process
-            1. Synced docs from geolonia/geonicdb
-            2. Translated changed Japanese docs to English via yuuhitsu
+            1. Synced English source docs from geolonia/geonicdb → docs/en/
+            2. Translated English docs to Japanese via yuuhitsu → docs/ja/
             3. Build verification passed
           branch: docs/auto-sync-translate
           base: main

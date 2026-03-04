@@ -1,6 +1,6 @@
 ---
-title: "API 共通仕様"
-description: "GeonicDB API の共通仕様・認証・クエリパラメータ"
+title: "API Common Specification"
+description: "GeonicDB API common specification, authentication, and query parameters"
 outline: deep
 ---
 # GeonicDB Context Broker API Documentation
@@ -932,27 +932,84 @@ Machine-to-Machine (M2M) authentication using the OAuth 2.0 Client Credentials G
 
 Meta endpoints require no authentication and provide system status and API information.
 
-### API Documentation (llms**Request Body (PUT)**
+### API Documentation (llms.txt Format)
+
+```http
+GET /llms.txt
+```
+
+Returns API documentation in the AI-friendly [llms.txt](https://llmstxt.org/) format. Uses Markdown format structured for easy understanding by AI agents and LLMs.
+
+**Response**
+- Content-Type: `text/markdown; charset=utf-8`
+
+### API Documentation (JSON Format)
+
+```http
+GET /api.json
+```
+
+Returns a list of API endpoints in JSON format.
+
+**Response Example**
 
 ```json
 {
-  "enabled": true,
-  "authEnabled": true,
-  "defaultProvider": "provider-001",
-  "jwtIssuer": "https://auth.example.com",
-  "jwtAudience": "my-api",
-  "jwksUrl": "https://auth.example.com/.well-known/jwks.json"
+  "name": "GeonicDB",
+  "version": "1.0.0",
+  "documentation": {
+    "llms_txt": "/llms.txt",
+    "openapi": "/openapi.json",
+    "full": "https://github.com/geolonia/geonicdb/blob/main/docs/API.md"
+  },
+  "apis": {
+    "ngsiv2": { "basePath": "/v2", "endpoints": {...} },
+    "ngsi-ld": { "basePath": "/ngsi-ld/v1", "endpoints": {...} }
+  }
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `enabled` | boolean | Yes | Enable/disable CADDE functionality |
-| `authEnabled` | boolean | Yes | Enable/disable Bearer authentication |
-| `defaultProvider` | string | - | Default provider ID |
-| `jwtIssuer` | string | - | JWT issuer claim validation value |
-| `jwtAudience` | string | - | JWT audience claim validation value |
-| `jwksUrl` | string | - | JWKS public key endpoint URL (HTTPS required) |
+### OpenAPI Specification
+
+```http
+GET /openapi.json
+```
+
+Returns the OpenAPI 3.0 specification in JSON format. Can be used with Swagger UI and various API client generation tools.
+
+**Response**
+- Content-Type: `application/json`
+- OpenAPI version: 3.0.3
+
+### Version Information
+
+```http
+GET /version
+```
+
+Returns FIWARE Orion-compatible version information.
+
+**Response Example**
+
+```json
+{
+  "orion": {
+    "version": "1.0.0",
+    "uptime": "0 d, 1 h, 30 m, 45 s",
+    "git_hash": "787ae22",
+    "compile_time": "2026-01-25T00:00:00Z",
+    "compiled_by": "geonicdb",
+    "compiled_in": "aws-lambda",
+    "release_date": "2026-01-25",
+    "machine": "x64",
+    "doc": "https://github.com/geolonia/geonicdb"
+  },
+  "vendor": {
+    "name": "Geolonia Inc.",
+    "url": "https://geolonia.com"
+  }
+}
+```
 
 #### Rule Engine Management
 

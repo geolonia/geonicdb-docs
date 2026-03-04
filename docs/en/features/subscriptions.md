@@ -1,6 +1,6 @@
 ---
-title: "イベントストリーミング"
-description: "リアルタイムイベントストリーミング"
+title: "Event Streaming"
+description: "Real-time event streaming"
 outline: deep
 ---
 # WebSocket Event Streaming

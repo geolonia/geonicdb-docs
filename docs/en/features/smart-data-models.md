@@ -1,6 +1,6 @@
 ---
 title: "Smart Data Models"
-description: "FIWARE Smart Data Models 対応"
+description: "FIWARE Smart Data Models support"
 outline: deep
 ---
 # Smart Data Models サポート
