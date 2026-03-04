@@ -1,6 +1,6 @@
 ---
-title: "互換性マトリクス"
-description: "FIWARE Orion との互換性比較"
+title: "Compatibility Matrix"
+description: "Compatibility comparison with FIWARE Orion"
 outline: deep
 ---
 # GeonicDB vs FIWARE Orion Feature Comparison
@@ -157,4 +157,4 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | `sysAttrs` | ✅ | ✅ | Include system attributes (dateCreated, dateModified) |
 | `normalized` (default) | ✅ | ✅ | Full format |
 | **Attribute Selection** | | | |
-| `attrs` parameter |
+| `attrs` parameter | ✅ | ✅ | Select attributes to return |

@@ -1,6 +1,6 @@
 ---
-title: "CLI リファレンス"
-description: "GeonicDB CLI (geonic) コマンドリファレンス"
+title: "CLI Reference"
+description: "GeonicDB CLI (geonic) command reference"
 outline: deep
 ---
 # CLI Reference

@@ -1,6 +1,6 @@
 ---
 title: "FAQ"
-description: "よくある質問"
+description: "Frequently Asked Questions"
 outline: deep
 ---
 # Frequently Asked Questions (FAQ)

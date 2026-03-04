@@ -1,6 +1,6 @@
 ---
-title: "API 共通仕様"
-description: "GeonicDB API の共通仕様・認証・クエリパラメータ"
+title: "API Common Specification"
+description: "GeonicDB API common specification, authentication, and query parameters"
 outline: deep
 ---
 # GeonicDB Context Broker API Documentation

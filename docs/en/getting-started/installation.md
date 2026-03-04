@@ -1,6 +1,6 @@
 ---
-title: "開発者ガイド"
-description: "開発環境セットアップ・インストール"
+title: "Developer Guide"
+description: "Development environment setup and installation"
 outline: deep
 ---
 # Developer Guide
