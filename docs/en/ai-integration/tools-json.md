@@ -1,6 +1,6 @@
 ---
 title: "tools.json"
-description: "AI ツール定義（tools.json）"
+description: "AI tool definitions (tools.json)"
 outline: deep
 ---
 # AI Integration

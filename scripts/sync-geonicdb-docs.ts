@@ -2,11 +2,14 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 
 import { join, basename, dirname, relative } from 'node:path'
 
 // ---------------------------------------------------------------------------
-// GeonicDB docs/ → VitePress docs/ja/ sync script
+// GeonicDB docs/ → VitePress docs/en/ sync script
 // ---------------------------------------------------------------------------
 // Usage:
 //   GEONICDB_REPO_PATH=/path/to/geonicdb pnpm sync-docs
 //   (CI: GEONICDB_REPO_PATH=.geonicdb-upstream pnpm sync-docs)
+//
+// Source docs (English) are copied to docs/en/ with English frontmatter.
+// The CI workflow then translates docs/en/ → docs/ja/ via yuuhitsu.
 // ---------------------------------------------------------------------------
 
 /** Convert UPPER_SNAKE.md → lower-kebab.md */
@@ -40,99 +43,99 @@ function titleFromFilename(kebab: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Mapping table  (plan.md §6)
+// Mapping table
 // ---------------------------------------------------------------------------
-// Each entry: source filename → array of { dest (relative to docs/ja/), title, description }
+// Each entry: source filename → array of { dest (relative to docs/en/), title, description }
 // When a source maps to multiple destinations the entire content is copied to each.
 // ---------------------------------------------------------------------------
 
 interface MappingEntry {
-  dest: string        // relative path under docs/ja/  e.g. "api-reference/ngsiv2.md"
+  dest: string        // relative path under docs/en/  e.g. "api-reference/ngsiv2.md"
   title: string
   description: string
 }
 
 const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   'API.md': [
-    { dest: 'api-reference/endpoints.md', title: 'API 共通仕様', description: 'GeonicDB API の共通仕様・認証・クエリパラメータ' },
+    { dest: 'api-reference/endpoints.md', title: 'API Common Specification', description: 'GeonicDB API common specification, authentication, and query parameters' },
   ],
   'API_NGSIV2.md': [
-    { dest: 'api-reference/ngsiv2.md', title: 'NGSIv2 API', description: 'NGSIv2 API リファレンス' },
+    { dest: 'api-reference/ngsiv2.md', title: 'NGSIv2 API', description: 'NGSIv2 API reference' },
   ],
   'API_NGSILD.md': [
-    { dest: 'api-reference/ngsild.md', title: 'NGSI-LD API', description: 'NGSI-LD API リファレンス' },
+    { dest: 'api-reference/ngsild.md', title: 'NGSI-LD API', description: 'NGSI-LD API reference' },
   ],
   'API_ENDPOINTS.md': [
-    { dest: 'api-reference/endpoints.md', title: 'API エンドポイント一覧', description: '全エンドポイント一覧' },
+    { dest: 'api-reference/endpoints.md', title: 'API Endpoints', description: 'Complete list of API endpoints' },
   ],
   'API_ENDPOINTS_NGSIV2.md': [
-    { dest: 'api-reference/ngsiv2.md', title: 'NGSIv2 エンドポイント', description: 'NGSIv2 エンドポイント詳細' },
+    { dest: 'api-reference/ngsiv2.md', title: 'NGSIv2 Endpoints', description: 'NGSIv2 endpoint details' },
   ],
   'API_ENDPOINTS_NGSILD.md': [
-    { dest: 'api-reference/ngsild.md', title: 'NGSI-LD エンドポイント', description: 'NGSI-LD エンドポイント詳細' },
+    { dest: 'api-reference/ngsild.md', title: 'NGSI-LD Endpoints', description: 'NGSI-LD endpoint details' },
   ],
   'AUTH_SCENARIOS.md': [
-    { dest: 'security/auth-scenarios.md', title: '認証認可シナリオ', description: '認証認可シナリオ（Coming Soon）' },
+    { dest: 'security/auth-scenarios.md', title: 'Authentication Scenarios', description: 'Authentication and authorization scenarios (Coming Soon)' },
   ],
   'AUTH_OAUTH.md': [
-    { dest: 'security/auth-oauth.md', title: 'OAuth 2.0 / OIDC', description: 'OAuth 2.0 / OIDC 認証（Coming Soon）' },
+    { dest: 'security/auth-oauth.md', title: 'OAuth 2.0 / OIDC', description: 'OAuth 2.0 / OIDC authentication (Coming Soon)' },
   ],
   'AUTH_ADMIN.md': [
-    { dest: 'api-reference/admin.md', title: '認証管理 API', description: 'Admin API リファレンス' },
+    { dest: 'api-reference/admin.md', title: 'Admin API', description: 'Admin API reference' },
   ],
   'AI_INTEGRATION.md': [
-    { dest: 'ai-integration/overview.md', title: 'AI 連携 概要', description: 'GeonicDB の AI ネイティブ機能概要' },
-    { dest: 'ai-integration/tools-json.md', title: 'tools.json', description: 'AI ツール定義（tools.json）' },
-    { dest: 'ai-integration/examples.md', title: 'AI 連携サンプル', description: 'AI 連携コード例' },
+    { dest: 'ai-integration/overview.md', title: 'AI Integration Overview', description: 'Overview of GeonicDB AI-native features' },
+    { dest: 'ai-integration/tools-json.md', title: 'tools.json', description: 'AI tool definitions (tools.json)' },
+    { dest: 'ai-integration/examples.md', title: 'AI Integration Examples', description: 'AI integration code examples' },
   ],
   'MCP.md': [
-    { dest: 'ai-integration/mcp-server.md', title: 'MCP サーバー', description: 'Model Context Protocol (MCP) サーバー' },
+    { dest: 'ai-integration/mcp-server.md', title: 'MCP Server', description: 'Model Context Protocol (MCP) server' },
   ],
   'SMART_DATA_MODELS.md': [
-    { dest: 'features/smart-data-models.md', title: 'Smart Data Models', description: 'FIWARE Smart Data Models 対応' },
+    { dest: 'features/smart-data-models.md', title: 'Smart Data Models', description: 'FIWARE Smart Data Models support' },
   ],
   'WEBAPP_INTEGRATION.md': [
-    { dest: 'features/subscriptions.md', title: 'サブスクリプション', description: 'HTTP Webhook / MQTT / WebSocket サブスクリプション' },
+    { dest: 'features/subscriptions.md', title: 'Subscriptions', description: 'HTTP Webhook / MQTT / WebSocket subscriptions' },
   ],
   'EVENT_STREAMING.md': [
-    { dest: 'features/subscriptions.md', title: 'イベントストリーミング', description: 'リアルタイムイベントストリーミング' },
+    { dest: 'features/subscriptions.md', title: 'Event Streaming', description: 'Real-time event streaming' },
   ],
   'INTEROPERABILITY.md': [
-    { dest: 'core-concepts/ngsiv2-vs-ngsild.md', title: 'NGSIv2 vs NGSI-LD', description: 'NGSIv2 と NGSI-LD の相互運用性' },
+    { dest: 'core-concepts/ngsiv2-vs-ngsild.md', title: 'NGSIv2 vs NGSI-LD', description: 'NGSIv2 and NGSI-LD interoperability' },
   ],
   'CATALOG.md': [
-    { dest: 'features/catalog.md', title: 'データカタログ', description: 'DCAT-AP / CKAN 互換データカタログ' },
+    { dest: 'features/catalog.md', title: 'Data Catalog', description: 'DCAT-AP / CKAN compatible data catalog' },
   ],
   'PAGINATION.md': [
-    { dest: 'api-reference/pagination.md', title: 'ページネーション', description: 'API ページネーション' },
+    { dest: 'api-reference/pagination.md', title: 'Pagination', description: 'API pagination' },
   ],
   'STATUS_CODES.md': [
-    { dest: 'api-reference/status-codes.md', title: 'ステータスコード', description: 'API レスポンスステータスコード' },
+    { dest: 'api-reference/status-codes.md', title: 'Status Codes', description: 'API response status codes' },
   ],
   'DEVELOPMENT.md': [
-    { dest: 'getting-started/installation.md', title: '開発者ガイド', description: '開発環境セットアップ・インストール' },
+    { dest: 'getting-started/installation.md', title: 'Developer Guide', description: 'Development environment setup and installation' },
   ],
   'DEMO_SCENARIO.md': [
-    { dest: 'getting-started/demo-app.md', title: 'デモアプリ', description: 'デモシナリオ・アプリ' },
-    { dest: 'getting-started/first-entity.md', title: 'はじめてのエンティティ', description: 'エンティティ CRUD チュートリアル' },
+    { dest: 'getting-started/demo-app.md', title: 'Demo App', description: 'Demo scenarios and apps' },
+    { dest: 'getting-started/first-entity.md', title: 'First Entity', description: 'Entity CRUD tutorial' },
   ],
   'FIWARE_ORION_COMPARISON.md': [
-    { dest: 'migration/compatibility-matrix.md', title: '互換性マトリクス', description: 'FIWARE Orion との互換性比較' },
+    { dest: 'migration/compatibility-matrix.md', title: 'Compatibility Matrix', description: 'Feature comparison with FIWARE Orion' },
   ],
   'FAQ.md': [
-    { dest: 'faq.md', title: 'FAQ', description: 'よくある質問' },
+    { dest: 'faq.md', title: 'FAQ', description: 'Frequently asked questions' },
   ],
   'DEPLOYMENT.md': [
-    { dest: 'getting-started/deployment.md', title: 'デプロイ', description: 'デプロイガイド' },
+    { dest: 'getting-started/deployment.md', title: 'Deployment', description: 'Deployment guide' },
   ],
   'TELEMETRY.md': [
-    { dest: 'features/telemetry.md', title: 'テレメトリ', description: 'OpenTelemetry 対応' },
+    { dest: 'features/telemetry.md', title: 'Telemetry', description: 'OpenTelemetry support' },
   ],
   'CHANGELOG.md': [
-    { dest: 'changelog.md', title: '変更履歴', description: 'GeonicDB の変更履歴' },
+    { dest: 'changelog.md', title: 'Changelog', description: 'GeonicDB changelog' },
   ],
   'CLI.md': [
-    { dest: 'reference/cli.md', title: 'CLI リファレンス', description: 'GeonicDB CLI (geonic) コマンドリファレンス' },
+    { dest: 'reference/cli.md', title: 'CLI Reference', description: 'GeonicDB CLI (geonic) command reference' },
   ],
 }
 
@@ -209,7 +212,7 @@ function main() {
     process.exit(1)
   }
 
-  const outputBase = join(process.cwd(), 'docs', 'ja')
+  const outputBase = join(process.cwd(), 'docs', 'en')
   const sourceFiles = readdirSync(docsDir).filter(f => f.endsWith('.md'))
 
   // Add CHANGELOG.md from repository root if it exists
@@ -261,12 +264,12 @@ function main() {
         const frontmatter = makeFrontmatter(mapping.title, mapping.description)
         writeFileSync(destPath, frontmatter + combined)
         writtenDests.set(mapping.dest, combined)
-        console.log(`  APPEND: ${srcFile} → ja/${mapping.dest}`)
+        console.log(`  APPEND: ${srcFile} → en/${mapping.dest}`)
       } else {
         const frontmatter = makeFrontmatter(mapping.title, mapping.description)
         writeFileSync(destPath, frontmatter + srcContent)
         writtenDests.set(mapping.dest, srcContent)
-        console.log(`  SYNC: ${srcFile} → ja/${mapping.dest}`)
+        console.log(`  SYNC: ${srcFile} → en/${mapping.dest}`)
       }
 
       synced++

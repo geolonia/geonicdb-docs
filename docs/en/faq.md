@@ -3,70 +3,69 @@ title: "FAQ"
 description: "よくある質問"
 outline: deep
 ---
-# よくある質問 (FAQ)
+# Frequently Asked Questions (FAQ)
 
-GeonicDB に関するよくある質問と回答をまとめたページです。
+A collection of frequently asked questions and answers about GeonicDB.
 
-## 目次
+## Table of Contents
 
-- [データ量とパフォーマンス](#データ量とパフォーマンス)
-- [FIWARE Orion との違い](#fiware-orion-との違い)
-- [デプロイと運用](#デプロイと運用)
-- [API の使い方](#api-の使い方)
-- [地理空間拡張](#地理空間拡張)
-- [セキュリティ](#セキュリティ)
+- [Data Volume and Performance](#data-volume-and-performance)
+- [Differences from FIWARE Orion](#differences-from-fiware-orion)
+- [Deployment and Operations](#deployment-and-operations)
+- [API Usage](#api-usage)
+- [Geospatial Extensions](#geospatial-extensions)
+- [Security](#security)
 
 ---
 
-## データ量とパフォーマンス
+## Data Volume and Performance
 
-### Q: データ量の上限はありますか?
+### Q: Is there a data volume limit?
 
-**A:** GeonicDB 自体には明示的なデータ量の上限はありません。MongoDB のスケーリング能力に依存します。
+**A:** GeonicDB itself has no explicit data volume limit. It depends on MongoDB's scaling capabilities.
 
-#### ハードリミット (システム上の制約)
+#### Hard Limits (System Constraints)
 
-| 制約 | 値 | 説明 |
+| Constraint | Value | Description |
 |------|-----|------|
-| リクエストあたりの最大アイテム数 | 1,000 | ページネーションの `limit` 上限 (FIWARE Orion 互換) |
-| Admin API の最大アイテム数 | 100 | Admin API のページネーション上限 |
-| API Gateway タイムアウト | 29 秒 | AWS 側の制限 |
-| Lambda タイムアウト | 15 分 | バッチ処理などの Lambda 関数用 |
+| Maximum items per request | 1,000 | Pagination `limit` limit (FIWARE Orion compatible) |
+| Admin API maximum items | 100 | Management API pagination limit |
+| API Gateway timeout | 29 seconds | AWS-side limitation |
+| Lambda timeout | 15 minutes | For Lambda functions like batch processing |
 
-#### 本番環境での実用的なガイドライン
+#### Operational Guidelines
 
-| データ規模 | 推奨環境 |
+| Data Scale | Recommended Environment |
 |-----------|---------|
-| 10 万エンティティまで | MongoDB Atlas M10–M30 |
-| 100 万エンティティまで | MongoDB Atlas M30–M50 |
-| 100 万エンティティ以上 | MongoDB Atlas M50+ とシャーディングの検討 |
+| Up to 100,000 entities | MongoDB Atlas M10–M30 |
+| Up to 1 million entities | MongoDB Atlas M30–M50 |
+| Over 1 million entities | MongoDB Atlas M50+ and consider sharding |
 
-### Q: クエリが遅くなるケースはありますか?
+### Q: When do queries become slow?
 
-**A:** 以下のようなケースで、クエリのパフォーマンスが低下する可能性があります。
+**A:** Query performance may degrade in the following cases.
 
-#### インデックスを活用するクエリ (高速)
+#### Queries That Utilize Indexes (Fast)
 
-- エンティティ ID による検索
-- エンティティタイプによるフィルタリング
-- Geo クエリ (`georel`、`geometry`、`coordinates`)
-- 最終更新日時によるソート (`modifiedAt`)
-- `observedAt` による時系列データ検索
+- Search by entity ID
+- Filtering by entity type
+- Geo queries (`georel`, `geometry`, `coordinates`)
+- Sorting by last update time (`modifiedAt`)
+- Time-series data search using `observedAt`
+#### Queries Requiring Caution (Potentially Slow)
 
-#### 注意が必要なクエリ (低速になる可能性)
-
-| クエリパターン | 理由 | 対策 |
+| Query Pattern | Reason | Mitigation |
 |--------------|------|------|
-| 属性値の部分一致検索 | インデックスが効かない | できるだけ完全一致を使用 |
-| `q` フィルタの複雑な組み合わせ | フルスキャンになる可能性 | フィルタ条件を絞り込む |
-| 広範囲の Geo 検索 | 候補が多すぎる | 検索範囲を制限 |
-| `limit` なしの全件取得 | メモリ消費が大きい | 必ずページネーションを使用 |
+| Partial match search on attribute values | Index not utilized | Use exact matches when possible |
+| Complex combinations of `q` filters | May result in full scan | Narrow down filter conditions |
+| Wide-range Geo search | Too many candidates | Limit search area |
+| Retrieving all records without `limit` | High memory consumption | Always use pagination |
 
-### Q: 時系列 (Temporal) データで気をつけることは?
+### Q: What should I be aware of with Temporal data?
 
-**A:** 時系列データは、エンティティ数 × 属性数 × 時間間隔でデータ量が急増します。
+**A:** Temporal data volume increases rapidly: entity count × attribute count × time intervals.
 
-#### 推奨設定
+#### Recommended Settings
 
 ```bash
 # Configure automatic deletion of old data (TTL)
@@ -76,7 +75,10 @@ GeonicDB に関するよくある質問と回答をまとめたページです�
 
 
 
-#### データ量の見積もり例
+
+
+
+#### Data Volume Estimation Example
 
 ```text
 1,000 entities x 10 attributes x 1-minute interval x 24 hours x 30 days
@@ -86,36 +88,39 @@ GeonicDB に関するよくある質問と回答をまとめたページです�
 
 
 
-大量の時系列データを扱う場合は、専用の時系列データベース (TimescaleDB、InfluxDB) との連携を検討してください。
+
+
+
+For handling large amounts of temporal data, consider integrating with dedicated time-series databases (TimescaleDB, InfluxDB).
 
 ---
 
-## FIWARE Orion との違い
+## Differences from FIWARE Orion
 
-### Q: FIWARE Orion との互換性は?
+### Q: Is it compatible with FIWARE Orion?
 
-**A:** NGSIv2 API は高い互換性があります。詳細は [FIWARE Orion 比較ドキュメント](./migration/compatibility-matrix.md) を参照してください。
+**A:** The NGSIv2 API has high compatibility. For details, see the [FIWARE Orion comparison document](./migration/compatibility-matrix.md).
 
-#### 互換性のある機能
+#### Compatible Features
 
-- NGSIv2 エンティティ CRUD 操作
-- サブスクリプション (通知)
-- Geo クエリ
-- バッチ操作
-- レジストレーション (Context Provider)
+- NGSIv2 entity CRUD operations
+- Subscriptions (notifications)
+- Geo queries
+- Batch operations
+- Registrations (Context Provider)
 
-#### GeonicDB 独自機能
+#### GeonicDB-Specific Features
 
-- NGSI-LD API サポート
-- JWT 認証と認可
-- マルチテナンシー
-- AI ツール連携 (MCP)
-- ベクタータイル出力
-- スナップショット機能
+- NGSI-LD API support
+- JWT authentication and authorization
+- Multi-tenancy
+- AI tool integration (MCP)
+- Vector tile output
+- Snapshot functionality
 
-### Q: Orion から移行できますか?
+### Q: Can I migrate from Orion?
 
-**A:** 基本的なエンティティデータは移行可能です。
+**A:** Basic entity data can be migrated.
 
 ```bash
 # Export entities from Orion
@@ -139,63 +144,73 @@ curl -X POST "https://api.example.com/v2/op/update" \
 
 
 
+
+
+
+
+
+
+
+
+
+
 ---
 
-## デプロイと運用
+## Deployment and Operations
 
-### Q: どこにデプロイできますか?
+### Q: Where can it be deployed?
 
-**A:** 以下の環境で動作します。
+**A:** It runs in the following environments.
 
-| 環境 | 説明 |
+| Environment | Description |
 |------|------|
-| AWS Lambda + API Gateway | 推奨。サーバーレスで自動スケール |
-| ローカル (`npm start`) | 開発とテスト用。インメモリ MongoDB を使用 |
-| Docker | 任意のコンテナ環境で動作 |
+| AWS Lambda + API Gateway | Recommended. Serverless with auto-scaling |
+| Local (`npm start`) | For development/testing. Uses in-memory MongoDB |
+| Docker | Can run in any container environment |
 
-### Q: どの MongoDB を使えばいいですか?
+### Q: Which MongoDB should I use?
 
-**A:** 以下のいずれかを推奨します。
+**A:** We recommend one of the following.
 
-| サービス | 特徴 |
+| Service | Features |
 |---------|------|
-| MongoDB Atlas | 推奨。フルマネージド、自動スケール |
-| セルフホスト MongoDB | 完全な制御が可能だが運用負荷が高い |
+| MongoDB Atlas | Recommended. Fully managed, auto-scaling |
+| Self-hosted MongoDB | Full control but high operational overhead |
 
-> **注意**: MongoDB 8.0 以上が必要です (Time Series Collection サポートのため)。Amazon DocumentDB は Time Series Collection に対応していないためサポートされません。
+> **Note**: MongoDB 8.0 or later is required (for Time Series Collection support). Amazon DocumentDB is not supported as it does not support Time Series Collections.
 
-### Q: コストの目安は?
+### Q: What are the cost estimates?
 
-**A:** サーバーレスアーキテクチャのため、使用した分だけ課金されます。
+**A:** With serverless architecture, you pay only for what you use.
 
-| コンポーネント | 小規模 (月 10 万リクエスト) | 中規模 (月 100 万リクエスト) |
+| Component | Small-scale (100k requests/month) | Medium-scale (1M requests/month) |
 |--------------|---------------------------|----------------------------|
-| Lambda | 約 $5 | 約 $20 |
-| API Gateway | 約 $4 | 約 $35 |
-| MongoDB Atlas (M10) | 約 $60 | 約 $60 |
-| **合計** | **約 $70/月** | **約 $115/月** |
+| Lambda | ~$5 | ~$20 |
+| API Gateway | ~$4 | ~$35 |
+| MongoDB Atlas (M10) | ~$60 | ~$60 |
+| **Total** | **~$70/month** | **~$115/month** |
 
-* 実際のコストはリージョン、データ量、リクエストパターンにより変動します。
+* Actual costs vary by region, data volume, and request patterns.
 
 ---
 
-## API の使い方
+## API Usage
 
-### Q: NGSIv2 と NGSI-LD どちらを使うべきですか?
+### Q: Should I use NGSIv2 or NGSI-LD?
 
-**A:** 用途に応じて選択してください。
+**A:** Choose based on your use case.
 
-| 観点 | NGSIv2 | NGSI-LD |
+| Aspect | NGSIv2 | NGSI-LD |
 |------|--------|---------|
-| 学習コスト | 低い | やや高い (JSON-LD の理解が必要) |
-| FIWARE エコシステム | ツールが豊富 | 対応ツールが増加中 |
-| 時系列データ | 非対応 (別途実装が必要) | Temporal API で標準対応 |
-| データの相互運用性 | 限定的 | JSON-LD による高い相互運用性 |
-| 推奨用途 | 既存 FIWARE システムとの連携 | 新規開発、データ相互運用重視 |
+| Learning curve | Low | Moderate (requires understanding JSON-LD) |
+| FIWARE ecosystem | Rich tooling | Growing tool support |
+| Temporal data | Not supported (requires separate implementation) | Natively supported via Temporal API |
+| Data interoperability | Limited | High compatibility via JSON-LD |
+| Recommended for | Integration with existing FIWARE systems | New development, emphasis on data interoperability |
 
-### Q: 認証なしで使えますか?
+### Q: Can it be used without authentication?
 
-**A:** 開発環境ではデフォルトで認証なしで使用できます。本番環境では JWT 認証を有効にすることを強く推奨します。
+**A:** By default, authentication is disabled in development environments. It is strongly recommended to enable JWT authentication in production.
 
 ```bash
 # Without authentication (development environment)
@@ -217,50 +232,59 @@ curl -X GET "https://api.example.com/v2/entities" \
 
 
 
-### Q: テナント (Fiware-Service) は必須ですか?
 
-**A:** 必須ではありませんが、指定しない場合は `default` テナントが使用されます。本番環境では明示的にテナントを指定することを推奨します。
+
+
+
+
+
+
+
+
+### Q: Is a tenant (Fiware-Service) required?
+
+**A:** Not required, but if not specified, the `default` tenant is used. It is recommended to explicitly specify a tenant in production.
 
 ---
 
-## 地理空間拡張
+## Geospatial Extensions
 
-### Q: 地理空間拡張とは何ですか?
+### Q: What are geospatial extensions?
 
-**A:** GeonicDB は NGSI 標準の Geo クエリに加えて、独自の地理空間機能を提供しています。これらを総称して「地理空間拡張」と呼びます。
+**A:** In addition to NGSI standard Geo queries, these are geospatial features uniquely provided by GeonicDB. Collectively, they are called "geospatial extensions."
 
-#### 機能一覧
+#### Features List
 
-| 機能 | 説明 | 対応 API |
+| Feature | Description | Supported API |
 |------|------|---------|
-| Geo クエリ | NGSI 標準の地理空間検索 | NGSIv2、NGSI-LD |
-| ベクタータイル | 地図表示用の GeoJSON タイル出力 | NGSIv2、NGSI-LD |
-| Spatial ID | 日本デジタル庁 3D 空間 ID 対応 | NGSI-LD |
+| Geo queries | NGSI standard geospatial search | NGSIv2, NGSI-LD |
+| Vector tiles | GeoJSON tile output for map display | NGSIv2, NGSI-LD |
+| Spatial ID | Support for Japan's Digital Agency 3D Spatial ID | NGSI-LD |
 
-### Q: Geo クエリで何ができますか?
+### Q: What can I do with Geo queries?
 
-**A:** 位置情報を持つエンティティを地理的条件で検索できます。
+**A:** You can search entities with location information using geographic conditions.
 
-#### サポートされるジオメトリタイプ
+#### Supported Geometry Types
 
-| タイプ | 説明 | 例 |
+| Type | Description | Example |
 |--------|------|-----|
-| Point | 点 (緯度経度) | センサー位置、店舗位置 |
-| Polygon | 多角形 | 建物エリア、行政区画 |
-| LineString | 線 | 道路、河川 |
+| Point | Point (latitude/longitude) | Sensor location, store location |
+| Polygon | Polygon | Building area, administrative district |
+| LineString | Line | Road, river |
 
-#### サポートされる空間関係 (georel)
+#### Supported Spatial Relations (georel)
 
-| 関係 | 説明 | 使用例 |
+| Relation | Description | Use Case |
 |------|------|--------|
-| `near` | 指定点からの距離 | 「現在地から 1km 以内のセンサー」 |
-| `within` | 範囲内に含まれる | 「この区画内の建物」 |
-| `contains` | 範囲を含む | 「この点を含むエリア」 |
-| `intersects` | 交差する | 「この道路と交差するエリア」 |
-| `disjoint` | 離れている | 「この区画外のエンティティ」 |
-| `equals` | 完全一致 | 「同じ位置のエンティティ」 |
+| `near` | Distance from specified point | "Sensors within 1km of current location" |
+| `within` | Contained within range | "Buildings within this area" |
+| `contains` | Contains range | "Areas containing this point" |
+| `intersects` | Intersects | "Areas intersecting this road" |
+| `disjoint` | Disjoint | "Entities outside this area" |
+| `equals` | Exactly matches | "Entities at the same location" |
 
-#### 使用例
+#### Usage Example
 
 ```bash
 # Search for sensors within 1km of Tokyo Station (139.7671, 35.6812)
@@ -280,17 +304,25 @@ curl -X GET "http://localhost:3000/v2/entities?georel=within&geometry=polygon&co
 
 
 
-### Q: ベクタータイルとは何ですか?
 
-**A:** エンティティの位置情報を GeoJSON タイル形式で出力し、地図アプリケーションで利用できる機能です。
 
-#### 特徴
 
-- **タイル座標系**: Web Mercator (z/x/y 形式)
-- **クラスタリング**: ズームレベルに応じて自動的にポイントを集約
-- **TileJSON 対応**: MapLibre GL JS などの地図ライブラリと統合可能
 
-#### エンドポイント
+
+
+
+
+### Q: What are vector tiles?
+
+**A:** A feature that outputs entity location information in GeoJSON tile format for map applications.
+
+#### Features
+
+- **Tile coordinate system**: Web Mercator (z/x/y format)
+- **Clustering**: Automatically aggregates points according to zoom level
+- **TileJSON support**: Can integrate with map libraries like MapLibre GL JS
+
+#### Endpoints
 
 ```bash
 # Get TileJSON metadata
@@ -310,7 +342,15 @@ curl -X GET "http://localhost:3000/v2/tiles/14/14552/6451.geojson" \
 
 
 
-#### MapLibre GL JS での使用例
+
+
+
+
+
+
+
+
+#### Usage Example with MapLibre GL JS
 
 ```javascript
 map.addSource('entities', {
@@ -344,11 +384,26 @@ map.addLayer({
 
 
 
-### Q: Spatial ID とは何ですか?
 
-**A:** 日本のデジタル庁・IPA が策定した「3次元空間識別子」の仕様に対応した機能です。緯度経度に加え、高度 (階層) を含む 3 次元空間を一意に識別できます。
 
-#### Spatial ID の形式
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Q: What is Spatial ID?
+
+**A:** A feature that supports the "3D Spatial Identifier" specification defined by Japan's Digital Agency and IPA. It can uniquely identify 3D space including altitude (elevation) in addition to latitude and longitude.
+
+#### Spatial ID Format
 
 ```text
 z/f/x/y
@@ -366,7 +421,14 @@ y: Y tile coordinate
 
 
 
-#### 使用例
+
+
+
+
+
+
+
+#### Usage Example
 
 ```text
 25/0/29805582/13235296  → A specific point on the ground floor
@@ -378,26 +440,30 @@ y: Y tile coordinate
 
 
 
-#### 機能
 
-| 操作 | 説明 |
+
+
+
+#### Functions
+
+| Operation | Description |
 |------|------|
-| 座標から Spatial ID 変換 | 緯度、経度、高度から Spatial ID を計算 |
-| Spatial ID からバウンディングボックス | Spatial ID が表す 3D 範囲を取得 |
-| Spatial ID 展開 | 親 Spatial ID から子 Spatial ID を列挙 |
+| Coordinates to Spatial ID conversion | Calculate Spatial ID from latitude, longitude, altitude |
+| Spatial ID to bounding box | Get 3D range represented by Spatial ID |
+| Spatial ID expansion | Enumerate child Spatial IDs from parent Spatial ID |
 
-#### ユースケース
+#### Use Cases
 
-- 屋内測位 (建物内の階層識別)
-- ドローン飛行経路管理
-- 3D 都市モデルとの統合
-- 地下施設管理
+- Indoor positioning (floor identification within buildings)
+- Drone flight path management
+- Integration with 3D city models
+- Underground facility management
 
-### Q: GeoProperty の設定方法は?
+### Q: How to set GeoProperty?
 
-**A:** エンティティに位置情報を格納するには、`location` 属性に GeoJSON 形式で座標を設定します。
+**A:** To store location information in an entity, set coordinates in GeoJSON format in the `location` attribute.
 
-#### NGSIv2 形式
+#### NGSIv2 Format
 
 ```json
 {
@@ -425,7 +491,19 @@ y: Y tile coordinate
 
 
 
-#### NGSI-LD 形式
+
+
+
+
+
+
+
+
+
+
+
+
+#### NGSI-LD Format
 
 ```json
 {
@@ -453,43 +531,55 @@ y: Y tile coordinate
 
 
 
-**注意**: 座標は `[longitude, latitude]` の順です (GeoJSON 標準)。
+
+
+
+
+
+
+
+
+
+
+
+
+**Note**: Coordinates are in `[longitude, latitude]` order (GeoJSON standard).
 
 ---
 
-## セキュリティ
+## Security
 
-### Q: 認証方式は何がサポートされていますか?
+### Q: What authentication methods are supported?
 
-**A:** 以下の認証方式をサポートしています。
+**A:** The following authentication methods are supported.
 
-| 方式 | 説明 |
+| Method | Description |
 |------|------|
-| JWT Bearer Token | 推奨。ユーザー認証とロールベースアクセス制御 |
-| IP ホワイトリスト | テナントごとに許可 IP を制限 |
-| API キー | 今後サポート予定 |
+| JWT Bearer Token | Recommended. User authentication and role-based access control |
+| IP Whitelist | Restrict allowed IPs per tenant |
+| API Key | Support planned for the future |
 
-### Q: ロール (権限) の種類は?
+### Q: What are the types of roles (permissions)?
 
-**A:** 3 種類のロールがあります。
+**A:** There are three types of roles.
 
-| ロール | 権限 |
+| Role | Permissions |
 |--------|------|
-| `super_admin` | すべてのテナントの管理、システム設定 |
-| `tenant_admin` | 割り当てられたテナントの管理、ユーザー管理 |
-| `user` | エンティティの読み書き (ポリシーで制限可能) |
+| `super_admin` | Manage all tenants, system configuration |
+| `tenant_admin` | Manage assigned tenants, user management |
+| `user` | Read/write entities (can be restricted by policies) |
 
-詳細は認証と認可を参照してください。
+For details, see Authentication and Authorization.
 
-### Q: HTTPS は必須ですか?
+### Q: Is HTTPS required?
 
-**A:** 本番環境では必須です。AWS へのデプロイ時は、API Gateway が自動的に HTTPS を提供します。
+**A:** Required in production environments. When deploying to AWS, API Gateway automatically provides HTTPS.
 
 ---
 
-## 関連ドキュメント
+## Related Documentation
 
-- [API 仕様](./api-reference/endpoints.md)
-- [FIWARE Orion 比較](./migration/compatibility-matrix.md)
-- [開発とデプロイガイド](./getting-started/installation.md)
-- 認証と認可
+- [API Specification](./api-reference/endpoints.md)
+- [FIWARE Orion Comparison](./migration/compatibility-matrix.md)
+- [Development and Deployment Guide](./getting-started/installation.md)
+- Authentication and Authorization

@@ -1,6 +1,6 @@
 ---
-title: "変更履歴"
-description: "GeonicDB の変更履歴"
+title: "Changelog"
+description: "GeonicDB changelog"
 outline: deep
 ---
 # Changelog
@@ -152,4 +152,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added OAuth scope requirements to `/admin/cadde`, `/admin/metrics`, `/rules`, `/custom-data-models` (#515)
   - Unified PasswordSchema to `PASSWORD_POLICY.MIN_LENGTH`, added `SUPER_ADMIN_PASSWORD` minimum length check, added token revalidation to WebSocket messages (#515)
   - Added resource limits to query parameters - ID list 100 items, polygon vertices 1000, query conditions 50 max (#515)
-  - Added ReDoS protection (__INLINE
+  - Added ReDoS protection (`validateRegexPattern`) to Temporal/Federation regex patterns (#515)

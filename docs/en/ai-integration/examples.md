@@ -1,6 +1,6 @@
 ---
-title: "AI 連携サンプル"
-description: "AI 連携コード例"
+title: "AI Integration Examples"
+description: "AI integration code examples"
 outline: deep
 ---
 # AI Integration

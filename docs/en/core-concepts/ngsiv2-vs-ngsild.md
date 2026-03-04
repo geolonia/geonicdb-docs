@@ -1,6 +1,6 @@
 ---
 title: "NGSIv2 vs NGSI-LD"
-description: "NGSIv2 と NGSI-LD の相互運用性"
+description: "NGSIv2 and NGSI-LD interoperability"
 outline: deep
 ---
 # NGSIv2 / NGSI-LD Interoperability
