@@ -219,7 +219,7 @@ Entity に `expiresAt` フィールド (ISO 8601 形式) を指定すること�
 **レスポンス**
 - ステータス: `201 Created`- ステータス: `409 AlreadyExists` 同じ ID の Entity が既に存在する場合 (タイプに関係なく)
 - ヘッダー: `Location: /ngsi-ld/v1/entities/urn:ngsi-ld:Room:001`
-> **注意**: Entity ID はテナントとサービスパススコープ内で一意です。同じ ID で異なるタイプの Entity を作成すると `409 AlreadyExists` が返されます。詳細は [Entity ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
+> **注意**: Entity ID はテナントと ServicePath スコープ内で一意です。同じ ID で異なるタイプの Entity を作成すると `409 AlreadyExists` が返されます。詳細は [Entity ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
 
 #### 単一 Entity 取得
 

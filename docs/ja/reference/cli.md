@@ -5,7 +5,7 @@ outline: deep
 ---
 # CLI リファレンス
 
-`@geolonia/geonicdb-cli` (`geonic` コマンド) は GeonicDB のコマンドラインインターフェースです。NGSI-LD エンティティ、サブスクリプション、レジストレーション、テンポラルデータ、バッチ操作、管理機能などへの完全なアクセスを提供します。
+`@geolonia/geonicdb-cli` (`geonic` コマンド) は GeonicDB のコマンドラインインターフェースです。NGSI-LD エンティティ、サブスクリプション、レジストレーション、temporal データ、バッチ操作、管理機能などへの完全なアクセスを提供します。
 
 - **リポジトリ**: [geolonia/geonicdb-cli](https://github.com/geolonia/geonicdb-cli)
 - **ランタイム**: Node.js >= 20
@@ -332,7 +332,7 @@ NGSI-LD コンテキストエンティティ (`/ngsi-ld/v1/entities`) を管理�
 | `--id-pattern <pat>` | エンティティ ID パターン (正規表現) でフィルタ |
 | `--query <q>` | NGSI クエリ式 (例: `temperature>30`) |
 | `--attrs <a,b>` | 返す属性のカンマ区切りリスト |
-| `--georel <rel>` | ジオリレーション (例: `near;maxDistance==1000`) |
+| `--georel <rel>` | ジオ Relationship (例: `near;maxDistance==1000`) |
 | `--geometry <geo>` | ジオメトリタイプ (例: `Point`、`Polygon`) |
 | `--coords <coords>` | ジオクエリ用の座標 |
 | `--spatial-id <zfxy>` | 空間 ID フィルタ (ZFXY タイル形式、例: `15/0/29101/12903`) |
