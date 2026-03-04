@@ -1,6 +1,6 @@
 ---
-title: "Compatibility Matrix"
-description: "Compatibility comparison with FIWARE Orion"
+title: "互換性マトリクス"
+description: "FIWARE Orion との互換性比較"
 outline: deep
 ---
 # GeonicDB vs FIWARE Orion Feature Comparison
@@ -11,12 +11,12 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 
 | Item | GeonicDB | FIWARE Orion |
 |------|-------------------|--------------|
-| **Implementation Language** | TypeScript/Node.js | C++ |
+| **Implementation language** | TypeScript/Node.js | C++ |
 | **Architecture** | Serverless (AWS Lambda) | Monolithic (Docker) |
 | **Database** | MongoDB Atlas | MongoDB |
 | **License** | AGPL v3.0 | AGPL v3.0 |
 | **Supported APIs** | NGSIv2 + NGSI-LD | NGSIv2 (Orion) / NGSI-LD (Orion-LD) |
-| **Scalability** | Auto-scaling (Lambda) | Manual scaling (Container) |
+| **Scalability** | Auto-scaling (Lambda) | Manual scaling (container) |
 | **Cost** | Pay-per-use | Fixed infrastructure cost |
 
 ## API Support Status
@@ -24,7 +24,7 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 ### NGSIv2 API
 
 | Feature | GeonicDB | FIWARE Orion | Notes |
-|------|:------------------:|:------------:|------|
+|---------|:------------------:|:------------:|-------|
 | `POST /v2/entities` | ✅ | ✅ | Create entity |
 | `GET /v2/entities` | ✅ | ✅ | List entities |
 | `GET /v2/entities/{id}` | ✅ | ✅ | Get entity |
@@ -57,7 +57,7 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 ### NGSI-LD API
 
 | Feature | GeonicDB | FIWARE Orion-LD | Notes |
-|------|:------------------:|:---------------:|------|
+|---------|:------------------:|:---------------:|-------|
 | `POST /ngsi-ld/v1/entities` | ✅ | ✅ | Create entity |
 | `GET /ngsi-ld/v1/entities` | ✅ | ✅ | List entities |
 | `GET /ngsi-ld/v1/entities/{id}` | ✅ | ✅ | Get entity |
@@ -68,7 +68,7 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | `GET /ngsi-ld/v1/entities/{id}/attrs` | ✅ | ✅ | Get all attributes |
 | `GET /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Get attribute |
 | `POST /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Replace attribute |
-| `PATCH /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Partial update of attribute |
+| `PATCH /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Partially update attribute |
 | `DELETE /ngsi-ld/v1/entities/{id}/attrs/{attr}` | ✅ | ✅ | Delete attribute |
 | `POST /ngsi-ld/v1/entityOperations/create` | ✅ | ✅ | Batch create |
 | `POST /ngsi-ld/v1/entityOperations/upsert` | ✅ | ✅ | Batch create/update |
@@ -91,10 +91,10 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | `PATCH /ngsi-ld/v1/csourceSubscriptions/{id}` | ✅ | ❌ | Update CSR subscription (*) |
 | `DELETE /ngsi-ld/v1/csourceSubscriptions/{id}` | ✅ | ❌ | Delete CSR subscription (*) |
 | `GET /ngsi-ld/v1/attributes` | ✅ | ✅ | List attributes |
-| `GET /ngsi-ld/v1/attributes/{attrName}` | ✅ | ✅ | Get attribute details |
+| `GET /ngsi-ld/v1/attributes/{attrName}` | ✅ | ✅ | Attribute details |
 | `GET /.well-known/ngsi-ld` | ✅ | ✅ | API discovery |
 | JSON-LD @context support | ✅ | ✅ | Linked Data context |
-| **Temporal API** | ✅ | ⚠️ Limited | Time series data management |
+| **Temporal API** | ✅ | ⚠️ Limited | Time-series data management |
 | **JSON-LD context management** | ✅ | ✅ | `/ngsi-ld/v1/jsonldContexts` |
 | **EntityMap operations** | ✅ | ❌ | Entity mapping and transformation |
 | **Snapshot operations** | ✅ | ❌ | Point-in-time snapshots |
@@ -103,14 +103,14 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | **Vector tiles** | ✅ | ❌ | `/ngsi-ld/v1/tiles` GeoJSON vector tiles |
 
 > **Note on csourceSubscriptions**
-> Context Source Registration (CSR) subscription feature is defined in ETSI GS CIM 009 specification. GeonicDB provides a specification-compliant implementation, but it is currently not implemented in Orion-LD (planned for future implementation, see: [Orion-LD Issue #280](https://github.com/FIWARE/context.Orion-LD/issues/280)).
+> The Context Source Registration (CSR) subscription feature is defined in the ETSI GS CIM 009 specification. GeonicDB provides a spec-compliant implementation, while Orion-LD does not currently implement it (implementation planned; see [Orion-LD Issue #280](https://github.com/FIWARE/context.Orion-LD/issues/280)).
 
 ### NGSI-LD Attribute Types
 
 | Feature | GeonicDB | FIWARE Orion-LD | Notes |
-|------|:------------------:|:---------------:|------|
+|---------|:------------------:|:---------------:|-------|
 | Property | ✅ | ✅ | Basic attribute |
-| Relationship | ✅ | ✅ | Inter-entity relationship |
+| Relationship | ✅ | ✅ | Inter-entity association |
 | GeoProperty | ✅ | ✅ | Geospatial attribute |
 | LanguageProperty | ✅ | ✅ | Multilingual attribute |
 | JsonProperty | ✅ | ✅ | JSON value attribute |
@@ -119,30 +119,30 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | ListRelationship | ✅ | ✅ | List relationship attribute |
 | TemporalProperty | ✅ | ✅ | Temporal attribute |
 | **Multi-attribute** | ✅ | ✅ | Multiple instances via datasetId |
-| `datasetId` query parameter | ✅ | ✅ | Delete specific instance |
+| `datasetId` query parameter | ✅ | ✅ | Delete a specific instance |
 | `deleteAll` query parameter | ✅ | ✅ | Delete all instances |
 
 ### NGSI-LD Output Formats
 
 | Feature | GeonicDB | FIWARE Orion-LD | Notes |
-|------|:------------------:|:---------------:|------|
+|---------|:------------------:|:---------------:|-------|
 | normalized | ✅ | ✅ | Full format (default) |
-| concise | ✅ | ✅ | Concise format (omits type) |
+| concise | ✅ | ✅ | Concise format (type omitted) |
 | keyValues / simplified | ✅ | ✅ | Values only |
 
 ## Query Features
 
 | Feature | GeonicDB | FIWARE Orion | Notes |
-|------|:------------------:|:------------:|------|
+|---------|:------------------:|:------------:|-------|
 | **Simple Query Language (q)** | ✅ | ✅ | |
 | Comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`) | ✅ | ✅ | |
 | Logical operators (`;` AND, `\|` OR) | ✅ | ✅ | |
 | Range query (`..`) | ✅ | ✅ | |
-| Pattern match (`~=`) | ✅ | ✅ | Regex support |
-| `idPattern` (regex) | ✅ | ✅ | |
-| `typePattern` (regex) | ✅ | ✅ | |
+| Pattern match (`~=`) | ✅ | ✅ | Regular expression support |
+| `idPattern` (regular expression) | ✅ | ✅ | |
+| `typePattern` (regular expression) | ✅ | ✅ | |
 | **Scope query (NGSI-LD)** | ✅ | ✅ | |
-| `scopeQ` parameter | ✅ | ✅ | Hierarchical scope-based entity classification and search |
+| `scopeQ` parameter | ✅ | ✅ | Entity classification and search by hierarchical scope |
 | Exact match (`/path`) | ✅ | ✅ | |
 | All descendants (`/path/#`) | ✅ | ✅ | |
 | Direct children (`/path/+`) | ✅ | ✅ | |
@@ -150,24 +150,24 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | **Pagination** | ✅ | ✅ | |
 | `limit` parameter | ✅ (max: 1000) | ✅ (max: 1000) | |
 | `offset` parameter | ✅ | ✅ | |
-| **Output format** | | | |
+| **Output formats** | | | |
 | `keyValues` | ✅ | ✅ | Simplified format |
 | `values` | ✅ | ✅ | Values only |
-| `unique` | ✅ | ✅ | Remove duplicates with `values` |
+| `unique` | ✅ | ✅ | Deduplicate when combined with `values` |
 | `sysAttrs` | ✅ | ✅ | Include system attributes (dateCreated, dateModified) |
 | `normalized` (default) | ✅ | ✅ | Full format |
 | **Attribute selection** | | | |
-| `attrs` parameter | ✅ | ✅ | Include attributes |
-| `metadata` parameter | ✅ | ✅ | Control metadata output (on/off) |
+| `attrs` parameter | ✅ | ✅ | Attributes to include |
+| `metadata` parameter | ✅ | ✅ | Metadata output control (on/off) |
 | **Sorting** | | | |
 | `orderBy` parameter | ✅ | ✅ | Sort by entityId, entityType, modifiedAt |
-| `orderDirection` parameter | ✅ | ✅ | Specify sort direction asc/desc |
+| `orderDirection` parameter | ✅ | ✅ | Specify sort direction with asc/desc |
 
 ## Geospatial Features
 
 | Feature | GeonicDB | FIWARE Orion | Notes |
-|------|:------------------:|:------------:|------|
-| **Geo-query** | ✅ | ✅ | |
+|---------|:------------------:|:------------:|-------|
+| **Geo-queries** | ✅ | ✅ | |
 | `georel=near` | ✅ | ✅ | Point geometry only, no distance sorting |
 | `georel=within` | ✅ | ✅ | |
 | `georel=coveredBy` | ✅ | ✅ | |
@@ -179,5 +179,24 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | Point | ✅ | ✅ | |
 | LineString | ✅ | ✅ | |
 | Polygon | ✅ | ✅ | |
-| Box | ✅ | ✅ | Bounding box (2 points define rectangle) |
-| MultiPoint |
+| Box | ✅ | ✅ | Bounding box (rectangular area specified by 2 points) |
+| MultiPoint | ✅ | ✅ | |
+| MultiLineString | ✅ | ✅ | |
+| MultiPolygon | ✅ | ✅ | |
+| **GeoJSON output** | ✅ | ✅ | `options=geojson` |
+| **Vector tiles** | ✅ | ❌ | TileJSON 3.0 compliant, automatic clustering |
+| **Spatial ID (ZFXY)** | ✅ | ❌ | Japan Digital Agency standard |
+
+## Subscription/Notification Features
+
+| Feature | GeonicDB | FIWARE Orion | Notes |
+|---------|:------------------:|:------------:|-------|
+| **Subject conditions** | | | |
+| Entity ID specification | ✅ | ✅ | |
+| Entity ID pattern | ✅ | ✅ | Regular expression |
+| Entity type specification | ✅ | ✅ | |
+| Entity type pattern | ✅ | ✅ | Regular expression |
+| Attribute condition (`attrs`) | ✅ | ✅ | |
+| Query language condition (`q`) | ✅ | ✅ | |
+| Geo condition | ✅ | ✅ | |
+| **Notification settings**

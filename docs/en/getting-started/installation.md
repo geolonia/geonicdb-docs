@@ -1,35 +1,42 @@
 ---
-title: "Developer Guide"
+title: "開発者ガイド"
+description: "開発環境セットアップ・インストール"
+outline: deep
 ---
+# 開発者ガイド
 
-# Developer Guide
+## 必要な環境
 
-## Requirements
+- Node.js 24.x 以上
+- npm 9.x 以上
+- AWS CLI v2 (デプロイ用)
+- AWS SAM CLI (デプロイ用)
+- MongoDB 8.0 以上 (MongoDB Atlas またはローカル MongoDB)
+- [1Password CLI](https://developer.1password.com/docs/cli) (`op`) — シークレット注入用 (推奨)
 
-- Node.js 20.x or higher
-- npm 9.x or higher
-- AWS CLI v2 (for deployment)
-- AWS SAM CLI (for deployment)
-- MongoDB 8.0 or higher (MongoDB Atlas or local MongoDB)
+## セットアップ
 
-## Setup
-
-### 1. Clone the Repository
+### 1. リポジトリをクローン
 
 ```bash
-git clone https://github.com/your-org/vela.git
-cd vela
+git clone https://github.com/geolonia/geonicdb.git
+cd geonicdb
 ```
 
-### 2. Install Dependencies
+
+
+
+### 2. 依存関係をインストール
 
 ```bash
 npm install
 ```
 
-### 3. Configure Environment Variables
 
-Create a `.env` file:
+
+### 3. 環境変数を設定
+
+`.env` ファイルを作成します:
 
 ```bash
 # MongoDB connection settings
@@ -48,15 +55,30 @@ NOTIFICATION_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/123456789012/local-qu
 LOG_LEVEL=DEBUG
 ```
 
-#### Enable Authentication & Authorization (Optional)
 
-To enable authentication features, add the following environment variables:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### 認証と認可を有効化 (オプション)
+
+認証機能を有効化するには、次の環境変数を追加します:
 
 ```bash
-# Enable authentication features (true/false)
+# Enable authentication (true/false)
 AUTH_ENABLED=true
 
-# JWT token signing secret (32+ characters recommended)
+# JWT token signing secret (32 characters or more recommended)
 # Always use a secure random string in production
 JWT_SECRET=your-secret-key-change-in-production
 
@@ -66,19 +88,41 @@ JWT_EXPIRES_IN=1h
 # Refresh token expiration (e.g., 7d, 30d)
 JWT_REFRESH_EXPIRES_IN=7d
 
-# Environment-based super admin (for initial setup)
+# Environment variable-based super admin (for initial setup)
 SUPER_ADMIN_EMAIL=admin@example.com
 SUPER_ADMIN_PASSWORD=SuperSecretPassword123!
 
-# Allowed IP addresses for Admin API access (comma-separated)
-# Empty means access from all IPs is allowed
+# IP addresses allowed to access the Admin API (comma-separated)
+# If empty, access is allowed from all IPs
 # Example: 192.168.1.0/24,10.0.0.0/8
 ADMIN_ALLOWED_IPS=
 ```
 
-#### Enable CADDE Integration (Optional)
 
-To enable CADDE (Cross-domain Data Exchange Platform) integration:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### CADDE 連携を有効化 (オプション)
+
+CADDE (Cross-Domain Data Collaboration Infrastructure) 連携を有効化するには:
 
 ```bash
 # Enable CADDE integration
@@ -96,31 +140,114 @@ CADDE_JWT_AUDIENCE=my-api
 CADDE_JWKS_URL=https://auth.example.com/.well-known/jwks.json
 ```
 
-### 4. Build
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 4. 1Password CLI によるシークレット管理 (推奨)
+
+機密性の高いシークレット (MongoDB 認証情報、JWT シークレット、管理者パスワード) は **`geonic-ops`** 1Password Vault に保存され、1Password CLI を通じて実行時に注入されます。`.env.op` ファイル (リポジトリにコミット済み) には `op://` URI 参照のみが含まれ、実際の値は含まれません。
+
+#### 1Password CLI をインストール
+
+```bash
+# macOS
+brew install 1password-cli
+
+# Other platforms: https://developer.1password.com/docs/cli/get-started
+```
+
+
+
+
+
+
+確認: `op --version`
+#### 1Password にシークレットを追加
+
+**`geonic-ops`** Vault に **`geonicdb-dev`** という名前のアイテムを作成し、次のフィールドを追加します:
+
+| フィールド | 説明 |
+|-------|-------------|
+| `MONGODB_URI` | 認証情報を含む完全な MongoDB 接続文字列 |
+| `JWT_SECRET` | ランダムな文字列、32 文字以上 |
+| `SUPER_ADMIN_EMAIL` | ローカル開発用のスーパー管理者メールアドレス |
+| `SUPER_ADMIN_PASSWORD` | ローカル開発用のスーパー管理者パスワード |
+
+```bash
+# Example: create the item via CLI
+op item create \
+  --vault geonic-ops \
+  --title geonicdb-dev \
+  --category login \
+  MONGODB_URI="mongodb+srv://user:pass@cluster.mongodb.net/context-broker" \
+  JWT_SECRET="$(openssl rand -hex 32)" \
+  SUPER_ADMIN_EMAIL="admin@example.com" \
+  SUPER_ADMIN_PASSWORD="$(openssl rand -hex 16)"
+```
+
+
+
+
+
+
+
+
+
+
+
+#### シークレットを注入して開発サーバーを起動
+
+```bash
+npm run dev:op
+# equivalent to: op run --env-file=.env.op -- npm start
+```
+
+
+
+
+機密性のない変数 (`ENVIRONMENT`、`AWS_REGION`、`LOG_LEVEL` など) は、従来どおりローカルの `.env` ファイルから読み込まれます。
+
+> **注意:** `.env.op` はコミットしても安全です。`.env` と `.env.local` は gitignore されており、絶対にコミットしてはいけません。`npm run dev:op` を使用する場合、`.env` に `MONGODB_URI`、`JWT_SECRET`、`SUPER_ADMIN_EMAIL`、`SUPER_ADMIN_PASSWORD` を定義しないでください。これらは 1Password によって注入されるため、両方の場所に実際の値があると混乱を招く可能性があります。
+
+### 5. ビルド
 
 ```bash
 npm run build
 ```
 
-## Development Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Start local development server (using in-memory MongoDB) |
-| `npm run build` | Compile TypeScript |
-| `npm run watch` | Watch for file changes and auto-compile |
-| `npm test` | Run all tests (unit + E2E) |
-| `npm run test:unit` | Run unit tests only |
-| `npm run test:e2e` | Run E2E tests only |
-| `npm run test:watch` | Run unit tests in watch mode |
-| `npm run test:coverage` | Generate coverage report |
-| `npm run lint` | Check code with ESLint |
-| `npm run lint:fix` | Auto-fix ESLint issues |
 
-## Project Structure
+## 開発コマンド
+
+| コマンド | 説明 |
+|---------|------|
+| `npm start` | ローカル開発サーバーを起動 (インメモリ MongoDB を使用) |
+| `npm run dev:op` | 1Password (`geonic-ops` Vault) からシークレットを注入して開発サーバーを起動 |
+| `npm run build` | TypeScript をコンパイル |
+| `npm run watch` | ファイル変更を監視して自動コンパイル |
+| `npm test` | すべてのテスト (ユニット + E2E) を実行 |
+| `npm run test:unit` | ユニットテストのみ実行 |
+| `npm run test:e2e` | E2E テストのみ実行 |
+| `npm run test:watch` | ユニットテストをウォッチモードで実行 |
+| `npm run test:coverage` | カバレッジレポートを生成 |
+| `npm run lint` | ESLint でコードをチェック |
+| `npm run lint:fix` | ESLint の問題を自動修正 |
+
+## プロジェクト構成
 
 ```text
-vela/
+geonicdb/
 ├── src/
 │   ├── api/                    # API layer
 │   │   ├── ngsiv2/            # NGSIv2 API implementation
@@ -128,7 +255,7 @@ vela/
 │   │   │   ├── routes.ts      # Routing
 │   │   │   └── transformers/  # Data transformation
 │   │   ├── ngsild/            # NGSI-LD API implementation
-│   │   └── shared/            # Shared utilities
+│   │   └── shared/            # Common utilities
 │   │       ├── middleware/    # Middleware
 │   │       └── errors/        # Error classes
 │   │
@@ -140,7 +267,7 @@ vela/
 │   │
 │   ├── handlers/               # Lambda handlers
 │   │   ├── api/               # API request processing
-│   │   ├── streams/           # Change stream processing
+│   │   ├── streams/           # Change Stream processing
 │   │   └── subscriptions/     # Subscription processing
 │   │
 │   └── infrastructure/         # Infrastructure clients
@@ -165,20 +292,66 @@ vela/
 └── docs/                       # Documentation
 ```
 
-## Testing
 
-This project uses two types of testing frameworks:
 
-- **Unit Tests / Integration Tests**: Jest
-- **E2E Tests**: Cucumber.js + Gherkin (Japanese BDD format)
 
-### Run All Tests
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## テスト
+
+このプロジェクトでは 2 種類のテストフレームワークを使用しています:
+
+- **ユニットテスト / 統合テスト**: Jest
+- **E2E テスト**: Cucumber.js + Gherkin (日本語 BDD 形式)
+
+### すべてのテストを実行
 
 ```bash
 npm test
 ```
 
-### Run Unit Tests
+
+
+### ユニットテストを実行
 
 ```bash
 # All unit tests
@@ -191,10 +364,19 @@ npm run test:watch
 npx jest tests/unit/api/ngsiv2/controllers/entities.controller.test.ts
 ```
 
-### Run E2E Tests
 
-E2E tests use Cucumber.js and are written in Gherkin format (Japanese).
-Test cases are implemented based on FIWARE Orion API documentation.
+
+
+
+
+
+
+
+
+### E2E テストを実行
+
+E2E テストは Cucumber.js を使用し、Gherkin 形式 (日本語) で記述されています。
+テストケースは FIWARE Orion API ドキュメントに基づいて実装されています。
 
 ```bash
 # All E2E tests
@@ -206,7 +388,7 @@ npm run test:e2e:ngsiv2
 # NGSI-LD tests only
 npm run test:e2e:ngsild
 
-# Run with specific tags
+# Run by specific tag
 npx cucumber-js --tags "@entities"
 npx cucumber-js --tags "@subscriptions"
 npx cucumber-js --tags "@batch"
@@ -215,13 +397,30 @@ npx cucumber-js --tags "@tutorial"
 npx cucumber-js --tags "@meta"
 ```
 
-### E2E Test Feature File Structure
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### E2E テストのフィーチャーファイル構成
 
 ```text
 tests/e2e/features/
 ├── ngsiv2/
 │   ├── entities.feature            # Entity CRUD
-│   ├── attribute-values.feature    # Direct attribute value get/update
+│   ├── attribute-values.feature    # Direct attribute value retrieval and update
 │   ├── subscriptions.feature       # Subscriptions (HTTP notifications)
 │   ├── subscriptions-mqtt.feature  # Subscriptions (MQTT notifications)
 │   ├── batch.feature               # Batch operations
@@ -252,7 +451,40 @@ tests/e2e/features/
     └── attributes.feature          # Attribute list and details
 ```
 
-### Gherkin Test Example
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Gherkin テストの例
 
 ```gherkin
 # language: ja
@@ -272,19 +504,37 @@ tests/e2e/features/
     かつ レスポンスヘッダー "Location" に "Room1" が含まれる
 ```
 
-### Coverage Report
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### カバレッジレポート
 
 ```bash
 npm run test:coverage
 ```
 
-You can view the HTML report at `coverage/lcov-report/index.html`.
 
-## Integration Application Development (Using as npm Package)
 
-You can install GeonicDB as an npm package and integrate it with your application's development server.
+HTML レポートは `coverage/lcov-report/index.html` で確認できます。
 
-### Installation
+## 統合アプリケーションの開発 (npm パッケージとして使用)
+
+GeonicDB を npm パッケージとしてインストールし、アプリケーションの開発サーバーと統合できます。
+
+### インストール
 
 ```bash
 # Install directly from GitHub repository
@@ -294,9 +544,15 @@ npm install -D github:geolonia/geonicdb
 npm install -D express mongodb-memory-server
 ```
 
-### Start with CLI (Recommended)
 
-Use the `npx geonicdb` command for standalone startup. The `--proxy` option forwards requests that don't match GeonicDB's routes to your application's development server.
+
+
+
+
+
+### CLI 経由で起動 (推奨)
+
+`npx geonicdb` コマンドで GeonicDB を単体で起動できます。`--proxy` オプションを使用すると、GeonicDB のルートにマッチしないリクエストをアプリケーションの開発サーバーに転送します。
 
 ```bash
 # Basic startup
@@ -305,23 +561,36 @@ npx geonicdb
 # Specify port
 npx geonicdb --port 3001
 
-# Start with proxy (integrate with Vite dev server, etc.)
+# Start with proxy (integrate with Vite or other dev servers)
 npx geonicdb --port 3000 --proxy http://localhost:5173
 ```
 
-Request flow when using `--proxy`:
+
+
+
+
+
+
+
+
+
+`--proxy` を指定した場合のリクエストフロー:
 
 ```text
 Browser → localhost:3000 (GeonicDB)
   ├── /v2/*, /ngsi-ld/*, /llms.txt, etc. → Handled by GeonicDB
-  └── Other (HTML, JS, CSS, etc.)        → Proxied to app dev server
+  └── Others (HTML, JS, CSS, etc.)        → Proxied to application dev server
 ```
 
-> **Note**: If URLs overlap (e.g., your app also has `/llms.txt`), GeonicDB takes priority.
 
-### Application package.json Configuration Example
 
-Use `concurrently` to start GeonicDB and your app's development server simultaneously. The `--kill-others` flag automatically stops both when either process terminates:
+
+
+> **注意**: URL が競合する場合 (例: アプリケーションも `/llms.txt` を持つ場合)、GeonicDB が優先されます。
+
+### アプリケーションの package.json 設定例
+
+`concurrently` を使用して、GeonicDB とアプリケーションの開発サーバーを同時に起動できます。`--kill-others` を使用すると、一方のプロセスが終了した場合、もう一方も自動的に停止します:
 
 ```json
 {
@@ -338,7 +607,20 @@ Use `concurrently` to start GeonicDB and your app's development server simultane
 }
 ```
 
-Add proxy settings to Vite as well to access the API from either port:
+
+
+
+
+
+
+
+
+
+
+
+
+
+Vite 側にプロキシ設定を追加すると、どちらのポートにアクセスしても API を使用できるようになります:
 
 ```js
 // vite.config.js
@@ -356,9 +638,23 @@ export default {
 };
 ```
 
-### Programmatic API
 
-You can also start and control the server directly from JavaScript/TypeScript:
+
+
+
+
+
+
+
+
+
+
+
+
+
+### プログラマティック API
+
+JavaScript/TypeScript から直接サーバーを起動・制御することもできます:
 
 ```typescript
 import { createServer } from 'geonicdb';
@@ -380,40 +676,62 @@ process.on('SIGINT', async () => {
 });
 ```
 
-#### GeonicDBServer Object
 
-Object returned by `createServer()`:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `port` | `number` | Actual listening port |
-| `url` | `string` | Full server URL (e.g., `http://localhost:3000`) |
-| `mongoUri` | `string` | MongoDB connection URI (can be used for testing) |
-| `close()` | `() => Promise<void>` | Stop server and MongoDB |
 
-### Installing from Private Repository
 
-For private repositories, it works as-is if your SSH key is registered on GitHub:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### GeonicDBServer オブジェクト
+
+`createServer()` が返すオブジェクト:
+
+| プロパティ | 型 | 説明 |
+|-----------|------|------|
+| `port` | `number` | 実際にリッスンしているポート |
+| `url` | `string` | サーバーの完全な URL (例: `http://localhost:3000`) |
+| `mongoUri` | `string` | MongoDB 接続 URI (テストなどで使用可能) |
+| `close()` | `() => Promise<void>` | サーバーと MongoDB を停止 |
+
+### プライベートリポジトリからのインストール
+
+プライベートリポジトリの場合、SSH キーが GitHub に登録されていればそのまま動作します:
 
 ```bash
 npm install -D github:geolonia/geonicdb
 ```
 
-In CI/CD environments, you'll need to configure GitHub Personal Access Token or Deploy Key. For production team use, consider publishing to GitHub Packages.
 
-## Local Development Server
 
-### Simple Server (Recommended)
+CI/CD 環境では、GitHub Personal Access Token または Deploy Key の設定が必要です。チーム全体での運用には、GitHub Packages への公開も検討してください。
 
-Use `npm start` to launch a local server with in-memory MongoDB. No external MongoDB instance required.
+## ローカル開発サーバー
+
+### シンプルサーバー (推奨)
+
+`npm start` でインメモリ MongoDB を使用してローカルサーバーを起動できます。外部の MongoDB インスタンスは不要です。
 
 ```bash
 npm start
 ```
 
-#### Port Configuration
 
-The default port is `3000`. You can change it via CLI argument or environment variable:
+
+#### ポートの指定
+
+デフォルトのポートは `3000` です。CLI 引数または環境変数でポートを変更できます:
 
 ```bash
 # Specify via CLI argument
@@ -423,33 +741,46 @@ npm start -- --port 3001
 PORT=3001 npm start
 ```
 
-Priority: `--port` argument > `PORT` environment variable > Default (3000)
 
-If the specified port is in use, the next available port is automatically selected (up to 10 ports explored).
 
-> **Tip**: Combined with git worktree, you can run servers for different branches simultaneously:
+
+
+
+
+優先順位: `--port` 引数 > `PORT` 環境変数 > デフォルト (3000)
+
+指定したポートが使用中の場合、次に利用可能なポートが自動的に選択されます (最大 10 ポートまで検索)。
+
+> **ヒント**: git worktrees と組み合わせることで、異なるブランチのサーバーを同時に起動できます:
 > ```bash
-> # Start in main worktree
+> # Start in the main worktree
 > npm start                    # → localhost:3000
 >
 > # Start in another worktree
-> cd .worktrees/vela-feature
+> cd .worktrees/geonicdb-feature
 > npm start -- --port 3001     # → localhost:3001
 > ```
 
-Press `Ctrl+C` to stop the server. MongoDB is automatically stopped as well.
 
-**Features:**
-- No external MongoDB required (mongodb-memory-server auto-starts)
-- No environment variable configuration needed
-- Port specification available (`--port` / `PORT` environment variable)
-- Automatic fallback if port is in use
-- Ideal for development and testing
-- Data is cleared when server stops (in-memory)
 
-### Using SAM CLI
 
-Test the API locally using AWS SAM CLI:
+
+
+
+
+`Ctrl+C` を押してサーバーを停止します。MongoDB も自動的に停止します。
+
+**機能:**
+- 外部 MongoDB が不要 (mongodb-memory-server が自動起動)
+- 環境変数の設定が不要
+- ポートを指定可能 (`--port` / `PORT` 環境変数)
+- ポートが使用中の場合の自動フォールバック
+- 開発とテストに最適
+- サーバー停止時にデータがクリアされる (インメモリ)
+
+### SAM CLI を使用
+
+AWS SAM CLI を使用してローカルで API をテストします:
 
 ```bash
 # SAM build
@@ -459,9 +790,15 @@ npm run sam:build
 npm run sam:local
 ```
 
-The API will be available at `http://localhost:3000`.
 
-### Test Request Examples
+
+
+
+
+
+API は `http://localhost:3000` で利用可能になります。
+
+### サンプルテストリクエスト
 
 ```bash
 # Create entity
@@ -477,3 +814,322 @@ curl -X POST http://localhost:3000/v2/entities \
 # Get entity
 curl http://localhost:3000/v2/entities/Room1 \
   -H "Fiware-Service: test"
+
+# Direct attribute value retrieval
+curl http://localhost:3000/v2/entities/Room1/attrs/temperature/value \
+  -H "Fiware-Service: test"
+
+# Direct attribute value update
+curl -X PUT http://localhost:3000/v2/entities/Room1/attrs/temperature/value \
+  -H "Fiware-Service: test" \
+  -H "Content-Type: text/plain" \
+  -d "25.5"
+
+# Search using query language
+curl "http://localhost:3000/v2/entities?type=Room&q=temperature>20" \
+  -H "Fiware-Service: test"
+
+# Geo-query (search within polygon)
+curl "http://localhost:3000/v2/entities?type=Place&georel=coveredBy&geometry=polygon&coords=34,138;34,141;37,141;37,138;34,138" \
+  -H "Fiware-Service: test"
+
+# Spatial ID search (ZFXY format)
+curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773" \
+  -H "Fiware-Service: test"
+
+# Output in GeoJSON format
+curl "http://localhost:3000/v2/entities?type=Store&options=geojson" \
+  -H "Fiware-Service: test"
+
+# Get API documentation (llms.txt format)
+curl http://localhost:3000/llms.txt
+
+# Get API documentation (JSON format)
+curl http://localhost:3000/api.json
+
+# Get OpenAPI specification
+curl http://localhost:3000/openapi.json
+
+# Get version information
+curl http://localhost:3000/version
+
+# Health check
+curl http://localhost:3000/health
+
+# NGSI-LD API discovery
+curl http://localhost:3000/.well-known/ngsi-ld
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## MCP (Model Context Protocol) 経由で Claude Desktop から接続
+
+ローカルサーバーを起動した状態で、Claude Desktop からコンテキストブローカーに直接接続できます。
+
+### 1. ローカルサーバーを起動
+
+```bash
+npm start
+```
+
+
+
+### 2. Claude Desktop を設定
+
+Claude Desktop の設定ファイル (`claude_desktop_config.json`) に次の内容を追加します。
+
+**macOS**: `~/Library/Application\ Support/Claude/claude_desktop_config.json`**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+```json
+{
+  "mcpServers": {
+    "geonicdb": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:3000/mcp",
+        "--allow-http"
+      ]
+    }
+  }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+> **注意**: [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) パッケージは、Streamable HTTP MCP サーバーに接続するためのブリッジとして使用されます。初回実行時に自動的にダウンロードされます。
+
+**認証が有効な場合 (`AUTH_ENABLED=true`)** は、Bearer トークンヘッダーを指定する必要があります:
+
+```json
+{
+  "mcpServers": {
+    "geonicdb": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:3000/mcp",
+        "--allow-http",
+        "--header",
+        "Authorization: Bearer <your-jwt-token>"
+      ]
+    }
+  }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+設定後、Claude Desktop を再起動します。
+
+### 3. 動作確認
+
+Claude Desktop で次のようにチャットすると、コンテキストブローカーのツールが自動的に呼び出されます。
+
+- "test テナントのエンティティ一覧を表示して"
+- "ID が Room1 の Room エンティティを作成して、温度を 23.5 に設定して"
+- "東京駅周辺のセンサーを検索して"
+
+### 4. curl で動作確認
+
+Claude Desktop を使用せずに、MCP プロトコルの動作を確認するには:
+
+```bash
+# MCP initialize
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-03-26",
+      "capabilities": {},
+      "clientInfo": {"name": "curl-test", "version": "1.0.0"}
+    }
+  }'
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+詳細は [MCP ドキュメント](../ai-integration/mcp-server.md) を参照してください。
+
+## API 仕様
+
+### ページネーション
+
+リスト取得エンドポイントは共通のページネーションパラメータをサポートしています。
+
+**パラメータ:**
+
+| パラメータ | 型 | デフォルト | 最大値 | 説明 |
+|---------|---|---------|-------|------|
+| `limit` | integer | 20 | 1000 | 取得する結果の数 (NGSI API) |
+| `limit` | integer | 20 | 100 | 取得する結果の数 (Admin API) |
+| `offset` | integer | 0 | - | スキップする結果の数 |
+
+**レスポンスヘッダー:**
+
+- **NGSIv2**: `Fiware-Total-Count` - 合計数
+- **NGSI-LD**: `NGSILD-Results-Count` - 合計数
+- **Admin API**: `X-Total-Count` - 合計数
+
+**例:**
+
+```bash
+# Get the first 10 results
+curl "http://localhost:3000/v2/entities?limit=10&offset=0"
+
+# Get results 11 through 20
+curl "http://localhost:3000/v2/entities?limit=10&offset=10"
+```
+
+
+
+
+
+
+
+### HTTP ステータスコード
+
+主なステータスコードとエラーレスポンス形式:
+
+| コード | 説明 | 用途 |
+|-------|------|--------|
+| 200 | OK | エンティティ取得成功、属性更新成功 |
+| 201 | Created | エンティティ作成成功 |
+| 204 | No Content | エンティティ削除成功、属性削除成功 |
+| 400 | Bad Request | 不正なリクエストボディ、不正なパラメータ |
+| 401 | Unauthorized | 認証トークンなし、不正なトークン |
+| 403 | Forbidden | 権限不足、テナントアクセス拒否 |
+| 404 | Not Found | エンティティ/属性が存在しない |
+| 409 | Conflict | エンティティ ID が既に存在 |
+| 422 | Unprocessable Entity | エンティティが存在しない (部分更新時) |
+| 500 | Internal Server Error | 内部サーバーエラー |
+
+**エラーレスポンス形式 (NGSIv2):**
+
+```json
+{
+  "error": "NotFound",
+  "description": "The requested entity has not been found. Check type and id"
+}
+```
+
+
+
+
+
+
+**エラーレスポンス形式 (NGSI-LD):**
+
+```json
+{
+  "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+  "title": "Entity not found",
+  "detail": "Entity with id urn:ngsi-ld:Room:Room1 not found"
+}
+```
+
+
+
+
+
+
+
+## デプロイ
+
+G
