@@ -4,9 +4,126 @@ import { join, relative, dirname } from 'node:path'
 // ---------------------------------------------------------------------------
 // fix-doc-quality.ts
 // Post-translation quality fix script for geonicdb-docs.
-// Fixes: (1) bare code blocks, (2) missing frontmatter titles, (3) file parity
+// Fixes: (1) bare code blocks, (2) missing frontmatter titles, (3) file parity,
+//        (4) glossary violations in docs/ja/ (forbidden terms → correct terms)
 // Processes both docs/ja/ (content inference) and docs/en/ (ja/ as reference).
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Glossary violation replacement
+// ---------------------------------------------------------------------------
+
+export interface GlossaryRule {
+  /** Forbidden term to replace */
+  forbidden: string
+  /** Correct term to use */
+  correct: string
+  /**
+   * Optional string that, when immediately following `forbidden`, indicates
+   * `forbidden` is already part of a longer correct term and should NOT be
+   * replaced. E.g., forbidden="サブスク", negLookahead="リプション" prevents
+   * replacing "サブスクリプション" (which already starts with "サブスク").
+   */
+  negLookahead?: string
+}
+
+/**
+ * Glossary replacement rules for Japanese docs.
+ * Derived from glossary.yaml's do_not_use.ja entries.
+ * Excludes ambiguous general words (e.g. "実体", "購読", "ブローカー").
+ */
+export const JA_GLOSSARY_RULES: GlossaryRule[] = [
+  // brand
+  { forbidden: 'ジオニックDB', correct: 'GeonicDB' },
+  { forbidden: 'リアクティブコア', correct: 'ReactiveCore' },
+  { forbidden: 'マップリブレ', correct: 'MapLibre' },
+  { forbidden: 'ファイウェア', correct: 'FIWARE' },
+  { forbidden: 'モデルコンテキストプロトコル', correct: 'MCP' },
+  { forbidden: 'エムシーピー', correct: 'MCP' },
+  // domain
+  { forbidden: 'エンティティー', correct: 'エンティティ' },
+  { forbidden: 'エンテティ', correct: 'エンティティ' },
+  { forbidden: 'テンポラル', correct: '時系列' },
+  { forbidden: 'ジオプロパティ', correct: 'GeoProperty' },
+  { forbidden: '地理プロパティ', correct: 'GeoProperty' },
+  // "コンテキストブローカ" (without ー) is forbidden; "コンテキストブローカー" is correct.
+  // Use negLookahead "ー" to avoid double-replacing "コンテキストブローカー".
+  { forbidden: 'コンテキストブローカ', correct: 'コンテキストブローカー', negLookahead: 'ー' },
+  { forbidden: 'スキーマー', correct: 'スキーマ' },
+  // "サブスク" is forbidden; "サブスクリプション" is correct.
+  // negLookahead "リプション" prevents replacing inside "サブスクリプション".
+  { forbidden: 'サブスク', correct: 'サブスクリプション', negLookahead: 'リプション' },
+  { forbidden: 'サービスパス', correct: 'ServicePath' },
+  { forbidden: 'アトリビュート', correct: '属性' },
+  { forbidden: 'プロパティー', correct: 'プロパティ' },
+  // "リレーション" is forbidden; "リレーションシップ" is correct.
+  // negLookahead "シップ" prevents replacing inside "リレーションシップ".
+  { forbidden: 'リレーション', correct: 'リレーションシップ', negLookahead: 'シップ' },
+  { forbidden: 'ウェブソケット', correct: 'WebSocket' },
+  { forbidden: 'API鍵', correct: 'APIキー' },
+]
+
+/**
+ * Build a RegExp for a single glossary rule.
+ * If the rule has a negLookahead, the regex will NOT match when `forbidden`
+ * is immediately followed by that string (preventing partial-word replacement).
+ */
+function buildGlossaryRegex(rule: GlossaryRule): RegExp {
+  const escaped = rule.forbidden.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (rule.negLookahead) {
+    const lookaheadEscaped = rule.negLookahead.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`${escaped}(?!${lookaheadEscaped})`, 'g')
+  }
+  return new RegExp(escaped, 'g')
+}
+
+/**
+ * Fix glossary violations in a Japanese markdown document.
+ * Replaces forbidden terms with correct ones, skipping fenced code blocks.
+ *
+ * @param content - Markdown content to process
+ * @param rules - Glossary rules to apply (defaults to JA_GLOSSARY_RULES)
+ * @returns Object with corrected content and count of modified lines
+ */
+export function fixGlossaryViolations(
+  content: string,
+  rules: GlossaryRule[] = JA_GLOSSARY_RULES
+): { content: string; count: number } {
+  const lines = content.split('\n')
+  let inFencedBlock = false
+  let count = 0
+
+  // Pre-build regexes once for efficiency
+  const compiled = rules.map(rule => ({ rule, regex: buildGlossaryRegex(rule) }))
+
+  const result = lines.map(line => {
+    const trimmed = line.trimStart()
+
+    // Track fenced code block boundaries (``` or ~~~)
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFencedBlock = !inFencedBlock
+      return line
+    }
+
+    // Skip lines inside fenced code blocks
+    if (inFencedBlock) return line
+
+    let modified = line
+    for (const { rule, regex } of compiled) {
+      if (!modified.includes(rule.forbidden)) continue
+      // Reset lastIndex between reuses (regex has 'g' flag)
+      regex.lastIndex = 0
+      const replaced = modified.replace(regex, rule.correct)
+      if (replaced !== modified) {
+        count++
+        modified = replaced
+      }
+    }
+    return modified
+  })
+
+  return { content: result.join('\n'), count }
+}
 
 /**
  * Infer language identifier from code block content.
@@ -170,6 +287,7 @@ export interface QualityFixResult {
   codeBlockFixes: number
   titleFixes: number
   parityFixes: number
+  glossaryFixes: number
 }
 
 function collectMdFiles(dir: string): string[] {
@@ -208,6 +326,7 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
   let codeBlockFixes = 0
   let titleFixes = 0
   let parityFixes = 0
+  let glossaryFixes = 0
 
   // (1) Process docs/ja/ files using content inference (no reference)
   for (const jaFile of jaFiles) {
@@ -223,6 +342,15 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
       changed = true
       codeBlockFixes++
       console.log(`  [code-block] Fixed: ja/${relPath}`)
+    }
+
+    // Fix glossary violations (forbidden terms → correct terms)
+    const { content: glossaryFixed, count: glossaryCount } = fixGlossaryViolations(jaContent)
+    if (glossaryFixed !== jaContent) {
+      jaContent = glossaryFixed
+      changed = true
+      glossaryFixes += glossaryCount
+      console.log(`  [glossary] Fixed ${glossaryCount} term(s): ja/${relPath}`)
     }
 
     // Fix missing frontmatter title
@@ -296,8 +424,8 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
     }
   }
 
-  console.log(`\nDone: ${codeBlockFixes} code-block fixes, ${titleFixes} title fixes, ${parityFixes} parity fixes.`)
-  return { codeBlockFixes, titleFixes, parityFixes }
+  console.log(`\nDone: ${codeBlockFixes} code-block fixes, ${titleFixes} title fixes, ${parityFixes} parity fixes, ${glossaryFixes} glossary fixes.`)
+  return { codeBlockFixes, titleFixes, parityFixes, glossaryFixes }
 }
 
 // ---------------------------------------------------------------------------

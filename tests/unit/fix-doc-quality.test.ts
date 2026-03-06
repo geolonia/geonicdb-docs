@@ -8,6 +8,7 @@ import {
   extractTitleFromHeading,
   addFrontmatterTitle,
   hasFrontmatterTitle,
+  fixGlossaryViolations,
   runQualityFixes,
 } from '../../scripts/fix-doc-quality.js'
 
@@ -224,6 +225,90 @@ describe('addFrontmatterTitle', () => {
 })
 
 // ---------------------------------------------------------------------------
+// fixGlossaryViolations
+// ---------------------------------------------------------------------------
+describe('fixGlossaryViolations', () => {
+  it('replaces サービスパス with ServicePath', () => {
+    const content = 'サービスパス を使用してテナントを分離します。'
+    const { content: result, count } = fixGlossaryViolations(content)
+    expect(result).toBe('ServicePath を使用してテナントを分離します。')
+    expect(count).toBe(1)
+  })
+
+  it('replaces テンポラル with 時系列', () => {
+    const content = 'テンポラル データの取得方法を説明します。'
+    const { content: result, count } = fixGlossaryViolations(content)
+    expect(result).toBe('時系列 データの取得方法を説明します。')
+    expect(count).toBe(1)
+  })
+
+  it('replaces standalone サブスク with サブスクリプション but not inside サブスクリプション', () => {
+    const content = 'サブスク を作成してください。また、サブスクリプション 管理も可能です。'
+    const { content: result } = fixGlossaryViolations(content)
+    // standalone サブスク → サブスクリプション
+    // サブスクリプション should be preserved
+    expect(result).toBe('サブスクリプション を作成してください。また、サブスクリプション 管理も可能です。')
+  })
+
+  it('preserves content inside fenced code blocks', () => {
+    const content = [
+      'テンポラル データを見てみましょう:',
+      '```bash',
+      '# テンポラル 履歴を取得',
+      'curl .../temporal/entities',
+      '```',
+      'テンポラル クエリの詳細:',
+    ].join('\n')
+    const { content: result } = fixGlossaryViolations(content)
+    const lines = result.split('\n')
+    // Line 0: outside code block → replaced
+    expect(lines[0]).toBe('時系列 データを見てみましょう:')
+    // Line 2: inside code block → preserved
+    expect(lines[2]).toBe('# テンポラル 履歴を取得')
+    // Line 5: outside code block → replaced
+    expect(lines[5]).toBe('時系列 クエリの詳細:')
+  })
+
+  it('returns count 0 and unchanged content when no violations', () => {
+    const content = '時系列 データはサブスクリプションで取得できます。'
+    const { content: result, count } = fixGlossaryViolations(content)
+    expect(result).toBe(content)
+    expect(count).toBe(0)
+  })
+
+  it('accepts custom rules', () => {
+    const content = '禁止語 がここにあります。'
+    const { content: result, count } = fixGlossaryViolations(content, [
+      { forbidden: '禁止語', correct: '正式語' },
+    ])
+    expect(result).toBe('正式語 がここにあります。')
+    expect(count).toBe(1)
+  })
+
+  it('replaces エンティティー with エンティティ', () => {
+    const content = 'エンティティー を作成します。'
+    const { content: result } = fixGlossaryViolations(content)
+    expect(result).toBe('エンティティ を作成します。')
+  })
+
+  it('does not replace リレーション inside リレーションシップ', () => {
+    const content = 'リレーション オブジェクトと、リレーションシップ プロパティがあります。'
+    const { content: result } = fixGlossaryViolations(content)
+    // standalone リレーション → リレーションシップ
+    // existing リレーションシップ is preserved
+    expect(result).toBe('リレーションシップ オブジェクトと、リレーションシップ プロパティがあります。')
+  })
+
+  it('does not replace コンテキストブローカ inside コンテキストブローカー (with ー)', () => {
+    const content = 'コンテキストブローカ への接続と、コンテキストブローカー を使用します。'
+    const { content: result } = fixGlossaryViolations(content)
+    // コンテキストブローカ (without ー) → コンテキストブローカー
+    // コンテキストブローカー (with ー) is preserved
+    expect(result).toBe('コンテキストブローカー への接続と、コンテキストブローカー を使用します。')
+  })
+})
+
+// ---------------------------------------------------------------------------
 // runQualityFixes — en-side processing (integration tests)
 // ---------------------------------------------------------------------------
 describe('runQualityFixes', () => {
@@ -333,5 +418,29 @@ describe('runQualityFixes', () => {
     expect(result.codeBlockFixes).toBe(0)
     expect(result.titleFixes).toBe(0)
     expect(result.parityFixes).toBe(0)
+    expect(result.glossaryFixes).toBe(0)
+  })
+
+  it('fixes glossary violations in ja/ files', () => {
+    const docsDir = setupDocs({
+      'docs/ja/guide.md': '---\ntitle: "Guide"\n---\n# Guide\n\nサービスパス を使って分離します。テンポラル データも参照。\n',
+    })
+    const result = runQualityFixes(docsDir)
+    const jaContent = readFileSync(join(docsDir, 'docs/ja/guide.md'), 'utf-8')
+    expect(jaContent).toContain('ServicePath')
+    expect(jaContent).toContain('時系列')
+    expect(jaContent).not.toContain('サービスパス')
+    expect(jaContent).not.toContain('テンポラル')
+    expect(result.glossaryFixes).toBeGreaterThan(0)
+  })
+
+  it('does not modify glossary-compliant ja/ files', () => {
+    const jaContent = '---\ntitle: "Guide"\n---\n# Guide\n\nServicePath を使って分離します。\n'
+    const docsDir = setupDocs({
+      'docs/ja/guide.md': jaContent,
+    })
+    runQualityFixes(docsDir)
+    const after = readFileSync(join(docsDir, 'docs/ja/guide.md'), 'utf-8')
+    expect(after).toBe(jaContent)
   })
 })
