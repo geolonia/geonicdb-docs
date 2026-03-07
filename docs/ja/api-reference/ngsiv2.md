@@ -1,47 +1,49 @@
 ---
 title: "NGSIv2 API"
-description: "NGSIv2 API リファレンス"
+description: "NGSIv2 API reference"
 outline: deep
 ---
 # NGSIv2 API
 
-> This document was split from [API.md](./endpoints.md). For the main API specification, refer to [API.md](./endpoints.md).
+> このドキュメントは [API.md](./endpoints.md) から分割されました。メインの API 仕様については [API.md](./endpoints.md) を参照してください。
 
 ---
 
-## Entity Operations
+## エンティティ操作
 
-### List Entities
+### エンティティの一覧取得
 
 ```http
 GET /v2/entities
 ```
 
-**Query Parameters**
 
-| Parameter | Type | Description | Default |
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 | デフォルト |
 |-----------|------|-------------|---------|
-| `id` | string | Filter by entity ID (multiple values can be specified as a comma-separated list) | - |
-| `limit` | integer | Number of results to retrieve (max: 1000) | 20 |
-| `offset` | integer | Offset (for pagination) | 0 |
-| `orderBy` | string | Sort criteria (`entityId`, `entityType`, `modifiedAt`, or attribute name). FIWARE Orion-compatible `!` prefix for descending order (e.g. `!temperature`) | - |
-| `orderDirection` | string | Sort direction (`asc`, `desc`). **GeonicDB extension** (the official specification only supports the `!` prefix approach) | `asc` |
-| `type` | string | Filter by entity type | - |
-| `typePattern` | string | Regular expression pattern for entity type | - |
-| `idPattern` | string | Regular expression pattern for entity ID | - |
-| `q` | string | Filter by attribute value (see [Query Language](./endpoints.md#query-language)) | - |
-| `mq` | string | Filter by metadata (see [Query Language](./endpoints.md#query-language)) | - |
-| `attrs` | string | Attribute names to retrieve (comma-separated) | - |
-| `metadata` | string | Metadata output control (`on`, `off`). **GeonicDB extension** (the official specification uses a comma-separated name list with `*` wildcards, etc.) | `on` |
-| `georel` | string | Geo-query operator (see [Geo-queries](./endpoints.md#geo-queries)) | - |
-| `geometry` | string | Geometry type | - |
-| `coords` | string | Coordinates (latitude,longitude format, semicolon-separated) | - |
-| `spatialId` | string | Filter by spatial ID (ZFXY format) (see [Spatial ID Search](./endpoints.md#spatial-id-search)) | - |
-| `spatialIdDepth` | integer | Depth of spatial ID hierarchy expansion (0-4) | 0 |
-| `crs` | string | Coordinate reference system (see [Coordinate Reference System (CRS)](./endpoints.md#coordinate-reference-system-crs)) | `EPSG:4326` |
-| `options` | string | `keyValues`, `values`, `count`, `geojson`, `sysAttrs`, `unique` | - |
+| `id` | string | エンティティ ID でフィルタ (カンマ区切りで複数指定可) | - |
+| `limit` | integer | 取得する結果数 (最大: 1000) | 20 |
+| `offset` | integer | オフセット (ページネーション用) | 0 |
+| `orderBy` | string | ソート基準 (`entityId`、`entityType`、`modifiedAt`、または属性名)。FIWARE Orion 互換の `!` プレフィックスで降順を指定可能 (例: `!temperature`) | - |
+| `orderDirection` | string | ソート方向 (`asc`、`desc`)。**GeonicDB 拡張** (公式仕様は `!` プレフィックス方式のみサポート) | `asc` |
+| `type` | string | エンティティタイプでフィルタ | - |
+| `typePattern` | string | エンティティタイプの正規表現パターン | - |
+| `idPattern` | string | エンティティ ID の正規表現パターン | - |
+| `q` | string | 属性値でフィルタ ([クエリ言語](./endpoints.md#query-language) を参照) | - |
+| `mq` | string | メタデータでフィルタ ([クエリ言語](./endpoints.md#query-language) を参照) | - |
+| `attrs` | string | 取得する属性名 (カンマ区切り) | - |
+| `metadata` | string | メタデータ出力制御 (`on`、`off`)。**GeonicDB 拡張** (公式仕様ではカンマ区切りの名前リストと `*` ワイルドカードなどを使用) | `on` |
+| `georel` | string | ジオクエリ演算子 ([ジオクエリ](./endpoints.md#geo-queries) を参照) | - |
+| `geometry` | string | ジオメトリタイプ | - |
+| `coords` | string | 座標 (緯度,経度形式、セミコロン区切り) | - |
+| `spatialId` | string | 空間 ID でフィルタ (ZFXY 形式) ([空間 ID 検索](./endpoints.md#spatial-id-search) を参照) | - |
+| `spatialIdDepth` | integer | 空間 ID 階層展開の深さ (0-4) | 0 |
+| `crs` | string | 座標参照系 ([座標参照系 (CRS)](./endpoints.md#coordinate-reference-system-crs) を参照) | `EPSG:4326` |
+| `options` | string | `keyValues`、`values`、`count`、`geojson`、`sysAttrs`、`unique` | - |
 
-**Response Example**
+**レスポンス例**
 
 ```json
 [
@@ -62,7 +64,24 @@ GET /v2/entities
 ]
 ```
 
-**keyValues format** (`options=keyValues`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+**keyValues 形式** (`options=keyValues`)
 
 ```json
 [
@@ -75,13 +94,22 @@ GET /v2/entities
 ]
 ```
 
-**count option** (`options=count`)
 
-The `Fiware-Total-Count` header is added to the response.
 
-**geojson option** (`options=geojson` or `Accept: application/geo+json` header)
 
-Returns the response as a GeoJSON FeatureCollection.
+
+
+
+
+
+
+**count オプション** (`options=count`)
+
+レスポンスに `Fiware-Total-Count` ヘッダーが追加されます。
+
+**geojson オプション** (`options=geojson` または `Accept: application/geo+json` ヘッダー)
+
+GeoJSON FeatureCollection としてレスポンスを返します。
 
 ```bash
 # Specified via options parameter
@@ -94,7 +122,16 @@ curl "http://localhost:3000/v2/entities?type=Store" \
   -H "Accept: application/geo+json"
 ```
 
-Response example:
+
+
+
+
+
+
+
+
+
+レスポンス例:
 
 ```json
 {
@@ -110,21 +147,35 @@ Response example:
 }
 ```
 
-The response header will have `Content-Type: application/geo+json` set.
 
-### Create Entity
+
+
+
+
+
+
+
+
+
+
+
+レスポンスヘッダーに `Content-Type: application/geo+json` が設定されます。
+
+### エンティティの作成
 
 ```http
 POST /v2/entities
 ```
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `options` | string | `upsert`: Update the entity if it already exists. `keyValues`: Interpret the request body in keyValues format |
+| `options` | string | `upsert`: エンティティが既に存在する場合は更新。`keyValues`: リクエストボディを keyValues 形式として解釈 |
 
-**Request Body**
+**リクエストボディ**
 
 ```json
 {
@@ -141,7 +192,20 @@ POST /v2/entities
 }
 ```
 
-**keyValues format input** (`options=keyValues`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+**keyValues 形式の入力** (`options=keyValues`)
 
 ```json
 {
@@ -152,46 +216,56 @@ POST /v2/entities
 }
 ```
 
-**Upsert behavior** (`options=upsert`)
 
-If the entity does not exist, it is created (`201 Created`); if it already exists, its attributes are updated (`204 No Content`).
 
-**Response**
-- Status: `201 Created` (new creation), `204 No Content` (updated via upsert)
-- Status: `409 AlreadyExists` if an entity with the same ID already exists (regardless of type)
-- Header: `Location: /v2/entities/Room1?type=Room`
 
-> **GeonicDB Extension — Entity ID Uniqueness**: Entity IDs are unique within a tenant and service path scope. Creating an entity with the same ID but a different type is not allowed and returns `409 AlreadyExists`. This differs from the NGSIv2 specification, which permits same-ID entities with different types. See [Entity ID Uniqueness](./endpoints.md#entity-id-uniqueness-geonicdb-extension) for details.
 
-### Get Single Entity
+
+
+
+**Upsert 動作** (`options=upsert`)
+
+エンティティが存在しない場合は作成され (`201 Created`)、既に存在する場合は属性が更新されます (`204 No Content`)。
+
+**レスポンス**
+- ステータス: `201 Created` (新規作成)、`204 No Content` (upsert による更新)
+- ステータス: `409 AlreadyExists` 同じ ID のエンティティが既に存在する場合 (タイプに関わらず)
+- ヘッダー: `Location: /v2/entities/Room1?type=Room`
+> **GeonicDB 拡張 — エンティティ ID の一意性**: エンティティ ID はテナントとServicePathスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成することは許可されず、`409 AlreadyExists` を返します。これは、同じ ID で異なるタイプのエンティティを許可する NGSIv2 仕様とは異なります。詳細は [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
+
+### 単一エンティティの取得
 
 ```http
 GET /v2/entities/{entityId}
 ```
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type (optional filter; type disambiguation is no longer needed as entity IDs are unique — see [Entity ID Uniqueness](./endpoints.md#entity-id-uniqueness-geonicdb-extension)) |
-| `attrs` | string | Attribute names to retrieve (comma-separated) |
-| `options` | string | `keyValues`, `values` |
+| `type` | string | エンティティタイプ (オプションのフィルタ。エンティティ ID は一意なのでタイプの曖昧性解消は不要 — [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照) |
+| `attrs` | string | 取得する属性名 (カンマ区切り) |
+| `options` | string | `keyValues`、`values` |
 
-### Update Entity (PATCH)
+### エンティティの更新 (PATCH)
 
 ```http
 PATCH /v2/entities/{entityId}/attrs
 ```
 
-Updates only the specified attributes. Non-existent attributes will be added.
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+指定された属性のみを更新します。存在しない属性は追加されます。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
+| `type` | string | エンティティタイプ |
 
-**Request Body**
+**リクエストボディ**
 
 ```json
 {
@@ -202,79 +276,90 @@ Updates only the specified attributes. Non-existent attributes will be added.
 }
 ```
 
-**Response**: `204 No Content`
 
-### Update Entity (PUT)
+
+
+
+
+
+
+**レスポンス**: `204 No Content`
+### エンティティの更新 (PUT)
 
 ```http
 PUT /v2/entities/{entityId}/attrs
 ```
 
-Replaces all attributes (attributes not specified will be deleted).
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+すべての属性を置き換えます (指定されなかった属性は削除されます)。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
+| `type` | string | エンティティタイプ |
 
-**Response**: `204 No Content`
-
-### Add Attributes (POST)
+**レスポンス**: `204 No Content`
+### 属性の追加 (POST)
 
 ```http
 POST /v2/entities/{entityId}/attrs
 ```
 
-Adds new attributes (existing attributes will be overwritten).
 
-When `options=append` is specified, existing attributes will not be overwritten and only new attributes will be added (strict append mode). If attribute names that already exist are included, a `422 Unprocessable Entity` error is returned.
 
-**Query Parameters**
+新しい属性を追加します (既存の属性は上書きされます)。
 
-| Parameter | Type | Description |
+`options=append` を指定すると、既存の属性は上書きされず、新しい属性のみが追加されます (厳密追加モード)。既に存在する属性名が含まれている場合、`422 Unprocessable Entity` エラーが返されます。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
-| `options` | string | `append`: Prohibit overwriting existing attributes (strict append mode) |
+| `type` | string | エンティティタイプ |
+| `options` | string | `append`: 既存属性の上書きを禁止 (厳密追加モード) |
 
-**Response**: `204 No Content`
-
-### Delete Entity
+**レスポンス**: `204 No Content`
+### エンティティの削除
 
 ```http
 DELETE /v2/entities/{entityId}
 ```
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
+| `type` | string | エンティティタイプ |
 
-**Response**: `204 No Content`
-
+**レスポンス**: `204 No Content`
 ---
 
-## Attribute Operations
+## 属性操作
 
-### Get Entity Attributes
+### エンティティ属性の取得
 
-Retrieves all attributes of an entity (the `id` and `type` fields are not included).
+エンティティのすべての属性を取得します (`id` と `type` フィールドは含まれません)。
 
 ```http
 GET /v2/entities/{entityId}/attrs
 ```
 
-**Query Parameters**
 
-| Parameter | Type | Description | Default |
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 | デフォルト |
 |-----------|------|-------------|---------|
-| `type` | string | Entity type | - |
-| `attrs` | string | Attribute names to retrieve (comma-separated) | - |
-| `metadata` | string | Metadata output control (`on`, `off`) | `on` |
-| `options` | string | `keyValues`, `values`, `sysAttrs` | - |
+| `type` | string | エンティティタイプ | - |
+| `attrs` | string | 取得する属性名 (カンマ区切り) | - |
+| `metadata` | string | メタデータ出力制御 (`on`、`off`) | `on` |
+| `options` | string | `keyValues`、`values`、`sysAttrs` | - |
 
-**Response Example**
+**レスポンス例**
 
 ```json
 {
@@ -291,7 +376,20 @@ GET /v2/entities/{entityId}/attrs
 }
 ```
 
-**keyValues format** (`options=keyValues`)
+
+
+
+
+
+
+
+
+
+
+
+
+
+**keyValues 形式** (`options=keyValues`)
 
 ```json
 {
@@ -300,21 +398,28 @@ GET /v2/entities/{entityId}/attrs
 }
 ```
 
-> **Note**: Unlike `/v2/entities/{entityId}?attrs=...`, this endpoint does not include the `id` and `type` fields. Use this when only attributes are needed.
 
-### Get Single Attribute
+
+
+
+
+> **注意**: `/v2/entities/{entityId}?attrs=...` とは異なり、このエンドポイントには `id` と `type` フィールドが含まれません。属性のみが必要な場合に使用してください。
+
+### 単一属性の取得
 
 ```http
 GET /v2/entities/{entityId}/attrs/{attrName}
 ```
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
+| `type` | string | エンティティタイプ |
 
-**Response Example**
+**レスポンス例**
 
 ```json
 {
@@ -324,19 +429,27 @@ GET /v2/entities/{entityId}/attrs/{attrName}
 }
 ```
 
-### Update Single Attribute
+
+
+
+
+
+
+### 単一属性の更新
 
 ```http
 PUT /v2/entities/{entityId}/attrs/{attrName}
 ```
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
+| `type` | string | エンティティタイプ |
 
-**Request Body**
+**リクエストボディ**
 
 ```json
 {
@@ -345,50 +458,57 @@ PUT /v2/entities/{entityId}/attrs/{attrName}
 }
 ```
 
-**Response**: `204 No Content`
 
-### Delete Single Attribute
+
+
+
+
+**レスポンス**: `204 No Content`
+### 単一属性の削除
 
 ```http
 DELETE /v2/entities/{entityId}/attrs/{attrName}
 ```
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
+| `type` | string | エンティティタイプ |
 
-**Response**: `204 No Content`
-
-### Get Attribute Value Directly
+**レスポンス**: `204 No Content`
+### 属性値の直接取得
 
 ```http
 GET /v2/entities/{entityId}/attrs/{attrName}/value
 ```
 
-Retrieves only the value of an attribute (type and metadata are not included).
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+属性の値のみを取得します (タイプとメタデータは含まれません)。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
+| `type` | string | エンティティタイプ |
 
-**Response**
+**レスポンス**
 
-Returned with different Content-Types depending on the type of value:
+値のタイプに応じて異なる Content-Type で返されます:
 
-| Value type | Content-Type | Example |
+| 値のタイプ | Content-Type | 例 |
 |------------|--------------|---------|
-| String | `text/plain` | `hello world` |
-| Number | `text/plain` | `23.5` |
-| Boolean | `text/plain` | `true` |
+| 文字列 | `text/plain` | `hello world` |
+| 数値 | `text/plain` | `23.5` |
+| 真偽値 | `text/plain` | `true` |
 | null | `text/plain` | `null` |
-| Object | `application/json` | `{"lat": 35.68, "lon": 139.76}` |
-| Array | `application/json` | `[1, 2, 3]` |
+| オブジェクト | `application/json` | `{"lat": 35.68, "lon": 139.76}` |
+| 配列 | `application/json` | `[1, 2, 3]` |
 
-**Usage Examples**
+**使用例**
 
 ```bash
 # Get a numeric attribute value
@@ -402,30 +522,42 @@ curl "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 # Response: {"type":"Point","coordinates":[139.76,35.68]} (Content-Type: application/json)
 ```
 
-### Update Attribute Value Directly
+
+
+
+
+
+
+
+
+
+
+### 属性値の直接更新
 
 ```http
 PUT /v2/entities/{entityId}/attrs/{attrName}/value
 ```
 
-Updates only the value of an attribute. The existing type and metadata are preserved.
 
-**Query Parameters**
 
-| Parameter | Type | Description |
+属性の値のみを更新します。既存のタイプとメタデータは保持されます。
+
+**クエリパラメータ**
+
+| パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | Entity type |
+| `type` | string | エンティティタイプ |
 
-**Request**
+**リクエスト**
 
-The interpretation of the value differs depending on the Content-Type:
+Content-Type に応じて値の解釈が異なります:
 
-| Content-Type | Interpretation |
+| Content-Type | 解釈 |
 |--------------|----------------|
-| `application/json` | Parsed as JSON |
-| `text/plain` | Primitive value (`null`, `true`, `false`, number) or string |
+| `application/json` | JSON としてパース |
+| `text/plain` | プリミティブ値 (`null`、`true`、`false`、数値) または文字列 |
 
-**Usage Examples**
+**使用例**
 
 ```bash
 # Update a number with text/plain
@@ -441,23 +573,36 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
   -d '{"type":"Point","coordinates":[140.0,36.0]}'
 ```
 
-**Response**: `204 No Content`
 
-**Note**: This operation does not change the existing attribute's type or metadata — they are preserved.
+
+
+
+
+
+
+
+
+
+
+
+**レスポンス**: `204 No Content`
+**注意**: この操作は既存属性のタイプやメタデータを変更しません — それらは保持されます。
 
 ---
 
-## Batch Operations
+## バッチ操作
 
-> **Note**: Batch operations can process up to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000 via the `MaxBatchSize` SAM parameter). Requests exceeding this limit will result in a `400 Bad Request` error. See [DEVELOPMENT.md](../getting-started/installation.md) for configuration details.
+> **注意**: バッチ操作は 1 リクエストあたり **`MAX_BATCH_SIZE`** エンティティまで処理できます (デフォルト: 100、SAM パラメータ `MaxBatchSize` で最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーを返します。設定の詳細は [DEVELOPMENT.md](../getting-started/installation.md) を参照してください。
 
-### Batch Update
+### バッチ更新
 
 ```http
 POST /v2/op/update
 ```
 
-**Request Body**
+
+
+**リクエストボディ**
 
 ```json
 {
@@ -476,656 +621,3 @@ POST /v2/op/update
   ]
 }
 ```
-
-**actionType types**
-
-| Action | Description |
-|--------|-------------|
-| `append` | Add/update attributes of existing entities |
-| `appendStrict` | Add new attributes to existing entities (returns an error if existing attributes are present) |
-| `update` | Update only existing attributes (error if entity does not exist) |
-| `replace` | Replace all attributes |
-| `delete` | Delete entities or attributes |
-
-**Response**
-- All succeeded: `204 No Content`
-- Partial success/errors: `200 OK` with error details
-
-```json
-{
-  "success": [
-    { "entityId": "Room1" }
-  ],
-  "errors": [
-    {
-      "entityId": "Room2",
-      "error": {
-        "code": "NotFound",
-        "message": "Entity not found: Room2"
-      }
-    }
-  ]
-}
-```
-
-### Batch Query
-
-```http
-POST /v2/op/query
-```
-
-**Request Body**
-
-```json
-{
-  "entities": [
-    { "idPattern": ".*", "type": "Room" }
-  ],
-  "attrs": ["temperature"],
-  "expression": {
-    "q": "temperature>20",
-    "georel": "within",
-    "geometry": "polygon",
-    "coords": "138,34;141,34;141,37;138,37;138,34"
-  }
-}
-```
-
-**Response**: Array of entities
-
-### Receive Notification
-
-```http
-POST /v2/op/notify
-```
-
-Receives notifications from an external Context Broker and processes entities with append (creates if not present, updates if already exists).
-
-**Request Body**
-
-```json
-{
-  "subscriptionId": "sub123",
-  "data": [
-    {
-      "id": "Room1",
-      "type": "Room",
-      "temperature": { "type": "Float", "value": 25.0 }
-    }
-  ]
-}
-```
-
-- `subscriptionId`: Required - the subscription ID that triggered the notification
-- `data`: Required - array of entities in NGSIv2 normalized format
-
-**Response**: `200 OK`
-
----
-
-## Subscriptions
-
-### Create Subscription
-
-```http
-POST /v2/subscriptions
-```
-
-**HTTP notification example**
-
-```json
-{
-  "description": "Room temperature monitoring",
-  "subject": {
-    "entities": [
-      { "idPattern": ".*", "type": "Room" }
-    ],
-    "condition": {
-      "attrs": ["temperature"],
-      "expression": {
-        "q": "temperature>25"
-      }
-    }
-  },
-  "notification": {
-    "http": {
-      "url": "https://webhook.example.com/notify"
-    },
-    "attrs": ["temperature", "pressure"],
-    "attrsFormat": "normalized"
-  },
-  "expires": "2030-12-31T23:59:59.000Z",
-  "throttling": 5
-}
-```
-
-**httpCustom notification example (custom template)**
-
-```json
-{
-  "description": "Custom notification with payload template",
-  "subject": {
-    "entities": [{ "type": "Room" }],
-    "condition": { "attrs": ["temperature"] }
-  },
-  "notification": {
-    "httpCustom": {
-      "url": "https://api.example.com/events",
-      "method": "PUT",
-      "headers": {
-        "X-Api-Key": "secret-key"
-      },
-      "qs": { "entityId": "${id}", "temp": "${temperature}" },
-      "payload": "Entity ${id} has temperature ${temperature}"
-    }
-  }
-}
-```
-
-**httpCustom fields**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `url` | string | ✓ | Notification destination URL |
-| `method` | string | - | HTTP method (GET, POST, PUT, PATCH, DELETE). Default: POST |
-| `headers` | object | - | Custom HTTP headers |
-| `qs` | object | - | Query string parameters (supports `${...}` macro substitution) |
-| `payload` | string | - | Request body template (supports `${...}` macro substitution) |
-
-**Macro substitution**
-
-You can embed entity data using the `${...}` syntax in `payload` and `qs` values:
-
-| Macro | Replacement value |
-|-------|-------------------|
-| `${id}` | Entity ID |
-| `${type}` | Entity type |
-| `${attrName}` | Attribute value (extracts `.value` from normalized attribute) |
-
-Non-existent attributes are replaced with the string `null`. Macros are evaluated against the full entity before the attrs/exceptAttrs filter is applied.
-
-**MQTT notification example**
-
-```json
-{
-  "description": "Room temperature MQTT notification",
-  "subject": {
-    "entities": [
-      { "type": "Room" }
-    ],
-    "condition": {
-      "attrs": ["temperature"]
-    }
-  },
-  "notification": {
-    "mqtt": {
-      "url": "mqtt://broker.example.com:1883",
-      "topic": "sensors/room/temperature",
-      "qos": 1,
-      "retain": false,
-      "user": "username",
-      "passwd": "password"
-    },
-    "attrs": ["temperature"]
-  }
-}
-```
-
-**MQTT notification settings**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `url` | string | ✓ | MQTT broker URL (`mqtt://` or `mqtts://`) |
-| `topic` | string | ✓ | Notification destination topic |
-| `qos` | integer | - | QoS level (0, 1, 2). Default: 0 |
-| `retain` | boolean | - | Message retain flag. Default: false |
-| `user` | string | - | Authentication username |
-| `passwd` | string | - | Authentication password |
-
-**Request Body**
-
-```json
-{
-  "description": "Room temperature monitoring",
-  "subject": {
-    "entities": [
-      { "idPattern": ".*", "type": "Room" }
-    ],
-    "condition": {
-      "attrs": ["temperature"],
-      "expression": {
-        "q": "temperature>25"
-      }
-    }
-  },
-  "notification": {
-    "http": {
-      "url": "https://webhook.example.com/notify"
-    },
-    "attrs": ["temperature", "pressure"],
-    "attrsFormat": "normalized"
-  },
-  "expires": "2030-12-31T23:59:59.000Z",
-  "throttling": 5
-}
-```
-
-**attrsFormat types**
-
-| Format | Description |
-|--------|-------------|
-| `normalized` | Standard NGSIv2 format (default) |
-| `keyValues` | Simplified key-value format |
-
-**Notification attribute filtering**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `attrs` | string[] | List of attribute names to include in notifications |
-| `exceptAttrs` | string[] | List of attribute names to exclude from notifications |
-| `onlyChangedAttrs` | boolean | If `true`, only attributes that actually changed are included in notifications. It can be combined with `attrs`/`exceptAttrs`. |
-
-**Response**
-- Status: `201 Created`
-- Header: `Location: /v2/subscriptions/{subscriptionId}`
-
-### List Subscriptions
-
-```http
-GET /v2/subscriptions
-```
-
-**Query Parameters**
-
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `limit` | integer | Number of results to retrieve | 20 |
-| `offset` | integer | Offset | 0 |
-| `status` | string | Filter by status (`active`, `inactive`) | - |
-
-### Get Subscription
-
-```http
-GET /v2/subscriptions/{subscriptionId}
-```
-
-### Update Subscription
-
-```http
-PATCH /v2/subscriptions/{subscriptionId}
-```
-
-**Request Body**
-
-```json
-{
-  "status": "inactive"
-}
-```
-
-**Response**: `204 No Content`
-
-### Delete Subscription
-
-```http
-DELETE /v2/subscriptions/{subscriptionId}
-```
-
-**Response**: `204 No Content`
-
-### Ownership Verification (GeonicDB Extension)
-
-When authentication is enabled (`AUTH_ENABLED=true`), subscription update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See AUTH.md for details.
-
----
-
-## Registrations
-
-A Registration registers an external context provider and manages the source of entity information.
-
-### Create Registration
-
-```http
-POST /v2/registrations
-```
-
-**Request Body**
-
-```json
-{
-  "description": "Weather data provider",
-  "dataProvided": {
-    "entities": [
-      { "type": "WeatherObserved" }
-    ],
-    "attrs": ["temperature", "humidity", "pressure"]
-  },
-  "provider": {
-    "http": {
-      "url": "http://context-provider:8080/v2"
-    }
-  },
-  "expires": "2040-12-31T23:59:59.000Z",
-  "status": "active"
-}
-```
-
-**Request Fields**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `description` | string | - | Description of the registration |
-| `dataProvided.entities` | array | ✓ | Target entities (id, idPattern, type) |
-| `dataProvided.attrs` | array | - | Attribute names to provide |
-| `provider.http.url` | string | ✓ | Provider URL |
-| `expires` | string | - | Expiration date (ISO 8601 format) |
-| `status` | string | - | Status (`active` / `inactive`). Default: `active` |
-| `mode` | string | - | Forwarding mode (`inclusive` / `exclusive` / `redirect` / `auxiliary`). NGSI-LD compatible extension |
-
-**Response**
-- Status: `201 Created`
-- Header: `Location: /v2/registrations/{registrationId}`
-
-### List Registrations
-
-```http
-GET /v2/registrations
-```
-
-**Query Parameters**
-
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `limit` | integer | Number of results to retrieve | 20 |
-| `offset` | integer | Offset | 0 |
-
-**Response Example**
-
-```json
-[
-  {
-    "id": "5f8a7b3c-1234-5678-abcd-ef0123456789",
-    "description": "Weather data provider",
-    "dataProvided": {
-      "entities": [{ "type": "WeatherObserved" }],
-      "attrs": ["temperature", "humidity", "pressure"]
-    },
-    "provider": {
-      "http": { "url": "http://context-provider:8080/v2" }
-    },
-    "status": "active"
-  }
-]
-```
-
-### Get Registration
-
-```http
-GET /v2/registrations/{registrationId}
-```
-
-### Update Registration
-
-```http
-PATCH /v2/registrations/{registrationId}
-```
-
-**Request Body**
-
-```json
-{
-  "description": "Updated description"
-}
-```
-
-**Response**: `204 No Content`
-
-### Delete Registration
-
-```http
-DELETE /v2/registrations/{registrationId}
-```
-
-**Response**: `204 No Content`
-
-### Ownership Verification (GeonicDB Extension)
-
-When authentication is enabled (`AUTH_ENABLED=true`), registration update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See AUTH.md for details.
-
----
-
-## Federation (Query Forwarding / Update Forwarding)
-
-Based on Registrations, GeonicDB forwards queries to external context providers, integrates results, and forwards updates.
-
-### How Federation Works
-
-When querying entities, if a matching registration exists, queries are also sent to that provider in parallel and the results are merged and returned.
-
-```text
-Client → Context Broker
-              │
-              ├── Local DB search
-              │
-              └── Query forwarded to registered provider
-                        │
-                        └── Results merged → returned to client
-```
-
-### Registration Modes
-
-| Mode | Behavior |
-|------|----------|
-| `inclusive` | Returns both local and remote results (default) |
-| `exclusive` | Returns only remote results (local data is ignored) |
-| `redirect` | Returns a 303 redirect URL |
-| `auxiliary` | Local data takes priority; remote fills in missing data |
-
-### Federation Example
-
-1. Register an external provider:
-
-```bash
-curl -X POST "http://localhost:3000/v2/registrations" \
-  -H "Content-Type: application/json" \
-  -H "Fiware-Service: smartcity" \
-  -d '{
-    "description": "Weather data provider",
-    "dataProvided": {
-      "entities": [{ "type": "WeatherObserved" }],
-      "attrs": ["temperature", "humidity"]
-    },
-    "provider": {
-      "http": { "url": "http://weather-service:8080/v2" }
-    }
-  }'
-```
-
-2. Federation happens automatically when querying:
-
-```bash
-curl "http://localhost:3000/v2/entities?type=WeatherObserved" \
-  -H "Fiware-Service: smartcity"
-```
-
-In this case, data is fetched from both the local DB and `http://weather-service:8080/v2`, merged, and returned.
-
-### Update Forwarding
-
-When updating or deleting entities, if a matching registration exists, updates are also forwarded to that provider in parallel.
-
-**Supported update operations**
-
-| Operation | Description |
-|-----------|-------------|
-| Update entity attributes | `PATCH /v2/entities/{id}/attrs` |
-| Add entity attributes | `POST /v2/entities/{id}/attrs` |
-| Replace entity attributes | `PUT /v2/entities/{id}/attrs` |
-| Delete entity | `DELETE /v2/entities/{id}` |
-| Delete attribute | `DELETE /v2/entities/{id}/attrs/{attr}` |
-
-**Update behavior by mode**
-
-| Mode | Behavior |
-|------|----------|
-| `inclusive` | Updates both local and remote |
-| `exclusive` | Updates only remote (local is not updated) |
-| `redirect` | Returns a 303 redirect URL (local is not updated) |
-| `auxiliary` | Updates only local (remote is read-only) |
-
-### Error Handling
-
-| Scenario | Behavior |
-|----------|----------|
-| Provider connection failure | Logs a warning and returns only local results |
-| Provider timeout | Logs a warning and returns only local results |
-| All providers fail in exclusive mode | Returns a 502 error (optional) |
-
----
-
-## Entity Types
-
-### List Types
-
-```http
-GET /v2/types
-```
-
-**Query Parameters**
-
-| Parameter | Description |
-|-----------|-------------|
-| `options=count` | Include entity count |
-| `options=values` | Include attribute details |
-
-**Response Example**
-
-```json
-[
-  {
-    "type": "Room",
-    "count": 5,
-    "attrs": {
-      "temperature": { "types": ["Float"] },
-      "pressure": { "types": ["Integer"] }
-    }
-  }
-]
-```
-
-### Get Specific Type
-
-```http
-GET /v2/types/{typeName}
-```
-
-**Response Example**
-
-```json
-{
-  "type": "Room",
-  "count": 5,
-  "attrs": {
-    "temperature": { "types": ["Float"] },
-    "pressure": { "types": ["Integer"] }
-  }
-}
-```
-
----
-
-## HTTP Error Responses
-
-| Status Code | Error Code | Description |
-|-------------|------------|-------------|
-| 400 | BadRequest | Invalid request parameters or body |
-| 400 | InvalidModification | Invalid attribute modification (e.g., changing id or type) |
-| 401 | Unauthorized | Authentication required or token is invalid |
-| 403 | Forbidden | Insufficient permissions |
-| 404 | NotFound | Entity, subscription, etc. not found |
-| 405 | MethodNotAllowed | HTTP method not allowed |
-| 409 | AlreadyExists | Entity already exists (during POST creation) |
-| 409 | TooManyResults | Multiple entities matched (when type is not specified) |
-| 411 | ContentLengthRequired | Content-Length header is required |
-| 413 | RequestEntityTooLarge | Request body is too large |
-| 415 | UnsupportedMediaType | Unsupported Content-Type |
-| 422 | Unprocessable | Entity format is invalid |
-| 429 | TooManyRequests | Rate limit exceeded |
-| 500 | InternalError | Internal server error |
-
-**Error Response Format**
-
-```json
-{
-  "error": "BadRequest",
-  "description": "Invalid query parameter: limit must be a positive integer"
-}
-```
-
----
-
-## Endpoint Reference
-
-FIWARE NGSIv2-compatible Context Broker API.
-
-### Common Specifications
-
-- **Content-Type**: `application/json`
-- **Authentication**: Required when `AUTH_ENABLED=true`
-- **Tenant isolation**: Tenant isolation via the `Fiware-Service` header
-- **Pagination**: `limit`/`offset` parameters; use `options=count` to get the total count
-
-### Entity Operations
-
-| Endpoint | Method | Description | Success | Error | Pagination |
-|----------|--------|-------------|---------|-------|------------|
-| `/v2/entities` | GET | List entities | 200 | 400, 401 | ✅ (max: 1000) |
-| `/v2/entities` | POST | Create entity | 201 | 400, 401, 409, 415 | - |
-| `/v2/entities/{entityId}` | GET | Get entity | 200 | 400, 401, 404 | - |
-| `/v2/entities/{entityId}` | DELETE | Delete entity | 204 | 401, 404 | - |
-| `/v2/entities/{entityId}/attrs` | GET | Get attributes only (no id/type fields) | 200 | 400, 401, 404 | - |
-| `/v2/entities/{entityId}/attrs` | PATCH | Update attributes | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs` | POST | Add attributes | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs` | PUT | Replace attributes | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}` | GET | Get attribute | 200 | 401, 404 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}` | PUT | Update attribute | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}` | DELETE | Delete attribute | 204 | 401, 404 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}/value` | GET | Get attribute value | 200 | 401, 404 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}/value` | PUT | Update attribute value | 204 | 400, 401, 404, 415 | - |
-
-### Type Operations
-
-| Endpoint | Method | Description | Success | Error | Pagination |
-|----------|--------|-------------|---------|-------|------------|
-| `/v2/types` | GET | List types | 200 | 400, 401 | ✅ (max: 1000) |
-| `/v2/types/{typeName}` | GET | Get type details | 200 | 401, 404 | - |
-
-### Subscription Operations
-
-| Endpoint | Method | Description | Success | Error | Pagination |
-|----------|--------|-------------|---------|-------|------------|
-| `/v2/subscriptions` | GET | List subscriptions | 200 | 400, 401 | ✅ (max: 1000) |
-| `/v2/subscriptions` | POST | Create subscription | 201 | 400, 401, 415 | - |
-| `/v2/subscriptions/{subscriptionId}` | GET | Get subscription | 200 | 401, 404 | - |
-| `/v2/subscriptions/{subscriptionId}` | PATCH | Update subscription | 204 | 400, 401, 404, 415 | - |
-| `/v2/subscriptions/{subscriptionId}` | DELETE | Delete subscription | 204 | 401, 404 | - |
-
-### Registration Operations (Federation)
-
-| Endpoint | Method | Description | Success | Error | Pagination |
-|----------|--------|-------------|---------|-------|------------|
-| `/v2/registrations` | GET | List registrations | 200 | 400, 401 | ✅ (max: 1000) |
-| `/v2/registrations` | POST | Create registration | 201 | 400, 401, 415 | - |
-| `/v2/registrations/{registrationId}` | GET | Get registration | 200 | 401, 404 | - |
-| `/v2/registrations/{registrationId}` | PATCH | Update registration | 204 | 400, 401, 404, 415 | - |
-| `/v2/registrations/{registrationId}` | DELETE | Delete registration | 204 | 401, 404 | - |
-
-### Batch Operations
-
-> **Note**: Batch operations (excluding query) are limited to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000). Exceeding this limit returns `400 Bad Request`.
-
-| Endpoint | Method | Description | Success | Error | Pagination |
-|----------|--------|-------------|---------|-------|------------|
-| `/v2/op/update` | POST | Batch update (max: `MAX_BATCH_SIZE`) | 204 | 400, 401, 415 | - |
-| `/v2/op/query` | POST | Batch query | 200 | 400, 401, 415 | ✅ (max: 1000) |
-| `/v2/op/notify` | POST | Receive notification | 200 | 400, 401, 415 | - |

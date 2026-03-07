@@ -17,8 +17,6 @@ outline: deep
 GET /v2/entities
 ```
 
-
-
 **Query Parameters**
 
 | Parameter | Type | Description | Default |
@@ -64,23 +62,6 @@ GET /v2/entities
 ]
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **keyValues format** (`options=keyValues`)
 
 ```json
@@ -93,15 +74,6 @@ GET /v2/entities
   }
 ]
 ```
-
-
-
-
-
-
-
-
-
 
 **count option** (`options=count`)
 
@@ -122,15 +94,6 @@ curl "http://localhost:3000/v2/entities?type=Store" \
   -H "Accept: application/geo+json"
 ```
 
-
-
-
-
-
-
-
-
-
 Response example:
 
 ```json
@@ -147,18 +110,6 @@ Response example:
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 The response header will have `Content-Type: application/geo+json` set.
 
 ### Create Entity
@@ -166,8 +117,6 @@ The response header will have `Content-Type: application/geo+json` set.
 ```http
 POST /v2/entities
 ```
-
-
 
 **Query Parameters**
 
@@ -192,19 +141,6 @@ POST /v2/entities
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 **keyValues format input** (`options=keyValues`)
 
 ```json
@@ -216,13 +152,6 @@ POST /v2/entities
 }
 ```
 
-
-
-
-
-
-
-
 **Upsert behavior** (`options=upsert`)
 
 If the entity does not exist, it is created (`201 Created`); if it already exists, its attributes are updated (`204 No Content`).
@@ -231,6 +160,7 @@ If the entity does not exist, it is created (`201 Created`); if it already exist
 - Status: `201 Created` (new creation), `204 No Content` (updated via upsert)
 - Status: `409 AlreadyExists` if an entity with the same ID already exists (regardless of type)
 - Header: `Location: /v2/entities/Room1?type=Room`
+
 > **GeonicDB Extension — Entity ID Uniqueness**: Entity IDs are unique within a tenant and service path scope. Creating an entity with the same ID but a different type is not allowed and returns `409 AlreadyExists`. This differs from the NGSIv2 specification, which permits same-ID entities with different types. See [Entity ID Uniqueness](./endpoints.md#entity-id-uniqueness-geonicdb-extension) for details.
 
 ### Get Single Entity
@@ -238,8 +168,6 @@ If the entity does not exist, it is created (`201 Created`); if it already exist
 ```http
 GET /v2/entities/{entityId}
 ```
-
-
 
 **Query Parameters**
 
@@ -254,8 +182,6 @@ GET /v2/entities/{entityId}
 ```http
 PATCH /v2/entities/{entityId}/attrs
 ```
-
-
 
 Updates only the specified attributes. Non-existent attributes will be added.
 
@@ -276,21 +202,13 @@ Updates only the specified attributes. Non-existent attributes will be added.
 }
 ```
 
-
-
-
-
-
-
-
 **Response**: `204 No Content`
+
 ### Update Entity (PUT)
 
 ```http
 PUT /v2/entities/{entityId}/attrs
 ```
-
-
 
 Replaces all attributes (attributes not specified will be deleted).
 
@@ -301,13 +219,12 @@ Replaces all attributes (attributes not specified will be deleted).
 | `type` | string | Entity type |
 
 **Response**: `204 No Content`
+
 ### Add Attributes (POST)
 
 ```http
 POST /v2/entities/{entityId}/attrs
 ```
-
-
 
 Adds new attributes (existing attributes will be overwritten).
 
@@ -321,13 +238,12 @@ When `options=append` is specified, existing attributes will not be overwritten 
 | `options` | string | `append`: Prohibit overwriting existing attributes (strict append mode) |
 
 **Response**: `204 No Content`
+
 ### Delete Entity
 
 ```http
 DELETE /v2/entities/{entityId}
 ```
-
-
 
 **Query Parameters**
 
@@ -336,6 +252,7 @@ DELETE /v2/entities/{entityId}
 | `type` | string | Entity type |
 
 **Response**: `204 No Content`
+
 ---
 
 ## Attribute Operations
@@ -347,8 +264,6 @@ Retrieves all attributes of an entity (the `id` and `type` fields are not includ
 ```http
 GET /v2/entities/{entityId}/attrs
 ```
-
-
 
 **Query Parameters**
 
@@ -376,19 +291,6 @@ GET /v2/entities/{entityId}/attrs
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 **keyValues format** (`options=keyValues`)
 
 ```json
@@ -398,11 +300,6 @@ GET /v2/entities/{entityId}/attrs
 }
 ```
 
-
-
-
-
-
 > **Note**: Unlike `/v2/entities/{entityId}?attrs=...`, this endpoint does not include the `id` and `type` fields. Use this when only attributes are needed.
 
 ### Get Single Attribute
@@ -410,8 +307,6 @@ GET /v2/entities/{entityId}/attrs
 ```http
 GET /v2/entities/{entityId}/attrs/{attrName}
 ```
-
-
 
 **Query Parameters**
 
@@ -429,19 +324,11 @@ GET /v2/entities/{entityId}/attrs/{attrName}
 }
 ```
 
-
-
-
-
-
-
 ### Update Single Attribute
 
 ```http
 PUT /v2/entities/{entityId}/attrs/{attrName}
 ```
-
-
 
 **Query Parameters**
 
@@ -458,19 +345,13 @@ PUT /v2/entities/{entityId}/attrs/{attrName}
 }
 ```
 
-
-
-
-
-
 **Response**: `204 No Content`
+
 ### Delete Single Attribute
 
 ```http
 DELETE /v2/entities/{entityId}/attrs/{attrName}
 ```
-
-
 
 **Query Parameters**
 
@@ -479,13 +360,12 @@ DELETE /v2/entities/{entityId}/attrs/{attrName}
 | `type` | string | Entity type |
 
 **Response**: `204 No Content`
+
 ### Get Attribute Value Directly
 
 ```http
 GET /v2/entities/{entityId}/attrs/{attrName}/value
 ```
-
-
 
 Retrieves only the value of an attribute (type and metadata are not included).
 
@@ -522,23 +402,11 @@ curl "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 # Response: {"type":"Point","coordinates":[139.76,35.68]} (Content-Type: application/json)
 ```
 
-
-
-
-
-
-
-
-
-
-
 ### Update Attribute Value Directly
 
 ```http
 PUT /v2/entities/{entityId}/attrs/{attrName}/value
 ```
-
-
 
 Updates only the value of an attribute. The existing type and metadata are preserved.
 
@@ -573,19 +441,8 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
   -d '{"type":"Point","coordinates":[140.0,36.0]}'
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 **Response**: `204 No Content`
+
 **Note**: This operation does not change the existing attribute's type or metadata — they are preserved.
 
 ---
@@ -599,8 +456,6 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 ```http
 POST /v2/op/update
 ```
-
-
 
 **Request Body**
 
@@ -622,22 +477,6 @@ POST /v2/op/update
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **actionType types**
 
 | Action | Description |
@@ -649,7 +488,8 @@ POST /v2/op/update
 | `delete` | Delete entities or attributes |
 
 **Response**
-- All succeeded: `204 No Content`- Partial success/errors: `200 OK` with error details
+- All succeeded: `204 No Content`
+- Partial success/errors: `200 OK` with error details
 
 ```json
 {
@@ -668,28 +508,11 @@ POST /v2/op/update
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Batch Query
 
 ```http
 POST /v2/op/query
 ```
-
-
 
 **Request Body**
 
@@ -708,19 +531,6 @@ POST /v2/op/query
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 **Response**: Array of entities
 
 ### Receive Notification
@@ -728,8 +538,6 @@ POST /v2/op/query
 ```http
 POST /v2/op/notify
 ```
-
-
 
 Receives notifications from an external Context Broker and processes entities with append (creates if not present, updates if already exists).
 
@@ -748,21 +556,11 @@ Receives notifications from an external Context Broker and processes entities wi
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
 - `subscriptionId`: Required - the subscription ID that triggered the notification
 - `data`: Required - array of entities in NGSIv2 normalized format
 
 **Response**: `200 OK`
+
 ---
 
 ## Subscriptions
@@ -772,8 +570,6 @@ Receives notifications from an external Context Broker and processes entities wi
 ```http
 POST /v2/subscriptions
 ```
-
-
 
 **HTTP notification example**
 
@@ -803,30 +599,6 @@ POST /v2/subscriptions
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **httpCustom notification example (custom template)**
 
 ```json
@@ -849,25 +621,6 @@ POST /v2/subscriptions
   }
 }
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 **httpCustom fields**
 
@@ -918,29 +671,6 @@ Non-existent attributes are replaced with the string `null`. Macros are evaluate
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **MQTT notification settings**
 
 | Field | Type | Required | Description |
@@ -980,30 +710,6 @@ Non-existent attributes are replaced with the string `null`. Macros are evaluate
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **attrsFormat types**
 
 | Format | Description |
@@ -1020,4 +726,406 @@ Non-existent attributes are replaced with the string `null`. Macros are evaluate
 | `onlyChangedAttrs` | boolean | If `true`, only attributes that actually changed are included in notifications. It can be combined with `attrs`/`exceptAttrs`. |
 
 **Response**
-- Status
+- Status: `201 Created`
+- Header: `Location: /v2/subscriptions/{subscriptionId}`
+
+### List Subscriptions
+
+```http
+GET /v2/subscriptions
+```
+
+**Query Parameters**
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `limit` | integer | Number of results to retrieve | 20 |
+| `offset` | integer | Offset | 0 |
+| `status` | string | Filter by status (`active`, `inactive`) | - |
+
+### Get Subscription
+
+```http
+GET /v2/subscriptions/{subscriptionId}
+```
+
+### Update Subscription
+
+```http
+PATCH /v2/subscriptions/{subscriptionId}
+```
+
+**Request Body**
+
+```json
+{
+  "status": "inactive"
+}
+```
+
+**Response**: `204 No Content`
+
+### Delete Subscription
+
+```http
+DELETE /v2/subscriptions/{subscriptionId}
+```
+
+**Response**: `204 No Content`
+
+### Ownership Verification (GeonicDB Extension)
+
+When authentication is enabled (`AUTH_ENABLED=true`), subscription update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See AUTH.md for details.
+
+---
+
+## Registrations
+
+A Registration registers an external context provider and manages the source of entity information.
+
+### Create Registration
+
+```http
+POST /v2/registrations
+```
+
+**Request Body**
+
+```json
+{
+  "description": "Weather data provider",
+  "dataProvided": {
+    "entities": [
+      { "type": "WeatherObserved" }
+    ],
+    "attrs": ["temperature", "humidity", "pressure"]
+  },
+  "provider": {
+    "http": {
+      "url": "http://context-provider:8080/v2"
+    }
+  },
+  "expires": "2040-12-31T23:59:59.000Z",
+  "status": "active"
+}
+```
+
+**Request Fields**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `description` | string | - | Description of the registration |
+| `dataProvided.entities` | array | ✓ | Target entities (id, idPattern, type) |
+| `dataProvided.attrs` | array | - | Attribute names to provide |
+| `provider.http.url` | string | ✓ | Provider URL |
+| `expires` | string | - | Expiration date (ISO 8601 format) |
+| `status` | string | - | Status (`active` / `inactive`). Default: `active` |
+| `mode` | string | - | Forwarding mode (`inclusive` / `exclusive` / `redirect` / `auxiliary`). NGSI-LD compatible extension |
+
+**Response**
+- Status: `201 Created`
+- Header: `Location: /v2/registrations/{registrationId}`
+
+### List Registrations
+
+```http
+GET /v2/registrations
+```
+
+**Query Parameters**
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `limit` | integer | Number of results to retrieve | 20 |
+| `offset` | integer | Offset | 0 |
+
+**Response Example**
+
+```json
+[
+  {
+    "id": "5f8a7b3c-1234-5678-abcd-ef0123456789",
+    "description": "Weather data provider",
+    "dataProvided": {
+      "entities": [{ "type": "WeatherObserved" }],
+      "attrs": ["temperature", "humidity", "pressure"]
+    },
+    "provider": {
+      "http": { "url": "http://context-provider:8080/v2" }
+    },
+    "status": "active"
+  }
+]
+```
+
+### Get Registration
+
+```http
+GET /v2/registrations/{registrationId}
+```
+
+### Update Registration
+
+```http
+PATCH /v2/registrations/{registrationId}
+```
+
+**Request Body**
+
+```json
+{
+  "description": "Updated description"
+}
+```
+
+**Response**: `204 No Content`
+
+### Delete Registration
+
+```http
+DELETE /v2/registrations/{registrationId}
+```
+
+**Response**: `204 No Content`
+
+### Ownership Verification (GeonicDB Extension)
+
+When authentication is enabled (`AUTH_ENABLED=true`), registration update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See AUTH.md for details.
+
+---
+
+## Federation (Query Forwarding / Update Forwarding)
+
+Based on Registrations, GeonicDB forwards queries to external context providers, integrates results, and forwards updates.
+
+### How Federation Works
+
+When querying entities, if a matching registration exists, queries are also sent to that provider in parallel and the results are merged and returned.
+
+```text
+Client → Context Broker
+              │
+              ├── Local DB search
+              │
+              └── Query forwarded to registered provider
+                        │
+                        └── Results merged → returned to client
+```
+
+### Registration Modes
+
+| Mode | Behavior |
+|------|----------|
+| `inclusive` | Returns both local and remote results (default) |
+| `exclusive` | Returns only remote results (local data is ignored) |
+| `redirect` | Returns a 303 redirect URL |
+| `auxiliary` | Local data takes priority; remote fills in missing data |
+
+### Federation Example
+
+1. Register an external provider:
+
+```bash
+curl -X POST "http://localhost:3000/v2/registrations" \
+  -H "Content-Type: application/json" \
+  -H "Fiware-Service: smartcity" \
+  -d '{
+    "description": "Weather data provider",
+    "dataProvided": {
+      "entities": [{ "type": "WeatherObserved" }],
+      "attrs": ["temperature", "humidity"]
+    },
+    "provider": {
+      "http": { "url": "http://weather-service:8080/v2" }
+    }
+  }'
+```
+
+2. Federation happens automatically when querying:
+
+```bash
+curl "http://localhost:3000/v2/entities?type=WeatherObserved" \
+  -H "Fiware-Service: smartcity"
+```
+
+In this case, data is fetched from both the local DB and `http://weather-service:8080/v2`, merged, and returned.
+
+### Update Forwarding
+
+When updating or deleting entities, if a matching registration exists, updates are also forwarded to that provider in parallel.
+
+**Supported update operations**
+
+| Operation | Description |
+|-----------|-------------|
+| Update entity attributes | `PATCH /v2/entities/{id}/attrs` |
+| Add entity attributes | `POST /v2/entities/{id}/attrs` |
+| Replace entity attributes | `PUT /v2/entities/{id}/attrs` |
+| Delete entity | `DELETE /v2/entities/{id}` |
+| Delete attribute | `DELETE /v2/entities/{id}/attrs/{attr}` |
+
+**Update behavior by mode**
+
+| Mode | Behavior |
+|------|----------|
+| `inclusive` | Updates both local and remote |
+| `exclusive` | Updates only remote (local is not updated) |
+| `redirect` | Returns a 303 redirect URL (local is not updated) |
+| `auxiliary` | Updates only local (remote is read-only) |
+
+### Error Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| Provider connection failure | Logs a warning and returns only local results |
+| Provider timeout | Logs a warning and returns only local results |
+| All providers fail in exclusive mode | Returns a 502 error (optional) |
+
+---
+
+## Entity Types
+
+### List Types
+
+```http
+GET /v2/types
+```
+
+**Query Parameters**
+
+| Parameter | Description |
+|-----------|-------------|
+| `options=count` | Include entity count |
+| `options=values` | Include attribute details |
+
+**Response Example**
+
+```json
+[
+  {
+    "type": "Room",
+    "count": 5,
+    "attrs": {
+      "temperature": { "types": ["Float"] },
+      "pressure": { "types": ["Integer"] }
+    }
+  }
+]
+```
+
+### Get Specific Type
+
+```http
+GET /v2/types/{typeName}
+```
+
+**Response Example**
+
+```json
+{
+  "type": "Room",
+  "count": 5,
+  "attrs": {
+    "temperature": { "types": ["Float"] },
+    "pressure": { "types": ["Integer"] }
+  }
+}
+```
+
+---
+
+## HTTP Error Responses
+
+| Status Code | Error Code | Description |
+|-------------|------------|-------------|
+| 400 | BadRequest | Invalid request parameters or body |
+| 400 | InvalidModification | Invalid attribute modification (e.g., changing id or type) |
+| 401 | Unauthorized | Authentication required or token is invalid |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | NotFound | Entity, subscription, etc. not found |
+| 405 | MethodNotAllowed | HTTP method not allowed |
+| 409 | AlreadyExists | Entity already exists (during POST creation) |
+| 409 | TooManyResults | Multiple entities matched (when type is not specified) |
+| 411 | ContentLengthRequired | Content-Length header is required |
+| 413 | RequestEntityTooLarge | Request body is too large |
+| 415 | UnsupportedMediaType | Unsupported Content-Type |
+| 422 | Unprocessable | Entity format is invalid |
+| 429 | TooManyRequests | Rate limit exceeded |
+| 500 | InternalError | Internal server error |
+
+**Error Response Format**
+
+```json
+{
+  "error": "BadRequest",
+  "description": "Invalid query parameter: limit must be a positive integer"
+}
+```
+
+---
+
+## Endpoint Reference
+
+FIWARE NGSIv2-compatible Context Broker API.
+
+### Common Specifications
+
+- **Content-Type**: `application/json`
+- **Authentication**: Required when `AUTH_ENABLED=true`
+- **Tenant isolation**: Tenant isolation via the `Fiware-Service` header
+- **Pagination**: `limit`/`offset` parameters; use `options=count` to get the total count
+
+### Entity Operations
+
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/v2/entities` | GET | List entities | 200 | 400, 401 | ✅ (max: 1000) |
+| `/v2/entities` | POST | Create entity | 201 | 400, 401, 409, 415 | - |
+| `/v2/entities/{entityId}` | GET | Get entity | 200 | 400, 401, 404 | - |
+| `/v2/entities/{entityId}` | DELETE | Delete entity | 204 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs` | GET | Get attributes only (no id/type fields) | 200 | 400, 401, 404 | - |
+| `/v2/entities/{entityId}/attrs` | PATCH | Update attributes | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities/{entityId}/attrs` | POST | Add attributes | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities/{entityId}/attrs` | PUT | Replace attributes | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}` | GET | Get attribute | 200 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}` | PUT | Update attribute | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}` | DELETE | Delete attribute | 204 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}/value` | GET | Get attribute value | 200 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}/value` | PUT | Update attribute value | 204 | 400, 401, 404, 415 | - |
+
+### Type Operations
+
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/v2/types` | GET | List types | 200 | 400, 401 | ✅ (max: 1000) |
+| `/v2/types/{typeName}` | GET | Get type details | 200 | 401, 404 | - |
+
+### Subscription Operations
+
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/v2/subscriptions` | GET | List subscriptions | 200 | 400, 401 | ✅ (max: 1000) |
+| `/v2/subscriptions` | POST | Create subscription | 201 | 400, 401, 415 | - |
+| `/v2/subscriptions/{subscriptionId}` | GET | Get subscription | 200 | 401, 404 | - |
+| `/v2/subscriptions/{subscriptionId}` | PATCH | Update subscription | 204 | 400, 401, 404, 415 | - |
+| `/v2/subscriptions/{subscriptionId}` | DELETE | Delete subscription | 204 | 401, 404 | - |
+
+### Registration Operations (Federation)
+
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/v2/registrations` | GET | List registrations | 200 | 400, 401 | ✅ (max: 1000) |
+| `/v2/registrations` | POST | Create registration | 201 | 400, 401, 415 | - |
+| `/v2/registrations/{registrationId}` | GET | Get registration | 200 | 401, 404 | - |
+| `/v2/registrations/{registrationId}` | PATCH | Update registration | 204 | 400, 401, 404, 415 | - |
+| `/v2/registrations/{registrationId}` | DELETE | Delete registration | 204 | 401, 404 | - |
+
+### Batch Operations
+
+> **Note**: Batch operations (excluding query) are limited to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000). Exceeding this limit returns `400 Bad Request`.
+
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/v2/op/update` | POST | Batch update (max: `MAX_BATCH_SIZE`) | 204 | 400, 401, 415 | - |
+| `/v2/op/query` | POST | Batch query | 200 | 400, 401, 415 | ✅ (max: 1000) |
+| `/v2/op/notify` | POST | Receive notification | 200 | 400, 401, 415 | - |

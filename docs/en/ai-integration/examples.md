@@ -45,7 +45,10 @@ MCP tools automatically infer the NGSI-LD type from attribute values:
 | All other values | `Property` | `25.5`, `"text"`, `true`, `[1, 2, 3]` |
 
 You can also specify the type explicitly:
-- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+- `{"type": "Property", "value": 25.5}`
+- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`
+- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+
 ### Response Structure
 
 ```json
@@ -77,33 +80,6 @@ You can also specify the type explicitly:
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## AI Plugin Manifest (`/.well-known/ai-plugin.json`)
 
 Provides API discovery information.
@@ -120,17 +96,6 @@ Provides API discovery information.
   "tools": { "url": "/tools.json" }
 }
 ```
-
-
-
-
-
-
-
-
-
-
-
 
 ## Usage Examples
 
@@ -151,20 +116,6 @@ response = client.messages.create(
     messages=[{"role": "user", "content": "Get a list of temperature sensors"}]
 )
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### Python + OpenAI API
 
@@ -194,37 +145,14 @@ response = client.chat.completions.create(
 )
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## MCP (Model Context Protocol) Support
 
 GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). MCP-compatible AI clients (such as Claude Desktop) can connect directly to the context broker.
 
 ### Overview
 
-- **Endpoint**: `POST /mcp`- **Transport**: Streamable HTTP (JSON response mode)
+- **Endpoint**: `POST /mcp`
+- **Transport**: Streamable HTTP (JSON response mode)
 - **Protocol Version**: 2025-03-26
 - **Operation Mode**: Stateless (Lambda-compatible)
 - **Authentication**: When `AUTH_ENABLED=true`, access control and tenant isolation are enforced via JWT Bearer token
@@ -247,18 +175,6 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 #### Production Environment (With Authentication)
 
 ```json
@@ -277,20 +193,6 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 JWT tokens can be obtained from the `/auth/login` endpoint.
 
 ### Tenant Specification
@@ -298,7 +200,7 @@ JWT tokens can be obtained from the `/auth/login` endpoint.
 Each tool has a `tenant` parameter for specifying the target tenant for the operation.
 
 - **When authentication is disabled**: If omitted, the `default` tenant is used.
-- **When authentication is enabled**: If omitted, the logged-in user's tenant is used as the default. `super_admin` can access any tenant, but `tenant_admin`/`user` can only access their own tenant.
+- **When authentication is enabled**: If omitted, the logged-in user's tenant is used as the default. `super_admin` cannot use data tools (returns 403). Use `tenant_admin` or `user` role instead, but `tenant_admin`/`user` can only access their own tenant.
 
 ### Service Path Specification
 
@@ -307,7 +209,7 @@ The `entities`, `types`, `attributes`, `batch`, and `temporal` tools have a `ser
 #### Basic Format
 
 - **Format**: A path starting with `/` (e.g., `/hello`, `/city/sensors`)
-- **Default**: If omitted, all paths are searched (equivalent to `/#`)
+- **Default**: If omitted, the root path `/` is used
 - **Use case**: Used to group or isolate entities within the same tenant
 
 ```yaml
@@ -317,12 +219,6 @@ entities tool:
   tenant: "my-tenant"
   servicePath: "/hello"
 ```
-
-
-
-
-
-
 
 #### Hierarchical Search (`/#`)
 
@@ -336,12 +232,6 @@ entities tool:
   servicePath: "/Madrid/Gardens/#"
 ```
 
-
-
-
-
-
-
 #### Multiple Path Specification (Comma-separated)
 
 Multiple paths can be searched simultaneously by separating them with commas (up to 10 paths).
@@ -353,12 +243,6 @@ entities tool:
   tenant: "my-tenant"
   servicePath: "/park1, /park2"
 ```
-
-
-
-
-
-
 
 **Note**: Write operations (create, update, delete) only support a single, non-hierarchical path.
 
@@ -383,24 +267,6 @@ curl -X POST http://localhost:3000/mcp \
     }
   }'
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### Limitations
 
@@ -435,21 +301,6 @@ entities tool:
     unit: "Celsius"    # enum: ["Celsius", "Fahrenheit", "Kelvin"]
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **Automatic correction of validation errors**: If a validation error is returned during entity creation, an AI agent can reference the JSON Schema to identify the cause of the error and correct it to a valid value.
 
 ### Entity Template Generation
@@ -463,12 +314,6 @@ config tool:
   action: "generate_template"
   type: "TemperatureSensor"
 ```
-
-
-
-
-
-
 
 **Example response:**
 
@@ -491,23 +336,6 @@ config tool:
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 The template determines values using the following priority order:
 1. The `defaultValue` if defined
 2. The `example` value if defined
@@ -524,10 +352,6 @@ The `/openapi.json` endpoint dynamically adds the JSON Schema of custom data mod
 curl https://api.example.com/openapi.json \
   -H "Authorization: Bearer <accessToken>"
 ```
-
-
-
-
 
 The custom data model JSON Schema is added to `components.schemas` in the response:
 
@@ -548,22 +372,6 @@ The custom data model JSON Schema is added to `components.schemas` in the respon
   }
 }
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### @context Resolution Extension
 

@@ -1,6 +1,6 @@
 ---
 title: "FAQ"
-description: "Frequently Asked Questions"
+description: "Frequently asked questions"
 outline: deep
 ---
 # Frequently Asked Questions (FAQ)
@@ -12,7 +12,7 @@ A collection of frequently asked questions and answers about GeonicDB.
 - [Data Volume and Performance](#data-volume-and-performance)
 - [Differences from FIWARE Orion](#differences-from-fiware-orion)
 - [Deployment and Operations](#deployment-and-operations)
-- [API Usage](#api-usage)
+- [How to Use the API](#how-to-use-the-api)
 - [Geospatial Extensions](#geospatial-extensions)
 - [Security](#security)
 
@@ -28,55 +28,50 @@ A collection of frequently asked questions and answers about GeonicDB.
 
 | Constraint | Value | Description |
 |------|-----|------|
-| Maximum items per request | 1,000 | Pagination `limit` limit (FIWARE Orion compatible) |
-| Admin API maximum items | 100 | Management API pagination limit |
-| API Gateway timeout | 29 seconds | AWS-side limitation |
-| Lambda timeout | 15 minutes | For Lambda functions like batch processing |
+| Maximum items per request | 1,000 | `limit` upper bound for pagination (FIWARE Orion compatible) |
+| Admin API maximum items | 100 | Pagination upper bound for admin APIs |
+| API Gateway timeout | 29 seconds | AWS-side limit |
+| Lambda timeout | 15 minutes | For Lambda functions such as batch processing |
 
-#### Operational Guidelines
+#### Practical Guidelines for Production
 
 | Data Scale | Recommended Environment |
 |-----------|---------|
 | Up to 100,000 entities | MongoDB Atlas M10–M30 |
-| Up to 1 million entities | MongoDB Atlas M30–M50 |
-| Over 1 million entities | MongoDB Atlas M50+ and consider sharding |
+| Up to 1,000,000 entities | MongoDB Atlas M30–M50 |
+| Over 1,000,000 entities | MongoDB Atlas M50+ with sharding consideration |
 
-### Q: When do queries become slow?
+### Q: Are there cases where queries become slow?
 
 **A:** Query performance may degrade in the following cases.
 
-#### Queries That Utilize Indexes (Fast)
+#### Queries That Leverage Indexes (Fast)
 
 - Search by entity ID
 - Filtering by entity type
 - Geo queries (`georel`, `geometry`, `coordinates`)
-- Sorting by last update time (`modifiedAt`)
-- Time-series data search using `observedAt`
-#### Queries Requiring Caution (Potentially Slow)
+- Sorting by last modified date (`modifiedAt`)
+- Time-series data search by `observedAt`
+
+#### Queries Requiring Attention (Potentially Slow)
 
 | Query Pattern | Reason | Mitigation |
 |--------------|------|------|
-| Partial match search on attribute values | Index not utilized | Use exact matches when possible |
+| Partial match search on attribute values | Indexes are not effective | Use exact matches where possible |
 | Complex combinations of `q` filters | May result in full scan | Narrow down filter conditions |
-| Wide-range Geo search | Too many candidates | Limit search area |
+| Wide-range Geo searches | Too many candidates | Limit the search area |
 | Retrieving all records without `limit` | High memory consumption | Always use pagination |
 
-### Q: What should I be aware of with Temporal data?
+### Q: What should I be aware of with time-series (Temporal) data?
 
-**A:** Temporal data volume increases rapidly: entity count × attribute count × time intervals.
+**A:** Time-series data volume grows rapidly with the number of entities x attributes x time intervals.
 
-#### Recommended Settings
+#### Recommended Configuration
 
 ```bash
 # Configure automatic deletion of old data (TTL)
 # expireAfterSeconds can be set in MongoDB Atlas collection settings
 ```
-
-
-
-
-
-
 
 #### Data Volume Estimation Example
 
@@ -85,21 +80,15 @@ A collection of frequently asked questions and answers about GeonicDB.
 = approximately 430 million records/month
 ```
 
-
-
-
-
-
-
-For handling large amounts of temporal data, consider integrating with dedicated time-series databases (TimescaleDB, InfluxDB).
+If handling large volumes of time-series data, consider integrating with a dedicated time-series database (TimescaleDB, InfluxDB).
 
 ---
 
 ## Differences from FIWARE Orion
 
-### Q: Is it compatible with FIWARE Orion?
+### Q: What is the compatibility with FIWARE Orion?
 
-**A:** The NGSIv2 API has high compatibility. For details, see the [FIWARE Orion comparison document](./migration/compatibility-matrix.md).
+**A:** The NGSIv2 API has high compatibility. See the [FIWARE Orion Comparison Document](./migration/compatibility-matrix.md) for details.
 
 #### Compatible Features
 
@@ -109,7 +98,7 @@ For handling large amounts of temporal data, consider integrating with dedicated
 - Batch operations
 - Registrations (Context Provider)
 
-#### GeonicDB-Specific Features
+#### GeonicDB-Exclusive Features
 
 - NGSI-LD API support
 - JWT authentication and authorization
@@ -134,56 +123,36 @@ curl -X POST "https://api.example.com/v2/op/update" \
   -d '{"actionType": "append", "entities": '"$(cat entities.json)"'}'
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ---
 
 ## Deployment and Operations
 
-### Q: Where can it be deployed?
+### Q: Where can I deploy this?
 
 **A:** It runs in the following environments.
 
 | Environment | Description |
 |------|------|
-| AWS Lambda + API Gateway | Recommended. Serverless with auto-scaling |
-| Local (`npm start`) | For development/testing. Uses in-memory MongoDB |
+| AWS Lambda + API Gateway | Recommended. Serverless with automatic scaling |
+| Local (`npm start`) | For development and testing. Uses in-memory MongoDB |
 | Docker | Can run in any container environment |
 
 ### Q: Which MongoDB should I use?
 
-**A:** We recommend one of the following.
+**A:** One of the following is recommended.
 
 | Service | Features |
 |---------|------|
-| MongoDB Atlas | Recommended. Fully managed, auto-scaling |
-| Self-hosted MongoDB | Full control but high operational overhead |
+| MongoDB Atlas | Recommended. Fully managed, automatic scaling |
+| Self-hosted MongoDB | Full control, but high operational overhead |
 
-> **Note**: MongoDB 8.0 or later is required (for Time Series Collection support). Amazon DocumentDB is not supported as it does not support Time Series Collections.
+> **Note**: MongoDB 8.0 or higher is required (for Time Series Collection support). Amazon DocumentDB is not supported as it does not support Time Series Collections.
 
-### Q: What are the cost estimates?
+### Q: What are the estimated costs?
 
-**A:** With serverless architecture, you pay only for what you use.
+**A:** Since this is a serverless architecture, you are billed only for what you use.
 
-| Component | Small-scale (100k requests/month) | Medium-scale (1M requests/month) |
+| Component | Small scale (100,000 requests/month) | Medium scale (1,000,000 requests/month) |
 |--------------|---------------------------|----------------------------|
 | Lambda | ~$5 | ~$20 |
 | API Gateway | ~$4 | ~$35 |
@@ -194,23 +163,23 @@ curl -X POST "https://api.example.com/v2/op/update" \
 
 ---
 
-## API Usage
+## How to Use the API
 
 ### Q: Should I use NGSIv2 or NGSI-LD?
 
 **A:** Choose based on your use case.
 
-| Aspect | NGSIv2 | NGSI-LD |
+| Perspective | NGSIv2 | NGSI-LD |
 |------|--------|---------|
-| Learning curve | Low | Moderate (requires understanding JSON-LD) |
-| FIWARE ecosystem | Rich tooling | Growing tool support |
-| Temporal data | Not supported (requires separate implementation) | Natively supported via Temporal API |
-| Data interoperability | Limited | High compatibility via JSON-LD |
-| Recommended for | Integration with existing FIWARE systems | New development, emphasis on data interoperability |
+| Learning curve | Low | Somewhat high (requires understanding of JSON-LD) |
+| FIWARE ecosystem | Many tools available | Number of compatible tools is growing |
+| Time-series data | Not supported (requires separate implementation) | Standard support via Temporal API |
+| Data interoperability | Limited | High via JSON-LD |
+| Recommended use | Integration with existing FIWARE systems | New development, data interoperability focus |
 
-### Q: Can it be used without authentication?
+### Q: Can I use it without authentication?
 
-**A:** By default, authentication is disabled in development environments. It is strongly recommended to enable JWT authentication in production.
+**A:** In the development environment, it can be used without authentication by default. It is strongly recommended to enable JWT authentication in production environments.
 
 ```bash
 # Without authentication (development environment)
@@ -223,27 +192,9 @@ curl -X GET "https://api.example.com/v2/entities" \
   -H "Authorization: Bearer <access_token>"
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Q: Is a tenant (Fiware-Service) required?
 
-**A:** Not required, but if not specified, the `default` tenant is used. It is recommended to explicitly specify a tenant in production.
+**A:** It is not required, but if not specified, the `default` tenant will be used. It is recommended to explicitly specify a tenant in production environments.
 
 ---
 
@@ -251,40 +202,40 @@ curl -X GET "https://api.example.com/v2/entities" \
 
 ### Q: What are geospatial extensions?
 
-**A:** In addition to NGSI standard Geo queries, these are geospatial features uniquely provided by GeonicDB. Collectively, they are called "geospatial extensions."
+**A:** In addition to the NGSI standard Geo queries, GeonicDB provides its own geospatial features. These are collectively referred to as "geospatial extensions."
 
-#### Features List
+#### Feature List
 
-| Feature | Description | Supported API |
+| Feature | Description | Supported APIs |
 |------|------|---------|
 | Geo queries | NGSI standard geospatial search | NGSIv2, NGSI-LD |
 | Vector tiles | GeoJSON tile output for map display | NGSIv2, NGSI-LD |
-| Spatial ID | Support for Japan's Digital Agency 3D Spatial ID | NGSI-LD |
+| Spatial ID | Japan Digital Agency 3D Spatial ID support | NGSIv2, NGSI-LD |
 
-### Q: What can I do with Geo queries?
+### Q: What can Geo queries do?
 
-**A:** You can search entities with location information using geographic conditions.
+**A:** You can search for entities with location information using geographic conditions.
 
 #### Supported Geometry Types
 
-| Type | Description | Example |
+| Type | Description | Examples |
 |--------|------|-----|
-| Point | Point (latitude/longitude) | Sensor location, store location |
-| Polygon | Polygon | Building area, administrative district |
-| LineString | Line | Road, river |
+| Point | A point (latitude/longitude) | Sensor location, store location |
+| Polygon | A polygon | Building area, administrative boundary |
+| LineString | A line | Road, river |
 
-#### Supported Spatial Relations (georel)
+#### Supported Spatial Relationships (georel)
 
-| Relation | Description | Use Case |
+| Relationship | Description | Usage Example |
 |------|------|--------|
-| `near` | Distance from specified point | "Sensors within 1km of current location" |
-| `within` | Contained within range | "Buildings within this area" |
-| `contains` | Contains range | "Areas containing this point" |
-| `intersects` | Intersects | "Areas intersecting this road" |
-| `disjoint` | Disjoint | "Entities outside this area" |
-| `equals` | Exactly matches | "Entities at the same location" |
+| `near` | Distance from a specified point | "Sensors within 1km of current location" |
+| `within` | Contained within a range | "Buildings within this district" |
+| `contains` | Contains a range | "Areas that contain this point" |
+| `intersects` | Intersects with | "Areas that intersect with this road" |
+| `disjoint` | Separated from | "Entities outside this district" |
+| `equals` | Matches exactly | "Entities at the same location" |
 
-#### Usage Example
+#### Usage Examples
 
 ```bash
 # Search for sensors within 1km of Tokyo Station (139.7671, 35.6812)
@@ -296,22 +247,6 @@ curl -X GET "http://localhost:3000/v2/entities?georel=within&geometry=polygon&co
   -H "Fiware-Service: default"
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Q: What are vector tiles?
 
 **A:** A feature that outputs entity location information in GeoJSON tile format for map applications.
@@ -319,8 +254,8 @@ curl -X GET "http://localhost:3000/v2/entities?georel=within&geometry=polygon&co
 #### Features
 
 - **Tile coordinate system**: Web Mercator (z/x/y format)
-- **Clustering**: Automatically aggregates points according to zoom level
-- **TileJSON support**: Can integrate with map libraries like MapLibre GL JS
+- **Clustering**: Automatically aggregates points based on zoom level
+- **TileJSON support**: Can integrate with map libraries such as MapLibre GL JS
 
 #### Endpoints
 
@@ -333,22 +268,6 @@ curl -X GET "http://localhost:3000/v2/tiles.json" \
 curl -X GET "http://localhost:3000/v2/tiles/14/14552/6451.geojson" \
   -H "Fiware-Service: default"
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #### Usage Example with MapLibre GL JS
 
@@ -369,39 +288,9 @@ map.addLayer({
 });
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Q: What is Spatial ID?
 
-**A:** A feature that supports the "3D Spatial Identifier" specification defined by Japan's Digital Agency and IPA. It can uniquely identify 3D space including altitude (elevation) in addition to latitude and longitude.
+**A:** A feature that supports the "3D Spatial Identifier" specification established by Japan's Digital Agency/IPA. It enables unique identification of 3D space including altitude (floor) in addition to latitude and longitude.
 
 #### Spatial ID Format
 
@@ -414,21 +303,7 @@ x: X tile coordinate
 y: Y tile coordinate
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### Usage Example
+#### Usage Examples
 
 ```text
 25/0/29805582/13235296  → A specific point on the ground floor
@@ -436,21 +311,13 @@ y: Y tile coordinate
 25/-1/29805582/13235296 → Underground at the same point
 ```
 
-
-
-
-
-
-
-
-
 #### Functions
 
 | Operation | Description |
 |------|------|
-| Coordinates to Spatial ID conversion | Calculate Spatial ID from latitude, longitude, altitude |
-| Spatial ID to bounding box | Get 3D range represented by Spatial ID |
-| Spatial ID expansion | Enumerate child Spatial IDs from parent Spatial ID |
+| Coordinates to Spatial ID conversion | Calculate Spatial ID from latitude, longitude, and altitude |
+| Spatial ID to bounding box | Get the 3D extent represented by a Spatial ID |
+| Spatial ID expansion | Enumerate child Spatial IDs from a parent Spatial ID |
 
 #### Use Cases
 
@@ -459,9 +326,9 @@ y: Y tile coordinate
 - Integration with 3D city models
 - Underground facility management
 
-### Q: How to set GeoProperty?
+### Q: How do I configure a GeoProperty?
 
-**A:** To store location information in an entity, set coordinates in GeoJSON format in the `location` attribute.
+**A:** To store location information in an entity, set the coordinates in GeoJSON format in the `location` attribute.
 
 #### NGSIv2 Format
 
@@ -479,30 +346,6 @@ y: Y tile coordinate
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #### NGSI-LD Format
 
 ```json
@@ -519,30 +362,6 @@ y: Y tile coordinate
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **Note**: Coordinates are in `[longitude, latitude]` order (GeoJSON standard).
 
 ---
@@ -556,24 +375,25 @@ y: Y tile coordinate
 | Method | Description |
 |------|------|
 | JWT Bearer Token | Recommended. User authentication and role-based access control |
-| IP Whitelist | Restrict allowed IPs per tenant |
-| API Key | Support planned for the future |
+| IP whitelist | Restrict allowed IPs per tenant |
+| API Key (X-Api-Key) | Lightweight authentication for IoT devices and third-party integrations |
 
-### Q: What are the types of roles (permissions)?
+### Q: What types of roles (permissions) are there?
 
-**A:** There are three types of roles.
+**A:** There are 4 types of roles.
 
 | Role | Permissions |
 |--------|------|
-| `super_admin` | Manage all tenants, system configuration |
-| `tenant_admin` | Manage assigned tenants, user management |
-| `user` | Read/write entities (can be restricted by policies) |
+| `super_admin` | Platform management only (`/admin/*`, `/auth/*`). Cannot access data APIs (returns 403) |
+| `tenant_admin` | Management of assigned tenants, user management |
+| `user` | Read/write entities (can be restricted by policy) |
+| `api_key` | Scope-based access via X-Api-Key header (origin/entity-type restrictions) |
 
-For details, see Authentication and Authorization.
+See Authentication and Authorization for details.
 
 ### Q: Is HTTPS required?
 
-**A:** Required in production environments. When deploying to AWS, API Gateway automatically provides HTTPS.
+**A:** It is required in production environments. When deploying to AWS, API Gateway automatically provides HTTPS.
 
 ---
 

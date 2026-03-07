@@ -1,72 +1,78 @@
 ---
-title: "イベントストリーミング"
-description: "リアルタイムイベントストリーミング"
+title: "Event Streaming"
+description: "Real-time event streaming"
 outline: deep
 ---
-# WebSocket Event Streaming
+# WebSocket イベントストリーミング
 
-GeonicDB supports real-time event streaming via WebSocket. You can subscribe to entity changes in real time and have them reflected instantly in web applications or dashboards.
+GeonicDB は WebSocket を介したリアルタイムイベントストリーミングをサポートしています。エンティティの変更をリアルタイムでサブスクリプションライブし、Web アプリケーションやダッシュボードに即座に反映できます。
 
-## Table of Contents
+## 目次
 
-- [Overview](#overview)
-- [Architecture and Enabling](#architecture-and-enabling)
-- [Connecting](#connecting)
-- [Message Format and Filtering](#message-format-and-filtering)
-- [Client Implementation](#client-implementation)
-- [Best Practices](#best-practices)
-- [Troubleshooting](#troubleshooting)
-- [Constraints](#constraints)
+- [概要](#概要)
+- [アーキテクチャと有効化](#アーキテクチャと有効化)
+- [接続](#接続)
+- [メッセージフォーマットとフィルタリング](#メッセージフォーマットとフィルタリング)
+- [クライアント実装](#クライアント実装)
+- [ベストプラクティス](#ベストプラクティス)
+- [トラブルシューティング](#トラブルシューティング)
+- [制約](#制約)
 
 ---
 
-## Overview
+## 概要
 
-Event Streaming adds a parallel path to the existing MongoDB Change Streams → EventBridge pipeline, broadcasting entity changes to WebSocket clients.
+イベントストリーミングは、既存の MongoDB Change Streams → EventBridge パイプラインに並行するパスを追加し、エンティティの変更を WebSocket クライアントにブロードキャストします。
 
-### Notification Channel Comparison
+### 通知チャネルの比較
 
-| Channel | Direction | Filtering | Latency |
+| チャネル | 方向 | フィルタリング | レイテンシ |
 |---------|-----------|-----------|---------|
-| HTTP Webhook (existing) | Push | Subscription conditions | ~1 min |
-| MQTT (existing) | Push | Subscription conditions | ~1 min |
-| WebSocket (this feature) | Push | Tenant + entity type/ID pattern | ~1 min |
+| HTTP Webhook (既存) | プッシュ | サブスクリプション条件 | 約 1 分 |
+| MQTT (既存) | プッシュ | サブスクリプション条件 | 約 1 分 |
+| WebSocket (この機能) | プッシュ | テナント + エンティティタイプ/ID パターン | 約 1 分 |
 
 ---
 
-## Architecture and Enabling
+## アーキテクチャと有効化
 
-### Architecture
+### アーキテクチャ
 
 ```text
 EventBridge ─┬─> SubscriptionMatcher -> SQS -> HTTP/MQTT  [existing]
              └─> WsBroadcastFunction -> API GW WebSocket -> client  [new]
 ```
 
-- **Connection state**: DynamoDB (PAY_PER_REQUEST, automatic TTL cleanup)
-- **Connection management**: Three Lambda functions (connect, disconnect, default)
-- **Broadcast**: Lambda function triggered directly from EventBridge
 
-### Enabling
 
-Set the `EventStreamingEnabled` parameter to `true` in the SAM template and deploy.
+
+- **接続状態**: DynamoDB (PAY_PER_REQUEST、自動 TTL クリーンアップ)
+- **接続管理**: 3 つの Lambda 関数 (connect、disconnect、default)
+- **ブロードキャスト**: EventBridge から直接トリガーされる Lambda 関数
+
+### 有効化
+
+SAM テンプレートで `EventStreamingEnabled` パラメータを `true` に設定してデプロイします。
 
 ```bash
 sam deploy -t infrastructure/template.yaml \
   --parameter-overrides EventStreamingEnabled=true
 ```
 
-### Environment Variables
 
-| Variable | Description |
+
+
+### 環境変数
+
+| 変数 | 説明 |
 |----------|-------------|
-| `EVENT_STREAMING_ENABLED` | Enable by setting to `true` |
-| `WS_CONNECTIONS_TABLE` | DynamoDB connections table name (auto-configured) |
-| `WS_API_ENDPOINT` | WebSocket API endpoint (auto-configured) |
+| `EVENT_STREAMING_ENABLED` | `true` に設定して有効化 |
+| `WS_CONNECTIONS_TABLE` | DynamoDB 接続テーブル名 (自動設定) |
+| `WS_API_ENDPOINT` | WebSocket API エンドポイント (自動設定) |
 
 ---
 
-## Connecting
+## 接続
 
 ### WebSocket URL
 
@@ -74,54 +80,58 @@ sam deploy -t infrastructure/template.yaml \
 wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 ```
 
-For local development:
+
+
+ローカル開発環境の場合:
 
 ```text
 ws://localhost:3000?tenant={tenantName}
 ```
 
-### Query Parameters
 
-| Parameter | Required | Description |
+
+### クエリパラメータ
+
+| パラメータ | 必須 | 説明 |
 |-----------|----------|-------------|
-| `tenant` | ✅ | Tenant name (equivalent to the `Fiware-Service` header) |
+| `tenant` | ✅ | テナント名 (`Fiware-Service` ヘッダーに相当) |
 
-### Authentication
+### 認証
 
-When `AUTH_ENABLED=true`, an authentication token is required to establish a WebSocket connection. The token is extracted in the following order of priority:
+`AUTH_ENABLED=true` の場合、WebSocket 接続の確立には認証トークンが必要です。トークンは以下の優先順位で抽出されます:
 
-1. **`Authorization` header (recommended)**: `Authorization: Bearer <token>` — the most secure method
-2. **`Sec-WebSocket-Protocol` header (for browsers)**: `Sec-WebSocket-Protocol: access_token, <token>` — use this when a browser client cannot set the `Authorization` header
-3. **`token` query parameter (deprecated)**: `?token=<token>` — retained for backward compatibility. This exposes the token in the URL and poses a security risk; scheduled for removal in a future release
+1. **`Authorization` ヘッダー (推奨)**: `Authorization: Bearer <token>` — 最も安全な方法
+2. **`Sec-WebSocket-Protocol` ヘッダー (ブラウザ向け)**: `Sec-WebSocket-Protocol: access_token, <token>` — ブラウザクライアントが `Authorization` ヘッダーを設定できない場合に使用
+3. **`token` クエリパラメータ (非推奨)**: `?token=<token>` — 後方互換性のために保持。URL にトークンが露出しセキュリティリスクがあるため、将来のリリースで削除予定
 
-- Use the `accessToken` obtained from the REST API `/auth/login` endpoint directly as the token.
-- The `super_admin` role can connect to any tenant.
-- The `tenant_admin` / `user` roles can only connect to their own tenant.
+- REST API の `/auth/login` エンドポイントから取得した `accessToken` をトークンとして直接使用します。
+- `super_admin` ロールは、任意のテナントに WebSocket ストリーミング接続できます。注意: `super_admin` は REST 経由のデータ API (`/v2/*`、`/ngsi-ld/*`) にはアクセスできませんが、運用監視目的での WebSocket イベントストリーミングは許可されています。
+- `tenant_admin` / `user` ロールは、自分のテナントにのみ接続できます。
 
-| Condition | Result |
+| 条件 | 結果 |
 |-----------|--------|
-| `AUTH_ENABLED=false`, no token | ✅ Connection allowed |
-| `AUTH_ENABLED=true`, no token | ❌ Connection rejected (1008) |
-| `AUTH_ENABLED=true`, invalid token | ❌ Connection rejected (1008) |
-| `AUTH_ENABLED=true`, valid token, own tenant | ✅ Connection allowed |
-| `AUTH_ENABLED=true`, valid token, other tenant | ❌ Connection rejected (1008) |
-| `AUTH_ENABLED=true`, super_admin, any tenant | ✅ Connection allowed |
+| `AUTH_ENABLED=false`、トークンなし | ✅ 接続許可 |
+| `AUTH_ENABLED=true`、トークンなし | ❌ 接続拒否 (1008) |
+| `AUTH_ENABLED=true`、無効なトークン | ❌ 接続拒否 (1008) |
+| `AUTH_ENABLED=true`、有効なトークン、自分のテナント | ✅ 接続許可 |
+| `AUTH_ENABLED=true`、有効なトークン、他のテナント | ❌ 接続拒否 (1008) |
+| `AUTH_ENABLED=true`、super_admin、任意のテナント | ✅ 接続許可 |
 
-### Connection Flow
+### 接続フロー
 
-1. Client connects to the WebSocket URL (the `tenant` query parameter is required; a token is also required when authentication is enabled)
-2. Server validates the token and verifies tenant access rights (when authentication is enabled)
-3. Server records the connection in DynamoDB (TTL: 2 hours)
-4. Optional: set filter conditions via a `subscribe` message
-5. Server pushes events to the client when entities change
+1. クライアントが WebSocket URL に接続 (`tenant` クエリパラメータは必須。認証が有効な場合はトークンも必須)
+2. サーバーがトークンを検証し、テナントアクセス権を確認 (認証が有効な場合)
+3. サーバーが DynamoDB に接続を記録 (TTL: 2 時間)
+4. オプション: `subscribe` メッセージでフィルタ条件を設定
+5. エンティティが変更されると、サーバーがクライアントにイベントをプッシュ
 
 ---
 
-## Message Format and Filtering
+## メッセージフォーマットとフィルタリング
 
-### Client → Server
+### クライアント → サーバー
 
-#### subscribe (filter configuration)
+#### subscribe (フィルタ設定)
 
 ```json
 {
@@ -131,13 +141,19 @@ When `AUTH_ENABLED=true`, an authentication token is required to establish a Web
 }
 ```
 
-| Field | Type | Description |
+
+
+
+
+
+
+| フィールド | 型 | 説明 |
 |-------|------|-------------|
 | `action` | string | `subscribe` |
-| `entityTypes` | string[] | Entity types to filter |
-| `idPattern` | string | Regular expression pattern for entity IDs |
+| `entityTypes` | string[] | フィルタリングするエンティティタイプ |
+| `idPattern` | string | エンティティ ID の正規表現パターン |
 
-#### ping (keep-alive)
+#### ping (キープアライブ)
 
 ```json
 {
@@ -145,11 +161,15 @@ When `AUTH_ENABLED=true`, an authentication token is required to establish a Web
 }
 ```
 
-The server returns `{"type": "pong"}`. Send a ping every 5 minutes to prevent the 10-minute idle timeout.
 
-### Server → Client
 
-#### Entity change event
+
+
+サーバーは `{"type": "pong"}` を返します。10 分のアイドルタイムアウトを防ぐため、5 分ごとに ping を送信してください。
+
+### サーバー → クライアント
+
+#### エンティティ変更イベント
 
 ```json
 {
@@ -166,30 +186,43 @@ The server returns `{"type": "pong"}`. Send a ping every 5 minutes to prevent th
 }
 ```
 
-| Field | Type | Description |
+
+
+
+
+
+
+
+
+
+
+
+
+
+| フィールド | 型 | 説明 |
 |-------|------|-------------|
-| `type` | string | `entityCreated`, `entityUpdated`, `entityDeleted` |
-| `tenant` | string | Tenant name |
-| `servicePath` | string | Service path |
-| `entityId` | string | Entity ID |
-| `entityType` | string | Entity type |
-| `data` | object | Entity attribute data |
-| `changedAttributes` | string[] | Names of changed attributes (on update only) |
-| `timestamp` | string | Event timestamp (ISO 8601) |
+| `type` | string | `entityCreated`、`entityUpdated`、`entityDeleted` |
+| `tenant` | string | テナント名 |
+| `servicePath` | string | ServicePath |
+| `entityId` | string | エンティティ ID |
+| `entityType` | string | エンティティタイプ |
+| `data` | object | エンティティ属性データ |
+| `changedAttributes` | string[] | 変更された属性の名前 (更新時のみ) |
+| `timestamp` | string | イベントタイムスタンプ (ISO 8601) |
 
-### Filtering
+### フィルタリング
 
-- **Tenant filter (required)**: Automatically filtered by the `tenant` query parameter provided at connection time
-- **Entity type filter (optional)**: Receive only the types specified in `entityTypes` in the `subscribe` message. If not specified, all types are received.
-- **Entity ID pattern filter (optional)**: Filter by regular expression pattern specified in `idPattern` in the `subscribe` message
+- **テナントフィルタ (必須)**: 接続時に提供された `tenant` クエリパラメータで自動的にフィルタリング
+- **エンティティタイプフィルタ (オプション)**: `subscribe` メッセージの `entityTypes` で指定されたタイプのみを受信。指定しない場合はすべてのタイプを受信
+- **エンティティ ID パターンフィルタ (オプション)**: `subscribe` メッセージの `idPattern` で指定された正規表現パターンでフィルタ
 
 ---
 
-## Client Implementation
+## クライアント実装
 
-### Quick Start (minimal setup)
+### クイックスタート (最小構成)
 
-Minimal connection example without authentication:
+認証なしの最小接続例:
 
 ```html
 <!DOCTYPE html>
@@ -230,6 +263,44 @@ Minimal connection example without authentication:
 </body>
 </html>
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### React + TypeScript
 
@@ -352,7 +423,124 @@ function RoomMonitor() {
 }
 ```
 
-### JavaScript (with authentication)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### JavaScript (認証あり)
 
 ```javascript
 // Obtain a token
@@ -418,6 +606,68 @@ async function connectWebSocket(tenant, token) {
 })();
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Python
 
 ```python
@@ -446,7 +696,31 @@ async def stream_events():
 asyncio.run(stream_events())
 ```
 
-### wscat (for debugging)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### wscat (デバッグ用)
 
 ```bash
 # Connect (when authentication is enabled, send the token via the Authorization header)
@@ -459,13 +733,22 @@ wscat -c "wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant=smart
 > {"action": "ping"}
 ```
 
+
+
+
+
+
+
+
+
+
 ---
 
-## Best Practices
+## ベストプラクティス
 
-### 1. Reconnection Logic
+### 1. 再接続ロジック
 
-Implement robust reconnection with Exponential Backoff:
+Exponential Backoff による堅牢な再接続を実装:
 
 ```javascript
 class GeonicDBWebSocket {
@@ -501,9 +784,41 @@ class GeonicDBWebSocket {
 }
 ```
 
-### 2. Keep-Alive
 
-Send a ping every 5 minutes to prevent the 10-minute idle timeout:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 2. キープアライブ
+
+10 分のアイドルタイムアウトを防ぐため、5 分ごとに ping を送信:
 
 ```javascript
 setInterval(() => {
@@ -513,9 +828,15 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 ```
 
-### 3. Optimizing Event Processing
 
-When receiving large volumes of events, optimize UI updates with debouncing:
+
+
+
+
+
+### 3. イベント処理の最適化
+
+大量のイベントを受信する場合、デバウンスで UI 更新を最適化:
 
 ```javascript
 import { debounce } from 'lodash';
@@ -530,9 +851,20 @@ ws.onmessage = (event) => {
 };
 ```
 
-### 4. Security
 
-**Secure token management:**
+
+
+
+
+
+
+
+
+
+
+### 4. セキュリティ
+
+**安全なトークン管理:**
 
 ```javascript
 // ❌ Bad example: storing in local storage
@@ -549,7 +881,20 @@ async function getToken() {
 }
 ```
 
-**Token expiry management:**
+
+
+
+
+
+
+
+
+
+
+
+
+
+**トークン有効期限管理:**
 
 ```javascript
 function isTokenExpired(token, bufferSeconds = 60) {
@@ -563,9 +908,19 @@ function isTokenExpired(token, bufferSeconds = 60) {
 }
 ```
 
-### 5. Memory Management
 
-Set a limit on event history to prevent memory leaks:
+
+
+
+
+
+
+
+
+
+### 5. メモリ管理
+
+メモリリークを防ぐためイベント履歴に上限を設定:
 
 ```javascript
 const MAX_EVENTS = 1000;
@@ -580,18 +935,29 @@ onUnmounted(() => {
 });
 ```
 
+
+
+
+
+
+
+
+
+
+
+
 ---
 
-## Troubleshooting
+## トラブルシューティング
 
-### 1. Connection Rejected (1008 Error)
+### 1. 接続拒否 (1008 エラー)
 
-**Causes:**
-- Token is invalid or expired
-- No access permission for the tenant
-- Token not provided despite `AUTH_ENABLED=true`
+**原因:**
+- トークンが無効または期限切れ
+- テナントへのアクセス権限がない
+- `AUTH_ENABLED=true` にもかかわらずトークンが提供されていない
 
-**Resolution:**
+**解決方法:**
 
 ```javascript
 ws.onclose = (event) => {
@@ -603,11 +969,19 @@ ws.onclose = (event) => {
 };
 ```
 
-### 2. Connection Drops After 10 Minutes
 
-**Cause:** Keep-alive (ping) messages are not being sent.
 
-**Resolution:**
+
+
+
+
+
+
+### 2. 10 分後に接続が切れる
+
+**原因:** キープアライブ (ping) メッセージが送信されていない。
+
+**解決方法:**
 
 ```javascript
 // Send a ping every 5 minutes
@@ -618,14 +992,21 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 ```
 
-### 3. Not Receiving Events
 
-**Causes:**
-- Filters are too restrictive
-- Wrong tenant
-- Entity creation/update has not actually occurred
 
-**Resolution:**
+
+
+
+
+
+### 3. イベントを受信できない
+
+**原因:**
+- フィルタが厳格すぎる
+- 間違ったテナント
+- エンティティの作成/更新が実際に発生していない
+
+**解決方法:**
 
 ```javascript
 // Debug: log all messages
@@ -642,13 +1023,26 @@ ws.send(JSON.stringify({
 }));
 ```
 
-### 4. Cannot Connect in Local Development
 
-**Causes:**
-- Local server is not running
-- WebSocket URL is incorrect
 
-**Resolution:**
+
+
+
+
+
+
+
+
+
+
+
+### 4. ローカル開発で接続できない
+
+**原因:**
+- ローカルサーバーが起動していない
+- WebSocket URL が間違っている
+
+**解決方法:**
 
 ```bash
 # Start the local server
@@ -658,9 +1052,15 @@ npm start
 const wsUrl = 'ws://localhost:3000?tenant=demo';
 ```
 
-### 5. Debugging
 
-You can inspect WebSocket connections and sent/received messages in the Network tab of your browser's developer tools.
+
+
+
+
+
+### 5. デバッグ
+
+ブラウザの開発者ツールの Network タブで WebSocket 接続と送受信メッセージを確認できます。
 
 ```javascript
 class DebugWebSocket {
@@ -680,23 +1080,39 @@ class DebugWebSocket {
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---
 
-## Constraints
+## 制約
 
-| Item | Value | Description |
+| 項目 | 値 | 説明 |
 |------|-------|-------------|
-| Idle timeout | 10 minutes | Clients must send a ping every 5 minutes |
-| Concurrent connections | 500 (default) | Can be increased via AWS Support |
-| Frame size | 128KB | Large entities require truncation |
-| Latency | ~1 minute | Depends on the MongoDB Change Stream polling interval |
-| Connection TTL | 2 hours | Automatically cleaned up by DynamoDB TTL |
-| Local development | Supported | Available via local WebSocket server |
+| アイドルタイムアウト | 10 分 | クライアントは 5 分ごとに ping を送信する必要がある |
+| 同時接続数 | 500 (デフォルト) | AWS サポート経由で増加可能 |
+| フレームサイズ | 128KB | 大きなエンティティは切り捨てが必要 |
+| レイテンシ | 約 1 分 | MongoDB Change Stream のポーリング間隔に依存 |
+| 接続 TTL | 2 時間 | DynamoDB TTL により自動クリーンアップ |
+| ローカル開発 | サポート | ローカル WebSocket サーバー経由で利用可能 |
 
 ---
 
-## Related Documentation
+## 関連ドキュメント
 
-- [API Common Specification](../api-reference/endpoints.md) - REST API documentation
-- Authentication and Authorization - Authentication configuration
-- [Development Guide](../getting-started/installation.md) - Local development and deployment
+- [API 共通仕様](../api-reference/endpoints.md) - REST API ドキュメント
+- 認証と認可 - 認証設定
+- [開発ガイド](../getting-started/installation.md) - ローカル開発とデプロイ

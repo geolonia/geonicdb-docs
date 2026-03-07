@@ -5,7 +5,7 @@ outline: deep
 ---
 # AI Integration
 
-GeonicDB provides multiple AI-oriented interfaces that enable AI agents (such as Claude, GPT-4, Gemini, etc.) to easily utilize the API.
+GeonicDB provides multiple AI-oriented interfaces so that AI agents (Claude, GPT-4, Gemini, etc.) can easily consume the API.
 
 ## Endpoint List
 
@@ -23,28 +23,28 @@ Provides tool definitions compatible with Claude Tool Use and OpenAI Function Ca
 
 ### Available Tools (5 tools)
 
-Each tool selects operations via `action` and `resource` parameters.
+Each tool selects its operation via the `action` and `resource` parameters.
 
 | Tool Name | Resource | Action | Description |
 |---------|---------|-----------|------|
-| `entities` | entities (default), types, attributes | list, get, create, update, delete, replace, search_by_location, search_by_attribute, get_info, get_all, append, patch_all, patch | Manage IoT entities, types, and attributes |
+| `entities` | entities (default), types, attributes | list, get, create, update, delete, replace, search_by_location, search_by_attribute, get_info, get_all, append, patch_all, patch | IoT entity, type, and attribute management |
 | `batch` | - | create, upsert, update, merge, delete, query, purge | Bulk entity operations (up to 1,000 items) |
 | `temporal` | - | get, query, create, delete, add_attributes, delete_attribute, merge, modify_instance, delete_instance, batch_create, batch_upsert, batch_delete, batch_query | Time-series data management |
-| `config` | rules, jsonld_contexts, data_models, cadde_config | list, get, create, update, delete, activate, deactivate, list_domains, list_models, get_model, generate_template | ReactiveCore rules, JSON-LD contexts, Smart Data Models, custom data model management, template generation, and CADDE configuration management (super_admin, get/update/delete) |
-| `admin` | users, tenants, policies | list, get, create, update, delete, activate, deactivate, change_password | User, tenant, policy management (authentication required) |
+| `config` | rules, jsonld_contexts, data_models, cadde_config | list, get, create, update, delete, activate, deactivate, list_domains, list_models, get_model, generate_template | ReactiveCore Rules, JSON-LD context, Smart Data Models, custom data model management, template generation, and CADDE configuration management (super_admin, get/update/delete) |
+| `admin` | users, tenants, policies | list, get, create, update, delete, activate, deactivate, change_password | User, tenant, and policy management (authentication required) |
 
 ### Automatic NGSI-LD Attribute Type Detection
 
-MCP tools automatically infer NGSI-LD types from attribute values:
+MCP tools automatically infer the NGSI-LD type from attribute values:
 
 | Value Pattern | Detected Type | Example |
 |------------|-----------|-----|
 | String starting with `urn:` | `Relationship` | `"urn:ngsi-ld:Building:001"` |
 | GeoJSON object (Point, Polygon, LineString, MultiPoint, MultiPolygon, MultiLineString) | `GeoProperty` | `{"type": "Point", "coordinates": [139.7, 35.6]}` |
-| Object containing `languageMap` field | `LanguageProperty` | `{"languageMap": {"en": "Hello", "ja": "こんにちは"}}` |
+| Object containing a `languageMap` field | `LanguageProperty` | `{"languageMap": {"en": "Hello", "ja": "こんにちは"}}` |
 | All other values | `Property` | `25.5`, `"text"`, `true`, `[1, 2, 3]` |
 
-You can also explicitly specify types:
+You can also specify the type explicitly:
 - `{"type": "Property", "value": 25.5}`
 - `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`
 - `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
@@ -151,10 +151,11 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
 
 ### Overview
 
-- **Endpoint**: `POST /mcp`- **Transport**: Streamable HTTP (JSON response mode)
+- **Endpoint**: `POST /mcp`
+- **Transport**: Streamable HTTP (JSON response mode)
 - **Protocol Version**: 2025-03-26
-- **Operation Mode**: Stateless (Lambda compatible)
-- **Authentication**: When `AUTH_ENABLED=true`, access control and tenant isolation are enforced via JWT Bearer tokens
+- **Operation Mode**: Stateless (Lambda-compatible)
+- **Authentication**: When `AUTH_ENABLED=true`, access control and tenant isolation are enforced via JWT Bearer token
 
 ### Claude Desktop Configuration
 
@@ -196,20 +197,20 @@ JWT tokens can be obtained from the `/auth/login` endpoint.
 
 ### Tenant Specification
 
-Each tool has a `tenant` parameter to specify the target tenant for operations.
+Each tool has a `tenant` parameter for specifying the target tenant for the operation.
 
 - **When authentication is disabled**: If omitted, the `default` tenant is used.
-- **When authentication is enabled**: If omitted, the logged-in user's tenant is used as default. `super_admin` can access any tenant, but `tenant_admin`/`user` can only access their own tenant.
+- **When authentication is enabled**: If omitted, the logged-in user's tenant is used as the default. `super_admin` cannot use data tools (returns 403). Use `tenant_admin` or `user` role instead, but `tenant_admin`/`user` can only access their own tenant.
 
 ### Service Path Specification
 
-The `entities`, `types`, `attributes`, `batch`, and `temporal` tools have a `servicePath` parameter that allows managing entities within hierarchical scopes.
+The `entities`, `types`, `attributes`, `batch`, and `temporal` tools have a `servicePath` parameter that allows managing entities within a hierarchical scope.
 
 #### Basic Format
 
-- **Format**: Path starting with `/` (e.g., `/hello`, `/city/sensors`)
-- **Default**: If omitted, all paths are searched (equivalent to `/#`)
-- **Usage**: Used to group or isolate entities within the same tenant
+- **Format**: A path starting with `/` (e.g., `/hello`, `/city/sensors`)
+- **Default**: If omitted, the root path `/` is used
+- **Use case**: Used to group or isolate entities within the same tenant
 
 ```yaml
 # Get entities under the /hello path
@@ -231,9 +232,9 @@ entities tool:
   servicePath: "/Madrid/Gardens/#"
 ```
 
-#### Multiple Path Specification (Comma-Separated)
+#### Multiple Path Specification (Comma-separated)
 
-You can search multiple paths simultaneously by separating them with commas (up to 10 paths).
+Multiple paths can be searched simultaneously by separating them with commas (up to 10 paths).
 
 ```yaml
 # Search both /park1 and /park2
@@ -243,9 +244,9 @@ entities tool:
   servicePath: "/park1, /park2"
 ```
 
-**Note**: Write operations (create, update, delete) only support a single non-hierarchical path.
+**Note**: Write operations (create, update, delete) only support a single, non-hierarchical path.
 
-### Validation
+### Verification
 
 ```bash
 # Start the local server
@@ -269,19 +270,19 @@ curl -X POST http://localhost:3000/mcp \
 
 ### Limitations
 
-- **Stateless Mode**: Due to Lambda environment constraints, SSE streaming is not available. All requests are returned as JSON responses.
-- **No Session Management**: Each request is processed independently. `GET /mcp` (SSE) and `DELETE /mcp` (session termination) return 405.
-- **Authentication**: When `AUTH_ENABLED=true`, Bearer tokens are required. When `AUTH_ENABLED=false`, operations are performed without authentication.
-- **OAuth Scopes**: When using OAuth tokens, the OAuth scope corresponding to each MCP tool operation is required (e.g., `read:entities` for reading entities, `write:entities` for writing). Scope restrictions do not apply to JWT RBAC tokens.
-- **Rate Limiting**: MCP endpoints are subject to the same rate limits, storage quotas, and request body size restrictions as the REST API.
+- **Stateless mode**: Due to Lambda environment constraints, SSE streaming is not available. All requests are returned as JSON responses.
+- **No session management**: Each request is processed independently. `GET /mcp` (SSE) and `DELETE /mcp` (session termination) return 405.
+- **Authentication**: A Bearer token is required when `AUTH_ENABLED=true`. When `AUTH_ENABLED=false`, operation proceeds without authentication.
+- **OAuth scopes**: When using OAuth tokens, the OAuth scope corresponding to each MCP tool operation is required (e.g., `read:entities` for reading entities, `write:entities` for writing). Scope restrictions do not apply to JWT RBAC tokens.
+- **Rate limiting**: The MCP endpoint is subject to the same rate limits, storage quotas, and request body size limits as the REST API.
 
 ## JSON Schema and Custom Data Models
 
-When custom data models are created, a JSON Schema (Draft 2020-12) is automatically generated. This JSON Schema can be utilized by AI tools for the following purposes.
+Custom data models automatically have a JSON Schema (Draft 2020-12) generated at creation time. This JSON Schema can be leveraged by AI tools for the following purposes.
 
-### Usage Examples with AI Tools
+### Example Use Cases with AI Tools
 
-**Schema Reference During Entity Creation**: AI agents can retrieve custom data models using the `config` tool's `data_models` resource and reference the `jsonSchema` field to generate entities that conform to the correct types and validation rules.
+**Schema reference during entity creation**: An AI agent can retrieve a custom data model using the `config` tool's `data_models` resource and reference the `jsonSchema` field to generate entities that conform to the correct types and validation rules.
 
 ```yaml
 # 1. Retrieve the JSON Schema for the custom data model
@@ -300,11 +301,11 @@ entities tool:
     unit: "Celsius"    # enum: ["Celsius", "Fahrenheit", "Kelvin"]
 ```
 
-**Automatic Correction of Validation Errors**: When validation errors are returned during entity creation, AI agents can reference the JSON Schema to identify the cause of the error and correct it to a valid value.
+**Automatic correction of validation errors**: If a validation error is returned during entity creation, an AI agent can reference the JSON Schema to identify the cause of the error and correct it to a valid value.
 
 ### Entity Template Generation
 
-Using the `generate_template` tool's `config` action, you can automatically generate NGSI-LD entity templates from custom data models.
+Using the `generate_template` action of the `config` tool, an NGSI-LD entity template can be automatically generated from a custom data model.
 
 ```yaml
 # Generate a template
@@ -314,7 +315,7 @@ config tool:
   type: "TemperatureSensor"
 ```
 
-**Response Example:**
+**Example response:**
 
 ```json
 {
@@ -335,16 +336,16 @@ config tool:
 }
 ```
 
-Templates determine values with the following priority:
-1. Use `defaultValue` if defined
-2. Use `example` value if defined
-3. Default values based on `valueType` (string → `""`, number → `0`, boolean → `false`, etc.)
+The template determines values using the following priority order:
+1. The `defaultValue` if defined
+2. The `example` value if defined
+3. A default value based on `valueType` (string → `""`, number → `0`, boolean → `false`, etc.)
 
-AI agents can use this template as a base, modify values according to user instructions, and create entities.
+AI agents can use this template as a base, modifying values according to user instructions to create entities.
 
 ### Dynamic Integration with OpenAPI Specification
 
-The `/openapi.json` endpoint dynamically adds JSON schemas of custom data models associated with the authenticated user's tenant to `components/schemas`. This allows AI tools and code generation tools that reference OpenAPI specifications to automatically recognize tenant-specific data models.
+The `/openapi.json` endpoint dynamically adds the JSON Schema of custom data models associated with the authenticated user's tenant to `components/schemas`. This allows AI tools and code generation tools that reference the OpenAPI specification to automatically recognize tenant-specific data models.
 
 ```bash
 # Retrieve the OpenAPI specification with authentication (includes custom schemas)
@@ -352,7 +353,7 @@ curl https://api.example.com/openapi.json \
   -H "Authorization: Bearer <accessToken>"
 ```
 
-JSON schemas of custom data models are added to `components.schemas` in the response:
+The custom data model JSON Schema is added to `components.schemas` in the response:
 
 ```json
 {
@@ -374,7 +375,7 @@ JSON schemas of custom data models are added to `components.schemas` in the resp
 
 ### @context Resolution Extension
 
-When retrieving entities via the NGSI-LD API, if a custom data model has `contextUrl` set, the custom context is automatically included in the response's `@context`. Similar to Smart Data Models contexts, AI agents can use this `@context` to interpret the semantic information of entities.
+When retrieving entities via the NGSI-LD API, if the custom data model has a `contextUrl` configured, the custom context is automatically included in the response's `@context`. Similar to Smart Data Models contexts, AI agents can use this `@context` to interpret the semantic information of entities.
 
 ## References
 

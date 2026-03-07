@@ -45,7 +45,10 @@ MCP tools automatically infer the NGSI-LD type from attribute values:
 | All other values | `Property` | `25.5`, `"text"`, `true`, `[1, 2, 3]` |
 
 You can also specify the type explicitly:
-- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+- `{"type": "Property", "value": 25.5}`
+- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`
+- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+
 ### Response Structure
 
 ```json
@@ -148,7 +151,8 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
 
 ### Overview
 
-- **Endpoint**: `POST /mcp`- **Transport**: Streamable HTTP (JSON response mode)
+- **Endpoint**: `POST /mcp`
+- **Transport**: Streamable HTTP (JSON response mode)
 - **Protocol Version**: 2025-03-26
 - **Operation Mode**: Stateless (Lambda-compatible)
 - **Authentication**: When `AUTH_ENABLED=true`, access control and tenant isolation are enforced via JWT Bearer token
@@ -196,7 +200,7 @@ JWT tokens can be obtained from the `/auth/login` endpoint.
 Each tool has a `tenant` parameter for specifying the target tenant for the operation.
 
 - **When authentication is disabled**: If omitted, the `default` tenant is used.
-- **When authentication is enabled**: If omitted, the logged-in user's tenant is used as the default. `super_admin` can access any tenant, but `tenant_admin`/`user` can only access their own tenant.
+- **When authentication is enabled**: If omitted, the logged-in user's tenant is used as the default. `super_admin` cannot use data tools (returns 403). Use `tenant_admin` or `user` role instead, but `tenant_admin`/`user` can only access their own tenant.
 
 ### Service Path Specification
 
@@ -205,7 +209,7 @@ The `entities`, `types`, `attributes`, `batch`, and `temporal` tools have a `ser
 #### Basic Format
 
 - **Format**: A path starting with `/` (e.g., `/hello`, `/city/sensors`)
-- **Default**: If omitted, all paths are searched (equivalent to `/#`)
+- **Default**: If omitted, the root path `/` is used
 - **Use case**: Used to group or isolate entities within the same tenant
 
 ```yaml

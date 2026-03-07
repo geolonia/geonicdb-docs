@@ -1,11 +1,11 @@
 ---
-title: "AI 連携 概要"
-description: "GeonicDB の AI ネイティブ機能概要"
+title: "AI Integration Overview"
+description: "Overview of GeonicDB AI-native features"
 outline: deep
 ---
 # AI 統合
 
-GeonicDB は、AI エージェント (Claude、GPT-4、Gemini など) が簡単に API を利用できるように、複数の AI 指向インターフェースを提供しています。
+GeonicDB は、AI エージェント (Claude、GPT-4、Gemini など) が API を簡単に利用できるように、複数の AI 指向インターフェースを提供しています。
 
 ## エンドポイント一覧
 
@@ -21,14 +21,14 @@ GeonicDB は、AI エージェント (Claude、GPT-4、Gemini など) が簡単�
 
 Claude Tool Use および OpenAI Function Calling と互換性のあるツール定義を提供します。
 
-### 利用可能なツール (5 つのツール)
+### 利用可能なツール (5 ツール)
 
 各ツールは `action` および `resource` パラメータを介して操作を選択します。
 
 | ツール名 | リソース | アクション | 説明 |
 |---------|---------|-----------|------|
 | `entities` | entities (デフォルト)、types、attributes | list、get、create、update、delete、replace、search_by_location、search_by_attribute、get_info、get_all、append、patch_all、patch | IoT エンティティ、タイプ、属性の管理 |
-| `batch` | - | create、upsert、update、merge、delete、query、purge | 一括エンティティ操作 (最大 1,000 アイテム) |
+| `batch` | - | create、upsert、update、merge、delete、query、purge | 一括エンティティ操作 (最大 1,000 件) |
 | `temporal` | - | get、query、create、delete、add_attributes、delete_attribute、merge、modify_instance、delete_instance、batch_create、batch_upsert、batch_delete、batch_query | 時系列データ管理 |
 | `config` | rules、jsonld_contexts、data_models、cadde_config | list、get、create、update、delete、activate、deactivate、list_domains、list_models、get_model、generate_template | ReactiveCore ルール、JSON-LD コンテキスト、Smart Data Models、カスタムデータモデル管理、テンプレート生成、および CADDE 設定管理 (super_admin、get/update/delete) |
 | `admin` | users、tenants、policies | list、get、create、update、delete、activate、deactivate、change_password | ユーザー、テナント、ポリシー管理 (認証が必要) |
@@ -220,7 +220,7 @@ response = client.chat.completions.create(
 
 ## MCP (Model Context Protocol) サポート
 
-GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) をサポートしています。MCP 互換の AI クライアント (Claude Desktop など) はコンテキストブローカーに直接接続できます。
+GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) をサポートしています。MCP 互換の AI クライアント (Claude Desktop など) は、コンテキストブローカーに直接接続できます。
 
 ### 概要
 
@@ -295,20 +295,20 @@ JWT トークンは `/auth/login` エンドポイントから取得できます�
 
 ### テナント指定
 
-各ツールには操作対象のテナントを指定するための `tenant` パラメータがあります。
+各ツールには、操作の対象テナントを指定するための `tenant` パラメータがあります。
 
-- **認証が無効な場合**: 省略すると `default` テナントが使用されます。
-- **認証が有効な場合**: 省略すると、ログインユーザーのテナントがデフォルトとして使用されます。`super_admin` は任意のテナントにアクセスできますが、`tenant_admin`/`user` は自分のテナントのみにアクセスできます。
+- **認証が無効な場合**: 省略すると、`default` テナントが使用されます。
+- **認証が有効な場合**: 省略すると、ログインユーザーのテナントがデフォルトとして使用されます。`super_admin` はデータツールを使用できません (403 を返します)。`tenant_admin` または `user` ロールを使用してください。ただし、`tenant_admin`/`user` は自分のテナントのみにアクセスできます。
 
-### ServicePath 指定
+### ServicePath指定
 
-`entities`、`types`、`attributes`、`batch`、`temporal` ツールには、階層的なスコープ内でエンティティを管理できる `servicePath` パラメータがあります。
+`entities`、`types`、`attributes`、`batch`、および `temporal` ツールには、階層的なスコープ内でエンティティを管理できる `servicePath` パラメータがあります。
 
-#### 基本フォーマット
+#### 基本形式
 
 - **フォーマット**: `/` で始まるパス (例: `/hello`、`/city/sensors`)
-- **デフォルト**: 省略すると、すべてのパスが検索されます (`/#` と同等)
-- **用途**: 同じテナント内でエンティティをグループ化または分離するために使用されます
+- **デフォルト**: 省略すると、ルートパス `/` が使用されます
+- **使用例**: 同じテナント内でエンティティをグループ化または分離するために使用されます
 
 ```yaml
 # Get entities under the /hello path
@@ -344,7 +344,7 @@ entities tool:
 
 #### 複数パス指定 (カンマ区切り)
 
-カンマで区切って複数のパスを同時に検索できます (最大 10 パス)。
+カンマで区切ることで、複数のパスを同時に検索できます (最大 10 パス)。
 
 ```yaml
 # Search both /park1 and /park2
@@ -360,7 +360,7 @@ entities tool:
 
 
 
-**注意**: 書き込み操作 (create、update、delete) は単一の非階層パスのみをサポートします。
+**注意**: 書き込み操作 (create、update、delete) は、単一の非階層パスのみをサポートします。
 
 ### 検証
 
@@ -406,17 +406,17 @@ curl -X POST http://localhost:3000/mcp \
 
 - **ステートレスモード**: Lambda 環境の制約により、SSE ストリーミングは利用できません。すべてのリクエストは JSON レスポンスとして返されます。
 - **セッション管理なし**: 各リクエストは独立して処理されます。`GET /mcp` (SSE) および `DELETE /mcp` (セッション終了) は 405 を返します。
-- **認証**: `AUTH_ENABLED=true` の場合、Bearer トークンが必要です。`AUTH_ENABLED=false` の場合、認証なしで操作が行われます。
-- **OAuth スコープ**: OAuth トークンを使用する場合、各 MCP ツール操作に対応する OAuth スコープが必要です (例: エンティティの読み取りには `read:entities`、書き込みには `write:entities`)。JWT RBAC トークンにはスコープ制限は適用されません。
+- **認証**: `AUTH_ENABLED=true` の場合、Bearer トークンが必要です。`AUTH_ENABLED=false` の場合、認証なしで操作が進行します。
+- **OAuth スコープ**: OAuth トークンを使用する場合、各 MCP ツール操作に対応する OAuth スコープが必要です (例: エンティティ読み取りには `read:entities`、書き込みには `write:entities`)。JWT RBAC トークンにはスコープ制限は適用されません。
 - **レート制限**: MCP エンドポイントは、REST API と同じレート制限、ストレージクォータ、リクエストボディサイズ制限の対象となります。
 
-## JSON スキーマとカスタムデータモデル
+## JSON Schema とカスタムデータモデル
 
-カスタムデータモデルは作成時に自動的に JSON スキーマ (Draft 2020-12) が生成されます。この JSON スキーマは、AI ツールによって以下の目的で活用できます。
+カスタムデータモデルは作成時に自動的に JSON Schema (Draft 2020-12) が生成されます。この JSON Schema は、AI ツールによって次の目的で活用できます。
 
 ### AI ツールでの使用例
 
-**エンティティ作成時のスキーマ参照**: AI エージェントは `config` ツールの `data_models` リソースを使用してカスタムデータモデルを取得し、`jsonSchema` フィールドを参照して、正しいタイプと検証ルールに適合するエンティティを生成できます。
+**エンティティ作成時のスキーマ参照**: AI エージェントは `config` ツールの `data_models` リソースを使用してカスタムデータモデルを取得し、`jsonSchema` フィールドを参照することで、正しいタイプと検証ルールに準拠したエンティティを生成できます。
 
 ```yaml
 # 1. Retrieve the JSON Schema for the custom data model
@@ -450,7 +450,7 @@ entities tool:
 
 
 
-**検証エラーの自動修正**: エンティティ作成時に検証エラーが返された場合、AI エージェントは JSON スキーマを参照してエラーの原因を特定し、有効な値に修正できます。
+**検証エラーの自動修正**: エンティティ作成時に検証エラーが返された場合、AI エージェントは JSON Schema を参照してエラーの原因を特定し、有効な値に修正できます。
 
 ### エンティティテンプレート生成
 
@@ -508,16 +508,16 @@ config tool:
 
 
 
-テンプレートは以下の優先順位で値を決定します:
-1. `defaultValue` が定義されている場合はそれを使用
-2. `example` 値が定義されている場合はそれを使用
+テンプレートは次の優先順位で値を決定します:
+1. `defaultValue` が定義されている場合はその値
+2. `example` が定義されている場合はその値
 3. `valueType` に基づくデフォルト値 (string → `""`、number → `0`、boolean → `false` など)
 
-AI エージェントはこのテンプレートをベースとして、ユーザーの指示に従って値を変更し、エンティティを作成できます。
+AI エージェントはこのテンプレートをベースとして、ユーザーの指示に従って値を変更してエンティティを作成できます。
 
 ### OpenAPI 仕様との動的統合
 
-`/openapi.json` エンドポイントは、認証されたユーザーのテナントに関連付けられたカスタムデータモデルの JSON スキーマを `components/schemas` に動的に追加します。これにより、OpenAPI 仕様を参照する AI ツールやコード生成ツールが、テナント固有のデータモデルを自動的に認識できるようになります。
+`/openapi.json` エンドポイントは、認証されたユーザーのテナントに関連付けられたカスタムデータモデルの JSON Schema を `components/schemas` に動的に追加します。これにより、OpenAPI 仕様を参照する AI ツールやコード生成ツールが、テナント固有のデータモデルを自動的に認識できます。
 
 ```bash
 # Retrieve the OpenAPI specification with authentication (includes custom schemas)
@@ -529,7 +529,7 @@ curl https://api.example.com/openapi.json \
 
 
 
-カスタムデータモデルの JSON スキーマはレスポンスの `components.schemas` に追加されます:
+カスタムデータモデルの JSON Schema はレスポンスの `components.schemas` に追加されます:
 
 ```json
 {

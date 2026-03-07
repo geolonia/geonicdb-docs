@@ -1,6 +1,6 @@
 ---
-title: "開発者ガイド"
-description: "開発環境セットアップ・インストール"
+title: "Developer Guide"
+description: "Development environment setup and installation"
 outline: deep
 ---
 # 開発者ガイド
@@ -16,7 +16,7 @@ outline: deep
 
 ## セットアップ
 
-### 1. リポジトリをクローン
+### 1. リポジトリをクローンする
 
 ```bash
 git clone https://github.com/geolonia/geonicdb.git
@@ -26,7 +26,7 @@ cd geonicdb
 
 
 
-### 2. 依存関係をインストール
+### 2. 依存関係をインストールする
 
 ```bash
 npm install
@@ -34,7 +34,7 @@ npm install
 
 
 
-### 3. 環境変数を設定
+### 3. 環境変数を設定する
 
 `.env` ファイルを作成します:
 
@@ -70,9 +70,9 @@ LOG_LEVEL=DEBUG
 
 
 
-#### 認証と認可を有効化 (オプション)
+#### 認証と認可を有効にする (オプション)
 
-認証機能を有効化するには、以下の環境変数を追加します:
+認証機能を有効にするには、以下の環境変数を追加します:
 
 ```bash
 # Enable authentication (true/false)
@@ -120,9 +120,9 @@ ADMIN_ALLOWED_IPS=
 
 
 
-#### CADDE 連携を有効化 (オプション)
+#### CADDE 統合を有効にする (オプション)
 
-CADDE (Cross-Domain Data Collaboration Infrastructure) 連携を有効化するには:
+CADDE (Cross-Domain Data Collaboration Infrastructure) 統合を有効にするには:
 
 ```bash
 # Enable CADDE integration
@@ -156,9 +156,9 @@ CADDE_JWKS_URL=https://auth.example.com/.well-known/jwks.json
 
 ### 4. 1Password CLI によるシークレット管理 (推奨)
 
-機密情報 (MongoDB 認証情報、JWT シークレット、管理者パスワード) は **`geonic-ops`** 1Password Vault に保存され、1Password CLI を介して実行時に注入されます。`.env.op` ファイル (リポジトリにコミット済み) には `op://` URI 参照のみが含まれており、実際の値は含まれていません。
+機密性の高いシークレット (MongoDB 認証情報、JWT シークレット、管理者パスワード) は **`geonic-ops`** 1Password Vault に保存され、1Password CLI 経由で実行時に注入されます。`.env.op` ファイル (リポジトリにコミット済み) には `op://` URI 参照のみが含まれており、実際の値は含まれていません。
 
-#### 1Password CLI のインストール
+#### 1Password CLI をインストールする
 
 ```bash
 # macOS
@@ -173,16 +173,16 @@ brew install 1password-cli
 
 
 確認: `op --version`
-#### 1Password にシークレットを追加
+#### シークレットを 1Password に追加する
 
 **`geonic-ops`** Vault に **`geonicdb-dev`** という名前のアイテムを作成し、以下のフィールドを設定します:
 
 | フィールド | 説明 |
 |-------|-------------|
-| `MONGODB_URI` | 認証情報を含む完全な MongoDB 接続文字列 |
-| `JWT_SECRET` | ランダムな文字列、32 文字以上 |
-| `SUPER_ADMIN_EMAIL` | ローカル開発用スーパー管理者メールアドレス |
-| `SUPER_ADMIN_PASSWORD` | ローカル開発用スーパー管理者パスワード |
+| `MONGODB_URI` | 認証情報を含む MongoDB 接続文字列 |
+| `JWT_SECRET` | ランダム文字列、32 文字以上 |
+| `SUPER_ADMIN_EMAIL` | ローカル開発用スーパー管理者のメールアドレス |
+| `SUPER_ADMIN_PASSWORD` | ローカル開発用スーパー管理者のパスワード |
 
 ```bash
 # Example: create the item via CLI
@@ -206,7 +206,7 @@ op item create \
 
 
 
-#### シークレットを注入して開発サーバーを起動
+#### シークレットを注入して開発サーバーを起動する
 
 ```bash
 npm run dev:op
@@ -216,9 +216,9 @@ npm run dev:op
 
 
 
-機密情報でない変数 (`ENVIRONMENT`、`AWS_REGION`、`LOG_LEVEL` など) は、通常通りローカルの `.env` ファイルから読み込まれます。
+非機密な変数 (`ENVIRONMENT`、`AWS_REGION`、`LOG_LEVEL` など) は、通常通りローカルの `.env` ファイルから読み込まれます。
 
-> **注意:** `.env.op` はコミットしても安全です。`.env` と `.env.local` は gitignore 対象であり、絶対にコミットしないでください。`npm run dev:op` を使用する場合、`.env` に `MONGODB_URI`、`JWT_SECRET`、`SUPER_ADMIN_EMAIL`、`SUPER_ADMIN_PASSWORD` を定義しないでください。これらは 1Password によって注入されるため、両方に実際の値があると混乱を招く可能性があります。
+> **注:** `.env.op` はコミットしても安全です。`.env` と `.env.local` は gitignore 設定されており、絶対にコミットしてはいけません。`npm run dev:op` を使用する場合、`.env` に `MONGODB_URI`、`JWT_SECRET`、`SUPER_ADMIN_EMAIL`、`SUPER_ADMIN_PASSWORD` を定義しないでください。これらは 1Password から注入されるため、両方の場所に実際の値があると混乱を招く可能性があります。
 
 ### 5. ビルド
 
@@ -235,10 +235,10 @@ npm run build
 | `npm start` | ローカル開発サーバーを起動 (インメモリ MongoDB を使用) |
 | `npm run dev:op` | 1Password (`geonic-ops` Vault) からシークレットを注入して開発サーバーを起動 |
 | `npm run build` | TypeScript をコンパイル |
-| `npm run watch` | ファイル変更を監視して自動コンパイル |
-| `npm test` | すべてのテストを実行 (ユニット + E2E) |
-| `npm run test:unit` | ユニットテストのみ実行 |
-| `npm run test:e2e` | E2E テストのみ実行 |
+| `npm run watch` | ファイルの変更を監視して自動コンパイル |
+| `npm test` | 全テストを実行 (ユニット + E2E) |
+| `npm run test:unit` | ユニットテストのみを実行 |
+| `npm run test:e2e` | E2E テストのみを実行 |
 | `npm run test:watch` | ユニットテストをウォッチモードで実行 |
 | `npm run test:coverage` | カバレッジレポートを生成 |
 | `npm run lint` | ESLint でコードをチェック |
@@ -343,7 +343,7 @@ geonicdb/
 - **ユニットテスト / 統合テスト**: Jest
 - **E2E テスト**: Cucumber.js + Gherkin (日本語 BDD 形式)
 
-### すべてのテストを実行
+### 全テストを実行
 
 ```bash
 npm test
@@ -414,7 +414,7 @@ npx cucumber-js --tags "@meta"
 
 
 
-### E2E テスト feature ファイル構成
+### E2E テストフィーチャーファイル構成
 
 ```text
 tests/e2e/features/
@@ -484,7 +484,7 @@ tests/e2e/features/
 
 
 
-### Gherkin テスト例
+### Gherkin テストの例
 
 ```gherkin
 # language: ja
@@ -530,7 +530,7 @@ npm run test:coverage
 
 HTML レポートは `coverage/lcov-report/index.html` で確認できます。
 
-## 統合アプリケーション開発 (npm パッケージとして使用)
+## 統合アプリケーションの開発 (npm パッケージとして使用)
 
 GeonicDB を npm パッケージとしてインストールし、アプリケーションの開発サーバーと統合できます。
 
@@ -552,7 +552,7 @@ npm install -D express mongodb-memory-server
 
 ### CLI 経由で起動 (推奨)
 
-`npx geonicdb` コマンドで GeonicDB をスタンドアロンで起動できます。`--proxy` オプションを使用すると、GeonicDB のルートにマッチしないリクエストをアプリケーションの開発サーバーに転送します。
+`npx geonicdb` コマンドで GeonicDB をスタンドアロンで起動できます。`--proxy` オプションを使用すると、GeonicDB のルートに一致しないリクエストをアプリケーションの開発サーバーに転送します。
 
 ```bash
 # Basic startup
@@ -586,11 +586,11 @@ Browser → localhost:3000 (GeonicDB)
 
 
 
-> **注意**: URL が競合する場合 (例: アプリケーションも `/llms.txt` を持つ場合)、GeonicDB が優先されます。
+> **注:** URL が競合する場合 (例: アプリケーションにも `/llms.txt` がある場合)、GeonicDB が優先されます。
 
-### アプリケーション package.json 設定例
+### アプリケーションの package.json 設定例
 
-`concurrently` を使用して、GeonicDB とアプリケーションの開発サーバーを同時に起動できます。`--kill-others` を使用すると、1 つのプロセスが終了すると他のプロセスも自動的に停止します:
+`concurrently` を使用して GeonicDB とアプリケーションの開発サーバーを同時に起動できます。`--kill-others` を使用すると、一方のプロセスが終了すると、もう一方も自動的に停止します:
 
 ```json
 {
@@ -620,7 +620,7 @@ Browser → localhost:3000 (GeonicDB)
 
 
 
-Vite 側にプロキシ設定を追加すると、どちらのポートにアクセスしても API を使用できます:
+Vite 側にプロキシ設定を追加することで、どちらのポートにアクセスしても API を利用できます:
 
 ```js
 // vite.config.js
@@ -700,9 +700,9 @@ process.on('SIGINT', async () => {
 
 | プロパティ | 型 | 説明 |
 |-----------|------|------|
-| `port` | `number` | リッスンしている実際のポート |
+| `port` | `number` | 実際にリッスンしているポート |
 | `url` | `string` | サーバーの完全な URL (例: `http://localhost:3000`) |
-| `mongoUri` | `string` | MongoDB 接続 URI (テストなどで使用可能) |
+| `mongoUri` | `string` | MongoDB 接続 URI (テストなどで利用可能) |
 | `close()` | `() => Promise<void>` | サーバーと MongoDB を停止 |
 
 ### プライベートリポジトリからのインストール
@@ -715,13 +715,13 @@ npm install -D github:geolonia/geonicdb
 
 
 
-CI/CD 環境では、GitHub Personal Access Token または Deploy Key を設定する必要があります。チーム全体での運用には、GitHub Packages への公開も検討してください。
+CI/CD 環境では、GitHub Personal Access Token または Deploy Key の設定が必要です。チーム全体で運用する場合は、GitHub Packages への公開も検討してください。
 
 ## ローカル開発サーバー
 
 ### シンプルサーバー (推奨)
 
-`npm start` を使用すると、インメモリ MongoDB を使用してローカルサーバーを起動できます。外部の MongoDB インスタンスは不要です。
+`npm start` でインメモリ MongoDB を使用したローカルサーバーを起動できます。外部の MongoDB インスタンスは不要です。
 
 ```bash
 npm start
@@ -729,9 +729,9 @@ npm start
 
 
 
-#### ポートの指定
+#### ポートを指定する
 
-デフォルトのポートは `3000` です。CLI 引数または環境変数でポートを変更できます:
+デフォルトポートは `3000` です。CLI 引数または環境変数でポートを変更できます:
 
 ```bash
 # Specify via CLI argument
@@ -747,11 +747,11 @@ PORT=3001 npm start
 
 
 
-優先順位: `--port` 引数 > `PORT` 環境変数 > デフォルト (3000)
+優先度: `--port` 引数 > `PORT` 環境変数 > デフォルト (3000)
 
-指定されたポートが使用中の場合、次に利用可能なポートが自動的に選択されます (最大 10 ポートまで検索)。
+指定したポートが使用中の場合、次に利用可能なポートが自動的に選択されます (最大 10 ポートまで検索)。
 
-> **ヒント**: git worktrees と組み合わせることで、異なるブランチのサーバーを同時に起動できます:
+> **ヒント:** git worktrees と組み合わせることで、異なるブランチのサーバーを同時に起動できます:
 > ```bash
 > # Start in the main worktree
 > npm start                    # → localhost:3000
@@ -770,17 +770,17 @@ PORT=3001 npm start
 
 `Ctrl+C` を押すとサーバーが停止します。MongoDB も自動的に停止します。
 
-**機能:**
-- 外部 MongoDB 不要 (mongodb-memory-server が自動起動)
-- 環境変数の設定不要
+**特徴:**
+- 外部の MongoDB が不要 (mongodb-memory-server が自動起動)
+- 環境変数の設定が不要
 - ポートを指定可能 (`--port` / `PORT` 環境変数)
-- ポートが使用中の場合の自動フォールバック
+- ポートが使用中の場合は自動フォールバック
 - 開発とテストに最適
 - サーバー停止時にデータがクリアされる (インメモリ)
 
 ### SAM CLI を使用
 
-AWS SAM CLI を使用してローカルで API をテスト:
+AWS SAM CLI を使用してローカルで API をテストします:
 
 ```bash
 # SAM build
@@ -918,9 +918,9 @@ curl http://localhost:3000/.well-known/ngsi-ld
 
 
 
-## Claude Desktop から MCP (Model Context Protocol) 経由で接続
+## MCP (Model Context Protocol) 経由で Claude Desktop から接続
 
-ローカルサーバーを起動した状態で、Claude Desktop から直接コンテキストブローカーに接続できます。
+ローカルサーバーを起動すると、Claude Desktop からコンテキストブローカーに直接接続できます。
 
 ### 1. ローカルサーバーを起動
 
@@ -934,9 +934,7 @@ npm start
 
 Claude Desktop の設定ファイル (`claude_desktop_config.json`) に以下を追加します。
 
-**macOS**: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
-
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**macOS**: `~/Library/Application\ Support/Claude/claude_desktop_config.json`**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
@@ -965,7 +963,7 @@ Claude Desktop の設定ファイル (`claude_desktop_config.json`) に以下を
 
 
 
-> **注意**: [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) パッケージは、Streamable HTTP MCP サーバーに接続するためのブリッジとして使用されます。初回実行時に自動的にダウンロードされます。
+> **注:** [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) パッケージは、Streamable HTTP MCP サーバーに接続するためのブリッジとして使用されます。初回実行時に自動的にダウンロードされます。
 
 **認証が有効な場合 (`AUTH_ENABLED=true`)** は、Bearer トークンヘッダーを指定する必要があります:
 
@@ -1005,11 +1003,11 @@ Claude Desktop の設定ファイル (`claude_desktop_config.json`) に以下を
 
 ### 3. 動作確認
 
-以下のように Claude Desktop とチャットすると、コンテキストブローカーのツールが自動的に呼び出されます。
+Claude Desktop で以下のようにチャットすると、コンテキストブローカーツールが自動的に呼び出されます。
 
-- 「テナント test のエンティティ一覧を表示して」
-- 「ID が Room1 の Room エンティティを作成して、温度を 23.5 に設定して」
-- 「東京駅付近のセンサーを検索して」
+- "テナント test のエンティティ一覧を表示して"
+- "ID が Room1 の Room エンティティを作成して、温度を 23.5 に設定して"
+- "東京駅付近のセンサーを検索して"
 
 ### 4. curl で動作確認
 
@@ -1047,20 +1045,20 @@ curl -X POST http://localhost:3000/mcp \
 
 
 
-詳細は [MCP ドキュメント](../ai-integration/mcp-server.md) を参照してください。
+詳細は [MCP ドキュメント](../ai-integration/mcp-server.md)を参照してください。
 
 ## API 仕様
 
 ### ページネーション
 
-一覧取得エンドポイントは共通のページネーションパラメータをサポートします。
+リスト取得エンドポイントは共通のページネーションパラメータをサポートします。
 
 **パラメータ:**
 
 | パラメータ | 型 | デフォルト | 最大値 | 説明 |
 |---------|---|---------|-------|------|
 | `limit` | integer | 20 | 1000 | 取得する結果の数 (NGSI API) |
-| `limit` | integer | 20 | 100 | 取得する結果の数 (管理 API) |
+| `limit` | integer | 20 | 100 | 取得する結果の数 (Admin API) |
 | `offset` | integer | 0 | - | スキップする結果の数 |
 
 **レスポンスヘッダー:**
@@ -1094,8 +1092,8 @@ curl "http://localhost:3000/v2/entities?limit=10&offset=10"
 | 200 | OK | エンティティ取得成功、属性更新成功 |
 | 201 | Created | エンティティ作成成功 |
 | 204 | No Content | エンティティ削除成功、属性削除成功 |
-| 400 | Bad Request | 不正なリクエストボディ、不正なパラメータ |
-| 401 | Unauthorized | 認証トークンなし、不正なトークン |
+| 400 | Bad Request | 無効なリクエストボディ、無効なパラメータ |
+| 401 | Unauthorized | 認証トークンなし、無効なトークン |
 | 403 | Forbidden | 権限不足、テナントアクセス拒否 |
 | 404 | Not Found | エンティティ/属性が存在しない |
 | 409 | Conflict | エンティティ ID が既に存在 |
@@ -1134,4 +1132,4 @@ curl "http://localhost:3000/v2/entities?limit=10&offset=10"
 
 ## デプロイ
 
-GeonicDB は AWS SAM
+GeonicDB は AWS SAM (Server

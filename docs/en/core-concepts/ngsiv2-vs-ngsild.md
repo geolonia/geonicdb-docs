@@ -35,10 +35,6 @@ NGSIv2 API (/v2) ───┐
 NGSI-LD API (/ngsi-ld/v1) ┘
 ```
 
-
-
-
-
 - Both APIs share the same MongoDB storage
 - Entities are stored in a protocol-agnostic format independent of the API used
 - On request: each API format is converted to the internal format
@@ -85,30 +81,6 @@ interface EntityMetadata {
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### MongoDB Storage Format
 
 ```typescript
@@ -131,25 +103,6 @@ interface EntityDocument {
   deletedAt?: Date;
 }
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ---
 
@@ -185,37 +138,12 @@ curl -X POST http://localhost:3000/v2/entities \
   }'
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **Retrieve the same entity with NGSI-LD:**
 
 ```bash
 curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001 \
   -H "Fiware-Service: demo"
 ```
-
-
-
 
 **Response (NGSI-LD format):**
 
@@ -237,23 +165,6 @@ curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001 \
   "modifiedAt": "2026-02-08T10:00:00.000Z"
 }
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### Example 2: Create with NGSI-LD → Retrieve with NGSIv2
 
@@ -283,37 +194,12 @@ curl -X POST http://localhost:3000/ngsi-ld/v1/entities \
   }'
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 **Retrieve the same entity with NGSIv2:**
 
 ```bash
 curl http://localhost:3000/v2/entities/urn:ngsi-ld:Vehicle:V123 \
   -H "Fiware-Service: demo"
 ```
-
-
-
 
 **Response (NGSIv2 format):**
 
@@ -344,32 +230,6 @@ curl http://localhost:3000/v2/entities/urn:ngsi-ld:Vehicle:V123 \
   }
 }
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ---
 
@@ -457,23 +317,6 @@ Entity metadata (creation and modification timestamps) use different names depen
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### NGSI-LD System Attributes
 
 | Attribute Name | Type | Description |
@@ -499,18 +342,6 @@ Entity metadata (creation and modification timestamps) use different names depen
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 ### Internal Representation (MongoDB)
 
 ```typescript
@@ -522,14 +353,6 @@ Entity metadata (creation and modification timestamps) use different names depen
   }
 }
 ```
-
-
-
-
-
-
-
-
 
 ---
 
@@ -558,15 +381,6 @@ curl http://localhost:3000/v2/entities/Room1?options=keyValues
 curl 'http://localhost:3000/v2/entities?type=Room&options=values&attrs=temperature,humidity'
 ```
 
-
-
-
-
-
-
-
-
-
 ### NGSI-LD Output Formats
 
 | Format | Accept Header | Description |
@@ -587,15 +401,6 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=c
 # keyValues
 curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=keyValues'
 ```
-
-
-
-
-
-
-
-
-
 
 ---
 
@@ -620,12 +425,6 @@ curl 'http://localhost:3000/v2/entities?type=Room&q=temperature>20'
 # NGSI-LD: Entities with temperature greater than 20
 curl 'http://localhost:3000/ngsi-ld/v1/entities?type=Room&q=temperature>20'
 ```
-
-
-
-
-
-
 
 #### Metadata Query (mq) Details
 
@@ -660,18 +459,6 @@ curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.unit==Celsius,F
 curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.accuracy>0.9;temperature.unit==Celsius'
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 #### Scope Query (scopeQ) Details
 
 The NGSI-LD `scopeQ` parameter supports queries against the entity scope hierarchy.
@@ -701,18 +488,6 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/%23'
 curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo;/IoT'
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 ### 2. Geo-Queries
 
 | Geo-query Operator | NGSIv2 | NGSI-LD | Description |
@@ -732,12 +507,6 @@ curl 'http://localhost:3000/v2/entities?georel=near;maxDistance:1000&geometry=po
 # NGSI-LD: Entities within 1km of Tokyo Station
 curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&geometry=Point&coordinates=%5B139.7671,35.6812%5D'
 ```
-
-
-
-
-
-
 
 ### 3. Pagination
 
@@ -788,15 +557,6 @@ Represents associations between entities.
 }
 ```
 
-
-
-
-
-
-
-
-
-
 **When retrieved via NGSIv2:**
 
 ```json
@@ -811,17 +571,6 @@ Represents associations between entities.
   }
 }
 ```
-
-
-
-
-
-
-
-
-
-
-
 
 ### 2. LanguageProperty (Multilingual Property)
 
@@ -843,18 +592,6 @@ Holds strings in multiple languages.
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 **When using `lang=ja` with NGSI-LD:**
 
 When using the `lang` query parameter, a LanguageProperty is converted to a standard Property, with the value for the specified language set in the `value` field.
@@ -862,8 +599,6 @@ When using the `lang` query parameter, a LanguageProperty is converted to a stan
 ```bash
 curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja'
 ```
-
-
 
 ```json
 {
@@ -876,16 +611,6 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja'
   }
 }
 ```
-
-
-
-
-
-
-
-
-
-
 
 **When retrieved via NGSIv2:**
 
@@ -905,20 +630,6 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Museum:M001?lang=ja'
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### 3. Scope (Scope Hierarchy)
 
 Represents the logical hierarchy of an entity.
@@ -933,21 +644,12 @@ Represents the logical hierarchy of an entity.
 }
 ```
 
-
-
-
-
-
-
 **Scope query:**
 
 ```bash
 # All entities under /Japan/Tokyo
 curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo'
 ```
-
-
-
 
 **NGSIv2 compatibility:**
 
@@ -969,8 +671,34 @@ Includes only the specified attributes in the response.
 curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?pick=temperature,humidity'
 ```
 
+**Response:**
 
+```json
+{
+  "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+  "id": "urn:ngsi-ld:Room:001",
+  "type": "Room",
+  "temperature": {
+    "type": "Property",
+    "value": 23.5
+  },
+  "humidity": {
+    "type": "Property",
+    "value": 60
+  }
+}
+```
 
+#### omit Parameter (Attribute Exclusion)
+
+Excludes the specified attributes from the response.
+
+**Example:**
+
+```bash
+# Retrieve without the location attribute
+curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?omit=location'
+```
 
 **Response:**
 
@@ -990,20 +718,347 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?pick=temper
 }
 ```
 
+**Notes:**
 
+- `pick` and `omit` cannot be used simultaneously
+- When using `pick`: only `@context`, `id`, `type`, and the specified attributes are included. `createdAt` and `modifiedAt` are not included.
+- When using `omit`: all attributes except the specified ones are included. `id` and `type` cannot be excluded (per ETSI GS CIM 009 V1.9.1 specification)
 
+**NGSIv2 compatibility:**
 
+- In the NGSIv2 API, the `attrs` parameter provides equivalent functionality (pick only)
+- There is no NGSIv2 equivalent for `omit`
 
+```bash
+# Retrieve only temperature and humidity with NGSIv2 (equivalent to pick)
+curl 'http://localhost:3000/v2/entities/urn:ngsi-ld:Room:001?attrs=temperature,humidity'
+```
 
+### 5. @context (JSON-LD Context)
 
+In NGSI-LD, including `@context` in an entity defines the vocabulary.
 
+**NGSI-LD:**
 
+```json
+{
+  "@context": [
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "https://smartdatamodels.org/context.jsonld"
+  ],
+  "id": "urn:ngsi-ld:AirQualityObserved:001",
+  "type": "AirQualityObserved",
+  ...
+}
+```
 
+**NGSIv2 compatibility:**
 
+- NGSIv2 has no concept of `@context`
+- GeonicDB supports automatic completion of Smart Data Models `@context`, but `@context` is not returned by the NGSIv2 API
 
+---
 
+## Entity ID Considerations
 
+### Entity ID Uniqueness (GeonicDB Extension)
 
-#### omit Parameter (Attribute Exclusion)
+> **GeonicDB Extension**: In GeonicDB, entity IDs are unique within the scope of a tenant (`Fiware-Service`) and service path (`Fiware-ServicePath`). The entity `type` is **not** part of the uniqueness constraint.
 
-Excludes
+This is a deliberate design decision that unifies the ID semantics across both APIs:
+
+- **NGSI-LD** treats entity IDs as URIs, which are inherently unique
+- **NGSIv2** (standard) allows entities with the same ID but different types to coexist — GeonicDB **does not** support this behavior
+
+**Impact:**
+- **Direct creation** (`POST /v2/entities`, `POST /ngsi-ld/v1/entities`): Creating an entity with the same ID as an existing entity (even with a different `type`) returns `409 AlreadyExists`
+- **Batch update** (`POST /v2/op/update` with `append`/`appendStrict`): Matches entities by `entityId` only. Attributes are updated but the original `type` is preserved
+- **Batch upsert** (`POST /ngsi-ld/v1/entityOperations/upsert`): Matches entities by `entityId` only. Attributes are updated (type handling follows upsert semantics)
+- **Batch create** (`POST /ngsi-ld/v1/entityOperations/create`): Returns `207` with per-entity error details for duplicate IDs
+- The NGSIv2 `?type=` parameter for type disambiguation among same-ID entities is no longer applicable
+
+This unification eliminates a class of interoperability issues where NGSIv2 type-based disambiguation would conflict with NGSI-LD's unique ID model.
+
+### NGSI-LD URI Requirements
+
+The NGSI-LD specification recommends that entity IDs be in URI format.
+
+**Recommended format (URN):**
+
+```text
+urn:ngsi-ld:{EntityType}:{LocalId}
+```
+
+**Examples:**
+
+```text
+urn:ngsi-ld:Room:001
+urn:ngsi-ld:Vehicle:ABC123
+urn:ngsi-ld:WeatherObserved:Tokyo-2026-02-08
+```
+
+**NGSIv2 compatibility:**
+
+- NGSIv2 allows any string to be used as an ID (e.g., `Room1`, `sensor-abc`)
+- Using URN format with NGSI-LD maintains compatibility across both APIs
+- Entities created in NGSIv2 with non-URN IDs are still accessible via the NGSI-LD API
+
+**Best practices:**
+
+- When prioritizing interoperability, using URN format for all entities is recommended
+- When migrating from existing NGSIv2 systems, ID rewriting is not required (accessible via both APIs)
+
+---
+
+## Federation
+
+GeonicDB's federation feature automatically detects the protocol of remote context providers.
+
+### Automatic Protocol Detection
+
+For registered remote providers, GeonicDB detects the protocol in the following order:
+
+1. **Explicit specification** - If `information.format` is specified at registration time, that protocol is used
+2. **Auto-detection** - Automatic detection from the URL path:
+   - Contains `/v2/` → NGSIv2
+   - Contains `/ngsi-ld/` → NGSI-LD
+   - Otherwise → NGSIv2 (default)
+
+### Federation from NGSIv2
+
+**Register with NGSIv2:**
+
+```bash
+curl -X POST http://localhost:3000/v2/registrations \
+  -H "Content-Type: application/json" \
+  -H "Fiware-Service: demo" \
+  -d '{
+    "dataProvided": {
+      "entities": [
+        { "id": "urn:ngsi-ld:Vehicle:V999", "type": "Vehicle" }
+      ],
+      "attrs": ["speed", "location"]
+    },
+    "provider": {
+      "http": {
+        "url": "http://remote-provider.example.com/ngsi-ld/v1"
+      }
+    }
+  }'
+```
+
+**Querying with NGSIv2 automatically forwards to the NGSI-LD provider:**
+
+```bash
+curl http://localhost:3000/v2/entities/urn:ngsi-ld:Vehicle:V999 \
+  -H "Fiware-Service: demo"
+```
+
+**Behavior:**
+
+1. GeonicDB detects that `urn:ngsi-ld:Vehicle:V999` does not exist locally
+2. Identifies `http://remote-provider.example.com/ngsi-ld/v1` from the registration information
+3. Forwards the query using the NGSI-LD protocol: `GET /ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:V999`
+4. Converts the response from NGSI-LD → internal format → NGSIv2 and returns it to the client
+
+### Federation from NGSI-LD
+
+**Register with NGSI-LD:**
+
+```bash
+curl -X POST http://localhost:3000/ngsi-ld/v1/csourceRegistrations \
+  -H "Content-Type: application/ld+json" \
+  -H "Fiware-Service: demo" \
+  -d '{
+    "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "type": "ContextSourceRegistration",
+    "information": [
+      {
+        "entities": [
+          { "id": "urn:ngsi-ld:Sensor:S888", "type": "Sensor" }
+        ]
+      }
+    ],
+    "endpoint": "http://legacy-system.example.com/v2"
+  }'
+```
+
+**Querying with NGSI-LD automatically forwards to the NGSIv2 provider:**
+
+```bash
+curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:S888 \
+  -H "Fiware-Service: demo"
+```
+
+**Behavior:**
+
+1. GeonicDB detects that `urn:ngsi-ld:Sensor:S888` does not exist locally
+2. Identifies `http://legacy-system.example.com/v2` from the registration information
+3. Forwards the query using the NGSIv2 protocol: `GET /v2/entities/urn:ngsi-ld:Sensor:S888`
+4. Converts the response from NGSIv2 → internal format → NGSI-LD and returns it to the client
+
+---
+
+## Use Cases and Best Practices
+
+### Which API Should You Use?
+
+#### When to Choose NGSIv2
+
+- **Existing FIWARE Orion-compatible systems** - Integration with legacy systems
+- **Simple IoT data management** - Sensor data collection and visualization
+- **Lower learning curve** - Simpler specification than NGSI-LD
+- **Rich existing documentation and tools** - Mature NGSIv2 ecosystem
+
+**Recommended use cases:**
+
+- IoT sensor networks
+- Basic smart city data collection
+- Prototyping and PoC
+
+#### When to Choose NGSI-LD
+
+- **Semantic Web / Linked Data** - Leveraging JSON-LD and RDF
+- **Complex entity relationships** - Using Relationship and LanguageProperty
+- **International standard compliance** - Systems conforming to ETSI standards
+- **Future extensibility** - The NGSI-LD specification continues to be extended
+
+**Recommended use cases:**
+
+- Data catalogs leveraging Smart Data Models
+- Systems requiring multilingual support
+- Systems needing to express complex relationships between entities
+- Data integration and open data publication
+
+#### Hybrid Operation
+
+GeonicDB allows both APIs to be used simultaneously.
+
+**Recommended patterns:**
+
+1. **Gradual migration** - Keep legacy NGSIv2 systems running while developing new features with NGSI-LD
+2. **Separation of external and internal APIs** - Use NGSI-LD (standards-compliant) for external-facing APIs, NGSIv2 (simpler) for internal systems
+3. **Client selection** - NGSIv2 (lightweight) for mobile apps, NGSI-LD (semantic) for data catalogs
+
+### Best Practices
+
+#### 1. Use URN Format for Entity IDs
+
+**Recommended:**
+
+```text
+urn:ngsi-ld:Room:001
+```
+
+**Not recommended:**
+
+```text
+Room1
+sensor-abc
+```
+
+Reason: Conforms to the NGSI-LD specification and maintains compatibility across both APIs.
+
+#### 2. Use GeoJSON for Geospatial Data
+
+**Recommended (NGSIv2):**
+
+```json
+{
+  "location": {
+    "type": "geo:json",
+    "value": {
+      "type": "Point",
+      "coordinates": [139.7671, 35.6812]
+    }
+  }
+}
+```
+
+**Recommended (NGSI-LD):**
+
+```json
+{
+  "location": {
+    "type": "GeoProperty",
+    "value": {
+      "type": "Point",
+      "coordinates": [139.7671, 35.6812]
+    }
+  }
+}
+```
+
+Reason: Geo-queries only support GeoJSON format.
+
+#### 3. Leverage Smart Data Models
+
+GeonicDB automatically completes Smart Data Models `@context`.
+
+**Recommended (NGSI-LD):**
+
+```json
+{
+  "id": "urn:ngsi-ld:AirQualityObserved:001",
+  "type": "AirQualityObserved",
+  "pm25": {
+    "type": "Property",
+    "value": 15.5
+  }
+}
+```
+
+Reason: When `type` matches a Smart Data Models model name, the appropriate `@context` is automatically completed.
+
+#### 4. Choose Subscriptions Based on Purpose
+
+| Purpose | Recommended Channel | Reason |
+|---------|---------------------|--------|
+| Web apps (real-time updates) | WebSocket | Low latency, no server required |
+| Server-to-server integration | HTTP Webhook | Reliability, retry functionality |
+| IoT devices | MQTT | Lightweight, QoS guarantees |
+
+#### 5. Leverage Tenant Isolation
+
+Use the `Fiware-Service` header to isolate tenants.
+
+```bash
+# Create entity in tenant "demo"
+curl -X POST http://localhost:3000/v2/entities \
+  -H "Fiware-Service: demo" \
+  -d '{...}'
+
+# Create entity in tenant "prod"
+curl -X POST http://localhost:3000/v2/entities \
+  -H "Fiware-Service: prod" \
+  -d '{...}'
+```
+
+Reason: Enables separation of development and production environments, and isolation of data per customer.
+
+---
+
+## Summary
+
+| Item | NGSIv2 | NGSI-LD | GeonicDB Interoperability |
+|------|--------|---------|--------------------------|
+| **Protocol** | REST/JSON | REST/JSON-LD | Both supported, unified internal format |
+| **Entity ID** | Any string | URI (URN recommended) | Both supported, URN recommended. **ID is unique per tenant + servicePath** (type disambiguation removed) |
+| **Attribute types** | Simple (Number, Text, etc.) | Semantic (Property, Relationship, etc.) | Automatic conversion, see type mapping table |
+| **System attributes** | `dateCreated`, `dateModified` | `createdAt`, `modifiedAt` | Unified internally, converted per API |
+| **Geo-queries** | ✅ | ✅ | Shared feature |
+| **Subscriptions** | ✅ (HTTP, MQTT, WebSocket) | ✅ (HTTP, MQTT, WebSocket) | Shared feature |
+| **Federation** | ✅ | ✅ | Automatic protocol detection |
+| **Use cases** | IoT, legacy systems | Semantic Web, open data | Both can be used simultaneously |
+
+By using GeonicDB, you can leverage both the NGSIv2 and NGSI-LD ecosystems, enabling gradual migration and optimal API selection.
+
+---
+
+## Related Documentation
+
+- [API Common Specification](../api-reference/endpoints.md)
+- [NGSIv2 API](../api-reference/ngsiv2.md)
+- [NGSI-LD API](../api-reference/ngsild.md)
+- [Smart Data Models](../features/smart-data-models.md)
+- [FIWARE Orion Comparison](../migration/compatibility-matrix.md)
