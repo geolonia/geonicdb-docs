@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { join, basename, dirname, relative } from 'node:path'
+import { checkLanguageDirectory, validateMappingEntry } from './translate-pipeline-validators.js'
 
 // ---------------------------------------------------------------------------
 // GeonicDB docs/ → VitePress docs/en/ sync script
@@ -255,6 +256,22 @@ function main() {
 
       // Rewrite internal links for this destination
       const srcContent = rewriteLinks(rawContent, mapping.dest)
+
+      // P-A4: Validate that source content is appropriate for the destination path
+      const mappingCheck = validateMappingEntry(srcFile, srcContent, mapping.dest)
+      if (!mappingCheck.ok) {
+        console.error(`  ERROR (P-A4): ${mappingCheck.reason}`)
+        process.exit(1)
+      } else if (mappingCheck.reason) {
+        console.warn(`  WARN (P-A4): ${mappingCheck.reason}`)
+      }
+
+      // P-A5: Check that the content written to docs/en/ does not contain excessive non-ASCII
+      const langCheck = checkLanguageDirectory(srcContent)
+      if (!langCheck.ok) {
+        console.error(`  ERROR (P-A5): ${srcFile} → en/${mapping.dest}: ${langCheck.reason}`)
+        process.exit(1)
+      }
 
       // If this destination was already written by another source, append content
       const existing = writtenDests.get(mapping.dest)
