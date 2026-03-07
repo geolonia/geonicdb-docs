@@ -299,6 +299,13 @@ describe('protectTables (P-A3)', () => {
     expect(protected_).toBe(content)
   })
 
+  it('replaces escaped pipe (\\|) in cell with sentinel and round-trips correctly', () => {
+    const content = '| A \\| B | C |\n'
+    const protected_ = protectTables(content)
+    expect(protected_).toContain(TABLE_PIPE_SENTINEL)
+    expect(restoreTables(protected_)).toBe(content)
+  })
+
   it('does not modify separator rows', () => {
     const content = '|---|---|\n| :--- | ---: |'
     const protected_ = protectTables(content)
@@ -313,10 +320,10 @@ describe('protectTables (P-A3)', () => {
 })
 
 describe('restoreTables (P-A3)', () => {
-  it('restores pipe sentinels back to |', () => {
+  it('restores pipe sentinels back to \\|', () => {
     const content = `| cell with ${TABLE_PIPE_SENTINEL} inside |`
     const restored = restoreTables(content)
-    expect(restored).toBe('| cell with | inside |')
+    expect(restored).toBe('| cell with \\| inside |')
     expect(restored).not.toContain(TABLE_PIPE_SENTINEL)
   })
 

@@ -45,7 +45,7 @@ function parseArgs(): { input: string; lang: string; output: string } {
   }
 }
 
-function main() {
+function main(): number {
   let tmpDir: string | null = null
   try {
     const { input, lang, output } = parseArgs()
@@ -74,7 +74,7 @@ function main() {
 
     if (result.status !== 0) {
       console.error(`::error::Translation failed for ${input}`)
-      process.exit(result.status ?? 1)
+      return result.status ?? 1
     }
 
     // Read translation output
@@ -92,14 +92,14 @@ function main() {
     const truncCheck = checkTruncation(inputContent, outputContent)
     if (!truncCheck.ok) {
       console.error(`::error::P-A1 truncation detected in ${output}: ${truncCheck.reason}`)
-      process.exit(1)
+      return 1
     }
 
     // P-A1: check for incomplete output (heading/table row at end)
     const completeCheck = checkCompleteness(outputContent)
     if (!completeCheck.ok) {
       console.error(`::error::P-A1 incomplete output in ${output}: ${completeCheck.reason}`)
-      process.exit(1)
+      return 1
     }
 
     // P-A3: validate table row count
@@ -113,6 +113,7 @@ function main() {
       ? ` (${(truncCheck.ratio * 100).toFixed(1)}% of input)`
       : ''
     console.log(`Translated: ${input} → ${output}${ratioStr}`)
+    return 0
   } finally {
     if (tmpDir) {
       try {
@@ -124,4 +125,4 @@ function main() {
   }
 }
 
-main()
+process.exitCode = main()

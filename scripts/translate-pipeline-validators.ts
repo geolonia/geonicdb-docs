@@ -170,8 +170,9 @@ export function checkCompleteness(content: string): ValidationResult {
     }
   }
 
-  // Incomplete table row: starts with | but has no closing | (e.g. "| cell content")
-  if (/^\|/.test(lastLine) && !/\|.*\|/.test(lastLine)) {
+  // Incomplete table row: starts with | but missing closing | or has fewer than 2 pipes
+  const pipeCount = (lastLine.match(/\|/g) ?? []).length
+  if (/^\|/.test(lastLine) && (pipeCount < 2 || !/\|\s*$/.test(lastLine))) {
     return {
       ok: false,
       reason: `Output ends with incomplete table row: "${lastLine}"`,
@@ -245,16 +246,8 @@ export function protectTables(content: string): string {
     .map(line => {
       // Detect table rows: starts with | (possibly with leading whitespace) and ends with |
       if (/^\s*\|/.test(line) && /\|\s*$/.test(line)) {
-        const cells = line.split('|')
-        const processed = cells.map((cell, idx) => {
-          // Leave the leading/trailing empty strings (before first | and after last |) alone
-          if (idx === 0 || idx === cells.length - 1) return cell
-          // Leave separator cells (---) alone
-          if (/^[\s:-]+$/.test(cell)) return cell
-          // Escape any pipes inside cell content (shouldn't normally happen, but protects against it)
-          return cell.replace(/\|/g, TABLE_PIPE_SENTINEL)
-        })
-        return processed.join('|')
+        // Replace only escaped pipes (\|) inside cells with the sentinel
+        return line.replace(/\\\|/g, TABLE_PIPE_SENTINEL)
       }
       return line
     })
@@ -265,8 +258,7 @@ export function protectTables(content: string): string {
  * P-A3: Restore pipe sentinels back to | in table cells after translation.
  */
 export function restoreTables(content: string): string {
-  const escaped = TABLE_PIPE_SENTINEL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return content.replace(new RegExp(escaped, 'g'), '|')
+  return content.replaceAll(TABLE_PIPE_SENTINEL, '\\|')
 }
 
 /**

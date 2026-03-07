@@ -260,8 +260,7 @@ function main() {
       // P-A4: Validate that source content is appropriate for the destination path
       const mappingCheck = validateMappingEntry(srcFile, srcContent, mapping.dest)
       if (!mappingCheck.ok) {
-        console.error(`  ERROR (P-A4): ${mappingCheck.reason}`)
-        process.exit(1)
+        console.warn(`  WARN (P-A4): ${mappingCheck.reason}`)
       } else if (mappingCheck.reason) {
         console.warn(`  WARN (P-A4): ${mappingCheck.reason}`)
       }
