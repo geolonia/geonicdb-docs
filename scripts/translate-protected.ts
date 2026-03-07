@@ -60,15 +60,16 @@ function main(): number {
     // Write protected content to a temporary file
     tmpDir = mkdtempSync(join(tmpdir(), 'translate-protected-'))
     const tmpInput = join(tmpDir, 'input.md')
+    const tmpOutput = join(tmpDir, 'output.md')
     writeFileSync(tmpInput, protectedContent, 'utf-8')
 
     // Ensure output directory exists
     mkdirSync(dirname(output), { recursive: true })
 
-    // Run yuuhitsu translate on the protected input
+    // Run yuuhitsu translate on the protected input (write to tmpOutput to avoid polluting final path)
     const result = spawnSync(
       'npx',
-      ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', output],
+      ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput],
       { stdio: 'inherit', shell: false },
     )
 
@@ -77,16 +78,13 @@ function main(): number {
       return result.status ?? 1
     }
 
-    // Read translation output
-    let outputContent = readFileSync(output, 'utf-8')
+    // Read translation output from tmpOutput
+    let outputContent = readFileSync(tmpOutput, 'utf-8')
 
     // P-A2: restore bullet sentinels in translated output
     outputContent = restoreBullets(outputContent)
     // P-A3: restore table pipe sentinels in translated output
     outputContent = restoreTables(outputContent)
-
-    // Write the restored content back
-    writeFileSync(output, outputContent, 'utf-8')
 
     // P-A1: check for truncation
     const truncCheck = checkTruncation(inputContent, outputContent)
@@ -108,6 +106,9 @@ function main(): number {
       console.warn(`::warning::P-A3 table structure issue in ${output}: ${tableCheck.reason}`)
       // Table issues are warnings — do not exit, allow CI to proceed with investigation
     }
+
+    // All validations passed — write to final output
+    writeFileSync(output, outputContent, 'utf-8')
 
     const ratioStr = truncCheck.ratio !== undefined
       ? ` (${(truncCheck.ratio * 100).toFixed(1)}% of input)`

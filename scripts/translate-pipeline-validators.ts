@@ -214,19 +214,14 @@ export function protectBullets(content: string): string {
 export function restoreBullets(content: string): string {
   if (!content.includes(BULLET_SENTINEL)) return content
 
-  // Split on sentinel; each segment after the first should start on a new line
+  // Split on sentinel; normalize newlines only at each join boundary
   const parts = content.split(BULLET_SENTINEL)
-  const joined = parts
-    .map((part, idx) => {
-      if (idx === 0) return part
-      // Strip any leading newline that was already there, then re-add one
-      const stripped = part.replace(/^\n/, '')
-      return '\n' + stripped
-    })
-    .join('')
-
-  // Normalize: collapse runs of 3+ newlines to 2 (preserve intentional blank lines)
-  return joined.replace(/\n{3,}/g, '\n\n')
+  let restored = parts[0]
+  for (let i = 1; i < parts.length; i++) {
+    const stripped = parts[i].replace(/^\n/, '')
+    restored = restored.replace(/\n?$/, '\n') + stripped
+  }
+  return restored
 }
 
 // ---------------------------------------------------------------------------
@@ -265,7 +260,7 @@ export function restoreTables(content: string): string {
  * Count table rows (lines starting with |) in content.
  */
 export function countTableRows(content: string): number {
-  return content.split('\n').filter(line => /^\s*\|/.test(line)).length
+  return content.split('\n').filter(line => /^\s*\|.*\|\s*$/.test(line)).length
 }
 
 /**
