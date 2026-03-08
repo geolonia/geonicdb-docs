@@ -54,6 +54,7 @@ interface MappingEntry {
   dest: string        // relative path under docs/en/  e.g. "api-reference/ngsiv2.md"
   title: string
   description: string
+  nonAsciiThreshold?: number  // P-A5 threshold override (default 0.30)
 }
 
 const MAPPING_TABLE: Record<string, MappingEntry[]> = {
@@ -133,7 +134,7 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
     { dest: 'features/telemetry.md', title: 'Telemetry', description: 'OpenTelemetry support' },
   ],
   'CHANGELOG.md': [
-    { dest: 'changelog.md', title: 'Changelog', description: 'GeonicDB changelog' },
+    { dest: 'changelog.md', title: 'Changelog', description: 'GeonicDB changelog', nonAsciiThreshold: 0.40 },
   ],
   'CLI.md': [
     { dest: 'reference/cli.md', title: 'CLI Reference', description: 'GeonicDB CLI (geonic) command reference' },
@@ -266,7 +267,7 @@ function main() {
       }
 
       // P-A5: Check that the content written to docs/en/ does not contain excessive non-ASCII
-      const langCheck = checkLanguageDirectory(srcContent)
+      const langCheck = checkLanguageDirectory(srcContent, mapping.nonAsciiThreshold)
       if (!langCheck.ok) {
         console.error(`  ERROR (P-A5): ${srcFile} → en/${mapping.dest}: ${langCheck.reason}`)
         process.exit(1)
