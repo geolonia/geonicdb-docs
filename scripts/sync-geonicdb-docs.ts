@@ -71,10 +71,10 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
     { dest: 'api-reference/endpoints.md', title: 'API Endpoints', description: 'Complete list of API endpoints' },
   ],
   'API_ENDPOINTS_NGSIV2.md': [
-    { dest: 'api-reference/ngsiv2.md', title: 'NGSIv2 Endpoints', description: 'NGSIv2 endpoint details' },
+    { dest: 'api-reference/ngsiv2-endpoints.md', title: 'NGSIv2 Endpoints', description: 'NGSIv2 endpoint details' },
   ],
   'API_ENDPOINTS_NGSILD.md': [
-    { dest: 'api-reference/ngsild.md', title: 'NGSI-LD Endpoints', description: 'NGSI-LD endpoint details' },
+    { dest: 'api-reference/ngsild-endpoints.md', title: 'NGSI-LD Endpoints', description: 'NGSI-LD endpoint details' },
   ],
   'AUTH_SCENARIOS.md': [
     { dest: 'security/auth-scenarios.md', title: 'Authentication Scenarios', description: 'Authentication and authorization scenarios (Coming Soon)' },
