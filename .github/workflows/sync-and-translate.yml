@@ -93,14 +93,20 @@ jobs:
           fi
           TOTAL=$(echo "$EN_FILES" | wc -l)
           FAILED=0
+          # Debug: show Node.js version and stack size info
+          echo "Node.js: $(node --version)"
+          echo "npx tsx location: $(which npx)"
+          echo "yuuhitsu version: $(npx yuuhitsu --version 2>/dev/null || echo 'unknown')"
+
           echo "Translating $TOTAL files to Japanese (with pipeline guards)..."
           while IFS= read -r file; do
             if [ -f "$file" ]; then
               ja_file="${file/docs\/en\//docs\/ja\/}"
               echo "Translating (protected): $file -> $ja_file"
               mkdir -p "$(dirname "$ja_file")"
-              if ! npx tsx scripts/translate-protected.ts \
-                  --input "$file" --lang ja --output "$ja_file"; then
+              if ! node --stack-size=65536 --stack-trace-limit=100 \
+                  ./node_modules/.bin/tsx scripts/translate-protected.ts \
+                  --input "$file" --lang ja --output "$ja_file" 2>&1; then
                 echo "::error::Failed to translate $file to Japanese"
                 FAILED=$((FAILED + 1))
               fi
