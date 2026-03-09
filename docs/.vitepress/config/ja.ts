@@ -72,7 +72,9 @@ function sidebar(): DefaultTheme.Sidebar {
         text: 'API リファレンス',
         items: [
           { text: 'NGSIv2 API', link: '/ja/api-reference/ngsiv2' },
+          { text: 'NGSIv2 エンドポイント', link: '/ja/api-reference/ngsiv2-endpoints' },
           { text: 'NGSI-LD API', link: '/ja/api-reference/ngsild' },
+          { text: 'NGSI-LD エンドポイント', link: '/ja/api-reference/ngsild-endpoints' },
           { text: '管理 API', link: '/ja/api-reference/admin' },
           { text: 'エンドポイント', link: '/ja/api-reference/endpoints' },
           { text: 'ページネーション', link: '/ja/api-reference/pagination' },

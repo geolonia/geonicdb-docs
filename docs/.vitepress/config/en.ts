@@ -59,7 +59,9 @@ function sidebar(): DefaultTheme.Sidebar {
         text: 'API Reference',
         items: [
           { text: 'NGSIv2 API', link: '/en/api-reference/ngsiv2' },
+          { text: 'NGSIv2 Endpoints', link: '/en/api-reference/ngsiv2-endpoints' },
           { text: 'NGSI-LD API', link: '/en/api-reference/ngsild' },
+          { text: 'NGSI-LD Endpoints', link: '/en/api-reference/ngsild-endpoints' },
           { text: 'Admin API', link: '/en/api-reference/admin' },
           { text: 'Endpoints', link: '/en/api-reference/endpoints' },
           { text: 'Pagination', link: '/en/api-reference/pagination' },
