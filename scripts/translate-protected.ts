@@ -144,7 +144,28 @@ function main(): number {
       }
 
       // Read translation output from tmpOutput
-      let outputContent = readFileSync(tmpOutput, 'utf-8')
+      let outputContent: string
+      try {
+        if (!existsSync(tmpOutput)) {
+          throw new Error(`Temporary output file not found: ${tmpOutput}`)
+        }
+        outputContent = readFileSync(tmpOutput, 'utf-8')
+      } catch (error) {
+        if (attempt < MAX_RETRIES) {
+          console.warn(
+            `Failed to read translated output on attempt ${attempt + 1}, retrying: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          )
+          continue
+        }
+        console.error(
+          `::error::Failed to read translation output for ${input}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        )
+        return 1
+      }
 
       // P-A2: restore bullet sentinels in translated output
       outputContent = restoreBullets(outputContent)
