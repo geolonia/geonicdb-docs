@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+- fix(translate-pipeline): spawn yuuhitsu via `node --stack-size=65536` to prevent "Maximum call stack size exceeded" on large files (ngsild.md). NODE_OPTIONS does not allow `--stack-size` (V8-internal flag), so it must be passed directly to the node executable. (Closes #66)
+- fix(translate-pipeline): add retry logic (up to 2 retries) for P-A1 incomplete output. LLM responses are stochastic; a retry on truncated output typically produces a complete translation. (Closes #66)
+
 ### Added
 - feat(translate-pipeline): implement 5 quality patterns (P-A1〜P-A5)
   - **P-A5**: Language directory check — blocks docs/en/ files with non-ASCII ratio > 30%
