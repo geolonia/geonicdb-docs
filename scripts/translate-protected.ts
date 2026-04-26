@@ -110,6 +110,10 @@ function runYuuhitsu(tmpInput: string, lang: string, tmpOutput: string): number 
       { stdio: ['inherit', 'inherit', 'pipe'], shell: false },
     )
     // Re-emit stderr to make yuuhitsu errors visible in CI logs.
+    if (result.error) {
+      process.stderr.write(`spawnSync error: ${result.error.message}\n`)
+      return 1
+    }
     if (result.stderr && result.stderr.length > 0) {
       process.stderr.write(result.stderr)
     }
@@ -122,6 +126,10 @@ function runYuuhitsu(tmpInput: string, lang: string, tmpOutput: string): number 
     ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput, '--max-chunk-lines', '100'],
     { stdio: ['inherit', 'inherit', 'pipe'], shell: false },
   )
+  if (result.error) {
+    process.stderr.write(`spawnSync error: ${result.error.message}\n`)
+    return 1
+  }
   if (result.stderr && result.stderr.length > 0) {
     process.stderr.write(result.stderr)
   }
