@@ -18,8 +18,12 @@
 //   - Spawns yuuhitsu via `node --stack-size=65536` to prevent "Maximum call
 //     stack size exceeded" on large files. NODE_OPTIONS does not allow --stack-size
 //     (V8 flag), so we must pass it directly to the node executable.
+//   - Passes `--max-chunk-lines 100` to yuuhitsu so files >100 lines are split at
+//     H2/H3 boundaries instead of being sent as a single chunk. Without this,
+//     files <300 lines (the default maxChunkLines) are translated in one pass and
+//     the claude provider's max_tokens=4096 truncates large table output (P-A3).
 //   - Retries translation (up to MAX_RETRIES times) on P-A1 incomplete output,
-//     since LLM responses are stochastic and a retry often produces complete output.
+//     P-A3 table corruption, or transient yuuhitsu failures.
 // ---------------------------------------------------------------------------
 
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync } from 'node:fs'
@@ -80,26 +84,55 @@ function getYuuhitsuCliPath(): string | null {
 /**
  * Run yuuhitsu translate, preferring direct `node --stack-size` invocation
  * over `npx yuuhitsu` to avoid stack overflow on large inputs.
+ *
+ * Uses --max-chunk-lines 100 to force H2/H3-boundary splitting on files >100 lines.
+ * Without this, files <300 lines (the default) are sent as a single chunk, and the
+ * claude provider's max_tokens=4096 truncates large table output (P-A3 corruption).
  */
 function runYuuhitsu(tmpInput: string, lang: string, tmpOutput: string): number {
   const yuuhitsuCli = getYuuhitsuCliPath()
 
   if (yuuhitsuCli) {
-    // Pass --stack-size=65536 (64 MB) directly to node to prevent stack overflow.
+    // Pass --stack-size=65536 (64 MB) to prevent stack overflow on large files.
+    // Pass --max-chunk-lines 100 to split at section boundaries and prevent
+    // max_tokens=4096 truncation on large table-heavy files.
     const result = spawnSync(
       process.execPath,
-      ['--stack-size=65536', yuuhitsuCli, 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput],
-      { stdio: 'inherit', shell: false },
+      [
+        '--stack-size=65536',
+        yuuhitsuCli,
+        'translate',
+        '--input', tmpInput,
+        '--lang', lang,
+        '--output', tmpOutput,
+        '--max-chunk-lines', '100',
+      ],
+      { stdio: ['inherit', 'inherit', 'pipe'], shell: false },
     )
+    // Re-emit stderr to make yuuhitsu errors visible in CI logs.
+    if (result.error) {
+      process.stderr.write(`spawnSync error: ${result.error.message}\n`)
+      return 1
+    }
+    if (result.stderr && result.stderr.length > 0) {
+      process.stderr.write(result.stderr)
+    }
     return result.status ?? 1
   }
 
   // Fallback: use npx (may encounter stack overflow on large files)
   const result = spawnSync(
     'npx',
-    ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput],
-    { stdio: 'inherit', shell: false },
+    ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput, '--max-chunk-lines', '100'],
+    { stdio: ['inherit', 'inherit', 'pipe'], shell: false },
   )
+  if (result.error) {
+    process.stderr.write(`spawnSync error: ${result.error.message}\n`)
+    return 1
+  }
+  if (result.stderr && result.stderr.length > 0) {
+    process.stderr.write(result.stderr)
+  }
   return result.status ?? 1
 }
 
@@ -194,11 +227,14 @@ function main(): number {
         return 1
       }
 
-      // P-A3: validate table row count
+      // P-A3: validate table row count — retry if corrupted, warn if all retries exhausted
       const tableCheck = validateTableStructure(inputContent, outputContent)
       if (!tableCheck.ok) {
+        if (attempt < MAX_RETRIES) {
+          console.warn(`P-A3 table corruption on attempt ${attempt + 1}, retrying: ${tableCheck.reason}`)
+          continue
+        }
         console.warn(`::warning::P-A3 table structure issue in ${output}: ${tableCheck.reason}`)
-        // Table issues are warnings — do not exit, allow CI to proceed with investigation
       }
 
       // All validations passed — write to final output

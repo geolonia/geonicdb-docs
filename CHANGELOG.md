@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Fixed
+- fix(translate-pipeline): pass `--max-chunk-lines 100` to yuuhitsu to prevent P-A3 table corruption. Without this, files <300 lines (the default maxChunkLines) are sent as a single chunk; the claude provider's max_tokens=4096 then truncates large table output (compatibility-matrix.md: 312→189 rows, 60.6%). Smaller chunks ensure each section fits within the token limit. (Closes #68)
+- fix(translate-pipeline): add P-A3 table corruption to retry conditions. If chunking alone does not fully restore table rows, retries allow stochastic LLM variation to produce a complete translation. (Closes #68)
+- fix(translate-pipeline): capture yuuhitsu stderr and re-emit to CI logs. Previously, yuuhitsu error messages (e.g., for ngsild.md failures) were invisible in CI output, making root cause analysis impossible.
 - fix(translate-pipeline): spawn yuuhitsu via `node --stack-size=65536` to prevent "Maximum call stack size exceeded" on large files (ngsild.md). NODE_OPTIONS does not allow `--stack-size` (V8-internal flag), so it must be passed directly to the node executable. (Closes #66)
 - fix(translate-pipeline): add retry logic (up to 2 retries) for P-A1 incomplete output. LLM responses are stochastic; a retry on truncated output typically produces a complete translation. (Closes #66)
 
