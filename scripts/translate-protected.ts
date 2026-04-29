@@ -89,7 +89,7 @@ function getYuuhitsuCliPath(): string | null {
  * Without this, files <300 lines (the default) are sent as a single chunk, and the
  * claude provider's max_tokens=4096 truncates large table output (P-A3 corruption).
  */
-function runYuuhitsu(tmpInput: string, lang: string, tmpOutput: string): number {
+function runYuuhitsu(tmpInput: string, lang: string, tmpOutput: string): { status: number; signal: string | null; stderr: string } {
   const yuuhitsuCli = getYuuhitsuCliPath()
 
   if (yuuhitsuCli) {
@@ -109,15 +109,16 @@ function runYuuhitsu(tmpInput: string, lang: string, tmpOutput: string): number 
       ],
       { stdio: ['inherit', 'inherit', 'pipe'], shell: false },
     )
+    const stderr = result.stderr ? result.stderr.toString() : ''
     // Re-emit stderr to make yuuhitsu errors visible in CI logs.
     if (result.error) {
       process.stderr.write(`spawnSync error: ${result.error.message}\n`)
-      return 1
+      return { status: 1, signal: null, stderr }
     }
-    if (result.stderr && result.stderr.length > 0) {
-      process.stderr.write(result.stderr)
+    if (stderr.length > 0) {
+      process.stderr.write(stderr)
     }
-    return result.status ?? 1
+    return { status: result.status ?? 1, signal: result.signal, stderr }
   }
 
   // Fallback: use npx (may encounter stack overflow on large files)
@@ -126,14 +127,15 @@ function runYuuhitsu(tmpInput: string, lang: string, tmpOutput: string): number 
     ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput, '--max-chunk-lines', '100'],
     { stdio: ['inherit', 'inherit', 'pipe'], shell: false },
   )
+  const stderr = result.stderr ? result.stderr.toString() : ''
   if (result.error) {
     process.stderr.write(`spawnSync error: ${result.error.message}\n`)
-    return 1
+    return { status: 1, signal: null, stderr }
   }
-  if (result.stderr && result.stderr.length > 0) {
-    process.stderr.write(result.stderr)
+  if (stderr.length > 0) {
+    process.stderr.write(stderr)
   }
-  return result.status ?? 1
+  return { status: result.status ?? 1, signal: result.signal, stderr }
 }
 
 function main(): number {
@@ -169,8 +171,16 @@ function main(): number {
       }
 
       // Run yuuhitsu translate
-      const status = runYuuhitsu(tmpInput, lang, tmpOutput)
+      const { status, signal, stderr } = runYuuhitsu(tmpInput, lang, tmpOutput)
       if (status !== 0) {
+        console.error(
+          `[diag] attempt=${attempt + 1} input=${input} ` +
+          `status=${status} signal=${signal ?? 'none'} ` +
+          `stderr_len=${stderr.length}`,
+        )
+        if (stderr.length === 0) {
+          console.error('[diag] stderr was empty — yuuhitsu may have been killed or aborted silently')
+        }
         if (attempt < MAX_RETRIES) continue
         console.error(`::error::Translation failed for ${input}`)
         return status
