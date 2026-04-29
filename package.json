@@ -22,7 +22,7 @@
   "license": "MIT",
   "packageManager": "pnpm@10.29.2",
   "devDependencies": {
-    "@geolonia/yuuhitsu": "^0.1.8",
+    "@geolonia/yuuhitsu": "^0.1.9",
     "@playwright/test": "^1.58.2",
     "@types/node": "^25.3.5",
     "tsx": "^4.21.0",

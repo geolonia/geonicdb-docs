@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- chore(deps): bump @geolonia/yuuhitsu to 0.1.9 — fixes splitAtPositions infinite recursion (SIGSEGV) on files starting with top-level heading. Resolves CI translation failures across all 14 files. (Closes #76, upstream geolonia/yuuhitsu#38)
+
 ### Added
 - chore: Add diagnostic logging to translate-protected.ts retry loop (Part of #70, Closes #72)
 
