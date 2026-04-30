@@ -44,6 +44,9 @@ import {
 /** Maximum number of retry attempts after the first try. */
 const MAX_RETRIES = 2
 
+/** Maximum number of stdout/stderr lines to retain in logs (OOM guard for large files). */
+const MAX_LOG_LINES = 50
+
 function parseArgs(): { input: string; lang: string; output: string } {
   const args = process.argv.slice(2)
   const get = (flag: string): string => {
@@ -58,6 +61,13 @@ function parseArgs(): { input: string; lang: string; output: string } {
     lang: get('--lang'),
     output: get('--output'),
   }
+}
+
+/** Return the last N lines of text (circular-buffer guard against OOM on large output). */
+function lastNLines(text: string, n: number): string {
+  const lines = text.split('\n')
+  if (lines.length <= n) return text
+  return `...(${lines.length - n} lines omitted)...\n` + lines.slice(-n).join('\n')
 }
 
 /**
@@ -81,6 +91,13 @@ function getYuuhitsuCliPath(): string | null {
   return null
 }
 
+type RunResult = {
+  status: number
+  signal: string | null
+  stderr: string
+  elapsed: number
+}
+
 /**
  * Run yuuhitsu translate, preferring direct `node --stack-size` invocation
  * over `npx yuuhitsu` to avoid stack overflow on large inputs.
@@ -88,54 +105,77 @@ function getYuuhitsuCliPath(): string | null {
  * Uses --max-chunk-lines 100 to force H2/H3-boundary splitting on files >100 lines.
  * Without this, files <300 lines (the default) are sent as a single chunk, and the
  * claude provider's max_tokens=4096 truncates large table output (P-A3 corruption).
+ *
+ * Logs command line, file size, exit status, signal, elapsed time, and full
+ * stdout/stderr to console so CI logs expose the true yuuhitsu error.
  */
-function runYuuhitsu(tmpInput: string, lang: string, tmpOutput: string): { status: number; signal: string | null; stderr: string } {
+function runYuuhitsu(
+  tmpInput: string,
+  lang: string,
+  tmpOutput: string,
+  inputPath: string,
+  inputSize: number,
+): RunResult {
   const yuuhitsuCli = getYuuhitsuCliPath()
 
+  let cmd: string
+  let args: string[]
+
   if (yuuhitsuCli) {
-    // Pass --stack-size=65536 (64 MB) to prevent stack overflow on large files.
-    // Pass --max-chunk-lines 100 to split at section boundaries and prevent
-    // max_tokens=4096 truncation on large table-heavy files.
-    const result = spawnSync(
-      process.execPath,
-      [
-        '--stack-size=65536',
-        yuuhitsuCli,
-        'translate',
-        '--input', tmpInput,
-        '--lang', lang,
-        '--output', tmpOutput,
-        '--max-chunk-lines', '100',
-      ],
-      { stdio: ['inherit', 'inherit', 'pipe'], shell: false },
-    )
-    const stderr = result.stderr ? result.stderr.toString() : ''
-    // Re-emit stderr to make yuuhitsu errors visible in CI logs.
-    if (result.error) {
-      process.stderr.write(`spawnSync error: ${result.error.message}\n`)
-      return { status: 1, signal: null, stderr }
-    }
-    if (stderr.length > 0) {
-      process.stderr.write(stderr)
-    }
-    return { status: result.status ?? 1, signal: result.signal, stderr }
+    cmd = process.execPath
+    args = [
+      '--stack-size=65536',
+      yuuhitsuCli,
+      'translate',
+      '--input', tmpInput,
+      '--lang', lang,
+      '--output', tmpOutput,
+      '--max-chunk-lines', '100',
+    ]
+  } else {
+    // Fallback: use npx (may encounter stack overflow on large files)
+    cmd = 'npx'
+    args = ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput, '--max-chunk-lines', '100']
   }
 
-  // Fallback: use npx (may encounter stack overflow on large files)
+  // Pre-spawn diagnostic log
+  console.log(`[spawn] cmd=${cmd} ${args.join(' ')}`)
+  console.log(`[spawn] input=${inputPath} size=${inputSize}B lang=${lang}`)
+
+  const startTime = Date.now()
   const result = spawnSync(
-    'npx',
-    ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput, '--max-chunk-lines', '100'],
-    { stdio: ['inherit', 'inherit', 'pipe'], shell: false },
+    cmd,
+    args,
+    { stdio: ['inherit', 'pipe', 'pipe'], shell: false },
   )
+  const elapsed = (Date.now() - startTime) / 1000
+
   const stderr = result.stderr ? result.stderr.toString() : ''
+  const stdout = result.stdout ? result.stdout.toString() : ''
+
+  // Post-spawn diagnostic log
+  console.log(
+    `[spawn] exit status=${result.status ?? 'null'} signal=${result.signal ?? 'none'} elapsed=${elapsed.toFixed(1)}s`,
+  )
+
+  if (result.signal && ['SIGTERM', 'SIGKILL', 'SIGSEGV'].includes(result.signal)) {
+    console.log(`::warning::Translation killed by signal: ${result.signal}`)
+  }
+
+  if (stdout.length > 0) {
+    console.log(`[stdout last ${MAX_LOG_LINES} lines]\n${lastNLines(stdout, MAX_LOG_LINES)}`)
+  }
+
   if (result.error) {
-    process.stderr.write(`spawnSync error: ${result.error.message}\n`)
-    return { status: 1, signal: null, stderr }
+    console.log(`[spawnSync error] ${result.error.message}`)
+    return { status: 1, signal: null, stderr, elapsed }
   }
+
   if (stderr.length > 0) {
-    process.stderr.write(stderr)
+    console.log(`[stderr]\n${lastNLines(stderr, MAX_LOG_LINES)}`)
   }
-  return { status: result.status ?? 1, signal: result.signal, stderr }
+
+  return { status: result.status ?? 1, signal: result.signal, stderr, elapsed }
 }
 
 function main(): number {
@@ -144,6 +184,7 @@ function main(): number {
     const { input, lang, output } = parseArgs()
 
     const inputContent = readFileSync(input, 'utf-8')
+    const inputSize = Buffer.byteLength(inputContent, 'utf-8')
 
     // P-A2: protect bullet lists before translation
     let protectedContent = protectBullets(inputContent)
@@ -159,30 +200,43 @@ function main(): number {
     // Ensure output directory exists
     mkdirSync(dirname(output), { recursive: true })
 
+    // Track results across all attempts for final error summary.
+    const attemptResults: Array<{ attempt: number; status: number; signal: string | null; stderr: string; elapsed: number }> = []
+
     // Attempt translation with retries.
     // Retries address two failure modes:
     //   1. yuuhitsu exits non-zero (transient API error, rate limit, etc.)
     //   2. P-A1 incomplete output (LLM truncated the last chunk; retry produces complete output)
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      // Attempt-start diagnostic log
+      console.log(
+        `[attempt ${attempt + 1}/${MAX_RETRIES + 1}] input=${input} lang=${lang} size=${inputSize}B`,
+      )
+
       if (attempt > 0) {
-        console.log(`Retrying translation (attempt ${attempt + 1}/${MAX_RETRIES + 1})...`)
         // Remove stale output from the previous attempt
         try { if (existsSync(tmpOutput)) rmSync(tmpOutput) } catch { /* ignore */ }
       }
 
       // Run yuuhitsu translate
-      const { status, signal, stderr } = runYuuhitsu(tmpInput, lang, tmpOutput)
+      const { status, signal, stderr, elapsed } = runYuuhitsu(tmpInput, lang, tmpOutput, input, inputSize)
+      attemptResults.push({ attempt: attempt + 1, status, signal, stderr, elapsed })
+
       if (status !== 0) {
-        console.error(
-          `[diag] attempt=${attempt + 1} input=${input} ` +
-          `status=${status} signal=${signal ?? 'none'} ` +
-          `stderr_len=${stderr.length}`,
-        )
-        if (stderr.length === 0) {
-          console.error('[diag] stderr was empty — yuuhitsu may have been killed or aborted silently')
+        if (attempt < MAX_RETRIES) {
+          console.log(
+            `[attempt ${attempt + 1} failed] status=${status} signal=${signal ?? 'none'} elapsed=${elapsed.toFixed(1)}s — retrying`,
+          )
+          continue
         }
-        if (attempt < MAX_RETRIES) continue
-        console.error(`::error::Translation failed for ${input}`)
+        // All retries exhausted — emit full summary
+        const summary = attemptResults
+          .map(r =>
+            `attempt=${r.attempt} status=${r.status} signal=${r.signal ?? 'none'} elapsed=${r.elapsed.toFixed(1)}s` +
+            (r.stderr.length > 0 ? ` stderr_tail=${JSON.stringify(r.stderr.slice(-100))}` : ''),
+          )
+          .join(' | ')
+        console.error(`::error::Translation failed for ${input} — ${summary}`)
         return status
       }
 

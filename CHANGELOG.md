@@ -7,6 +7,7 @@
 
 ### Added
 - chore: Add diagnostic logging to translate-protected.ts retry loop (Part of #70, Closes #72)
+- fix(translate-pipeline): expose yuuhitsu true errors in CI logs — add pre/post-spawn diagnostics (cmd, file size, exit status, signal, elapsed, stdout/stderr tail) and per-attempt summary on final failure. Captures stdout via stdio pipe instead of inherit. Closes #83
 
 ### Fixed
 - fix(translate-pipeline): pass `--max-chunk-lines 100` to yuuhitsu to prevent P-A3 table corruption. Without this, files <300 lines (the default maxChunkLines) are sent as a single chunk; the claude provider's max_tokens=4096 then truncates large table output (compatibility-matrix.md: 312→189 rows, 60.6%). Smaller chunks ensure each section fits within the token limit. (Closes #68)
