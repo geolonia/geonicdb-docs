@@ -120,28 +120,83 @@ jobs:
         if: steps.detect.outputs.has_changes == 'true'
         run: npx tsx scripts/fix-doc-quality.ts
 
-      - name: Glossary compliance check
+      - name: Glossary check — block tier
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          BLOCK_FAILED=0
+          while IFS= read -r -d '' f; do
+            if ! npx --yes @geolonia/yuuhitsu@0.1.10 glossary check \
+                --input "$f" \
+                --glossary glossary.yaml \
+                --lang ja \
+                --severity-filter block \
+                --format text; then
+              echo "::error file=$f::Glossary block violation detected"
+              BLOCK_FAILED=$((BLOCK_FAILED + 1))
+            fi
+          done < <(find docs/ja -name "*.md" -print0)
+          if [ "$BLOCK_FAILED" -gt 0 ]; then
+            echo "::error::$BLOCK_FAILED file(s) have block-tier violations — blocking CI"
+            exit 1
+          fi
+
+      - name: Glossary fix — auto-fix tier
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          while IFS= read -r -d '' f; do
+            npx --yes @geolonia/yuuhitsu@0.1.10 glossary fix \
+              --input "$f" \
+              --glossary glossary.yaml \
+              --lang ja
+          done < <(find docs/ja -name "*.md" -print0)
+          if ! git diff --quiet docs/ja/; then
+            echo "glossary auto-fix: changes detected — will be included in PR"
+            git diff --name-only docs/ja/
+          else
+            echo "glossary auto-fix: no changes needed"
+          fi
+
+      - name: Glossary check — warn tier
         if: steps.detect.outputs.has_changes == 'true'
         continue-on-error: true
         run: |
-          # Check all ja docs after translation
-          FAILED=0
-          TOTAL=0
+          WARN_COUNT=0
           while IFS= read -r -d '' f; do
-            TOTAL=$((TOTAL + 1))
-            echo "Checking: $f"
-            if ! npx --yes @geolonia/yuuhitsu glossary check \
+            if ! npx --yes @geolonia/yuuhitsu@0.1.10 glossary check \
                 --input "$f" \
                 --glossary glossary.yaml \
-                --lang ja; then
-              echo "::warning file=$f::Glossary violation detected"
-              FAILED=$((FAILED + 1))
+                --lang ja \
+                --severity-filter warn \
+                --format text; then
+              echo "::warning file=$f::Glossary warn violation detected"
+              WARN_COUNT=$((WARN_COUNT + 1))
             fi
           done < <(find docs/ja -name "*.md" -print0)
-          echo "Glossary compliance check: $FAILED/$TOTAL files have violations"
-          if [ "$FAILED" -gt 0 ]; then
-            exit 1
-          fi
+          echo "Glossary warn-tier: $WARN_COUNT file(s) have warn violations (CI not blocked)"
+
+      - name: Glossary SARIF — generate
+        if: steps.detect.outputs.has_changes == 'true'
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/glossary-sarif
+          while IFS= read -r -d '' f; do
+            safename=$(echo "$f" | sed 's|/|_|g')
+            npx --yes @geolonia/yuuhitsu@0.1.10 glossary check \
+              --input "$f" \
+              --glossary glossary.yaml \
+              --lang ja \
+              --format sarif \
+              > "/tmp/glossary-sarif/${safename}.sarif" 2>/dev/null || true
+          done < <(find docs/ja -name "*.md" -print0)
+
+      - name: Glossary SARIF — upload artifact
+        if: steps.detect.outputs.has_changes == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: glossary-sarif
+          path: /tmp/glossary-sarif/
+          if-no-files-found: ignore
 
       - name: Build verification
         if: steps.detect.outputs.has_changes == 'true'
