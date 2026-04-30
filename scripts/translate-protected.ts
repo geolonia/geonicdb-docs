@@ -44,7 +44,7 @@ import {
 /** Maximum number of retry attempts after the first try. */
 const MAX_RETRIES = 2
 
-/** Maximum number of stdout/stderr lines to retain in logs (OOM guard for large files). */
+/** Maximum number of stdout lines to retain in logs (OOM guard for large translated output). */
 const MAX_LOG_LINES = 50
 
 function parseArgs(): { input: string; lang: string; output: string } {
@@ -63,11 +63,48 @@ function parseArgs(): { input: string; lang: string; output: string } {
   }
 }
 
-/** Return the last N lines of text (circular-buffer guard against OOM on large output). */
+/**
+ * Return the last N lines of text using a fixed-size circular buffer.
+ * Iterates over the string once without allocating a full split array,
+ * preventing OOM on large output (e.g., stdout from translated documents).
+ */
 function lastNLines(text: string, n: number): string {
-  const lines = text.split('\n')
-  if (lines.length <= n) return text
-  return `...(${lines.length - n} lines omitted)...\n` + lines.slice(-n).join('\n')
+  const ring: string[] = []
+  let totalLines = 0
+  let currentLine = ''
+
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '\n') {
+      ring.push(currentLine)
+      if (ring.length > n) ring.shift()
+      totalLines++
+      currentLine = ''
+    } else {
+      currentLine += text[i]
+    }
+  }
+
+  // Push any trailing content that has no terminating newline
+  if (currentLine.length > 0) {
+    ring.push(currentLine)
+    if (ring.length > n) ring.shift()
+    totalLines++
+  }
+
+  const omitted = totalLines - ring.length
+  if (omitted > 0) {
+    return `...(${omitted} lines omitted)...\n` + ring.join('\n')
+  }
+  return ring.join('\n')
+}
+
+/**
+ * Escape GitHub Actions workflow-command tokens in text before logging.
+ * Raw `::` sequences from subprocess output can inject workflow commands
+ * (e.g., `::set-output`, `::error::`) into CI logs.
+ */
+function sanitizeCI(text: string): string {
+  return text.replace(/::/g, '::​')
 }
 
 /**
@@ -108,6 +145,7 @@ type RunResult = {
  *
  * Logs command line, file size, exit status, signal, elapsed time, and full
  * stdout/stderr to console so CI logs expose the true yuuhitsu error.
+ * All subprocess output is sanitized to prevent workflow-command injection.
  */
 function runYuuhitsu(
   tmpInput: string,
@@ -162,17 +200,20 @@ function runYuuhitsu(
     console.log(`::warning::Translation killed by signal: ${result.signal}`)
   }
 
+  // Log stdout (truncated) and full stderr, both sanitized to prevent workflow-command injection
   if (stdout.length > 0) {
-    console.log(`[stdout last ${MAX_LOG_LINES} lines]\n${lastNLines(stdout, MAX_LOG_LINES)}`)
+    console.log(`[stdout last ${MAX_LOG_LINES} lines]\n${sanitizeCI(lastNLines(stdout, MAX_LOG_LINES))}`)
   }
 
   if (result.error) {
-    console.log(`[spawnSync error] ${result.error.message}`)
+    console.log(`[spawnSync error] ${sanitizeCI(result.error.message)}`)
     return { status: 1, signal: null, stderr, elapsed }
   }
 
   if (stderr.length > 0) {
-    console.log(`[stderr]\n${lastNLines(stderr, MAX_LOG_LINES)}`)
+    // Emit full stderr (not truncated) — error messages are typically small and
+    // full visibility is required to diagnose yuuhitsu failures.
+    console.log(`[stderr]\n${sanitizeCI(stderr)}`)
   }
 
   return { status: result.status ?? 1, signal: result.signal, stderr, elapsed }
@@ -233,7 +274,7 @@ function main(): number {
         const summary = attemptResults
           .map(r =>
             `attempt=${r.attempt} status=${r.status} signal=${r.signal ?? 'none'} elapsed=${r.elapsed.toFixed(1)}s` +
-            (r.stderr.length > 0 ? ` stderr_tail=${JSON.stringify(r.stderr.slice(-100))}` : ''),
+            (r.stderr.length > 0 ? ` stderr_tail=${JSON.stringify(sanitizeCI(r.stderr.slice(-100)))}` : ''),
           )
           .join(' | ')
         console.error(`::error::Translation failed for ${input} — ${summary}`)
@@ -291,14 +332,15 @@ function main(): number {
         return 1
       }
 
-      // P-A3: validate table row count — retry if corrupted, warn if all retries exhausted
+      // P-A3: validate table row count — retry on corruption, error if all retries exhausted
       const tableCheck = validateTableStructure(inputContent, outputContent)
       if (!tableCheck.ok) {
         if (attempt < MAX_RETRIES) {
           console.warn(`P-A3 table corruption on attempt ${attempt + 1}, retrying: ${tableCheck.reason}`)
           continue
         }
-        console.warn(`::warning::P-A3 table structure issue in ${output}: ${tableCheck.reason}`)
+        console.error(`::error::P-A3 table structure corrupted in ${output}: ${tableCheck.reason}`)
+        return 1
       }
 
       // All validations passed — write to final output
