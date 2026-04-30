@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@geolonia/yuuhitsu':
-        specifier: ^0.1.9
-        version: 0.1.9(ws@8.19.0)
+        specifier: ^0.1.11
+        version: 0.1.11(ws@8.19.0)
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
@@ -448,8 +448,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@geolonia/yuuhitsu@0.1.9':
-    resolution: {integrity: sha512-pBaJsKezxcEmxwXn+kPPQZTMCq+Bg5KbfaWgGzwpw0GmaoEQX/Eal3skWRSQg/tONA93G0WQaj8+ua+jl0gtdg==}
+  '@geolonia/yuuhitsu@0.1.11':
+    resolution: {integrity: sha512-7woP2DnP2jUFo/nfM91Q9iEgKg68anLP32erfkYejega7m3LT4LMUcJxoHs2XKcxFvRkqV+6+62Wr4mSog36aA==}
     hasBin: true
 
   '@google/genai@0.7.0':
@@ -1375,6 +1375,7 @@ packages:
 
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   vfile-message@4.0.3:
@@ -1853,7 +1854,7 @@ snapshots:
   '@esbuild/win32-x64@0.27.3':
     optional: true
 
-  '@geolonia/yuuhitsu@0.1.9(ws@8.19.0)':
+  '@geolonia/yuuhitsu@0.1.11(ws@8.19.0)':
     dependencies:
       '@anthropic-ai/sdk': 0.39.0
       '@google/genai': 0.7.0
