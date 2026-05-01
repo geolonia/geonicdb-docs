@@ -22,6 +22,10 @@ curl https://api.geonicdb.geolonia.com/v2/entities/tiles/Room/tilejson \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
 ### レスポンス
 
 ```json
@@ -37,6 +41,17 @@ curl https://api.geonicdb.geolonia.com/v2/entities/tiles/Room/tilejson \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
 ## タイルエンドポイント
 
 個別のタイルは Mapbox Vector Tile（MVT / `.pbf`）形式で配信されます：
@@ -44,6 +59,8 @@ curl https://api.geonicdb.geolonia.com/v2/entities/tiles/Room/tilejson \
 ```text
 GET /v2/entities/tiles/{entityType}/{z}/{x}/{y}.pbf
 ```
+
+
 
 | パラメータ | 説明 |
 |-----------|------|
@@ -113,6 +130,43 @@ GET /v2/entities/tiles/{entityType}/{z}/{x}/{y}.pbf
 </html>
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### クラスタの表示
 
 ```javascript
@@ -173,6 +227,62 @@ map.on('load', () => {
 });
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### クリック操作
 
 ```javascript
@@ -184,6 +294,14 @@ map.on('click', 'unclustered-point', (e) => {
     .addTo(map);
 });
 ```
+
+
+
+
+
+
+
+
 
 ## タイル内のエンティティプロパティ
 

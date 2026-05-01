@@ -24,6 +24,14 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots \
   }'
 ```
 
+
+
+
+
+
+
+
+
 **レスポンス：**
 
 ```json
@@ -36,6 +44,14 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots \
 }
 ```
 
+
+
+
+
+
+
+
+
 ## スナップショットの一覧
 
 ```bash
@@ -43,6 +59,10 @@ curl https://api.geonicdb.geolonia.com/v2/snapshots \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 **レスポンス：**
 
@@ -65,6 +85,23 @@ curl https://api.geonicdb.geolonia.com/v2/snapshots \
 ]
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## スナップショットの復元
 
 ```bash
@@ -72,6 +109,10 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 **レスポンス：**
 
@@ -82,6 +123,12 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T
   "restoredEntities": 1250
 }
 ```
+
+
+
+
+
+
 
 ::: warning
 スナップショットを復元すると、現在のエンティティデータがスナップショットデータで置き換えられます。スナップショット作成後に行われた変更は失われます。復元前に新しいスナップショットを作成することを検討してください。
@@ -94,6 +141,10 @@ curl -X DELETE https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-1
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 ## エンドポイント一覧
 
@@ -124,6 +175,18 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/snapshots/snapshot_2026-01-15T
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### 本番データでのテスト
 

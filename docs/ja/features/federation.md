@@ -18,6 +18,10 @@ GeonicDB のフェデレーションは、特定のエンティティタイプ�
                                  └── コンテキストプロバイダー B（例：交通サービス）
 ```
 
+
+
+
+
 ## Context Source Registration の作成
 
 ### NGSIv2
@@ -44,6 +48,26 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/registrations \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### NGSI-LD
 
 ```bash
@@ -65,6 +89,24 @@ curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/csourceRegistrations \
     "endpoint": "https://weather-broker.example.com/ngsi-ld/v1"
   }'
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 転送モード
 
@@ -91,6 +133,11 @@ curl https://api.geonicdb.geolonia.com/v2/entities?type=WeatherObserved \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
+
 ### エンティティレベルの転送
 
 個別エンティティの取得では、ローカルにエンティティが見つからないが登録がマッチする場合、GeonicDB は登録済みプロバイダーにリクエストを転送します：
@@ -100,6 +147,10 @@ curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:WeatherObserved:s
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 ## ループ検出
 
@@ -121,6 +172,14 @@ GeonicDB はマルチコンテキストブローカーフェデレーション�
 }
 ```
 
+
+
+
+
+
+
+
+
 ### エンティティ ID パターン別
 
 特定の ID パターンに一致するクエリを転送：
@@ -134,6 +193,14 @@ GeonicDB はマルチコンテキストブローカーフェデレーション�
   }
 }
 ```
+
+
+
+
+
+
+
+
 
 ### 属性別
 
@@ -150,6 +217,15 @@ GeonicDB はマルチコンテキストブローカーフェデレーション�
 }
 ```
 
+
+
+
+
+
+
+
+
+
 ## 登録の管理
 
 ### 一覧取得
@@ -160,6 +236,10 @@ curl https://api.geonicdb.geolonia.com/v2/registrations \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
 ### 削除
 
 ```bash
@@ -167,6 +247,10 @@ curl -X DELETE https://api.geonicdb.geolonia.com/v2/registrations/{registrationI
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 ## ベストプラクティス
 

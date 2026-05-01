@@ -5,74 +5,68 @@ outline: deep
 ---
 # WebSocket Event Streaming
 
-GeonicDB は WebSocket 経由でリアルタイムのイベントストリーミングをサポートしています。エンティティの変更をリアルタイムでサブスクライブし、Web アプリケーションやダッシュボードに即座に反映できます。
+GeonicDB supports real-time event streaming via WebSocket. You can subscribe to entity changes in real time and have them reflected instantly in web applications or dashboards.
 
-## 目次
+## Table of Contents
 
-- [概要](#概要)
-- [アーキテクチャと有効化](#アーキテクチャと有効化)
-- [接続](#接続)
-- [メッセージ形式とフィルタリング](#メッセージ形式とフィルタリング)
-- [クライアント実装](#クライアント実装)
-- [ベストプラクティス](#ベストプラクティス)
-- [トラブルシューティング](#トラブルシューティング)
-- [制約](#制約)
+- [Overview](#overview)
+- [Architecture and Enabling](#architecture-and-enabling)
+- [Connecting](#connecting)
+- [Message Format and Filtering](#message-format-and-filtering)
+- [Client Implementation](#client-implementation)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Constraints](#constraints)
 
 ---
 
-## 概要
+## Overview
 
-Event Streaming は、既存の MongoDB Change Streams → EventBridge パイプラインに並行パスを追加し、エンティティの変更を WebSocket クライアントにブロードキャストします。
+Event Streaming adds a parallel path to the existing MongoDB Change Streams → EventBridge pipeline, broadcasting entity changes to WebSocket clients.
 
-### 通知チャネルの比較
+### Notification Channel Comparison
 
-| チャネル | 方向 | フィルタリング | レイテンシ |
+| Channel | Direction | Filtering | Latency |
 |---------|-----------|-----------|---------|
-| HTTP Webhook (既存) | Push | サブスクリプション条件 | ~1 分 |
-| MQTT (既存) | Push | サブスクリプション条件 | ~1 分 |
-| WebSocket (本機能) | Push | テナント + エンティティタイプ/ID パターン | ~1 分 |
+| HTTP Webhook (existing) | Push | Subscription conditions | ~1 min |
+| MQTT (existing) | Push | Subscription conditions | ~1 min |
+| WebSocket (this feature) | Push | Tenant + entity type/ID pattern | ~1 min |
 
 ---
 
-## アーキテクチャと有効化
+## Architecture and Enabling
 
-### アーキテクチャ
+### Architecture
 
 ```text
 EventBridge ─┬─> SubscriptionMatcher -> SQS -> HTTP/MQTT  [existing]
              └─> WsBroadcastFunction -> API GW WebSocket -> client  [new]
 ```
 
+- **Connection state**: DynamoDB (PAY_PER_REQUEST, automatic TTL cleanup)
+- **Connection management**: Three Lambda functions (connect, disconnect, default)
+- **Broadcast**: Lambda function triggered directly from EventBridge
 
+### Enabling
 
-
-- **接続状態**: DynamoDB (PAY_PER_REQUEST、自動 TTL クリーンアップ)
-- **接続管理**: 3 つの Lambda 関数 (connect、disconnect、default)
-- **ブロードキャスト**: EventBridge から直接トリガーされる Lambda 関数
-
-### 有効化
-
-SAM テンプレートで `EventStreamingEnabled` パラメータを `true` に設定してデプロイします。
+Set the `EventStreamingEnabled` parameter to `true` in the SAM template and deploy.
 
 ```bash
 sam deploy -t infrastructure/template.yaml \
   --parameter-overrides EventStreamingEnabled=true
 ```
 
+### Environment Variables
 
-
-
-### 環境変数
-
-| 変数 | 説明 |
+| Variable | Description |
 |----------|-------------|
-| `EVENT_STREAMING_ENABLED` | `true` に設定することで有効化 |
-| `WS_CONNECTIONS_TABLE` | DynamoDB 接続テーブル名 (自動設定) |
-| `WS_API_ENDPOINT` | WebSocket API エンドポイント (自動設定) |
+| `EVENT_STREAMING_ENABLED` | Enable by setting to `true` |
+| `WS_CONNECTIONS_TABLE` | DynamoDB connections table name (auto-configured) |
+| `WS_API_ENDPOINT` | WebSocket API endpoint (auto-configured) |
 
 ---
 
-## 接続
+## Connecting
 
 ### WebSocket URL
 
@@ -80,58 +74,56 @@ sam deploy -t infrastructure/template.yaml \
 wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 ```
 
-
-
-ローカル開発の場合:
+For local development:
 
 ```text
 ws://localhost:3000?tenant={tenantName}
 ```
 
+### Query Parameters
 
-
-### クエリパラメータ
-
-| パラメータ | 必須 | 説明 |
+| Parameter | Required | Description |
 |-----------|----------|-------------|
-| `tenant` | ✅ | テナント名 (`Fiware-Service` ヘッダーと同等) |
+| `tenant` | ✅ | Tenant name (equivalent to the `Fiware-Service` header) |
 
-### 認証
+### Authentication
 
-`AUTH_ENABLED=true` の場合、WebSocket 接続を確立するには認証トークンが必要です。トークンは以下の優先順位で抽出されます:
+When `AUTH_ENABLED=true`, an authentication token is required to establish a WebSocket connection. The token is extracted in the following order of priority:
 
-1. **`Authorization` ヘッダー (推奨)**: `Authorization: Bearer <token>` — 最も安全な方法
-2. **`Sec-WebSocket-Protocol` ヘッダー (ブラウザ用)**: `Sec-WebSocket-Protocol: access_token, <token>` — ブラウザクライアントが `Authorization` ヘッダーを設定できない場合に使用
-3. **`token` クエリパラメータ (非推奨)**: `?token=<token>` — 後方互換性のために保持。URL にトークンが露出しセキュリティリスクがあるため、将来のリリースで削除予定
+1. **`Authorization` header (recommended)**: `Authorization: Bearer <token>` — the most secure method
+2. **`Sec-WebSocket-Protocol` header (for browsers)**: `Sec-WebSocket-Protocol: access_token, <token>` — use this when a browser client cannot set the `Authorization` header
 
-- REST API `/auth/login` エンドポイントから取得した `accessToken` をトークンとして直接使用します。
-- `super_admin` ロールは任意のテナントに接続できます。
-- `tenant_admin` / `user` ロールは自分のテナントのみに接続できます。
+> **Breaking change (#1072)**: The `?token=<token>` query parameter is no longer accepted. URLs leak into reverse-proxy / WAF / load-balancer access logs, browser history, and `Referer` headers. Clients that previously passed the token via the URL must switch to one of the two header methods above.
 
-| 条件 | 結果 |
+- Use the `accessToken` obtained from the REST API `/auth/login` endpoint directly as the token.
+- The `super_admin` role can connect to any tenant for WebSocket streaming. Note: while `super_admin` cannot access data APIs (`/v2/*`, `/ngsi-ld/*`) via REST, WebSocket event streaming is permitted for operational monitoring purposes.
+- The `tenant_admin` / `user` roles can only connect to their own tenant.
+
+| Condition | Result |
 |-----------|--------|
-| `AUTH_ENABLED=false`、トークンなし | ✅ 接続許可 |
-| `AUTH_ENABLED=true`、トークンなし | ❌ 接続拒否 (1008) |
-| `AUTH_ENABLED=true`、無効なトークン | ❌ 接続拒否 (1008) |
-| `AUTH_ENABLED=true`、有効なトークン、自分のテナント | ✅ 接続許可 |
-| `AUTH_ENABLED=true`、有効なトークン、他のテナント | ❌ 接続拒否 (1008) |
-| `AUTH_ENABLED=true`、super_admin、任意のテナント | ✅ 接続許可 |
+| `AUTH_ENABLED=false`, no token | ✅ Connection allowed |
+| `AUTH_ENABLED=true`, no token | ❌ Connection rejected (1008) |
+| `AUTH_ENABLED=true`, invalid token | ❌ Connection rejected (1008) |
+| `AUTH_ENABLED=true`, valid token, own tenant | ✅ Connection allowed |
+| `AUTH_ENABLED=true`, valid token, other tenant | ❌ Connection rejected (1008) |
+| `AUTH_ENABLED=true`, super_admin, any tenant | ✅ Connection allowed |
 
-### 接続フロー
+### Connection Flow
 
-1. クライアントが WebSocket URL に接続 (`tenant` クエリパラメータは必須。認証が有効な場合はトークンも必須)
-2. サーバーがトークンを検証し、テナントアクセス権を確認 (認証が有効な場合)
-3. サーバーが接続を DynamoDB に記録 (TTL: 2 時間)
-4. オプション: `subscribe` メッセージでフィルタ条件を設定
-5. エンティティが変更されると、サーバーがクライアントにイベントをプッシュ
+1. Client connects to the WebSocket URL (the `tenant` query parameter is required; a token is also required when authentication is enabled)
+2. Server validates the token and verifies tenant access rights (when authentication is enabled)
+3. If the token contains a `cnf.jkt` claim (DPoP-bound token), the connection enters `pending_dpop` state — the client must send a `dpop_bind` message within 5 seconds (see [DPoP Binding](#dpop-binding-for-websocket) below)
+4. Server records the connection in DynamoDB (TTL: 2 hours)
+5. Optional: set filter conditions via a `subscribe` message
+6. Server pushes events to the client when entities change
 
 ---
 
-## メッセージ形式とフィルタリング
+## Message Format and Filtering
 
-### クライアント → サーバー
+### Client → Server
 
-#### subscribe (フィルタ設定)
+#### subscribe (filter configuration)
 
 ```json
 {
@@ -141,19 +133,26 @@ ws://localhost:3000?tenant={tenantName}
 }
 ```
 
-
-
-
-
-
-
-| フィールド | 型 | 説明 |
+| Field | Type | Description |
 |-------|------|-------------|
 | `action` | string | `subscribe` |
-| `entityTypes` | string[] | フィルタするエンティティタイプ |
-| `idPattern` | string | エンティティ ID の正規表現パターン |
+| `entityTypes` | string[] | Entity types to filter |
+| `idPattern` | string | Regular expression pattern for entity IDs |
 
-#### ping (キープアライブ)
+#### dpop_bind (DPoP proof verification)
+
+```json
+{
+  "action": "dpop_bind",
+  "proof": "<DPoP proof JWT>"
+}
+```
+
+Required when connecting with a DPoP-bound token (JWT containing `cnf.jkt`). Must be sent within 5 seconds of connection. The server verifies the proof's JWK Thumbprint matches the token's `cnf.jkt` claim and responds with `{"type": "dpop_verified"}`. Until verified, all other messages are rejected with `{"type": "error", "message": "DPoP proof required"}`.
+
+See AUTH.md — DPoP Token Binding for details.
+
+#### ping (keep-alive)
 
 ```json
 {
@@ -161,15 +160,11 @@ ws://localhost:3000?tenant={tenantName}
 }
 ```
 
+The server returns `{"type": "pong"}`. Send a ping every 5 minutes to prevent the 10-minute idle timeout.
 
+### Server → Client
 
-
-
-サーバーは `{"type": "pong"}` を返します。10 分間のアイドルタイムアウトを防ぐため、5 分ごとに ping を送信してください。
-
-### サーバー → クライアント
-
-#### エンティティ変更イベント
+#### Entity change event
 
 ```json
 {
@@ -186,43 +181,97 @@ ws://localhost:3000?tenant={tenantName}
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-| フィールド | 型 | 説明 |
+| Field | Type | Description |
 |-------|------|-------------|
-| `type` | string | `entityCreated`、`entityUpdated`、`entityDeleted` |
-| `tenant` | string | テナント名 |
-| `servicePath` | string | サービスパス |
-| `entityId` | string | エンティティ ID |
-| `entityType` | string | エンティティタイプ |
-| `data` | object | エンティティ属性データ |
-| `changedAttributes` | string[] | 変更された属性名 (更新時のみ) |
-| `timestamp` | string | イベントタイムスタンプ (ISO 8601) |
+| `type` | string | `entityCreated`, `entityUpdated`, `entityDeleted` |
+| `tenant` | string | Tenant name |
+| `servicePath` | string | Service path |
+| `entityId` | string | Entity ID |
+| `entityType` | string | Entity type |
+| `data` | object | Entity attribute data |
+| `changedAttributes` | string[] | Names of changed attributes (on update only) |
+| `timestamp` | string | Event timestamp (ISO 8601) |
 
-### フィルタリング
+### Filtering
 
-- **テナントフィルタ (必須)**: 接続時に提供された `tenant` クエリパラメータで自動的にフィルタリング
-- **エンティティタイプフィルタ (オプション)**: `subscribe` メッセージの `entityTypes` で指定されたタイプのみを受信。指定しない場合は全てのタイプを受信。
-- **エンティティ ID パターンフィルタ (オプション)**: `subscribe` メッセージの `idPattern` で指定された正規表現パターンでフィルタ
+- **Tenant filter (required)**: Automatically filtered by the `tenant` query parameter provided at connection time
+- **Entity type filter (optional)**: Receive only the types specified in `entityTypes` in the `subscribe` message. If not specified, all types are received.
+- **Entity ID pattern filter (optional)**: Filter by regular expression pattern specified in `idPattern` in the `subscribe` message
 
 ---
 
-## クライアント実装
+## Client Implementation
 
-### クイックスタート (最小構成)
+### JavaScript SDK (Recommended)
 
-認証なしの最小接続例:
+The GeonicDB JavaScript SDK provides the simplest way to use WebSocket event streaming. It handles authentication, token refresh, DPoP binding, and reconnection automatically.
+
+```bash
+npm install @geolonia/geonicdb-sdk
+```
+
+```javascript
+import GeonicDB from '@geolonia/geonicdb-sdk';
+
+const db = new GeonicDB({
+  apiKey: 'your-api-key',
+  tenant: 'smartcity',
+  baseUrl: 'https://your-geonicdb.example.com'
+});
+
+// Subscribe to entity types
+db.subscribe({ entityTypes: ['Room', 'Sensor'] });
+
+// Listen for events
+db.on('entityCreated', function(event) { console.log('Created:', event.entityId); });
+db.on('entityUpdated', function(event) { console.log('Updated:', event.entityId); });
+
+// Connection lifecycle events
+db.on('connected', function() { console.log('Connected'); });
+db.on('disconnected', function() { console.log('Disconnected — reconnecting...'); });
+db.on('reconnecting', function(info) { console.log('Attempt', info.attempt, 'in', info.delay, 'ms'); });
+db.on('error', function(err) { console.error(err.message); });
+
+// Connect (authentication and DPoP binding are automatic)
+db.connect();
+
+// Check connection state after the connected event
+db.on('connected', function() {
+  if (db.isConnected()) { console.log('WebSocket is open'); }
+});
+
+// Force reconnect only when needed (e.g., after resuming from background)
+// db.reconnect();
+```
+
+For Bearer JWT authentication (e.g., after a login flow), inject credentials with `setCredentials()`:
+
+```javascript
+import GeonicDB from '@geolonia/geonicdb-sdk';
+
+const db = new GeonicDB({ tenant: 'my-tenant', baseUrl: 'https://...' });
+
+db.setCredentials({
+  token: auth.accessToken,
+  tokenType: 'Bearer',
+  expiresIn: auth.expiresIn,
+  refreshToken: auth.refreshToken
+});
+
+db.on('tokenRefresh', function(creds) {
+  // Sync new tokens to your storage
+  saveAuth(creds.token, creds.refreshToken);
+});
+
+db.subscribe({ entityTypes: ['Room'] });
+db.connect();
+```
+
+See the SDK documentation for the full API reference.
+
+### Quick Start (raw WebSocket, minimal setup)
+
+Minimal connection example without authentication:
 
 ```html
 <!DOCTYPE html>
@@ -264,44 +313,6 @@ ws://localhost:3000?tenant={tenantName}
 </html>
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### React + TypeScript
 
 ```typescript
@@ -313,6 +324,7 @@ interface EntityEvent {
   entityId: string;
   entityType: string;
   data: Record<string, any>;
+  entity?: Record<string, any>;  // Complete NGSI-LD entity ({ id, type, ...data }). Undefined for some delete events.
   changedAttributes?: string[];
   timestamp: string;
 }
@@ -423,124 +435,7 @@ function RoomMonitor() {
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### JavaScript (認証あり)
+### JavaScript (with authentication)
 
 ```javascript
 // Obtain a token
@@ -606,68 +501,6 @@ async function connectWebSocket(tenant, token) {
 })();
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ### Python
 
 ```python
@@ -696,31 +529,7 @@ async def stream_events():
 asyncio.run(stream_events())
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### wscat (デバッグ用)
+### wscat (for debugging)
 
 ```bash
 # Connect (when authentication is enabled, send the token via the Authorization header)
@@ -733,22 +542,49 @@ wscat -c "wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant=smart
 > {"action": "ping"}
 ```
 
+---
 
+## DPoP Binding for WebSocket
 
+WebSocket connections using DPoP-bound tokens require a post-connect proof verification step. Since the WebSocket protocol does not support custom headers after the initial handshake, DPoP proof is sent as a message after connection establishment.
 
+### Flow
 
+```text
+Client                               Server
+  │  WS Connect (token with cnf.jkt)    │
+  │ ──────────────────────────────────►  │
+  │  Connection accepted (pending_dpop)  │
+  │ ◄──────────────────────────────────  │
+  │                                      │
+  │  { action: "dpop_bind",             │
+  │    proof: "<DPoP proof JWT>" }      │
+  │ ──────────────────────────────────►  │  ← Must be sent within 5 seconds
+  │  { type: "dpop_verified" }          │
+  │ ◄──────────────────────────────────  │
+  │                                      │
+  │  { action: "subscribe", ... }       │  ← Now allowed
+  │ ──────────────────────────────────►  │
+```
 
+### States
 
+| State | Description | Allowed Messages |
+|-------|-------------|------------------|
+| `pending_dpop` | Awaiting DPoP proof after connection | `dpop_bind` only |
+| `verified` | DPoP proof verified successfully | `subscribe`, `ping`, etc. |
 
-
+If the `dpop_bind` message is not received within 5 seconds, the connection is terminated.
 
 ---
 
-## ベストプラクティス
+## Best Practices
 
-### 1. 再接続ロジック
+### 1. Reconnection Logic
 
-Exponential Backoff を使用した堅牢な再接続を実装:
+> **Note**: If you are using the JavaScript SDK, reconnection with exponential backoff is built in. Use `db.reconnect()` to force a reconnection, or listen for the `reconnecting` event to track reconnect attempts. The examples below are for raw WebSocket implementations.
+
+Implement robust reconnection with Exponential Backoff:
 
 ```javascript
 class GeonicDBWebSocket {
@@ -784,41 +620,9 @@ class GeonicDBWebSocket {
 }
 ```
 
+### 2. Keep-Alive
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### 2. キープアライブ
-
-10 分間のアイドルタイムアウトを防ぐため、5 分ごとに ping を送信:
+Send a ping every 5 minutes to prevent the 10-minute idle timeout:
 
 ```javascript
 setInterval(() => {
@@ -828,15 +632,9 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 ```
 
+### 3. Optimizing Event Processing
 
-
-
-
-
-
-### 3. イベント処理の最適化
-
-大量のイベントを受信する場合、デバウンシングで UI 更新を最適化:
+When receiving large volumes of events, optimize UI updates with debouncing:
 
 ```javascript
 import { debounce } from 'lodash';
@@ -851,20 +649,9 @@ ws.onmessage = (event) => {
 };
 ```
 
+### 4. Security
 
-
-
-
-
-
-
-
-
-
-
-### 4. セキュリティ
-
-**安全なトークン管理:**
+**Secure token management:**
 
 ```javascript
 // ❌ Bad example: storing in local storage
@@ -881,20 +668,7 @@ async function getToken() {
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-**トークン有効期限管理:**
+**Token expiry management:**
 
 ```javascript
 function isTokenExpired(token, bufferSeconds = 60) {
@@ -908,19 +682,9 @@ function isTokenExpired(token, bufferSeconds = 60) {
 }
 ```
 
+### 5. Memory Management
 
-
-
-
-
-
-
-
-
-
-### 5. メモリ管理
-
-メモリリークを防ぐためイベント履歴に上限を設定:
+Set a limit on event history to prevent memory leaks:
 
 ```javascript
 const MAX_EVENTS = 1000;
@@ -935,29 +699,18 @@ onUnmounted(() => {
 });
 ```
 
-
-
-
-
-
-
-
-
-
-
-
 ---
 
-## トラブルシューティング
+## Troubleshooting
 
-### 1. 接続が拒否される (1008 エラー)
+### 1. Connection Rejected (1008 Error)
 
-**原因:**
-- トークンが無効または期限切れ
-- テナントへのアクセス権限がない
-- `AUTH_ENABLED=true` にもかかわらずトークンが提供されていない
+**Causes:**
+- Token is invalid or expired
+- No access permission for the tenant
+- Token not provided despite `AUTH_ENABLED=true`
 
-**解決方法:**
+**Resolution:**
 
 ```javascript
 ws.onclose = (event) => {
@@ -969,19 +722,11 @@ ws.onclose = (event) => {
 };
 ```
 
+### 2. Connection Drops After 10 Minutes
 
+**Cause:** Keep-alive (ping) messages are not being sent.
 
-
-
-
-
-
-
-### 2. 10 分後に接続が切断される
-
-**原因:** キープアライブ (ping) メッセージが送信されていない。
-
-**解決方法:**
+**Resolution:**
 
 ```javascript
 // Send a ping every 5 minutes
@@ -992,21 +737,14 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 ```
 
+### 3. Not Receiving Events
 
+**Causes:**
+- Filters are too restrictive
+- Wrong tenant
+- Entity creation/update has not actually occurred
 
-
-
-
-
-
-### 3. イベントを受信できない
-
-**原因:**
-- フィルタが厳しすぎる
-- テナントが間違っている
-- エンティティの作成/更新が実際に発生していない
-
-**解決方法:**
+**Resolution:**
 
 ```javascript
 // Debug: log all messages
@@ -1023,26 +761,13 @@ ws.send(JSON.stringify({
 }));
 ```
 
+### 4. Cannot Connect in Local Development
 
+**Causes:**
+- Local server is not running
+- WebSocket URL is incorrect
 
-
-
-
-
-
-
-
-
-
-
-
-### 4. ローカル開発で接続できない
-
-**原因:**
-- ローカルサーバーが起動していない
-- WebSocket URL が間違っている
-
-**解決方法:**
+**Resolution:**
 
 ```bash
 # Start the local server
@@ -1052,15 +777,9 @@ npm start
 const wsUrl = 'ws://localhost:3000?tenant=demo';
 ```
 
+### 5. Debugging
 
-
-
-
-
-
-### 5. デバッグ
-
-ブラウザの開発者ツールの Network タブで、WebSocket 接続と送受信メッセージを確認できます。
+You can inspect WebSocket connections and sent/received messages in the Network tab of your browser's developer tools.
 
 ```javascript
 class DebugWebSocket {
@@ -1080,39 +799,24 @@ class DebugWebSocket {
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ---
 
-## 制約
+## Constraints
 
-| 項目 | 値 | 説明 |
+| Item | Value | Description |
 |------|-------|-------------|
-| アイドルタイムアウト | 10 分 | クライアントは 5 分ごとに ping を送信する必要がある |
-| 同時接続数 | 500 (デフォルト) | AWS Support 経由で増加可能 |
-| フレームサイズ | 128KB | 大きなエンティティは切り詰めが必要 |
-| レイテンシ | ~1 分 | MongoDB Change Stream のポーリング間隔に依存 |
-| 接続 TTL | 2 時間 | DynamoDB TTL により自動クリーンアップ |
-| ローカル開発 | サポート | ローカル WebSocket サーバー経由で利用可能 |
+| Idle timeout | 10 minutes | Clients must send a ping every 5 minutes |
+| Concurrent connections | 500 (default) | Can be increased via AWS Support |
+| Frame size | 128KB | Large entities require truncation |
+| Latency | ~1 minute | Depends on the MongoDB Change Stream polling interval |
+| Connection TTL | 2 hours | Automatically cleaned up by DynamoDB TTL |
+| Local development | Supported | Available via local WebSocket server |
 
 ---
 
-## 関連ドキュメント
+## Related Documentation
 
-- [API 共通仕様](../api-reference/endpoints.md) - REST API ドキュメント
-- 認証と認可 - 認証設定
-- [開発ガイド](../getting-started/installation.md) - ローカル開発とデプロイ
+- JavaScript SDK - SDK API reference (recommended for browser applications)
+- [API Common Specification](../api-reference/endpoints.md) - REST API documentation
+- Authentication and Authorization - Authentication configuration
+- [Development Guide](../getting-started/installation.md) - Local development and deployment

@@ -39,6 +39,23 @@ GeonicDB はロールベースアクセス制御を備えた **JWT ベースの�
 └────┘                                     └─────┘
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 1. クライアントが `POST /auth/login` に認証情報を送信し、アクセストークンとリフレッシュトークンを受け取ります。
 2. アクセストークンは後続のリクエストで `Authorization: Bearer` ヘッダーに含めます。
 3. アクセストークンの有効期限が切れた場合、クライアントはリフレッシュトークンを使って `POST /auth/refresh` を呼び出し、新しいアクセストークンを取得します。
@@ -58,6 +75,13 @@ curl -X POST https://api.geonicdb.geolonia.com/auth/login \
   }'
 ```
 
+
+
+
+
+
+
+
 **レスポンス** `200 OK`
 
 ```json
@@ -75,6 +99,19 @@ curl -X POST https://api.geonicdb.geolonia.com/auth/login \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### トークンのリフレッシュ
 
 リフレッシュトークンを使用して、再認証なしで新しいアクセストークンを取得します。
@@ -87,6 +124,12 @@ curl -X POST https://api.geonicdb.geolonia.com/auth/refresh \
   }'
 ```
 
+
+
+
+
+
+
 **レスポンス** `200 OK`
 
 ```json
@@ -97,6 +140,12 @@ curl -X POST https://api.geonicdb.geolonia.com/auth/refresh \
 }
 ```
 
+
+
+
+
+
+
 ### 現在のユーザーを取得
 
 現在認証されているユーザーのプロフィールを取得します。
@@ -105,6 +154,9 @@ curl -X POST https://api.geonicdb.geolonia.com/auth/refresh \
 curl https://api.geonicdb.geolonia.com/me \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -120,6 +172,16 @@ curl https://api.geonicdb.geolonia.com/me \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
 ### パスワード変更
 
 現在認証されているユーザーのパスワードを変更します。
@@ -133,6 +195,14 @@ curl -X POST https://api.geonicdb.geolonia.com/me/password \
     "new_password": "NewSecureP@ss123!"
   }'
 ```
+
+
+
+
+
+
+
+
 
 **レスポンス** `204 No Content`
 
@@ -150,6 +220,9 @@ curl -X POST https://api.geonicdb.geolonia.com/me/password \
 curl "https://api.geonicdb.geolonia.com/admin/users?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -183,6 +256,34 @@ curl "https://api.geonicdb.geolonia.com/admin/users?limit=20&offset=0" \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 `limit` および `offset` パラメータの詳細は[ページネーション](/ja/api-reference/pagination)を参照してください。
 
 ### ユーザー作成
@@ -200,6 +301,17 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/users \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
 **レスポンス** `201 Created`
 
 ```json
@@ -214,6 +326,16 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/users \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
 ### ユーザー更新
 
 ```bash
@@ -226,6 +348,15 @@ curl -X PATCH https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000
     "tenants": ["smartcity", "demo"]
   }'
 ```
+
+
+
+
+
+
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -241,12 +372,25 @@ curl -X PATCH https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
 ### ユーザー削除
 
 ```bash
 curl -X DELETE https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM0000000000000003 \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `204 No Content`
 
@@ -262,6 +406,14 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM00000000
   -H "Authorization: Bearer <access_token>"
 ```
 
+
+
+
+
+
+
+
+
 **レスポンス** `200 OK`
 
 ```json
@@ -271,6 +423,12 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM00000000
   "updated_at": "2026-02-10T10:00:00Z"
 }
 ```
+
+
+
+
+
+
 
 無効化されたユーザーはログインや API 呼び出しができなくなります。データと設定は保持されます。
 
@@ -284,6 +442,9 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/users/usr_01HQ3XJKM00000000
 curl "https://api.geonicdb.geolonia.com/admin/tenants?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -311,6 +472,28 @@ curl "https://api.geonicdb.geolonia.com/admin/tenants?limit=20&offset=0" \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### テナント作成
 
 ```bash
@@ -328,6 +511,20 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/tenants \
     }
   }'
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 **レスポンス** `201 Created`
 
@@ -347,6 +544,20 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/tenants \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### テナント更新
 
 ```bash
@@ -361,6 +572,16 @@ curl -X PATCH https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM00000
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
 **レスポンス** `200 OK`
 
 ### テナント削除
@@ -369,6 +590,9 @@ curl -X PATCH https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM00000
 curl -X DELETE https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `204 No Content`
 
@@ -388,6 +612,14 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM000000
   -H "Authorization: Bearer <access_token>"
 ```
 
+
+
+
+
+
+
+
+
 **レスポンス** `200 OK`
 
 ```json
@@ -398,6 +630,13 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/tenants/tnt_01HQ3XJKM000000
   "updated_at": "2026-02-10T10:00:00Z"
 }
 ```
+
+
+
+
+
+
+
 
 無効化されたテナントでは、すべての API リクエストが `403 Forbidden` で拒否されます。データは保持され、再有効化すると再びアクセスできます。
 
@@ -413,6 +652,9 @@ GeonicDB は **XACML 3.0** ポリシーを使用した、きめ細かい属性�
 curl "https://api.geonicdb.geolonia.com/admin/policies?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -440,6 +682,28 @@ curl "https://api.geonicdb.geolonia.com/admin/policies?limit=20&offset=0" \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### ポリシー作成
 
 ```bash
@@ -465,6 +729,27 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/policies \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **レスポンス** `201 Created`
 
 ```json
@@ -476,6 +761,14 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/policies \
   "created_at": "2026-02-10T09:00:00Z"
 }
 ```
+
+
+
+
+
+
+
+
 
 ### ポリシー更新
 
@@ -495,6 +788,20 @@ curl -X PUT https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM000000
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **レスポンス** `200 OK`
 
 ### ポリシー削除
@@ -503,6 +810,9 @@ curl -X PUT https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM000000
 curl -X DELETE https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `204 No Content`
 
@@ -517,6 +827,14 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM00000
 curl -X POST https://api.geonicdb.geolonia.com/admin/policies/pol_01HQ3XJKM0000000000000002/activate \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
+
+
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -537,6 +855,17 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/policies/import \
   -d @policies-backup.json
 ```
 
+
+
+
+
+
+
+
+
+
+
+
 **エクスポートのレスポンス** `200 OK`
 
 ```json
@@ -555,6 +884,20 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/policies/import \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **インポートのレスポンス** `200 OK`
 
 ```json
@@ -564,6 +907,12 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/policies/import \
   "errors": []
 }
 ```
+
+
+
+
+
+
 
 ## OAuth クライアント管理
 
@@ -575,6 +924,9 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/policies/import \
 curl "https://api.geonicdb.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -598,6 +950,24 @@ curl "https://api.geonicdb.geolonia.com/admin/oauth-clients?limit=20&offset=0" \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### OAuth クライアント作成
 
 ```bash
@@ -611,6 +981,16 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/oauth-clients \
     "tenants": ["smartcity"]
   }'
 ```
+
+
+
+
+
+
+
+
+
+
 
 **レスポンス** `201 Created`
 
@@ -628,6 +1008,18 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/oauth-clients \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
 ::: warning
 `client_secret` は作成時に**一度だけ**返されます。安全に保管してください。紛失した場合は、シークレット再生成エンドポイントを使用してください。
 :::
@@ -644,6 +1036,14 @@ curl -X PATCH https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJK
   }'
 ```
 
+
+
+
+
+
+
+
+
 **レスポンス** `200 OK`
 
 ### OAuth クライアント削除
@@ -652,6 +1052,9 @@ curl -X PATCH https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJK
 curl -X DELETE https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM0000000000000002 \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `204 No Content`
 
@@ -662,6 +1065,9 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM
   -H "Authorization: Bearer <access_token>"
 ```
 
+
+
+
 **レスポンス** `200 OK`
 
 ```json
@@ -671,6 +1077,12 @@ curl -X POST https://api.geonicdb.geolonia.com/admin/oauth-clients/oac_01HQ3XJKM
   "regenerated_at": "2026-02-10T11:00:00Z"
 }
 ```
+
+
+
+
+
+
 
 ::: danger
 シークレットを再生成すると、以前のシークレットは即座に無効になります。旧シークレットを使用しているすべてのアプリケーションがアクセスできなくなります。
@@ -691,6 +1103,13 @@ curl -X POST https://api.geonicdb.geolonia.com/oauth/token \
   -d "scope=entities:read entities:write"
 ```
 
+
+
+
+
+
+
+
 **レスポンス** `200 OK`
 
 ```json
@@ -702,6 +1121,13 @@ curl -X POST https://api.geonicdb.geolonia.com/oauth/token \
 }
 ```
 
+
+
+
+
+
+
+
 取得したアクセストークンを、後続の API 呼び出しの `Authorization` ヘッダーに使用します。
 
 ```bash
@@ -709,6 +1135,10 @@ curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer <access_token>" \
   -H "Fiware-Service: smartcity"
 ```
+
+
+
+
 
 ## メトリクス
 
@@ -720,6 +1150,9 @@ API 使用状況のメトリクスを表示・管理します。`super_admin` �
 curl "https://api.geonicdb.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&to=2026-02-10T23:59:59Z" \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -753,6 +1186,34 @@ curl "https://api.geonicdb.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### メトリクスの削除
 
 指定した期間のメトリクスデータを削除します。
@@ -761,6 +1222,9 @@ curl "https://api.geonicdb.geolonia.com/admin/metrics?from=2026-02-01T00:00:00Z&
 curl -X DELETE "https://api.geonicdb.geolonia.com/admin/metrics?before=2025-12-31T23:59:59Z" \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -771,6 +1235,11 @@ curl -X DELETE "https://api.geonicdb.geolonia.com/admin/metrics?before=2025-12-3
 }
 ```
 
+
+
+
+
+
 ## ヘルスチェックとシステムエンドポイント
 
 /health と /version エンドポイントは認証不要です。その他の管理エンドポイントには super_admin ロールが必要です。
@@ -780,6 +1249,8 @@ curl -X DELETE "https://api.geonicdb.geolonia.com/admin/metrics?before=2025-12-3
 ```bash
 curl https://api.geonicdb.geolonia.com/health
 ```
+
+
 
 **レスポンス** `200 OK`
 
@@ -795,11 +1266,23 @@ curl https://api.geonicdb.geolonia.com/health
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
 ### バージョン
 
 ```bash
 curl https://api.geonicdb.geolonia.com/version
 ```
+
+
 
 **レスポンス** `200 OK`
 
@@ -812,6 +1295,13 @@ curl https://api.geonicdb.geolonia.com/version
 }
 ```
 
+
+
+
+
+
+
+
 ### 統計情報
 
 システム全体の統計情報を取得します。`super_admin` ロールが必要です。
@@ -820,6 +1310,9 @@ curl https://api.geonicdb.geolonia.com/version
 curl https://api.geonicdb.geolonia.com/statistics \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK`
 
@@ -834,6 +1327,15 @@ curl https://api.geonicdb.geolonia.com/statistics \
 }
 ```
 
+
+
+
+
+
+
+
+
+
 ### Prometheus メトリクス
 
 モニタリング連携のため、Prometheus エクスポジション形式でメトリクスを取得します。
@@ -842,6 +1344,9 @@ curl https://api.geonicdb.geolonia.com/statistics \
 curl https://api.geonicdb.geolonia.com/metrics \
   -H "Authorization: Bearer <access_token>"
 ```
+
+
+
 
 **レスポンス** `200 OK` (`text/plain`)
 
@@ -856,6 +1361,15 @@ geonicdb_request_duration_seconds_bucket{le="0.01"} 980000
 geonicdb_request_duration_seconds_bucket{le="0.1"} 1300000
 ```
 
+
+
+
+
+
+
+
+
+
 ## セキュリティ設定
 
 ### IP 制限
@@ -865,6 +1379,8 @@ geonicdb_request_duration_seconds_bucket{le="0.1"} 1300000
 ```text
 ADMIN_ALLOWED_IPS=203.0.113.0/24,198.51.100.50,2001:db8::/32
 ```
+
+
 
 設定した場合:
 - 許可された IP からのリクエストは通常どおり処理されます。
@@ -942,6 +1458,12 @@ Admin API のエラーは GeonicDB の標準エラー形式に従います。完
   "status": 403
 }
 ```
+
+
+
+
+
+
 
 ## エンドポイント一覧
 

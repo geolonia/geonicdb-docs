@@ -34,6 +34,14 @@ AWS Lambda（GeonicDB）
 MongoDB Atlas
 ```
 
+
+
+
+
+
+
+
+
 サブスクリプション通知は **EventBridge** と **SQS FIFO** キューを介して非同期に処理され、HTTP Webhook、MQTT、WebSocket チャネルによる順序保証された信頼性の高い配信を実現します。
 
 ## デュアル API: NGSIv2 と NGSI-LD

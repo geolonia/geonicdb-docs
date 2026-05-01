@@ -25,11 +25,15 @@ ZFXY は、Google マップや OpenStreetMap 等で使われる2Dウェブ地図
 z/f/x/y
 ```
 
+
+
 先頭スラッシュ付き:
 
 ```text
 /z/f/x/y
 ```
+
+
 
 **例**: `20/0/929593/410773` はズームレベル20、地上レベルの東京付近のタイルを識別します。
 
@@ -69,6 +73,9 @@ curl "https://api.geonicdb.geolonia.com/v2/entities?spatialId=20/0/929593/410773
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
 ### 深度展開付きクエリ
 
 より細かいズームレベルの子タイルを含めてクエリを展開:
@@ -77,6 +84,9 @@ curl "https://api.geonicdb.geolonia.com/v2/entities?spatialId=20/0/929593/410773
 curl "https://api.geonicdb.geolonia.com/v2/entities?spatialId=18/0/232398/102693&depth=2" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
 
 `depth=2` の場合、ズームレベル18の親タイル内に含まれるズームレベル20の全タイルのエンティティを返します。
 

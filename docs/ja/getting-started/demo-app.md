@@ -101,6 +101,23 @@ cp .env.sample .env
 pnpm dev
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 `http://localhost:5173` をブラウザで開くとランディングページにアクセスできます。
 
 ### 環境変数
@@ -137,6 +154,19 @@ geonicdb-demo-app/
 ├── e2e/                     # Playwright E2E テスト
 └── scripts/demo-data/       # デモデータセットアップ
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## リンク
 

@@ -35,6 +35,16 @@ CADDE コネクタ
 CADDE 利用者
 ```
 
+
+
+
+
+
+
+
+
+
+
 ## CADDE リクエストヘッダー
 
 CADDE コネクタが GeonicDB にアクセスする際、以下のヘッダーを含めます:
@@ -94,6 +104,12 @@ curl https://api.geonicdb.geolonia.com/v2/entities?type=AirQualityObserved \
   -H "Authorization: Bearer YOUR_CADDE_TOKEN"
 ```
 
+
+
+
+
+
+
 レスポンスには標準の NGSI データに加えて CADDE 来歴ヘッダーが含まれます:
 
 ```text
@@ -106,6 +122,15 @@ Content-Type: application/json
 
 [...]
 ```
+
+
+
+
+
+
+
+
+
 
 ## 次のステップ
 

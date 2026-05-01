@@ -75,6 +75,46 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **201号室 — 西棟:**
 
 ```bash
@@ -119,6 +159,46 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 どちらも **201 Created** が返されます。
 
 ## ステップ 2: エンティティのクエリ
@@ -131,10 +211,17 @@ curl -s https://api.geonicdb.geolonia.com/v2/entities?type=Room \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
 
+
+
+
+
 ```json
 "urn:ngsi-ld:Room:101"
 "urn:ngsi-ld:Room:201"
 ```
+
+
+
 
 ### 特定のエンティティを取得
 
@@ -143,6 +230,10 @@ curl -s https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101 \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
+
+
+
+
 
 ### 属性値でフィルタリング
 
@@ -154,9 +245,15 @@ curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=temperature>2
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
 
+
+
+
+
 ```json
 "urn:ngsi-ld:Room:201"
 ```
+
+
 
 ### 特定の属性のみ取得
 
@@ -168,6 +265,10 @@ curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&attrs=name,temp
   -H "Fiware-Service: smartbuilding" | jq .
 ```
 
+
+
+
+
 ### Key-Values 形式
 
 メタデータなしの簡略化した出力：
@@ -177,6 +278,10 @@ curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&options=keyValu
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
+
+
+
+
 
 ```json
 [
@@ -194,6 +299,20 @@ curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&options=keyValu
 ]
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### 複合フィルター
 
 2階で温度が高い使用中の部屋を検索：
@@ -203,6 +322,10 @@ curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=floor==2;temp
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq '.[].id'
 ```
+
+
+
+
 
 ## ステップ 3: 属性の更新
 
@@ -231,6 +354,25 @@ curl -X PATCH https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 成功すると **204 No Content** が返されます。
 
 ### 属性値の直接更新
@@ -244,6 +386,12 @@ curl -X PUT https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/a
   -H "Fiware-Service: smartbuilding" \
   -d '22.0'
 ```
+
+
+
+
+
+
 
 ### 新しい属性の追加
 
@@ -261,6 +409,17 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:101/
     }
   }'
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 ## ステップ 4: サブスクリプションの作成
 
@@ -294,6 +453,32 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **201 Created** が返され、`Location` ヘッダーにサブスクリプション ID が含まれます。
 
 ### サブスクリプション一覧
@@ -303,6 +488,10 @@ curl -s https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding" | jq .
 ```
+
+
+
+
 
 ### 通知の仕組み
 
@@ -323,6 +512,19 @@ Room エンティティの温度が27°Cを超える値に更新されると、G
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 ::: info 通知チャネル
 HTTP Webhook の他に、GeonicDB は **MQTT**（QoS 0/1/2）と **WebSocket** 通知もサポートしています。詳細は サブスクリプション ページをご覧ください。
 :::
@@ -336,6 +538,10 @@ curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Room:20
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: smartbuilding"
 ```
+
+
+
+
 
 **204 No Content** が返されます。
 
@@ -355,6 +561,17 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
     ]
   }'
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 ## まとめ
 

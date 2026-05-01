@@ -36,6 +36,8 @@ AI エージェント（または任意の HTTP クライアント）が `GET /`
 curl https://api.geonicdb.geolonia.com/
 ```
 
+
+
 レスポンスは LLM がパースして API を理解できる Markdown ドキュメントです。
 
 ### AI エージェントワークフローでの利用
@@ -51,6 +53,14 @@ docs = requests.get("https://api.geonicdb.geolonia.com/").text
 # LLM にコンテキストとして渡す
 # LLM は API 構造を理解し、適切な呼び出しを生成可能
 ```
+
+
+
+
+
+
+
+
 
 ## なぜ llms.txt か？
 

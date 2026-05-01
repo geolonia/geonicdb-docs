@@ -27,6 +27,10 @@ curl https://api.geonicdb.geolonia.com/catalog \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
 **レスポンス：**
 
 ```json
@@ -70,6 +74,45 @@ curl https://api.geonicdb.geolonia.com/catalog \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### GET /catalog/datasets
 
 ページネーション付きのデータセット一覧。
@@ -79,6 +122,10 @@ curl "https://api.geonicdb.geolonia.com/catalog/datasets?limit=10&offset=0" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 | パラメータ | 説明 | デフォルト |
 |-----------|------|-----------|
@@ -95,6 +142,10 @@ curl https://api.geonicdb.geolonia.com/catalog/datasets/Room \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
 ### GET /catalog/datasets/{datasetId}/sample
 
 データセットのサンプルエンティティを取得。
@@ -104,6 +155,10 @@ curl "https://api.geonicdb.geolonia.com/catalog/datasets/Room/sample?limit=3" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 | パラメータ | 説明 | デフォルト |
 |-----------|------|-----------|
@@ -123,6 +178,10 @@ curl https://api.geonicdb.geolonia.com/catalog/ckan/package_list \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
 **レスポンス：**
 
 ```json
@@ -131,6 +190,11 @@ curl https://api.geonicdb.geolonia.com/catalog/ckan/package_list \
   "result": ["room", "sensor", "device"]
 }
 ```
+
+
+
+
+
 
 ### GET /catalog/ckan/package_show
 
@@ -141,6 +205,10 @@ curl "https://api.geonicdb.geolonia.com/catalog/ckan/package_show?id=room" \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 **レスポンス：**
 
@@ -176,6 +244,36 @@ curl "https://api.geonicdb.geolonia.com/catalog/ckan/package_show?id=room" \
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### GET /catalog/ckan/current_package_list_with_resources
 
 リソース情報付きのページネーション対応パッケージ一覧。
@@ -185,6 +283,10 @@ curl "https://api.geonicdb.geolonia.com/catalog/ckan/current_package_list_with_r
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 ## エンドポイント一覧
 
@@ -216,5 +318,9 @@ curl https://api.geonicdb.geolonia.com/catalog \
   -H "Fiware-Service: smart_city" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
 
 各テナントのカタログには、そのテナントに属するエンティティタイプとデータのみが含まれます。

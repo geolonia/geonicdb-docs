@@ -25,6 +25,8 @@ API エンドポイントに到達できるか確認します：
 curl https://api.geonicdb.geolonia.com/version
 ```
 
+
+
 期待されるレスポンス：
 
 ```json
@@ -35,6 +37,13 @@ curl https://api.geonicdb.geolonia.com/version
   }
 }
 ```
+
+
+
+
+
+
+
 
 ## ステップ 2: エンティティの作成
 
@@ -65,6 +74,29 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 作成に成功すると `Location` ヘッダー付きで **201 Created** が返されます。
 
 ::: info Fiware-Service について
@@ -80,6 +112,10 @@ curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
+
+
+
+
 
 期待されるレスポンス：
 
@@ -104,6 +140,25 @@ curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## ステップ 4: エンティティの更新
 
 温度の値を更新します：
@@ -121,6 +176,17 @@ curl -X PATCH https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Temperat
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
 更新に成功すると **204 No Content** が返されます。
 
 更新を確認：
@@ -130,6 +196,10 @@ curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
+
+
+
+
 
 ```json
 {
@@ -141,6 +211,14 @@ curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor
 }
 ```
 
+
+
+
+
+
+
+
+
 ## ステップ 5: エンティティの削除
 
 エンティティを削除します：
@@ -150,6 +228,10 @@ curl -X DELETE https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:Tempera
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
+
+
+
+
 
 削除に成功すると **204 No Content** が返されます。
 
@@ -180,6 +262,27 @@ curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 どちらの API からでも取得できます：
 
 ```bash
@@ -193,6 +296,16 @@ curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor
   -H "x-api-key: YOUR_API_KEY" \
   -H "Fiware-Service: myproject"
 ```
+
+
+
+
+
+
+
+
+
+
 
 両方の API が同じエンティティを返し、リクエストされた形式に自動変換されます。
 

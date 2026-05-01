@@ -23,6 +23,15 @@ GeonicDB（Context Broker）
 └──────────────┴───────────┴──────────┘
 ```
 
+
+
+
+
+
+
+
+
+
 **主要コンポーネント**:
 
 - NGSIv2 / NGSI-LD API による IoT センサー・外部システムからの**データ取り込み**
@@ -59,6 +68,24 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **使用する GeonicDB 機能**: 空間フィルタリング用のジオクエリ、リアルタイムダッシュボード更新用の WebSocket サブスクリプション、過去のトレンド分析用の Temporal API。
 
 ## 環境モニタリング
@@ -91,6 +118,26 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **使用する GeonicDB 機能**: 閾値条件（`q` パラメータ）付きサブスクリプションによるアラート、政府環境機関とのデータ共有のための CADDE 連携、オープンデータ公開のための DCAT-AP カタログ。
 
 ## 防災
@@ -120,6 +167,24 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
     "measuredAt": {"type": "DateTime", "value": "2026-02-10T09:00:00Z"}
   }'
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 **使用する GeonicDB 機能**: 3D 危険区域マッピングのための空間ID（ZFXY）、リアルタイム警報配信のためのサブスクリプション、複数自治体のコンテキストブローカーからデータを集約するフェデレーション。
 
@@ -151,6 +216,24 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 **使用する GeonicDB 機能**: ルート沿いの近隣容器検索のためのジオクエリ、`fillingLevel > 0.85` でトリガーされるサブスクリプション、容器位置の地図表示のためのベクトルタイル。
 
 ## FIWARE + GeonicDB アーキテクチャ
@@ -167,6 +250,15 @@ GeonicDB は FIWARE Orion のドロップインリプレースメントとして
 │         FIWARE エコシステム        │
 └─────────────────────────────────┘
 ```
+
+
+
+
+
+
+
+
+
 
 既存の FIWARE ベースのスマートシティ環境は、GeonicDB に移行することでサーバーレススケーリング、AI 連携、日本固有の標準サポートを得ながら、他の FIWARE コンポーネントとの互換性を維持できます。
 

@@ -53,6 +53,13 @@ curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
+
+
+
 マルチテナンシー用の `Fiware-Service` / `Fiware-ServicePath` ヘッダーは従来通り使用できます:
 
 ```bash
@@ -61,6 +68,11 @@ curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: my-tenant" \
   -H "Fiware-ServicePath: /sensors"
 ```
+
+
+
+
+
 
 ## ステップ 3: サブスクリプションの移行
 
@@ -73,6 +85,9 @@ Orion のサブスクリプションは直接転送できません。GeonicDB �
 curl http://orion:1026/v2/subscriptions | jq '.' > subscriptions.json
 ```
 
+
+
+
 ### GeonicDB で再作成
 
 ```bash
@@ -82,6 +97,12 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/subscriptions \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d @subscriptions.json
 ```
+
+
+
+
+
+
 
 ::: tip 通知先 URL の確認
 通知エンドポイント（Webhook URL）がインターネットからアクセス可能であることを確認してください。GeonicDB SaaS はローカルネットワークではなく AWS インフラから通知を送信します。
@@ -108,6 +129,20 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
     "entities": '"$(cat entities_batch1.json)"'
   }'
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### 大規模データセット（10,000件以上）
 

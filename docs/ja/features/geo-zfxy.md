@@ -24,6 +24,14 @@ curl -G https://api.geonicdb.geolonia.com/v2/entities \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
+
+
+
+
 | 演算子 | 説明 | 例 |
 |--------|------|-----|
 | `near` | ある地点の近くのエンティティ | `georel=near;maxDistance:1000` |
@@ -57,6 +65,15 @@ curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
+
+
+
+
+
 ### 距離指定の Near クエリ
 
 ```bash
@@ -69,6 +86,15 @@ curl -G https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
+
+
+
+
+
 
 `near` 演算子は以下をサポートします：
 - `maxDistance:<メートル>` — 基準点からの最大距離
@@ -102,6 +128,26 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### NGSI-LD GeoProperty
 
 ```bash
@@ -121,6 +167,22 @@ curl -X POST https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities \
     }
   }'
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### サポートされる GeoJSON タイプ
 
@@ -143,6 +205,8 @@ GeonicDB はデジタル庁/IPA のガイドラインに準拠した **空間ID�
 /{z}/{f}/{x}/{y}
 ```
 
+
+
 | 要素 | 説明 |
 |------|------|
 | `z` | ズームレベル（0–25）— 値が大きいほど高精度 |
@@ -160,6 +224,13 @@ curl -G https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
+
+
+
 
 ### ユースケース
 

@@ -26,6 +26,9 @@ HTTP/1.1 201 Created
 Location: /v2/entities/urn:ngsi-ld:Room:001
 ```
 
+
+
+
 ## クライアントエラー
 
 ### 400 Bad Request
@@ -146,6 +149,12 @@ Location: /v2/entities/urn:ngsi-ld:Room:001
 }
 ```
 
+
+
+
+
+
+
 | フィールド | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
 | `error` | string | はい | エラーコード |
@@ -162,6 +171,13 @@ Location: /v2/entities/urn:ngsi-ld:Room:001
   "detail": "Invalid entity id"
 }
 ```
+
+
+
+
+
+
+
 
 | フィールド | 型 | 必須 | 説明 |
 |-----------|-----|------|------|
@@ -191,6 +207,11 @@ Location: /v2/entities/urn:ngsi-ld:Room:001
   "error_description": "Client authentication failed"
 }
 ```
+
+
+
+
+
 
 | エラーコード | 説明 |
 |------------|------|

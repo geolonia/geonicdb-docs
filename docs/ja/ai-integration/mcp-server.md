@@ -40,6 +40,20 @@ Claude Desktop の MCP 設定に以下を追加してください:
 }
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 `YOUR_API_KEY` を実際の JWT トークンに置き換えてください。
 
 ### ローカル開発（認証なし）
@@ -59,6 +73,18 @@ Claude Desktop の MCP 設定に以下を追加してください:
   }
 }
 ```
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 利用可能なツール
 
@@ -99,6 +125,15 @@ servicePath: "/Madrid/Gardens/#"
 servicePath: "/park1, /park2"
 ```
 
+
+
+
+
+
+
+
+
+
 ::: warning
 書き込み操作（create, update, delete）では単一の非階層パスのみ使用できます。`/#` サフィックスやカンマ区切りのパスは読み取り操作でのみサポートされます。
 :::
@@ -123,6 +158,21 @@ curl -X POST https://api.geonicdb.geolonia.com/mcp \
     }
   }'
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 制限事項
 

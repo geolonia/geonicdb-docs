@@ -26,6 +26,14 @@ curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
+
+
+
+
 ### レスポンス
 
 ```json
@@ -51,6 +59,28 @@ curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-
   ]
 }
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 時間クエリパラメータ
 
@@ -85,6 +115,16 @@ curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
+
+
+
+
+
+
+
+
+
+
 ## 属性によるフィルタリング
 
 特定の属性の履歴のみを取得：
@@ -97,6 +137,13 @@ curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
+
+
+
 
 ## TTL（Time-to-Live）
 
@@ -130,6 +177,14 @@ curl -G https://api.geonicdb.geolonia.com/ngsi-ld/v1/temporal/entities/urn:ngsi-
   -H "NGSILD-Tenant: smartcity" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
+
+
+
+
+
+
+
+
 
 ### 監査証跡
 

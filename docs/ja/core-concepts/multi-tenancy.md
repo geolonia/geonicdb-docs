@@ -30,6 +30,16 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/entities \
   }'
 ```
 
+
+
+
+
+
+
+
+
+
+
 ## テナント分離
 
 異なる `Fiware-Service` 値の下にあるデータは**完全に分離**されます：
@@ -54,6 +64,20 @@ curl https://api.geonicdb.geolonia.com/v2/entities?type=Room \
   -H "Fiware-Service: demo"
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### テナント名のルール
 
 - 自動的に小文字に変換されます。
@@ -77,6 +101,11 @@ curl https://api.geonicdb.geolonia.com/v2/entities?type=Room \
 /buildings/floor1/room101   # レベル 3
 ```
 
+
+
+
+
+
 ### 階層検索
 
 `/#` サフィックスを使用して、パスとそのすべての子孫を検索できます（**クエリ操作のみ**）：
@@ -88,6 +117,11 @@ curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-ServicePath: /buildings/#"
 ```
 
+
+
+
+
+
 ### 複数パス
 
 カンマ区切りのパスで複数の場所を同時に検索できます（最大 10 パス、**クエリ操作のみ**）：
@@ -98,6 +132,11 @@ curl https://api.geonicdb.geolonia.com/v2/entities \
   -H "Fiware-Service: smartcity" \
   -H "Fiware-ServicePath: /park1, /park2"
 ```
+
+
+
+
+
 
 ### デフォルトの動作
 
@@ -131,6 +170,14 @@ curl https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?type=Room \
   -H "NGSILD-Tenant: smartcity"
 ```
 
+
+
+
+
+
+
+
+
 ## ユースケース
 
 ### 環境の分離
@@ -148,6 +195,15 @@ curl -H "Fiware-Service: staging" ...
 curl -H "Fiware-Service: prod" ...
 ```
 
+
+
+
+
+
+
+
+
+
 ### 顧客の分離
 
 SaaS アプリケーションでは、各顧客に個別のテナントを割り当て：
@@ -159,6 +215,12 @@ curl -H "Fiware-Service: customer_a" ...
 # 顧客 B
 curl -H "Fiware-Service: customer_b" ...
 ```
+
+
+
+
+
+
 
 ### 部門別の整理
 
@@ -176,6 +238,17 @@ curl -H "Fiware-Service: building_mgmt" \
 curl -H "Fiware-Service: building_mgmt" \
      -H "Fiware-ServicePath: /#" ...
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 ## 次のステップ
 

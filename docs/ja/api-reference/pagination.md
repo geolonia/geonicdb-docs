@@ -59,6 +59,9 @@ Link: <https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=20>; rel="n
       <https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
 
+
+
+
 - 結果が単一ページに収まる場合、`Link` ヘッダーは返されません。
 - 既存のクエリパラメータ（`type`、`q` 等）は Link URL に保持されます。
 - `prev` の offset は 0 にクランプされます（負の値にはなりません）。
@@ -77,6 +80,14 @@ curl "https://api.geonicdb.geolonia.com/v2/entities?limit=10&offset=10" \
   -H "Fiware-Service: demo"
 ```
 
+
+
+
+
+
+
+
+
 ### NGSIv2 でトータルカウントを取得
 
 ```bash
@@ -86,6 +97,12 @@ curl "https://api.geonicdb.geolonia.com/v2/entities?limit=10&options=count" \
 # レスポンスヘッダー:
 # Fiware-Total-Count: 150
 ```
+
+
+
+
+
+
 
 ### NGSI-LD のページネーション
 
@@ -97,6 +114,12 @@ curl "https://api.geonicdb.geolonia.com/ngsi-ld/v1/entities?limit=10&offset=0" \
 # NGSILD-Results-Count: 150
 ```
 
+
+
+
+
+
+
 ### Admin API のページネーション
 
 ```bash
@@ -106,6 +129,12 @@ curl "https://api.geonicdb.geolonia.com/admin/users?limit=50&offset=0" \
 # レスポンスヘッダー:
 # X-Total-Count: 75
 ```
+
+
+
+
+
+
 
 ### 全結果の取得
 
@@ -131,6 +160,27 @@ async function fetchAllEntities(baseUrl, tenant) {
   return allEntities;
 }
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## ページネーション対応エンドポイント
 

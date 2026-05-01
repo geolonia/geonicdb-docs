@@ -45,7 +45,10 @@ MCP tools automatically infer the NGSI-LD type from attribute values:
 | All other values | `Property` | `25.5`, `"text"`, `true`, `[1, 2, 3]` |
 
 You can also specify the type explicitly:
-- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+- `{"type": "Property", "value": 25.5}`
+- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`
+- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+
 ### Response Structure
 
 ```json
@@ -148,7 +151,8 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
 
 ### Overview
 
-- **Endpoint**: `POST /mcp`- **Transport**: Streamable HTTP (JSON response mode)
+- **Endpoint**: `POST /mcp`
+- **Transport**: Streamable HTTP (JSON response mode)
 - **Protocol Version**: 2025-03-26
 - **Operation Mode**: Stateless (Lambda-compatible)
 - **Authentication**: When `AUTH_ENABLED=true`, access control and tenant isolation are enforced via JWT Bearer token
@@ -164,14 +168,19 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
       "command": "npx",
       "args": [
         "mcp-remote",
-        "http://localhost:3000/mcp"
+        "http://localhost:3000/mcp",
+        "--transport",
+        "http-only",
+        "--allow-http"
       ]
     }
   }
 }
 ```
 
-#### Production Environment (With Authentication)
+> **Note**: `--transport http-only` is required because GeonicDB only supports Streamable HTTP (POST) — SSE is not available. `--allow-http` is needed for `http://` URLs (not required for `https://` in production).
+
+#### Production Environment (With JWT Authentication)
 
 ```json
 {
@@ -181,6 +190,8 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
       "args": [
         "mcp-remote",
         "https://your-api-endpoint.example.com/mcp",
+        "--transport",
+        "http-only",
         "--header",
         "Authorization: Bearer <your-jwt-token>"
       ]
@@ -189,14 +200,105 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
 }
 ```
 
-JWT tokens can be obtained from the `/auth/login` endpoint.
+JWT tokens can be obtained from the `/auth/login` endpoint. Note that JWT tokens expire and need periodic renewal.
+
+#### Production Environment (With API Key Authentication)
+
+API keys do not expire and are recommended for long-lived integrations such as Claude Desktop.
+
+**Step 1: Install GeonicDB CLI**
+
+```bash
+npm install -g @geolonia/geonicdb-cli
+```
+
+**Step 2: Log in and configure the CLI**
+
+```bash
+# Set the server URL
+geonic config set url https://geonicdb.geolonia.com
+
+# Log in (interactive prompt)
+geonic auth login
+```
+
+**Step 3: Create an API key**
+
+```bash
+geonic me api-keys create \
+  --name "claude-desktop" \
+  --scopes "read:entities,write:entities,read:subscriptions,write:subscriptions,read:registrations,write:registrations" \
+  --origins "*" \
+  --service <your-tenant-name> \
+  --save
+```
+
+> **Important**: The API key (`gdb_` prefixed string) is only displayed once at creation time. Store it securely. The `--save` flag stores the key in the CLI config for automatic use.
+
+Available scopes for API keys:
+
+| Scope | Description |
+|---|---|
+| `read:entities` | Read entities, types, and attributes |
+| `write:entities` | Create, update, and delete entities |
+| `read:subscriptions` | Read subscriptions |
+| `write:subscriptions` | Create, update, and delete subscriptions |
+| `read:registrations` | Read context source registrations |
+| `write:registrations` | Create, update, and delete registrations |
+
+**Step 4: Configure Claude Desktop**
+
+Edit the Claude Desktop configuration file:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "geonicdb": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://geonicdb.geolonia.com/mcp",
+        "--header",
+        "X-Api-Key:${GEONIC_API_KEY}",
+        "--header",
+        "NGSILD-Tenant:${GEONIC_SERVICE}",
+        "--transport",
+        "http-only"
+      ],
+      "env": {
+        "GEONIC_API_KEY": "gdb_your_api_key_here",
+        "GEONIC_SERVICE": "your-tenant-name"
+      }
+    }
+  }
+}
+```
+
+> **Note**: Replace the `env` values with your actual API key and tenant name. Environment variables keep credentials out of the `args` array.
+
+**Step 5: Restart Claude Desktop**
+
+After saving the configuration, fully quit and restart Claude Desktop. The GeonicDB MCP server should appear in the available tools.
+
+#### Managing API Keys
+
+```bash
+# List your API keys
+geonic me api-keys list
+
+# Delete an API key
+geonic me api-keys delete <key-id>
+```
 
 ### Tenant Specification
 
 Each tool has a `tenant` parameter for specifying the target tenant for the operation.
 
 - **When authentication is disabled**: If omitted, the `default` tenant is used.
-- **When authentication is enabled**: If omitted, the logged-in user's tenant is used as the default. `super_admin` can access any tenant, but `tenant_admin`/`user` can only access their own tenant.
+- **When authentication is enabled**: If omitted, the logged-in user's tenant is used as the default. `super_admin` cannot use data tools (returns 403). Use `tenant_admin` or `user` role instead, but `tenant_admin`/`user` can only access their own tenant.
 
 ### Service Path Specification
 
@@ -205,7 +307,7 @@ The `entities`, `types`, `attributes`, `batch`, and `temporal` tools have a `ser
 #### Basic Format
 
 - **Format**: A path starting with `/` (e.g., `/hello`, `/city/sensors`)
-- **Default**: If omitted, all paths are searched (equivalent to `/#`)
+- **Default**: If omitted, the root path `/` is used
 - **Use case**: Used to group or isolate entities within the same tenant
 
 ```yaml
@@ -242,6 +344,49 @@ entities tool:
 
 **Note**: Write operations (create, update, delete) only support a single, non-hierarchical path.
 
+### NGSI-LD Query Parameters
+
+The `entities` tool supports the full set of NGSI-LD query parameters:
+
+| Parameter | Description | Example |
+|---|---|---|
+| `idList` | Comma-separated entity IDs for bulk retrieval | `"urn:ngsi-ld:Room:001,urn:ngsi-ld:Room:002"` |
+| `idPattern` | Regex pattern to match entity IDs | `"Room.*"` |
+| `orderBy` | Sort by attribute or system field. Prefix with `!` for descending | `"createdAt"`, `"!modifiedAt"` |
+| `orderDirection` | Sort direction (alternative to `!` prefix) | `"asc"`, `"desc"` |
+| `sysAttrs` | Include system attributes (`createdAt`, `modifiedAt`) in results | `true` |
+| `pick` | Comma-separated attribute names to include | `"temperature,humidity"` |
+| `omit` | Comma-separated attribute names to exclude | `"status"` |
+| `scopeQ` | Scope query expression | `"/Madrid/Gardens"` |
+| `lang` | Language filter for LanguageProperty values | `"ja"` |
+| `geoproperty` | GeoProperty attribute name for geo-queries (default: `location`) | `"observationArea"` |
+| `spatialId` | Spatial ID in ZFXY format | `"18/232814/103224"` |
+| `spatialIdDepth` | Depth for spatial ID hierarchical search | `2` |
+
+```yaml
+# List entities sorted by creation time (newest first) with system attributes
+entities tool:
+  action: "list"
+  type: "Sensor"
+  orderBy: "!createdAt"
+  sysAttrs: true
+  limit: 10
+
+# Retrieve specific entities by ID
+entities tool:
+  action: "list"
+  idList: "urn:ngsi-ld:Room:001,urn:ngsi-ld:Room:002"
+
+# Search with attribute projection
+entities tool:
+  action: "list"
+  type: "Room"
+  pick: "temperature,humidity"
+  q: "temperature>20"
+```
+
+The `batch` tool's `query` action also supports `orderBy`, `orderDirection`, and `sysAttrs`.
+
 ### Verification
 
 ```bash
@@ -275,6 +420,8 @@ curl -X POST http://localhost:3000/mcp \
 ## JSON Schema and Custom Data Models
 
 Custom data models automatically have a JSON Schema (Draft 2020-12) generated at creation time. This JSON Schema can be leveraged by AI tools for the following purposes.
+
+**`additionalProperties` field**: Controls whether entities can have attributes not defined in `propertyDetails`. Default is `true` (allows any additional attributes, following NGSI-LD semantics). Set to `false` to enforce strict validation — only defined attributes are accepted. AI agents should check this field when creating entities to determine whether extra attributes are permitted.
 
 ### Example Use Cases with AI Tools
 
@@ -369,13 +516,153 @@ The custom data model JSON Schema is added to `components.schemas` in the respon
 }
 ```
 
+### Property @context for Vocabulary Mapping
+
+Each property in `propertyDetails` can include an optional `@context` field with an HTTP(S) URL. When defining attributes, check [schema.org](https://schema.org/docs/full.html) for matching vocabulary and set it as the `@context` value.
+
+```yaml
+# Create a model with schema.org vocabulary
+config tool:
+  resource: "data_models"
+  action: "create"
+  type: "SurveyResponse"
+  domain: "survey"
+  description: "Survey response"
+  propertyDetails:
+    email:
+      ngsiType: "Property"
+      valueType: "string"
+      example: "taro@example.com"
+      "@context": "https://schema.org/email"   # schema.org vocabulary
+    name:
+      ngsiType: "Property"
+      valueType: "string"
+      example: "田中太郎"
+      # No @context → auto-generated URL
+```
+
+The generated JSON-LD `@context` will be:
+
+```json
+{
+  "@context": {
+    "SurveyResponse": "https://geonicdb.geolonia.com/vocab/{tenantId}/SurveyResponse",
+    "email": "https://schema.org/email",
+    "name": "https://geonicdb.geolonia.com/vocab/{tenantId}/name"
+  }
+}
+```
+
+Property URIs are entity-type independent — the same property name (e.g., `email`) shares the same URI across different entity types within the same tenant.
+
 ### @context Resolution Extension
 
 When retrieving entities via the NGSI-LD API, if the custom data model has a `contextUrl` configured, the custom context is automatically included in the response's `@context`. Similar to Smart Data Models contexts, AI agents can use this `@context` to interpret the semantic information of entities.
+
+## JavaScript SDK with AI Coding Assistants
+
+The GeonicDB JavaScript SDK (`@geolonia/geonicdb-sdk`) is designed for AI-assisted development. The npm package includes full TypeScript type declarations, so AI coding assistants (Claude Code, Cursor, GitHub Copilot, etc.) can automatically discover the full public API without any additional configuration.
+
+### What AI tools learn from the SDK
+
+| Information | Source |
+|------------|--------|
+| Constructor options | `GeonicDBOptions` type |
+| Method signatures (17 methods) | TypeScript declarations |
+| Credential types | `CredentialsOptions`, `RefreshedCredentials` types |
+| Query parameters | `GetEntitiesParams` type |
+| Subscription options | `SubscribeOptions` type |
+| Event payloads | `EntityEvent`, `ReconnectingEvent` types |
+| All 10 event types | Documented in type declarations |
+
+### How it works
+
+1. Developer installs the SDK: `npm install @geolonia/geonicdb-sdk`
+2. Developer imports the SDK: `import GeonicDB from '@geolonia/geonicdb-sdk'`
+3. AI reads the TypeScript declarations from the package
+4. AI generates correct code using the documented API
+
+No separate documentation URLs or special configuration required. TypeScript projects get full type checking and IDE autocompletion out of the box. See the SDK documentation for details.
+
+## A2A (Agent-to-Agent Protocol) Support
+
+GeonicDB supports the [A2A (Agent-to-Agent) protocol](https://google.github.io/A2A/), enabling other AI agents to interact with the context broker through standardized inter-agent communication.
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/.well-known/agent-card.json` | GET | Agent Card — describes capabilities, skills, and authentication |
+| `/a2a` | POST | JSON-RPC 2.0 endpoint for A2A operations |
+
+### Supported Methods (Phase 1)
+
+| JSON-RPC Method | Description |
+|-----------------|-------------|
+| `message/send` | Send a message and receive a synchronous response |
+| `tasks/get` | Retrieve current state of a task |
+| `tasks/list` | List tasks with filtering and pagination |
+| `tasks/cancel` | Request task cancellation |
+
+### Skills
+
+A2A maps to the same 5 tools available via MCP:
+
+| Skill ID | Description |
+|----------|-------------|
+| `entities` | NGSI-LD entity CRUD, geo-spatial/attribute search |
+| `batch` | Bulk create, upsert, update, delete operations |
+| `temporal` | Time-series data management |
+| `config` | Reactive rules, JSON-LD contexts, data models |
+| `admin` | User, tenant, and policy management |
+
+### Authentication
+
+A2A uses the same authentication methods as the REST API:
+- **Bearer JWT**: `Authorization: Bearer <token>` header
+- **API Key**: `X-Api-Key: <key>` header
+- **OAuth 2.0**: Client credentials flow via `POST /oauth/token`
+- **DPoP**: `Authorization: DPoP <token>` + `DPoP` proof header (when enabled)
+
+`Fiware-Service` ヘッダーによるテナント指定を推奨します（未指定時はデフォルトテナントにフォールバック）。
+
+### Example: Sending a Message
+
+```bash
+curl -X POST https://your-geonicdb.example.com/a2a \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -H "Fiware-Service: mytenant" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "message/send",
+    "id": 1,
+    "params": {
+      "message": {
+        "role": "user",
+        "parts": [{"kind": "text", "text": "List all entities of type Sensor"}],
+        "metadata": {
+          "skill": "entities",
+          "action": "list",
+          "type": "Sensor"
+        }
+      }
+    }
+  }'
+```
+
+### Relationship with MCP
+
+A2A and MCP are complementary:
+- **MCP** is for tool invocation — an AI agent uses GeonicDB as a tool
+- **A2A** is for inter-agent communication — AI agents collaborate with GeonicDB as a peer agent
+
+Both share the same underlying service layer and support the same 5 skill/tool categories.
 
 ## References
 
 - [Claude Tool Use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
 - [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
+- [A2A Protocol](https://google.github.io/A2A/)
 - [llms.txt](https://llmstxt.org/)
