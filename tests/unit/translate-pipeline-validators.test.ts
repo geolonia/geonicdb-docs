@@ -10,6 +10,7 @@ import {
   protectTables,
   restoreTables,
   validateTableStructure,
+  validateCodeBlocks,
   countTableRows,
   BULLET_SENTINEL,
   TABLE_PIPE_SENTINEL,
@@ -389,5 +390,49 @@ describe('validateTableStructure (P-A3)', () => {
     const input = Array(10).fill('| a | b |').join('\n')
     const output = Array(7).fill('| あ | い |').join('\n')
     expect(validateTableStructure(input, output).ok).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// HF3: validateCodeBlocks
+// ---------------------------------------------------------------------------
+
+describe('validateCodeBlocks (HF3)', () => {
+  it('passes when original and translated have the same code fence count', () => {
+    const original = '# Title\n\n```ts\nconst x = 1\n```\n\nSome text.\n\n```sh\nnpm install\n```\n'
+    const translated = '# タイトル\n\n```ts\nconst x = 1\n```\n\nテキスト。\n\n```sh\nnpm install\n```\n'
+    expect(validateCodeBlocks(original, translated).ok).toBe(true)
+  })
+
+  it('passes when neither original nor translated contain code fences', () => {
+    const original = '# Title\n\nParagraph without any code block.'
+    const translated = '# タイトル\n\nコードブロックのない段落。'
+    expect(validateCodeBlocks(original, translated).ok).toBe(true)
+  })
+
+  it('fails when translated has fewer code fences than original', () => {
+    const original = '```ts\nconst a = 1\n```\n\n```ts\nconst b = 2\n```\n'
+    // Translated missing the closing fence of the second block
+    const translated = '```ts\nconst a = 1\n```\n\n```ts\nconst b = 2\n'
+    const result = validateCodeBlocks(original, translated)
+    expect(result.ok).toBe(false)
+    expect(result.reason).toContain('Code fence count mismatch')
+    expect(result.reason).toContain('original=4')
+    expect(result.reason).toContain('translated=3')
+  })
+
+  it('fails when translated has more code fences than original', () => {
+    const original = '```ts\nconst a = 1\n```\n'
+    const translated = '```ts\nconst a = 1\n```\n\n```\nextra block\n```\n'
+    const result = validateCodeBlocks(original, translated)
+    expect(result.ok).toBe(false)
+    expect(result.reason).toContain('Code fence count mismatch')
+  })
+
+  it('only counts fences at the start of a line', () => {
+    // Inline backticks should not be counted
+    const original = 'Use `code` inline and\n```\nblock\n```\n'
+    const translated = '`code` を使って\n```\nblock\n```\n'
+    expect(validateCodeBlocks(original, translated).ok).toBe(true)
   })
 })

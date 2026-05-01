@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+- feat(translate-pipeline): HF3 code fence validation — `validateCodeBlocks` in `translate-pipeline-validators.ts` detects chunk-boundary fence breaks (original ≠ translated ``` count) and triggers retry. Prevents HTML build errors caused by broken code blocks. (Closes #93)
+- feat(workflow): SF2 artifact upload on build failure — `sync-and-translate.yml` uploads `docs/ja/` as `translated-docs-build-failure` artifact (7-day retention) when build verification fails, enabling post-mortem analysis. (Closes #93)
+
 ### Changed
 - chore(deps): bump @geolonia/yuuhitsu to 0.1.9 — fixes splitAtPositions infinite recursion (SIGSEGV) on files starting with top-level heading. Resolves CI translation failures across all 14 files. (Closes #76, upstream geolonia/yuuhitsu#38)
 
