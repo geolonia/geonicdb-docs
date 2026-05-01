@@ -243,9 +243,7 @@ API キーの利用可能なスコープ:
 
 Claude Desktop の設定ファイルを編集します:
 
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 ```json
 {
   "mcpServers": {

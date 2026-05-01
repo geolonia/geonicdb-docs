@@ -466,7 +466,6 @@ Origin: https://example.com
 ```
 
 **レスポンス**: `200 OK`
-
 ```json
 {
   "nonce": "base64url_timestamp.hmac_signature",
@@ -491,7 +490,6 @@ Origin: https://example.com
 ```
 
 **レスポンス**: `200 OK`
-
 ```json
 {
   "access_token": "<session_jwt>",
