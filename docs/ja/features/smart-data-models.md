@@ -1,24 +1,24 @@
 ---
 title: "Smart Data Models"
-description: "FIWARE Smart Data Models 対応"
+description: "FIWARE Smart Data Models support"
 outline: deep
 ---
-# Smart Data Models Support
+# スマート データ モデルのサポート
 
-GeonicDB supports data models from the [Smart Data Models](https://smartdatamodels.org/) initiative. Smart Data Models is a catalog of standardized data models widely used in the FIWARE ecosystem and smart city domains.
+GeonicDB は [Smart Data Models](https://smartdatamodels.org/) イニシアティブのデータ モデルをサポートしています。Smart Data Models は、FIWARE エコシステムやスマート シティ分野で広く使用されている標準化されたデータ モデルのカタログです。
 
-## Overview
+## 概要
 
-Smart Data Models support includes the following two features:
+スマート データ モデルのサポートには、次の 2 つの機能が含まれます:
 
-1. **MCP tool**: Browse the catalog and search for available data models
-2. **@context auto-completion**: Automatically adds the appropriate JSON-LD @context for known Smart Data Model entity types
+1. **MCP ツール**: カタログを閲覧し、利用可能なデータ モデルを検索します
+2. **@context 自動補完**: 既知の Smart Data Model エンティティ タイプに対して、適切な JSON-LD @context を自動的に追加します
 
-## Supported Domains
+## サポートされるドメイン
 
-GeonicDB supports key Smart Data Models from the following domains:
+GeonicDB は、次のドメインから主要な Smart Data Models をサポートしています:
 
-| Domain | Example models included |
+| ドメイン | 含まれるモデルの例 |
 |--------|------------------------|
 | **Parking** | OffStreetParking, OnStreetParking, ParkingSpot |
 | **Weather** | WeatherObserved, WeatherForecast |
@@ -29,27 +29,23 @@ GeonicDB supports key Smart Data Models from the following domains:
 | **WasteManagement** | WasteContainer, WasteContainerIsle |
 | **Energy** | EnergyMonitor, ThreePhaseAcMeasurement |
 
-Each model contains the following information:
-- Entity type name
-- Domain
+各モデルには次の情報が含まれます:
+- エンティティ タイプ名
+- ドメイン
 - JSON-LD @context URL
-- Description
-- Schema URL
-- Sample properties
+- 説明
+- スキーマ URL
+- サンプル プロパティ## MCP ツール: `data_models`Smart Data Models カタログを参照するための MCP ツールが利用可能です。
 
-## MCP Tool: `data_models`
+### アクション
 
-An MCP tool is available for browsing the Smart Data Models catalog.
+#### `list_domains` - ドメインのリストを取得
 
-### Actions
+利用可能なすべてのドメインのリストを取得します。
 
-#### `list_domains` - Get list of domains
+**パラメータ**: なし
 
-Retrieves a list of all available domains.
-
-**Parameters**: None
-
-**Response example**:
+**レスポンス例**:
 ```json
 {
   "domains": [
@@ -66,17 +62,17 @@ Retrieves a list of all available domains.
 }
 ```
 
-#### `list_models` - Get list of models
+#### `list_models` - モデルのリストを取得
 
-Retrieves a list of available data models. Can be filtered by domain or search term.
+利用可能なデータモデルのリストを取得します。ドメインまたは検索語句でフィルタリングできます。
 
-**Parameters**:
-- `domain` (optional): Filter by domain (e.g. "Parking")
-- `search` (optional): Search by type or description (e.g. "weather")
-- `limit` (optional): Maximum number of results (default: 100)
-- `offset` (optional): Pagination offset (default: 0)
+**パラメータ**:
+- `domain` (オプション): ドメインでフィルタリング (例: "Parking")
+- `search` (オプション): タイプまたは説明で検索 (例: "weather")
+- `limit` (オプション): 結果の最大数 (デフォルト: 100)
+- `offset` (オプション): ページネーションのオフセット (デフォルト: 0)
 
-**Response example**:
+**レスポンス例**:
 ```json
 {
   "models": [
@@ -93,14 +89,14 @@ Retrieves a list of available data models. Can be filtered by domain or search t
 }
 ```
 
-#### `get_model` - Get details for a specific model
+#### `get_model` - 特定のモデルの詳細を取得
 
-Retrieves data model details for the specified entity type.
+指定されたエンティティタイプのデータモデル詳細を取得します。
 
-**Parameters**:
-- `type` (required): Entity type name (e.g. "OffStreetParking")
+**パラメータ**:
+- `type` (必須): エンティティタイプ名 (例: "OffStreetParking")
 
-**Response example**:
+**レスポンス例**:
 ```json
 {
   "type": "OffStreetParking",
@@ -141,27 +137,28 @@ Retrieves data model details for the specified entity type.
 }
 ```
 
-**Note**: The `propertyDetails` field is available for key models (WeatherObserved, AirQualityObserved, OffStreetParking, OnStreetParking, TrafficFlowObserved, Vehicle, Device, Building, WasteContainer, EnergyMonitor). Each property contains the following information:
-- `ngsiType`: NGSI-LD property type (Property, GeoProperty, Relationship, LanguageProperty)
-- `valueType`: Value type (number, string, GeoJSON structure, Object, etc.)
-- `example`: Sample value for use as a real-world example
-- `required`: Whether the field is required (optional)
+**注意**: `propertyDetails` フィールドは主要なモデル (WeatherObserved、AirQualityObserved、OffStreetParking、OnStreetParking、TrafficFlowObserved、Vehicle、Device、Building、WasteContainer、EnergyMonitor) で利用可能です。各プロパティには以下の情報が含まれます:
+- `ngsiType`: NGSI-LD プロパティタイプ (Property、GeoProperty、Relationship、LanguageProperty)
+- `valueType`: 値のタイプ (number、string、GeoJSON 構造、Object など)
+- `example`: 実際の例として使用するサンプル値
+- `required`: フィールドが必須かどうか (オプション)
+- `@context`: JSON-LD 語彙 URI (オプション、HTTP(S) URL のみ)。カスタムデータモデルの場合、Linked Data の相互運用性を向上させるために、よく知られた語彙 (例: `https://schema.org/email`) を指定してください。`@context` がないプロパティは自動生成された URL (`https://geonicdb.geolonia.com/vocab/{tenantId}/{propertyName}`) を取得します。
 
-## @context Auto-Completion
+## @context の自動補完
 
-When retrieving entities via the NGSI-LD API, GeonicDB automatically adds the appropriate @context for known Smart Data Model types.
+NGSI-LD API 経由でエンティティを取得する際、GeonicDB は既知の Smart Data Model タイプに対して適切な @context を自動的に追加します。
 
-### How It Works
+### 動作の仕組み
 
-Priority order for @context resolution when retrieving an entity:
+エンティティを取得する際の @context 解決の優先順位:
 
-1. **Explicit @context** (specified via Link header or parameter) - always takes priority
-2. **Smart Data Models @context** (when the entity type is a known SDM) - auto-completed
-3. **Default NGSI-LD core @context** - fallback
+1. **明示的な @context** (Link ヘッダーまたはパラメータで指定) - 常に優先されます
+2. **Smart Data Models の @context** (エンティティタイプが既知の SDM の場合) - 自動補完されます
+3. **デフォルトの NGSI-LD コア @context** - フォールバック
 
-### Example: Creating and Retrieving a Smart Data Model Entity
+### 例: Smart Data Model エンティティの作成と取得
 
-**Create entity**:
+**エンティティの作成**:
 ```bash
 POST /ngsi-ld/v1/entities
 Content-Type: application/ld+json
@@ -187,12 +184,12 @@ Content-Type: application/ld+json
 }
 ```
 
-**Retrieve entity**:
+**エンティティの取得**:
 ```bash
 GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
 ```
 
-**Response** (@context is added automatically):
+**レスポンス** (@context が自動的に追加されます):
 ```json
 {
   "@context": [
@@ -219,15 +216,15 @@ GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
 }
 ```
 
-### Important Notes
+### 重要な注意事項
 
-- **@context is not saved to storage**: @context is metadata generated dynamically at API response time
-- **Explicit @context takes priority**: If @context is specified via a Link header, it takes priority over SDM auto-completion
-- **Unknown types use the default @context**: For custom entity types, only the NGSI-LD core @context is returned
+- **@context はストレージに保存されません**: @context は API レスポンス時に動的に生成されるメタデータです
+- **明示的な @context が優先されます**: Link ヘッダーで @context が指定された場合、SDM 自動補完よりも優先されます
+- **未知のタイプはデフォルトの @context を使用します**: カスタムエンティティタイプの場合、NGSI-LD コアの @context のみが返されます
 
-### Examples for Different Domains
+### 異なるドメインの例
 
-**Weather domain**:
+**Weather ドメイン**:
 ```json
 {
   "@context": [
@@ -243,7 +240,7 @@ GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
 }
 ```
 
-**Transportation domain**:
+**Transportation ドメイン**:
 ```json
 {
   "@context": [
@@ -258,44 +255,43 @@ GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
   }
 }
 ```
+## メリット
 
-## Benefits
+### FIWARE エコシステムとの相互運用性
 
-### Interoperability with the FIWARE Ecosystem
+Smart Data Models の @context を使用することで、以下が可能になります。
 
-Using the Smart Data Models @context enables the following:
+- **標準化されたプロパティ名**: 他の FIWARE システムとの互換性
+- **セマンティックな相互運用性**: JSON-LD を使用した意味のあるデータ交換
+- **エコシステム統合**: FIWARE Marketplace や他の FIWARE コンポーネントとの統合
 
-- **Standardized property names**: Compatibility with other FIWARE systems
-- **Semantic interoperability**: Meaningful data exchange using JSON-LD
-- **Ecosystem integration**: Integration with the FIWARE Marketplace and other FIWARE components
+### AI アシスタント体験の向上
 
-### Improved AI Assistant Experience
+MCP ツールを通じて、AI アシスタント (Claude など) は以下が可能になります。
 
-Through MCP tools, AI assistants (such as Claude) can:
+- **データモデルの検索**: ドメインやキーワードで利用可能なデータモデルスキーマを検索
+- **プロパティ情報の取得**: `propertyDetails` から各プロパティの詳細情報を取得
+  - NGSI-LD プロパティタイプ (Property、GeoProperty、Relationship) の識別
+  - 値のタイプ (number、string、GeoJSON 構造など) の理解
+  - 実世界の例としてのサンプル値の使用
+  - 必須フィールドの識別
+- **正確なエンティティの作成**: 取得した情報に基づいて正しく構造化された NGSI-LD エンティティを生成
+- **ドメイン固有のベストプラクティス**: Smart Data Models 標準に従った実装
 
-- **Search data models**: Search available data model schemas by domain or keyword
-- **Retrieve property information**: Get detailed information for each property from `propertyDetails`
-  - Identify NGSI-LD property types (Property, GeoProperty, Relationship)
-  - Understand value types (number, string, GeoJSON structure, etc.)
-  - Use sample values as real-world examples
-  - Identify required fields
-- **Create accurate entities**: Generate correctly structured NGSI-LD entities based on retrieved information
-- **Domain-specific best practices**: Implement according to Smart Data Models standards
+**推奨ワークフロー**:
+1. `list_models` でモデルを検索
+2. `get_model` で選択したモデルの `propertyDetails` を取得
+3. `propertyDetails` 情報に基づいて正しい NGSI-LD 構造でエンティティを作成
 
-**Recommended workflow**:
-1. Search for a model with `list_models`
-2. Retrieve `propertyDetails` for the selected model with `get_model`
-3. Create an entity with the correct NGSI-LD structure based on the `propertyDetails` information
+## 参考資料
 
-## References
-
-- [Smart Data Models Official Site](https://smartdatamodels.org/)
+- [Smart Data Models 公式サイト](https://smartdatamodels.org/)
 - [Smart Data Models GitHub](https://github.com/smart-data-models)
 - [FIWARE Data Models](https://fiware-datamodels.readthedocs.io/)
-- [NGSI-LD Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/)
+- [NGSI-LD 仕様](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/)
 
-## Related Documentation
+## 関連ドキュメント
 
-- [MCP.md](../ai-integration/mcp-server.md) - Model Context Protocol server
-- [AI_INTEGRATION.md](../ai-integration/overview.md) - AI tool integration
-- [API_NGSILD.md](../api-reference/ngsild.md) - NGSI-LD API reference
+- [MCP.md](../ai-integration/mcp-server.md) - Model Context Protocol サーバー
+- [AI_INTEGRATION.md](../ai-integration/overview.md) - AI ツール統合
+- [API_NGSILD.md](../api-reference/ngsild.md) - NGSI-LD API リファレンス
