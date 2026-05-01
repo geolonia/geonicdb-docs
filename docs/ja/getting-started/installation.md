@@ -580,7 +580,10 @@ npm start
 
 Claude Desktop 設定ファイル (`claude_desktop_config.json`) に以下を追加します。
 
-**macOS**: `~/Library/Application\ Support/Claude/claude_desktop_config.json`**Windows**: `%APPDATA%\Claude\claude_desktop_config.json````json
+**macOS**: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
 {
   "mcpServers": {
     "geonicdb": {

@@ -465,7 +465,9 @@ Origin: https://example.com
 {"api_key": "gdb_your_api_key_here"}
 ```
 
-**レスポンス**: `200 OK````json
+**レスポンス**: `200 OK`
+
+```json
 {
   "nonce": "base64url_timestamp.hmac_signature",
   "challenge": "sha256_challenge_string",
@@ -488,7 +490,9 @@ Origin: https://example.com
 }
 ```
 
-**レスポンス**: `200 OK````json
+**レスポンス**: `200 OK`
+
+```json
 {
   "access_token": "<session_jwt>",
   "token_type": "Bearer",

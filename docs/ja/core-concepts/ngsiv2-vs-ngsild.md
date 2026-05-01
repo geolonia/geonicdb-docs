@@ -430,7 +430,7 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&ge
 | 通知方法 | NGSIv2 | NGSI-LD | 説明 |
 |--------------------|--------|---------|-------------|
 | **HTTP Webhook** | ✅ | ✅ | REST エンドポイントへの POST |
-| **MQTT** | ✅ | ✅ | MQTT ブローカーへのパブリッシュ (QoS 0/1/2、TLS) |
+| **MQTT** | ✅ | ✅ | MQTT Context Broker へのパブリッシュ (QoS 0/1/2、TLS) |
 | **WebSocket** | ✅ | ✅ | リアルタイムイベントストリーム |
 
 ### 5. フェデレーション (コンテキストソース登録)

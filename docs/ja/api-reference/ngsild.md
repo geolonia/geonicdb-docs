@@ -607,7 +607,9 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
 
 `options=temporalValues` を指定すると、各属性が `values` 配列 (`[value, timestamp]` のペア) を含む簡易形式で返されます。
 
-**例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?options=temporalValues````json
+**例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?options=temporalValues`
+
+```json
 {
   "id": "urn:ngsi-ld:Sensor:1",
   "type": "Sensor",
@@ -627,7 +629,9 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
 | `aggrMethods` | string | 集計メソッド (カンマ区切り): `totalCount`, `distinctCount`, `sum`, `avg`, `min`, `max`, `stddev`, `sumsq` |
 | `aggrPeriodDuration` | string | ISO 8601 期間 (例: `PT1H` は 1 時間)。`aggrMethods` 指定時に必須 |
 
-**例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2024-01-01T00:00:00Z````json
+**例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2024-01-01T00:00:00Z`
+
+```json
 {
   "id": "urn:ngsi-ld:Sensor:1",
   "type": "Sensor",
@@ -1001,13 +1005,13 @@ Context Source Registration では、以下の拡張フィールドがサポー�
 | `contextSourceInfo` | object[] | コンテキストソースの追加メタデータ |
 | `operationGroup` | string[] | 操作グループ: `federationOps`、`retrieveOps`、`updateOps`、`redirectionOps` |### 分散操作情報
 
-#### ブローカー ID の取得
+#### Context Broker ID の取得
 
 ```http
 GET /ngsi-ld/v1/info/sourceIdentity
 ```
 
-コンテキストブローカーの ID 情報を返します。分散環境におけるブローカーの識別に使用されます。
+コンテキストブローカーの ID 情報を返します。分散環境における Context Broker の識別に使用されます。
 
 **レスポンス**: `200 OK` (`application/ld+json`)
 
@@ -1033,7 +1037,7 @@ NGSI-LD 仕様への準拠状況を返します。
 | ヘッダー | 説明 |
 |----------|------|
 | `NGSILD-Warning` | フェデレーション中に一部のコンテキストソースが失敗した場合に設定される警告メッセージ (ETSI GS CIM 009 - 6.3.6) |
-| `Via` | 分散操作におけるループ検出用のヘッダー。ブローカーは転送されたリクエストに自身の ID を追加します (ETSI GS CIM 009 - 6.3.5) |
+| `Via` | 分散操作におけるループ検出用のヘッダー。Context Broker は転送されたリクエストに自身の ID を追加します (ETSI GS CIM 009 - 6.3.5) |
 
 #### CSR 変更通知
 
@@ -1450,7 +1454,7 @@ ETSI NGSI-LD 互換 Context Broker API。
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー |
 |---------------|---------|------|------|--------|
-| `/ngsi-ld/v1/info/sourceIdentity` | GET | ブローカー識別情報の取得 | 200 | - |
+| `/ngsi-ld/v1/info/sourceIdentity` | GET | Context Broker 識別情報の取得 | 200 | - |
 | `/ngsi-ld/v1/info/conformance` | GET | NGSI-LD 準拠情報の取得 | 200 | - |
 
 ### JSON-LD コンテキスト管理
