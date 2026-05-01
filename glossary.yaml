@@ -16,9 +16,9 @@ terms:
     severity: block
     translations:
       en: Geolonia
-      ja: ジオロニア
+      ja: Geolonia
     do_not_use:
-      ja: ["ジオリア", "ゲオロニア"]
+      ja: ["ジオロニア", "ジオリア", "ゲオロニア"]
 
   - canonical: NGSI-LD
     type: brand
