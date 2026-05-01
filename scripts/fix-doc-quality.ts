@@ -38,7 +38,6 @@ export const JA_GLOSSARY_RULES: GlossaryRule[] = [
   { forbidden: 'リアクティブコア', correct: 'ReactiveCore' },
   { forbidden: 'マップリブレ', correct: 'MapLibre' },
   { forbidden: 'ファイウェア', correct: 'FIWARE' },
-  { forbidden: 'モデルコンテキストプロトコル', correct: 'MCP' },
   { forbidden: 'エムシーピー', correct: 'MCP' },
   // domain
   { forbidden: 'エンティティー', correct: 'エンティティ' },
