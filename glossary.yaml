@@ -4,6 +4,7 @@ terms:
   # === brand ===
   - canonical: GeonicDB
     type: brand
+    severity: block
     translations:
       en: GeonicDB
       ja: GeonicDB
@@ -12,6 +13,7 @@ terms:
 
   - canonical: Geolonia
     type: brand
+    severity: block
     translations:
       en: Geolonia
       ja: ジオロニア
@@ -20,6 +22,7 @@ terms:
 
   - canonical: NGSI-LD
     type: brand
+    severity: block
     translations:
       en: NGSI-LD
       ja: NGSI-LD
@@ -28,6 +31,7 @@ terms:
 
   - canonical: ReactiveCore
     type: brand
+    severity: block
     translations:
       en: ReactiveCore
       ja: ReactiveCore
@@ -36,6 +40,7 @@ terms:
 
   - canonical: MapLibre
     type: brand
+    severity: block
     translations:
       en: MapLibre
       ja: MapLibre
@@ -44,6 +49,7 @@ terms:
 
   - canonical: FIWARE
     type: brand
+    severity: block
     translations:
       en: FIWARE
       ja: FIWARE
@@ -52,15 +58,17 @@ terms:
 
   - canonical: MCP
     type: brand
+    severity: block
     translations:
       en: MCP
       ja: MCP
     do_not_use:
-      ja: ["モデルコンテキストプロトコル", "エムシーピー"]
+      ja: ["エムシーピー"]
 
   # === domain ===
   - canonical: entity
     type: domain
+    severity: warn
     translations:
       en: entity
       ja: エンティティ
@@ -69,6 +77,7 @@ terms:
 
   - canonical: temporal
     type: domain
+    severity: warn
     translations:
       en: temporal
       ja: 時系列
@@ -77,6 +86,7 @@ terms:
 
   - canonical: GeoProperty
     type: domain
+    severity: auto-fix
     translations:
       en: GeoProperty
       ja: GeoProperty
@@ -85,6 +95,7 @@ terms:
 
   - canonical: Context Broker
     type: domain
+    severity: warn
     translations:
       en: Context Broker
       ja: コンテキストブローカー
@@ -93,12 +104,14 @@ terms:
 
   - canonical: tenant
     type: domain
+    severity: warn
     translations:
       en: tenant
       ja: テナント
 
   - canonical: schema
     type: domain
+    severity: auto-fix
     translations:
       en: schema
       ja: スキーマ
@@ -107,18 +120,21 @@ terms:
 
   - canonical: snapshot
     type: domain
+    severity: warn
     translations:
       en: snapshot
       ja: スナップショット
 
   - canonical: diff
     type: domain
+    severity: warn
     translations:
       en: diff
       ja: 差分
 
   - canonical: Subscription
     type: domain
+    severity: warn
     translations:
       en: Subscription
       ja: サブスクリプション
@@ -127,6 +143,7 @@ terms:
 
   - canonical: ServicePath
     type: domain
+    severity: auto-fix
     translations:
       en: ServicePath
       ja: ServicePath
@@ -135,6 +152,7 @@ terms:
 
   - canonical: Attribute
     type: domain
+    severity: auto-fix
     translations:
       en: Attribute
       ja: 属性
@@ -143,6 +161,7 @@ terms:
 
   - canonical: Property
     type: domain
+    severity: auto-fix
     translations:
       en: Property
       ja: プロパティ
@@ -151,6 +170,7 @@ terms:
 
   - canonical: Relationship
     type: domain
+    severity: warn
     translations:
       en: Relationship
       ja: リレーションシップ
@@ -159,12 +179,14 @@ terms:
 
   - canonical: Notification
     type: domain
+    severity: warn
     translations:
       en: Notification
       ja: 通知
 
   - canonical: WebSocket
     type: domain
+    severity: auto-fix
     translations:
       en: WebSocket
       ja: WebSocket
@@ -173,6 +195,7 @@ terms:
 
   - canonical: API Key
     type: domain
+    severity: auto-fix
     translations:
       en: API Key
       ja: APIキー
@@ -182,78 +205,91 @@ terms:
   # === ui ===
   - canonical: Dashboard
     type: ui
+    severity: warn
     translations:
       en: Dashboard
       ja: ダッシュボード
 
   - canonical: Entity Browser
     type: ui
+    severity: warn
     translations:
       en: Entity Browser
       ja: Entityブラウザ
 
   - canonical: Temporal Viewer
     type: ui
+    severity: warn
     translations:
       en: Temporal Viewer
       ja: Temporalビューア
 
   - canonical: ReactiveCore Rules
     type: ui
+    severity: warn
     translations:
       en: ReactiveCore Rules
       ja: ReactiveCoreルール
 
   - canonical: OAuth Clients
     type: ui
+    severity: warn
     translations:
       en: OAuth Clients
       ja: OAuthクライアント
 
   - canonical: AI Assistant
     type: ui
+    severity: warn
     translations:
       en: AI Assistant
       ja: AIアシスタント
 
   - canonical: Billing
     type: ui
+    severity: warn
     translations:
       en: Billing
       ja: 課金・プラン
 
   - canonical: Onboarding
     type: ui
+    severity: warn
     translations:
       en: Onboarding
       ja: オンボーディング
 
   - canonical: Settings
     type: ui
+    severity: warn
     translations:
       en: Settings
       ja: 設定
 
   - canonical: Quota Management
     type: ui
+    severity: warn
     translations:
       en: Quota Management
       ja: クォータ管理
 
   - canonical: Job Scheduler
     type: ui
+    severity: warn
     translations:
       en: Job Scheduler
       ja: ジョブスケジューラ
 
   - canonical: Timeline
     type: ui
+    severity: warn
     translations:
       en: Timeline
       ja: タイムライン
 
   - canonical: Import
     type: ui
+    severity: warn
     translations:
       en: Import
       ja: インポート
