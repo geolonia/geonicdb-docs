@@ -39,6 +39,7 @@ import {
   checkTruncation,
   checkCompleteness,
   validateTableStructure,
+  validateCodeBlocks,
 } from './translate-pipeline-validators.js'
 
 /** Maximum number of retry attempts after the first try. */
@@ -340,6 +341,17 @@ function main(): number {
           continue
         }
         console.error(`::error::P-A3 table structure corrupted in ${output}: ${tableCheck.reason}`)
+        return 1
+      }
+
+      // HF3: validate code block fence count — retry on mismatch, error if all retries exhausted
+      const codeBlockCheck = validateCodeBlocks(inputContent, outputContent)
+      if (!codeBlockCheck.ok) {
+        if (attempt < MAX_RETRIES) {
+          console.warn(`HF3 code fence mismatch on attempt ${attempt + 1}, retrying: ${codeBlockCheck.reason}`)
+          continue
+        }
+        console.error(`::error::HF3 code fence mismatch in ${output}: ${codeBlockCheck.reason}`)
         return 1
       }
 

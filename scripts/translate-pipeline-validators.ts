@@ -287,3 +287,28 @@ export function validateTableStructure(
 
   return { ok: true }
 }
+
+// ---------------------------------------------------------------------------
+// HF3: Code block fence validation
+// ---------------------------------------------------------------------------
+
+/**
+ * HF3: Validate that the number of code fence markers (```) in translated output
+ * matches the original. A mismatch means a chunk boundary broke a code block.
+ */
+export function validateCodeBlocks(
+  originalContent: string,
+  translatedContent: string,
+): ValidationResult {
+  const originalFences = (originalContent.match(/^```/gm) ?? []).length
+  const translatedFences = (translatedContent.match(/^```/gm) ?? []).length
+
+  if (originalFences !== translatedFences) {
+    return {
+      ok: false,
+      reason: `Code fence count mismatch: original=${originalFences}, translated=${translatedFences}`,
+    }
+  }
+
+  return { ok: true }
+}
