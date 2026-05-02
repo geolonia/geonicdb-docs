@@ -10,6 +10,7 @@ import {
   addFrontmatterTitle,
   hasFrontmatterTitle,
   fixGlossaryViolations,
+  fixGlossaryBlockViolations,
   runQualityFixes,
 } from '../../scripts/fix-doc-quality.js'
 
@@ -437,6 +438,67 @@ describe('fixGlossaryViolations', () => {
     // コンテキストブローカ (without ー) → コンテキストブローカー
     // コンテキストブローカー (with ー) is preserved
     expect(result).toBe('コンテキストブローカー への接続と、コンテキストブローカー を使用します。')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// fixGlossaryBlockViolations
+// ---------------------------------------------------------------------------
+describe('fixGlossaryBlockViolations', () => {
+  it('replaces 購読する with サブスクライブする (verb form)', () => {
+    const content = 'エンティティの変更を購読することができます。'
+    expect(fixGlossaryBlockViolations(content)).toBe('エンティティの変更をサブスクライブすることができます。')
+  })
+
+  it('replaces 購読し variants with サブスクライブし variants', () => {
+    const content = '購読して通知を受け取ります。購読した内容を確認。'
+    expect(fixGlossaryBlockViolations(content)).toBe('サブスクライブして通知を受け取ります。サブスクライブした内容を確認。')
+  })
+
+  it('replaces 購読中 with サブスクライブ中', () => {
+    const content = '現在購読中のエンティティ一覧です。'
+    expect(fixGlossaryBlockViolations(content)).toBe('現在サブスクライブ中のエンティティ一覧です。')
+  })
+
+  it('replaces noun form 購読 with サブスクリプション as fallback', () => {
+    const content = 'サブスクリプションの購読を管理します。'
+    // 「サブスクリプションの購読」→「サブスクリプションのサブスクリプション」
+    expect(fixGlossaryBlockViolations(content)).toBe('サブスクリプションのサブスクリプションを管理します。')
+  })
+
+  it('does not replace 購読 inside inline code (backtick-quoted)', () => {
+    const content = '`購読する` メソッドを呼び出します。'
+    expect(fixGlossaryBlockViolations(content)).toBe('`購読する` メソッドを呼び出します。')
+  })
+
+  it('does not replace 購読 inside fenced code block', () => {
+    const content = [
+      '以下のコードで購読することができます:',
+      '```typescript',
+      '// 購読する処理',
+      'db.subscribe(...)',
+      '```',
+      '購読が完了しました。',
+    ].join('\n')
+    const result = fixGlossaryBlockViolations(content)
+    const lines = result.split('\n')
+    // Line 0: outside block → replaced (購読する → サブスクライブする)
+    expect(lines[0]).toBe('以下のコードでサブスクライブすることができます:')
+    // Line 2: inside block → preserved
+    expect(lines[2]).toBe('// 購読する処理')
+    // Line 5: outside block → replaced (noun fallback 購読 → サブスクリプション)
+    expect(lines[5]).toBe('サブスクリプションが完了しました。')
+  })
+
+  it('handles mixed inline code and prose on the same line', () => {
+    const content = '`subscribe` で購読するか、購読中リストを確認してください。'
+    const result = fixGlossaryBlockViolations(content)
+    expect(result).toBe('`subscribe` でサブスクライブするか、サブスクライブ中リストを確認してください。')
+  })
+
+  it('returns content unchanged when no 購読 patterns are present', () => {
+    const content = '## サブスクリプション\n\nWebSocket でリアルタイムにデータを受信します。'
+    expect(fixGlossaryBlockViolations(content)).toBe(content)
   })
 })
 

@@ -124,6 +124,61 @@ export function fixGlossaryViolations(
   return { content: result.join('\n'), count }
 }
 
+// ---------------------------------------------------------------------------
+// Glossary block-tier violation replacement (Subscription verb safety net)
+// ---------------------------------------------------------------------------
+
+function applySubscriptionReplacements(text: string): string {
+  return text
+    .replace(/購読する/g, 'サブスクライブする')
+    .replace(/購読し([てたなれる])/g, 'サブスクライブし$1')
+    .replace(/購読中/g, 'サブスクライブ中')
+    .replace(/購読/g, 'サブスクリプション')
+}
+
+/**
+ * Fix Subscription verb block-tier glossary violations in Japanese markdown.
+ * Replaces 購読 patterns with canonical terms, skipping fenced code blocks
+ * and inline code (backtick-quoted segments).
+ *
+ * @param content - Markdown content to process
+ * @returns Fixed content string
+ */
+export function fixGlossaryBlockViolations(content: string): string {
+  const lines = content.split('\n')
+  let inFencedBlock = false
+
+  const result = lines.map(line => {
+    const trimmed = line.trimStart()
+
+    // Track fenced code block boundaries (``` or ~~~)
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFencedBlock = !inFencedBlock
+      return line
+    }
+
+    // Skip lines inside fenced code blocks
+    if (inFencedBlock) return line
+
+    // Protect inline code segments: split by `...`, apply replacements only to non-code parts
+    const parts: string[] = []
+    const inlineCodeRegex = /`[^`]*`/g
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+
+    while ((match = inlineCodeRegex.exec(line)) !== null) {
+      parts.push(applySubscriptionReplacements(line.slice(lastIndex, match.index)))
+      parts.push(match[0])
+      lastIndex = match.index + match[0].length
+    }
+    parts.push(applySubscriptionReplacements(line.slice(lastIndex)))
+
+    return parts.join('')
+  })
+
+  return result.join('\n')
+}
+
 /**
  * Infer language identifier from code block content.
  * Priority order: JSON → bash → SQL → HTTP → text
@@ -407,6 +462,15 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
       changed = true
       glossaryFixes += glossaryCount
       console.log(`  [glossary] Fixed ${glossaryCount} term(s): ja/${relPath}`)
+    }
+
+    // Fix Subscription verb block-tier violations (safety net: 購読 → サブスクライブ/サブスクリプション)
+    const blockFixed = fixGlossaryBlockViolations(jaContent)
+    if (blockFixed !== jaContent) {
+      jaContent = blockFixed
+      changed = true
+      glossaryFixes++
+      console.log(`  [glossary-block] Fixed Subscription verb violation(s): ja/${relPath}`)
     }
 
     // Fix missing frontmatter title
