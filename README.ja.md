@@ -13,7 +13,7 @@
 - **デュアル API サポート**: 単一インスタンスで NGSIv2 と NGSI-LD の両方をサポート
 - **日本標準対応**: CADDE 互換、来歴追跡機能を搭載
 
-🌐 **公開ドキュメント**: https://docs.geonicdb.org/
+🌐 **公開ドキュメント**: https://docs.geonicdb.com/
 
 ## 技術スタック
 
@@ -107,6 +107,49 @@ pnpm translate:ja -- docs/en/path/to/file.md
 # 日本語ファイルを英語に翻訳
 pnpm translate:en -- docs/ja/path/to/file.md
 ```
+
+## ドキュメント同期
+
+### B-1: 上流リポジトリとの関係
+
+ドキュメントコンテンツの源泉は、上流リポジトリ **[geolonia/geonicdb](https://github.com/geolonia/geonicdb)**（製品本体リポジトリ）です。この `geonicdb-docs` リポジトリは、そのドキュメントをレンダリング・公開する VitePress サイトです。
+
+同期スクリプト（`scripts/sync-geonicdb-docs.ts`）が `geolonia/geonicdb/docs/` の Markdown ファイルをこのリポジトリの `docs/en/` にコピーし、VitePress フロントマターの付与と内部リンクの書き換えを行います。
+
+### B-2: 同期対象ページ vs 独自ページ
+
+`scripts/sync-geonicdb-docs.ts` の `MAPPING_TABLE` に記載されているファイルのみが上流リポジトリから同期されます。`MAPPING_TABLE` に記載のないファイルはスキップされます（ログに `SKIP (no mapping)` と出力）。
+
+`docs/en/` 配下で上流ファイルに対応しないページは、このリポジトリで直接管理している **独自ページ** です。
+
+### B-3: `pnpm sync-docs` の動作フロー
+
+```bash
+GEONICDB_REPO_PATH=/path/to/geonicdb pnpm sync-docs
+```
+
+1. `MAPPING_TABLE` に記載された各 `.md` ファイルを `GEONICDB_REPO_PATH/docs/` から読み込む
+2. VitePress フロントマター（`title`・`description`・`outline: deep`）を付与する
+3. 内部リンクを `MAPPING_TABLE` の定義に基づいて相対パスへ書き換える
+4. `MAPPING_TABLE` で指定した `docs/en/<dest>` へ書き出す
+5. CI では同期後に `yuuhitsu` が `docs/en/` → `docs/ja/` を自動翻訳する
+
+### B-4: 新規ページを同期対象に追加する手順
+
+新しい上流 Markdown ファイルをサイトに追加するには、`scripts/sync-geonicdb-docs.ts` の `MAPPING_TABLE` にエントリを追加します：
+
+```ts
+// scripts/sync-geonicdb-docs.ts
+'NEW_FILE.md': [
+  {
+    dest: 'section/page-name.md',   // docs/en/ 以下の出力パス
+    title: 'ページタイトル',
+    description: '検索用の短い説明',
+  },
+],
+```
+
+エントリ追加後、`pnpm sync-docs` をローカルで実行して出力を確認し、コミット・プッシュしてください。翻訳は CI ワークフローが自動処理します。
 
 ## プロジェクト構造
 

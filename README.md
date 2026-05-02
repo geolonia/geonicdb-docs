@@ -13,7 +13,7 @@ This repository hosts the official documentation for **GeonicDB**, a serverless 
 - **Dual API Support**: Both NGSIv2 and NGSI-LD on a single instance
 - **Japan Standards Ready**: CADDE compatible with provenance tracking
 
-🌐 **Live Documentation**: https://docs.geonicdb.org/
+🌐 **Live Documentation**: https://docs.geonicdb.com/
 
 ## Tech Stack
 
@@ -107,6 +107,49 @@ pnpm translate:ja -- docs/en/path/to/file.md
 # Translate a specific Japanese file to English
 pnpm translate:en -- docs/ja/path/to/file.md
 ```
+
+## Documentation Sync
+
+### B-1: Upstream Repository Relationship
+
+The documentation content originates from the upstream repository **[geolonia/geonicdb](https://github.com/geolonia/geonicdb)** (the main product repository). This `geonicdb-docs` repository is a separate VitePress site that renders and publishes those docs.
+
+The sync script (`scripts/sync-geonicdb-docs.ts`) copies Markdown files from `geolonia/geonicdb/docs/` into `docs/en/` of this repository, adding VitePress frontmatter and rewriting internal links.
+
+### B-2: Synced Pages vs. Custom Pages
+
+Only files listed in the `MAPPING_TABLE` in `scripts/sync-geonicdb-docs.ts` are synced from the upstream repository. Files that are **not** in `MAPPING_TABLE` are skipped (logged as `SKIP (no mapping)`).
+
+Pages under `docs/en/` that do not correspond to any upstream source file are **custom pages** maintained directly in this repository.
+
+### B-3: How `pnpm sync-docs` Works
+
+```bash
+GEONICDB_REPO_PATH=/path/to/geonicdb pnpm sync-docs
+```
+
+1. Reads each `.md` file listed in `MAPPING_TABLE` from `GEONICDB_REPO_PATH/docs/`
+2. Adds VitePress frontmatter (`title`, `description`, `outline: deep`)
+3. Rewrites internal links (`./FILENAME.md` → relative path based on `MAPPING_TABLE`)
+4. Writes the result to `docs/en/<dest>` as defined in `MAPPING_TABLE`
+5. In CI, after sync, `yuuhitsu` translates `docs/en/` → `docs/ja/` automatically
+
+### B-4: Adding a New Page to Sync
+
+To include a new upstream Markdown file in the site, add an entry to `MAPPING_TABLE` in `scripts/sync-geonicdb-docs.ts`:
+
+```ts
+// scripts/sync-geonicdb-docs.ts
+'NEW_FILE.md': [
+  {
+    dest: 'section/page-name.md',   // output path under docs/en/
+    title: 'Page Title',
+    description: 'Short description for SEO',
+  },
+],
+```
+
+After adding the entry, run `pnpm sync-docs` locally to verify the output, then commit and push. The CI workflow handles translation automatically.
 
 ## Project Structure
 
