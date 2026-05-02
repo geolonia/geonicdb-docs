@@ -125,7 +125,7 @@ jobs:
         run: |
           BLOCK_FAILED=0
           while IFS= read -r -d '' f; do
-            if ! npx --yes @geolonia/yuuhitsu@0.1.12 glossary check \
+            if ! npx --yes @geolonia/yuuhitsu@0.1.14 glossary check \
                 --input "$f" \
                 --glossary glossary.yaml \
                 --lang ja \
@@ -144,7 +144,7 @@ jobs:
         if: steps.detect.outputs.has_changes == 'true'
         run: |
           while IFS= read -r -d '' f; do
-            npx --yes @geolonia/yuuhitsu@0.1.12 glossary fix \
+            npx --yes @geolonia/yuuhitsu@0.1.14 glossary fix \
               --input "$f" \
               --glossary glossary.yaml \
               --lang ja
@@ -162,7 +162,7 @@ jobs:
         run: |
           WARN_COUNT=0
           while IFS= read -r -d '' f; do
-            if ! npx --yes @geolonia/yuuhitsu@0.1.12 glossary check \
+            if ! npx --yes @geolonia/yuuhitsu@0.1.14 glossary check \
                 --input "$f" \
                 --glossary glossary.yaml \
                 --lang ja \
@@ -181,7 +181,7 @@ jobs:
           mkdir -p /tmp/glossary-sarif
           while IFS= read -r -d '' f; do
             safename=$(echo "$f" | sed 's|/|_|g')
-            npx --yes @geolonia/yuuhitsu@0.1.12 glossary check \
+            npx --yes @geolonia/yuuhitsu@0.1.14 glossary check \
               --input "$f" \
               --glossary glossary.yaml \
               --lang ja \
