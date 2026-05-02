@@ -10,7 +10,7 @@ Step 5 of the SaaS onboarding flow: use the `geonic` CLI to create an API key fo
 
 ::: tip Step 5 of the SaaS onboarding flow
 1. ~~[Contact Sales](/en/saas/sign-up)~~
-2. ~~[Geolonia contacts you + credentials delivered](/en/saas/onboarding)~~
+2. ~~[Geolonia contacts you + review & approval](/en/saas/onboarding)~~
 3. ~~Account credentials delivered~~
 4. ~~[Create a tenant admin user](/en/saas/tenant-admin-user)~~
 5. **Create an API key** ← *you are here*

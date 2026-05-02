@@ -11,7 +11,7 @@ The GeonicDB management console is the web interface for managing your SaaS acco
 ::: warning Coming Soon
 The console at **app.geonicdb.com** is currently under active development and **not yet publicly available**.
 
-During the current preview period, account setup and API key management are handled directly by your Geolonia account manager. [Contact Geolonia](https://www.geolonia.com/contact/) if you need assistance.
+During the current preview period, use the **`geonic` CLI** to manage your account, tenants, and API keys. For operations not yet supported by the CLI, [contact your Geolonia account manager](https://www.geolonia.com/contact/).
 :::
 
 ## What the Console Will Offer

@@ -35,6 +35,26 @@ geonic admin api-keys create '{
 
 コマンドの出力に新しい API キーの値が表示されます。**コピーして安全な場所に保管してください** — 初回以降は表示されません。
 
+成功した場合の出力例：
+
+```json
+{
+  "id": "key_01abc...",
+  "name": "my-app-key",
+  "tenantId": "my-company",
+  "value": "gdb_live_xxxxxxxxxxxxxxxxxxxx",
+  "createdAt": "2026-01-01T00:00:00.000Z"
+}
+```
+
+### よくあるエラーと対処
+
+| エラー | 原因 | 対処 |
+|-------|------|------|
+| `401 Unauthorized` | 認証トークンが無効または期限切れ | `geonic auth login` で再ログイン |
+| `403 Forbidden` | 必要な権限（`tenant_admin` / `super_admin`）がない | 管理者に権限の付与を依頼 |
+| `409 Conflict` | 同名の API キーが既に存在する | 別の名前を使用するか、既存のキーを削除してから再作成 |
+
 ### レートリミット付きキーの作成
 
 ```bash

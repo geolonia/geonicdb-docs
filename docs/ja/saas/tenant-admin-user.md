@@ -71,21 +71,38 @@ geonic admin tenants create '{
 geonic admin tenants list
 ```
 
+成功した場合の出力例：
+
+```json
+[
+  { "id": "my-company", "displayName": "My Company", "createdAt": "2026-01-01T00:00:00.000Z" }
+]
+```
+
+::: details テナント作成でエラーが出た場合
+| エラー | 原因 | 対処 |
+|-------|------|------|
+| `401 Unauthorized` | 認証トークンが無効または期限切れ | `geonic auth login` で再ログイン |
+| `409 Conflict` | 同じ ID のテナントが既に存在する | 別のテナント ID を使用するか、既存テナントを確認 |
+:::
+
 ## テナント管理ユーザーの作成
 
 テナントに `tenant_admin` ロールを持つユーザーを作成します：
 
 ```bash
+read -s -p "Password: " ADMIN_PASS && \
 geonic admin users create '{
   "username": "admin@my-company.com",
-  "password": "ChangeMe123!",
+  "password": "'"$ADMIN_PASS"'",
   "tenantId": "my-company",
   "roles": ["tenant_admin"]
-}'
+}' && \
+unset ADMIN_PASS
 ```
 
 ::: tip
-管理ユーザーには強力なパスワードを設定してください。`tenant_admin` ロールは、テナントの API キー、エンティティ、サブスクリプションに対する完全な管理権限を付与します。
+`read -s` を使うことでパスワードが画面に表示されず、シェル履歴にも残りません。`tenant_admin` ロールは、テナントの API キー、エンティティ、サブスクリプションに対する完全な管理権限を付与します。
 :::
 
 ユーザーが作成されたことを確認：
@@ -93,6 +110,27 @@ geonic admin users create '{
 ```bash
 geonic admin users list
 ```
+
+成功した場合の出力例：
+
+```json
+[
+  {
+    "username": "admin@my-company.com",
+    "tenantId": "my-company",
+    "roles": ["tenant_admin"],
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  }
+]
+```
+
+::: details ユーザー作成でエラーが出た場合
+| エラー | 原因 | 対処 |
+|-------|------|------|
+| `401 Unauthorized` | 認証トークンが無効または期限切れ | `geonic auth login` で再ログイン |
+| `409 Conflict` | 同じユーザー名が既に存在する | 別のユーザー名を使用するか、既存ユーザーを確認 |
+| `400 Bad Request` | リクエスト形式が不正（JSON 構文エラー等） | JSON の形式を確認してから再実行 |
+:::
 
 ## 次のステップ
 
