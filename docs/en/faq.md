@@ -401,5 +401,5 @@ See Authentication and Authorization for details.
 
 - [API Specification](./api-reference/endpoints.md)
 - [FIWARE Orion Comparison](./migration/compatibility-matrix.md)
-- [Development and Deployment Guide](./getting-started/installation.md)
+- [Demo App](./getting-started/demo-app.md)
 - Authentication and Authorization

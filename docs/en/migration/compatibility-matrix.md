@@ -402,7 +402,6 @@ Note: Regarding Keyrock IdM / Wilma PEP Proxy, GeonicDB can also integrate via A
 
 ## References
 
-- [GeonicDB Repository](https://github.com/geolonia/geonicdb) (private repository)
 - [FIWARE Orion Documentation](https://fiware-orion.readthedocs.io/)
 - [FIWARE Orion-LD Repository](https://github.com/FIWARE/context.Orion-LD)
 - [NGSIv2 Specification](https://fiware-orion.readthedocs.io/en/master/orion-api.html)

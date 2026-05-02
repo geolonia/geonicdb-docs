@@ -20,7 +20,7 @@ A smart building scenario with conference room sensors that track temperature, h
 
 ## Prerequisites
 
-- Access to the GeonicDB SaaS API (see [Installation & Setup](/en/getting-started/installation))
+- Access to the GeonicDB SaaS API (contact Geolonia to get started)
 - `curl` and optionally `jq` for JSON formatting
 
 ::: tip

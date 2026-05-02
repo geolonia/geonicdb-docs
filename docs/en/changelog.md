@@ -1164,5 +1164,3 @@ outline: deep
 - ReDoS（正規表現サービス拒否）防止
 - 全 API エンドポイントの入力検証
 
-[unreleased]: https://github.com/geolonia/geonicdb/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/geolonia/geonicdb/releases/tag/v0.1.0

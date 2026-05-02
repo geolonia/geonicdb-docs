@@ -829,4 +829,4 @@ class DebugWebSocket {
 - JavaScript SDK - SDK API リファレンス (ブラウザアプリケーションに推奨)
 - [API 共通仕様](../api-reference/endpoints.md) - REST API ドキュメント
 - 認証と認可 - 認証設定
-- [開発ガイド](../getting-started/installation.md) - ローカル開発とデプロイ
+- [デモアプリ](../getting-started/demo-app.md) - インタラクティブなデモアプリケーション

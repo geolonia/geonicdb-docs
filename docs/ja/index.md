@@ -7,14 +7,14 @@ hero:
   tagline: AI ネイティブ、サーバーレス、日本標準規格対応
   actions:
     - theme: brand
+      text: サインアップ
+      link: /contact
+    - theme: alt
       text: クイックスタート
       link: /ja/introduction/quick-start
     - theme: alt
       text: API リファレンス
       link: /ja/api-reference/ngsiv2
-    - theme: alt
-      text: GitHub
-      link: https://github.com/geolonia/geonicdb
 
 features:
   - icon: ⚡

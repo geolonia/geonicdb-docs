@@ -7,7 +7,6 @@ outline: deep
 
 `@geolonia/geonicdb-cli` (`geonic` コマンド) は、GeonicDB のコマンドラインインターフェースです。NGSI-LD エンティティ、サブスクリプション、登録、時系列データ、バッチ操作、管理機能などへの完全なアクセスを提供します。
 
-- **リポジトリ**: [geolonia/geonicdb-cli](https://github.com/geolonia/geonicdb-cli)
 - **ランタイム**: Node.js >= 20
 - **パッケージ**: `@geolonia/geonicdb-cli`## 目次
 
