@@ -14,6 +14,7 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | **Implementation language** | TypeScript/Node.js | C++ |
 | **Architecture** | Serverless (AWS Lambda) | Monolithic (Docker) |
 | **Database** | MongoDB Atlas | MongoDB |
+| **License** | AGPL v3.0 | AGPL v3.0 |
 | **Supported APIs** | NGSIv2 + NGSI-LD | NGSIv2 (Orion) / NGSI-LD (Orion-LD) |
 | **Scalability** | Auto-scaling (Lambda) | Manual scaling (container) |
 | **Cost** | Pay-per-use | Fixed infrastructure cost |
@@ -401,6 +402,7 @@ Note: Regarding Keyrock IdM / Wilma PEP Proxy, GeonicDB can also integrate via A
 
 ## References
 
+- [GeonicDB Repository](https://github.com/geolonia/geonicdb) (private repository)
 - [FIWARE Orion Documentation](https://fiware-orion.readthedocs.io/)
 - [FIWARE Orion-LD Repository](https://github.com/FIWARE/context.Orion-LD)
 - [NGSIv2 Specification](https://fiware-orion.readthedocs.io/en/master/orion-api.html)
