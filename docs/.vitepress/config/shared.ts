@@ -34,6 +34,7 @@ export const shared = defineConfig({
 
   themeConfig: {
     logo: '/geonicdb-logo.svg',
+    siteTitle: false,
 
     search: {
       provider: 'local',
