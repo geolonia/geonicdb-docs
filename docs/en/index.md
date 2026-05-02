@@ -8,10 +8,10 @@ hero:
   actions:
     - theme: brand
       text: Sign Up
-      link: /contact
+      link: /en/saas/sign-up
     - theme: alt
       text: Quick Start
-      link: /en/introduction/quick-start
+      link: /en/saas/quickstart
     - theme: alt
       text: API Reference
       link: /en/api-reference/ngsiv2
