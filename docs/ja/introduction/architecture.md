@@ -153,5 +153,5 @@ MongoDB Atlas はテナント分離でデータを保存します：
 ## 次のステップ
 
 - [クイックスタート](/ja/introduction/quick-start) — 最初の API コールを試す
-- [はじめてのエンティティ](/ja/getting-started/first-entity) — エンティティ CRUD のステップバイステップガイド
+- [はじめてのエンティティ](/ja/saas/first-entity) — エンティティ CRUD のステップバイステップガイド
 - [API リファレンス](/ja/api-reference/ngsiv2) — NGSIv2 API の完全なドキュメント

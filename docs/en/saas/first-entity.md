@@ -373,7 +373,7 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
 
 ## Next Steps
 
-- [Demo App](/en/getting-started/demo-app) — See GeonicDB in action with interactive demos
+- [Demo App](/en/saas/demo-app) — See GeonicDB in action with interactive demos
 - NGSIv2 API Reference — Complete API documentation
 - Query Language — Advanced filtering with q, mq, scopeQ
 - Subscriptions — HTTP, MQTT, and WebSocket notifications

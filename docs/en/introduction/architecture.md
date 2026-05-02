@@ -153,5 +153,5 @@ MongoDB Atlas stores data with tenant isolation:
 ## Next Steps
 
 - [Quick Start](/en/introduction/quick-start) — Make your first API call
-- [First Entity Tutorial](/en/getting-started/first-entity) — Step-by-step entity CRUD walkthrough
+- [First Entity Tutorial](/en/saas/first-entity) — Step-by-step entity CRUD walkthrough
 - API Reference — Full NGSIv2 API documentation

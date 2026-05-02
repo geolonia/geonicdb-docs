@@ -373,7 +373,7 @@ curl -X POST https://api.geonicdb.geolonia.com/v2/op/update \
 
 ## 次のステップ
 
-- [デモアプリ](/ja/getting-started/demo-app) — GeonicDB を使ったインタラクティブなデモ
+- [デモアプリ](/ja/saas/demo-app) — GeonicDB を使ったインタラクティブなデモ
 - NGSIv2 API リファレンス — 完全な API ドキュメント
 - クエリ言語 — q, mq, scopeQ を使った高度なフィルタリング
 - サブスクリプション — HTTP、MQTT、WebSocket 通知

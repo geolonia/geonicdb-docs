@@ -375,4 +375,4 @@ curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=temperature==
 
 - [NGSI Data Model](/en/core-concepts/ngsi-data-model) -- Understand entities, attributes, and metadata
 - [Multi-Tenancy](/en/core-concepts/multi-tenancy) -- Data isolation with tenant headers
-- [First Entity Tutorial](/en/getting-started/first-entity) -- Hands-on walkthrough with query examples
+- [First Entity Tutorial](/en/saas/first-entity) -- Hands-on walkthrough with query examples

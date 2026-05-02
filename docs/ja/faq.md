@@ -372,5 +372,5 @@ y: Y tile coordinate
 
 - [API 仕様](./api-reference/endpoints.md)
 - [FIWARE Orion との比較](./migration/compatibility-matrix.md)
-- [デモアプリ](./getting-started/demo-app.md)
+- [デモアプリ](./saas/demo-app.md)
 - 認証と認可

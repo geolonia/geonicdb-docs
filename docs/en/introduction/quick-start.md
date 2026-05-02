@@ -198,6 +198,6 @@ Both APIs return the same entity, automatically transformed to the requested for
 
 ## What's Next?
 
-- [Demo App](/en/getting-started/demo-app) — Explore interactive demo applications
-- [First Entity Tutorial](/en/getting-started/first-entity) — In-depth CRUD walkthrough with subscriptions
+- [Demo App](/en/saas/demo-app) — Explore interactive demo applications
+- [First Entity Tutorial](/en/saas/first-entity) — In-depth CRUD walkthrough with subscriptions
 - NGSIv2 API Reference — Full API documentation
