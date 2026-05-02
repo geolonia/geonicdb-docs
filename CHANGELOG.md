@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Changed
+- chore(deps): bump @geolonia/yuuhitsu 0.1.12 → 0.1.13 (SF1 prompt 強化: code fence lang 必須化 + glossary warn 強化) (Closes #110)
 - feat(docs): SaaS 中心 docs 再編 Phase 1 — docs/{en,ja}/getting-started/installation.md 削除、VitePress config GitHub 関連削除（socialLinks / nav GitHub / sidebar Installation）、index.md hero CTA → Sign Up(brand)/Quick Start/API Reference、changelog GitHub compare/tag URL 削除、本文 git clone / GitHub URL 削除（orion-to-geonicdb.md は Phase 2 範囲ゆえ除外）(Closes #108)
 
 ### Fixed
