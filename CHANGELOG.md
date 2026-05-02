@@ -12,6 +12,7 @@
 - feat(docs): SaaS 中心 docs 再編 Phase 1 — docs/{en,ja}/getting-started/installation.md 削除、VitePress config GitHub 関連削除（socialLinks / nav GitHub / sidebar Installation）、index.md hero CTA → Sign Up(brand)/Quick Start/API Reference、changelog GitHub compare/tag URL 削除、本文 git clone / GitHub URL 削除（orion-to-geonicdb.md は Phase 2 範囲ゆえ除外）(Closes #108)
 
 ### Fixed
+- fix: docs/en/changelog.md 日本語混入修正（PR#103 残存 CR Thread 6 対応）(Closes #115)
 - fix(translate-pipeline): SF2 embedded fence cascade violations — `fixEmbeddedFences` in `fix-doc-quality.ts` detects and splits `prose```lang` merged lines (`.```[a-z]` pattern); applied as pre-fix in `fixBareCodeBlocks` and as post-process in `translate-protected.ts` after restore steps. `ensureFenceSpacing` pre-processes input to insert blank lines before code fence starts at chunk boundaries, preventing LLM merging. Eliminates bare block cascade violations seen in PR#97. (Closes #104)
 
 ### Changed
