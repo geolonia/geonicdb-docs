@@ -100,8 +100,13 @@ terms:
       en: Context Broker
       ja: コンテキストブローカー
     do_not_use:
-      ja: ["コンテキストブローカ"]
-      # 「ブローカー」は MQTT broker / Message broker 等の一般語にも使われるため do_not_use から除外（cmd_353 HF2）
+      ja:
+        - コンテキストブローカ
+        - term: ブローカー
+          except_after: ["MQTT", "Message", "Event"]
+      # 注: 「ブローカー」は MQTT/Message/Event broker の文脈で例外許容
+      # cmd_353 で短期 hotfix として除外したが、cmd_355 SF6 (yuuhitsu 0.1.14)
+      # で文脈別禁止が可能になったため復活（cmd_361）
 
   - canonical: tenant
     type: domain

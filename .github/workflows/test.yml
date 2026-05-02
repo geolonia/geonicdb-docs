@@ -78,7 +78,7 @@ jobs:
           while IFS= read -r -d '' f; do
             TOTAL=$((TOTAL + 1))
             echo "Checking: $f"
-            if ! npx --yes @geolonia/yuuhitsu@0.1.12 glossary check \
+            if ! npx --yes @geolonia/yuuhitsu@0.1.14 glossary check \
                 --input "$f" \
                 --glossary glossary.yaml \
                 --lang ja \
