@@ -462,7 +462,7 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 
 ## Batch Operations
 
-> **Note**: Batch operations can process up to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000 via the `MaxBatchSize` SAM parameter). Requests exceeding this limit will result in a `400 Bad Request` error. See [DEVELOPMENT.md](../getting-started/installation.md) for configuration details.
+> **Note**: Batch operations can process up to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000 via the `MaxBatchSize` SAM parameter). Requests exceeding this limit will result in a `400 Bad Request` error. Contact Geolonia support for configuration details.
 
 ### Batch Update
 

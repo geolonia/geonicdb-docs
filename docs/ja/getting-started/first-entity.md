@@ -20,7 +20,7 @@ outline: deep
 
 ## 前提条件
 
-- GeonicDB SaaS API へのアクセス（[セットアップ](/ja/getting-started/installation) を参照）
+- GeonicDB SaaS API へのアクセス（Geolonia へお問い合わせください）
 - `curl` および JSON 整形用の `jq`（オプション）
 
 ::: tip

@@ -837,4 +837,4 @@ class DebugWebSocket {
 - JavaScript SDK - SDK API reference (recommended for browser applications)
 - [API Common Specification](../api-reference/endpoints.md) - REST API documentation
 - Authentication and Authorization - Authentication configuration
-- [Development Guide](../getting-started/installation.md) - Local development and deployment
+- [Demo App](../getting-started/demo-app.md) - Interactive demo applications

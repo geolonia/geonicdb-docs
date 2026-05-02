@@ -7,14 +7,14 @@ hero:
   tagline: AI-Native, Serverless, Japan Standards Ready
   actions:
     - theme: brand
+      text: Sign Up
+      link: /contact
+    - theme: alt
       text: Quick Start
       link: /en/introduction/quick-start
     - theme: alt
       text: API Reference
       link: /en/api-reference/ngsiv2
-    - theme: alt
-      text: GitHub
-      link: https://github.com/geolonia/geonicdb
 
 features:
   - icon: ⚡

@@ -888,7 +888,7 @@ API エンドポイントのリストを JSON フォーマットで返します�
   "documentation": {
     "llms_txt": "/llms.txt",
     "openapi": "/openapi.json",
-    "full": "https://github.com/geolonia/geonicdb/blob/main/docs/API.md"
+    "full": "https://docs.geonicdb.com"
   },
   "apis": {
     "ngsiv2": { "basePath": "/v2", "endpoints": {...} },
@@ -928,7 +928,7 @@ FIWARE Orion 互換のバージョン情報を返します。
     "compiled_in": "aws-lambda",
     "release_date": "2026-01-25",
     "machine": "x64",
-    "doc": "https://github.com/geolonia/geonicdb"
+    "doc": "https://docs.geonicdb.com"
   },
   "vendor": {
     "name": "Geolonia Inc.",

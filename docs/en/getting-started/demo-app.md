@@ -6,7 +6,7 @@ outline: deep
 
 # Demo App
 
-The [GeonicDB Demo App](https://github.com/geolonia/geonicdb-demo-app) is a collection of interactive applications that showcase GeonicDB capabilities. Built with React, Vite, and MapLibre GL JS, the demos cover real-world use cases from executive dashboards to geo-spatial city maps.
+The GeonicDB Demo App is a collection of interactive applications that showcase GeonicDB capabilities. Built with React, Vite, and MapLibre GL JS, the demos cover real-world use cases from executive dashboards to geo-spatial city maps.
 
 ## Demo Applications
 
@@ -83,8 +83,7 @@ A full-screen geographic interface for spatial data exploration:
 ### Run Locally
 
 ```bash
-# Clone the repository
-git clone https://github.com/geolonia/geonicdb-demo-app.git
+# Move into the demo app directory
 cd geonicdb-demo-app
 
 # Install dependencies
@@ -140,8 +139,6 @@ geonicdb-demo-app/
 
 ## Links
 
-- **GitHub Repository**: [geolonia/geonicdb-demo-app](https://github.com/geolonia/geonicdb-demo-app)
-- **GeonicDB**: [geolonia/geonicdb](https://github.com/geolonia/geonicdb)
 - **Geolonia Maps**: [geolonia.com](https://geolonia.com/)
 
 ## Next Steps

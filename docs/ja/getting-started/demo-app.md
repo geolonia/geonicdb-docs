@@ -6,7 +6,7 @@ outline: deep
 
 # デモアプリ
 
-[GeonicDB Demo App](https://github.com/geolonia/geonicdb-demo-app) は、GeonicDB の機能を体験できるインタラクティブなアプリケーション集です。React、Vite、MapLibre GL JS で構築され、エグゼクティブダッシュボードから地理空間シティマップまで、実際のユースケースをカバーしています。
+GeonicDB Demo App は、GeonicDB の機能を体験できるインタラクティブなアプリケーション集です。React、Vite、MapLibre GL JS で構築され、エグゼクティブダッシュボードから地理空間シティマップまで、実際のユースケースをカバーしています。
 
 ## デモアプリケーション
 
@@ -83,8 +83,7 @@ IoT センサーデータの可視化を示すビル管理インターフェー�
 ### ローカルで実行
 
 ```bash
-# リポジトリをクローン
-git clone https://github.com/geolonia/geonicdb-demo-app.git
+# デモアプリのディレクトリへ移動
 cd geonicdb-demo-app
 
 # 依存パッケージのインストール
@@ -140,8 +139,6 @@ geonicdb-demo-app/
 
 ## リンク
 
-- **GitHub リポジトリ**: [geolonia/GeonicDB-demo-app](https://github.com/geolonia/geonicdb-demo-app)
-- **GeonicDB**: [geolonia/GeonicDB](https://github.com/geolonia/geonicdb)
 - **Geolonia Maps**: [geolonia.com](https://geolonia.com/)
 
 ## 次のステップ

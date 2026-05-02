@@ -392,7 +392,6 @@ outline: deep
 - Docker/Kubernetes で運用する予定
 - AWS 以外のクラウドまたはマルチクラウド環境で運用している## リファレンス
 
-- [GeonicDB リポジトリ](https://github.com/geolonia/geonicdb) (プライベートリポジトリ)
 - [FIWARE Orion ドキュメント](https://fiware-orion.readthedocs.io/)
 - [FIWARE Orion-LD リポジトリ](https://github.com/FIWARE/context.Orion-LD)
 - [NGSIv2 仕様](https://fiware-orion.readthedocs.io/en/master/orion-api.html)

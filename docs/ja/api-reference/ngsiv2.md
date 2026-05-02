@@ -435,7 +435,7 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 
 ---## バッチ操作
 
-> **注意**: バッチ操作は 1 リクエストあたり最大 **`MAX_BATCH_SIZE`** エンティティまで処理できます (デフォルト: 100、`MaxBatchSize` SAM パラメータで最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーになります。設定の詳細については [DEVELOPMENT.md](../getting-started/installation.md) を参照してください。
+> **注意**: バッチ操作は 1 リクエストあたり最大 **`MAX_BATCH_SIZE`** エンティティまで処理できます (デフォルト: 100、`MaxBatchSize` SAM パラメータで最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーになります。設定の詳細については Geolonia サポートにお問い合わせください。
 
 ### バッチ更新
 

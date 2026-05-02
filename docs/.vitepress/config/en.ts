@@ -13,16 +13,11 @@ export const en = defineConfig({
 function nav(): DefaultTheme.NavItem[] {
   return [
     { text: 'GeonicDB', link: '/en/introduction/what-is-geonicdb' },
-    { text: 'Getting Started', link: '/en/getting-started/installation' },
+    { text: 'Getting Started', link: '/en/getting-started/demo-app' },
     { text: 'API Reference', link: '/en/api-reference/ngsiv2' },
     { text: 'Features', link: '/en/features/subscriptions' },
     { text: 'AI', link: '/en/ai-integration/overview' },
     { text: 'Changelog', link: '/en/changelog' },
-    {
-      text: 'GitHub',
-      link: 'https://github.com/geolonia/geonicdb',
-      target: '_blank',
-    },
   ]
 }
 
@@ -41,7 +36,6 @@ function sidebar(): DefaultTheme.Sidebar {
       {
         text: 'Getting Started',
         items: [
-          { text: 'Installation', link: '/en/getting-started/installation' },
           { text: 'First Entity Tutorial', link: '/en/getting-started/first-entity' },
           { text: 'Demo App', link: '/en/getting-started/demo-app' },
         ],

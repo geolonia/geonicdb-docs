@@ -198,7 +198,7 @@ curl https://api.geonicdb.geolonia.com/v2/entities/urn:ngsi-ld:TemperatureSensor
 
 ## 次のステップ
 
-- [セットアップ](/ja/getting-started/installation) — API アクセスの詳細と推奨ツール
+- [デモアプリ](/ja/getting-started/demo-app) — インタラクティブなデモアプリケーション
 - [はじめてのエンティティ](/ja/getting-started/first-entity) — サブスクリプションを含む詳細な CRUD チュートリアル
 - [デモアプリ](/ja/getting-started/demo-app) — インタラクティブなデモアプリケーション
 - [NGSIv2 API リファレンス](/ja/api-reference/ngsiv2) — 完全な API ドキュメント

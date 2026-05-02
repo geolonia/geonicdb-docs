@@ -423,7 +423,7 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&ge
 | **総数** | `Fiware-Total-Count` | `NGSILD-Results-Count` | クエリ結果の総数 |
 | **次のリンク** | `Link` (rel="next") | `Link` (rel="next") | 次のページへのリンク |
 
-詳細については、[DEVELOPMENT.md](../getting-started/installation.md) の「API 仕様」セクションを参照してください。
+詳細については、[API リファレンス](/ja/api-reference/ngsiv2)を参照してください。
 
 ### 4. サブスクリプション
 
