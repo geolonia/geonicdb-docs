@@ -148,11 +148,59 @@ export function inferLanguage(content: string): string {
 }
 
 /**
+ * Fix embedded code fences: lines where prose and a code fence start are merged.
+ * Detects the pattern `/.```[a-z]/` (any char + three backticks + language letter)
+ * and splits into: prose | empty line | ```lang
+ *
+ * This occurs when an LLM translator merges the last prose line of a chunk with
+ * the opening fence of the following code block onto a single line.
+ */
+export function fixEmbeddedFences(content: string): string {
+  const lines = content.split('\n')
+  const result: string[] = []
+
+  for (const line of lines) {
+    const trimmed = line.trimStart()
+
+    // Skip lines that are already proper fence starts/ends (trimmed starts with ```)
+    if (trimmed.startsWith('```')) {
+      result.push(line)
+      continue
+    }
+
+    // Find last occurrence of ``` in the line (potential embedded fence)
+    const fenceIdx = line.lastIndexOf('```')
+    if (fenceIdx > 0) {
+      const afterFence = line.slice(fenceIdx + 3)
+      // Must be followed by a language identifier (a–z)
+      if (/^[a-z]/.test(afterFence)) {
+        const prose = line.slice(0, fenceIdx)
+        const fencePart = line.slice(fenceIdx)
+        result.push(prose)
+        result.push('')
+        result.push(fencePart)
+        continue
+      }
+    }
+
+    result.push(line)
+  }
+
+  return result.join('\n')
+}
+
+/**
  * Fix bare code blocks (``` without language) in target content.
  * Uses referenceContent for position-matched language lookup.
  * Falls back to content-based inference if reference has no language either.
+ *
+ * Also fixes embedded code fences (prose + ```lang on same line) before
+ * processing bare blocks, so blockIndex remains consistent with referenceContent.
  */
 export function fixBareCodeBlocks(targetContent: string, referenceContent: string | null): string {
+  // Fix embedded fences first so code block positions align with referenceContent
+  const cleanedContent = fixEmbeddedFences(targetContent)
+
   // Extract code block language identifiers from reference content by order
   const refLanguages: (string | null)[] = []
   if (referenceContent) {
@@ -172,7 +220,7 @@ export function fixBareCodeBlocks(targetContent: string, referenceContent: strin
     }
   }
 
-  const lines = targetContent.split('\n')
+  const lines = cleanedContent.split('\n')
   const result: string[] = []
   let inBlock = false
   let blockIndex = 0

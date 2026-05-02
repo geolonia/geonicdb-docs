@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import {
   inferLanguage,
+  fixEmbeddedFences,
   fixBareCodeBlocks,
   extractTitleFromHeading,
   addFrontmatterTitle,
@@ -66,6 +67,69 @@ describe('inferLanguage', () => {
 
   it('falls back to text for empty string', () => {
     expect(inferLanguage('')).toBe('text')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// fixEmbeddedFences
+// ---------------------------------------------------------------------------
+describe('fixEmbeddedFences', () => {
+  it('splits embedded fence - inline code backtick + ```lang (PR#97 cli.md pattern)', () => {
+    // Pattern: prose ending with inline code backtick merged with ```bash
+    const broken = '**`sub list` options**: `--limit <n>`, `--offset <n>`, `--count````bash'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('**`sub list` options**: `--limit <n>`, `--offset <n>`, `--count`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```bash')
+  })
+
+  it('splits embedded fence - macOS/Windows path + ```json (PR#97 installation.md pattern)', () => {
+    // Pattern: two merged prose lines + ```json
+    const broken = '**macOS**: `~/Library/config.json`**Windows**: `%APPDATA%\\config.json````json'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('**macOS**: `~/Library/config.json`**Windows**: `%APPDATA%\\config.json`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```json')
+  })
+
+  it('splits embedded fence - response label + ```json (PR#97 endpoints.md pattern)', () => {
+    const broken = '**Response**: `200 OK````json'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('**Response**: `200 OK`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```json')
+  })
+
+  it('splits embedded fence - heading + ```bash (PR#97 cli.md health/version pattern)', () => {
+    const broken = '### `health````bash'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('### `health`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```bash')
+  })
+
+  it('leaves proper fence lines unchanged', () => {
+    const proper = '```bash\ncommand\n```'
+    expect(fixEmbeddedFences(proper)).toBe(proper)
+  })
+
+  it('leaves plain prose unchanged', () => {
+    const prose = 'Some text without code fences.'
+    expect(fixEmbeddedFences(prose)).toBe(prose)
+  })
+
+  it('leaves indented fence starts unchanged', () => {
+    const indented = '    ```json\n    {}\n    ```'
+    expect(fixEmbeddedFences(indented)).toBe(indented)
+  })
+
+  it('does not split closing fences (``` without lang)', () => {
+    const content = 'prose\n```\n'
+    expect(fixEmbeddedFences(content)).toBe(content)
   })
 })
 
@@ -147,6 +211,58 @@ describe('fixBareCodeBlocks', () => {
     const ja = '# Title\n\nSome text without code blocks.\n'
     const result = fixBareCodeBlocks(ja, null)
     expect(result).toBe(ja)
+  })
+
+  it('fixes embedded fence and matches blockIndex with reference', () => {
+    // Reference (Japanese source) has prose + blank line + ```json
+    const ref = '# Title\n\n**Response**: `200 OK`\n\n```json\n{"key": "value"}\n```\n'
+    // Target (translated) has embedded fence (prose + ```json merged)
+    const target = '# Title\n\n**Response**: `200 OK````json\n{"key": "value"}\n```\n'
+    const result = fixBareCodeBlocks(target, ref)
+    // ```json should now be on its own line
+    expect(result).toMatch(/\n```json\n/)
+    // Prose should be on its own line
+    expect(result).toContain('**Response**: `200 OK`\n')
+    // Content and closing fence preserved
+    expect(result).toContain('{"key": "value"}\n```')
+  })
+
+  it('fixes embedded fence + bare block in same document - blockIndex aligns', () => {
+    // Reference has: ```json (index 0), ```bash (index 1)
+    const ref = [
+      '# Title',
+      '',
+      'prose1',
+      '',
+      '```json',
+      '{"a": 1}',
+      '```',
+      '',
+      'prose2',
+      '',
+      '```bash',
+      'cmd',
+      '```',
+    ].join('\n')
+    // Target: first block embedded (prose1```json), second block bare (```)
+    const target = [
+      '# Title',
+      '',
+      'prose1```json',
+      '{"a": 1}',
+      '```',
+      '',
+      'prose2',
+      '',
+      '```',
+      'cmd',
+      '```',
+    ].join('\n')
+    const result = fixBareCodeBlocks(target, ref)
+    // Block 0: should be ```json
+    expect(result).toMatch(/prose1\n\n```json\n/)
+    // Block 1: was bare, should be ```bash from ref
+    expect(result).toMatch(/prose2\n\n```bash\n/)
   })
 })
 
