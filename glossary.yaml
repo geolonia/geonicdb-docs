@@ -100,7 +100,8 @@ terms:
       en: Context Broker
       ja: コンテキストブローカー
     do_not_use:
-      ja: ["コンテキストブローカ", "ブローカー"]
+      ja: ["コンテキストブローカ"]
+      # 「ブローカー」は MQTT broker / Message broker 等の一般語にも使われるため do_not_use から除外（cmd_353 HF2）
 
   - canonical: tenant
     type: domain
