@@ -158,12 +158,20 @@ export function inferLanguage(content: string): string {
 export function fixEmbeddedFences(content: string): string {
   const lines = content.split('\n')
   const result: string[] = []
+  let inFencedBlock = false
 
   for (const line of lines) {
     const trimmed = line.trimStart()
 
-    // Skip lines that are already proper fence starts/ends (trimmed starts with ```)
+    // Track fenced block boundaries — toggle on any ``` line
     if (trimmed.startsWith('```')) {
+      inFencedBlock = !inFencedBlock
+      result.push(line)
+      continue
+    }
+
+    // Inside a fenced block: preserve as-is, never split
+    if (inFencedBlock) {
       result.push(line)
       continue
     }
@@ -175,7 +183,8 @@ export function fixEmbeddedFences(content: string): string {
       // Must be followed by a language identifier (a–z)
       if (/^[a-z]/.test(afterFence)) {
         const prose = line.slice(0, fenceIdx)
-        const fencePart = line.slice(fenceIdx)
+        const indent = line.match(/^\s*/)?.[0] ?? ''
+        const fencePart = indent + line.slice(fenceIdx)
         result.push(prose)
         result.push('')
         result.push(fencePart)

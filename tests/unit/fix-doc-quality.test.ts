@@ -131,6 +131,22 @@ describe('fixEmbeddedFences', () => {
     const content = 'prose\n```\n'
     expect(fixEmbeddedFences(content)).toBe(content)
   })
+
+  it('does not split embedded fence-like text inside a fenced block', () => {
+    // "Use ```json" inside a code block must NOT be treated as an embedded fence
+    const content = '```md\nSome text\nUse ```json for configuration\nmore text\n```'
+    expect(fixEmbeddedFences(content)).toBe(content)
+  })
+
+  it('preserves leading indent when splitting an indented embedded fence', () => {
+    // List item with indented embedded fence (e.g. inside a list)
+    const broken = '  **Response**: `200 OK````json'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('  **Response**: `200 OK`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('  ```json')
+  })
 })
 
 // ---------------------------------------------------------------------------
