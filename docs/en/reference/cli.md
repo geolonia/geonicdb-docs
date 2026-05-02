@@ -7,6 +7,7 @@ outline: deep
 
 `@geolonia/geonicdb-cli` (`geonic` command) is a command-line interface for GeonicDB. It provides full access to NGSI-LD entities, subscriptions, registrations, temporal data, batch operations, admin management, and more.
 
+- **Repository**: [geolonia/geonicdb-cli](https://github.com/geolonia/geonicdb-cli)
 - **Runtime**: Node.js >= 20
 - **Package**: `@geolonia/geonicdb-cli`
 

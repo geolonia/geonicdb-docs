@@ -607,8 +607,7 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
 
 `options=temporalValues` を指定すると、各属性が `values` 配列 (`[value, timestamp]` のペア) を含む簡易形式で返されます。
 
-**例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?options=temporalValues`
-```json
+**例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?options=temporalValues````json
 {
   "id": "urn:ngsi-ld:Sensor:1",
   "type": "Sensor",
@@ -628,8 +627,7 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
 | `aggrMethods` | string | 集計メソッド (カンマ区切り): `totalCount`, `distinctCount`, `sum`, `avg`, `min`, `max`, `stddev`, `sumsq` |
 | `aggrPeriodDuration` | string | ISO 8601 期間 (例: `PT1H` は 1 時間)。`aggrMethods` 指定時に必須 |
 
-**例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2024-01-01T00:00:00Z`
-```json
+**例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2024-01-01T00:00:00Z````json
 {
   "id": "urn:ngsi-ld:Sensor:1",
   "type": "Sensor",
