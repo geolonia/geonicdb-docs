@@ -35,8 +35,6 @@ export const shared = defineConfig({
   themeConfig: {
     logo: '/geonicdb-logo.svg',
 
-    // socialLinks: [{ icon: 'github', link: 'https://github.com/geolonia/geonicdb' }], // OSS 非公開期間中は削除（OSS 公開時に復活）
-
     search: {
       provider: 'local',
     },
