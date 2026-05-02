@@ -18,7 +18,6 @@ GeonicDB is a modern alternative to FIWARE Orion, built from the ground up for c
 | **API Support** | NGSIv2 + NGSI-LD (single instance) | NGSIv2 (Orion) or NGSI-LD (Orion-LD) |
 | **Scaling** | Automatic (Lambda) | Manual (container orchestration) |
 | **Pricing** | Pay-per-use | Fixed infrastructure cost |
-| **License** | GPL v3.0 (OSS version) | AGPL v3.0 |
 
 ## 9 Key Differentiators
 
@@ -122,7 +121,6 @@ GeonicDB is available as a managed SaaS — no deployment, no infrastructure, no
 | | GeonicDB | Orion |
 |---|---------|-------|
 | SaaS availability | ✅ | ❌ |
-| Self-hosted option | AWS Lambda | Docker / Kubernetes |
 | Getting started | API key + curl | Clone → Docker Compose → configure |
 
 ## When to Choose GeonicDB

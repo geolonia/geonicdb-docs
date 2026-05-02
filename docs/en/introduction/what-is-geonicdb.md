@@ -70,7 +70,6 @@ These endpoints enable AI assistants to query, create, and manage IoT data witho
 | Database | MongoDB Atlas 8.0+ (Time Series Collections) |
 | Notifications | HTTP Webhook, MQTT (QoS 0/1/2), WebSocket |
 | Observability | OpenTelemetry, AWS X-Ray, Prometheus metrics |
-| License | GPL v3.0 |
 
 ## SaaS Access
 

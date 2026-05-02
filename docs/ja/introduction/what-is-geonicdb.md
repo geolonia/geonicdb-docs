@@ -70,7 +70,6 @@ GeonicDB は AI エージェントとの連携を最初から想定して設計�
 | データベース | MongoDB Atlas 8.0+（Time Series Collections） |
 | 通知 | HTTP Webhook, MQTT（QoS 0/1/2）, WebSocket |
 | 可観測性 | OpenTelemetry, AWS X-Ray, Prometheus メトリクス |
-| ライセンス | GPL v3.0 |
 
 ## SaaS アクセス
 
