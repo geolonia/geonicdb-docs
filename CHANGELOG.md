@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- chore(deps): bump @geolonia/yuuhitsu 0.1.13 → 0.1.14 (SF6 context_exception hybrid schema) (Closes #136)
+
 ### Fixed
 - [fix] ロゴ配置（geonicdb-logo.svg）+ Phase 1 socialLinks 残務削除（shared.ts の GitHub エントリ削除）（cmd_357）
 
