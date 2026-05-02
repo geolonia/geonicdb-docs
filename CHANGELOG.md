@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Changed
+- [glossary] Context Broker hybrid 形式化 — 「ブローカー」を except_after で復活、MQTT/Message/Event broker 文脈を許容（cmd_361）(Closes #137)
 - chore(deps): bump @geolonia/yuuhitsu 0.1.13 → 0.1.14 (SF6 context_exception hybrid schema) (Closes #136)
 
 ### Fixed
