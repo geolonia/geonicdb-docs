@@ -41,6 +41,7 @@ import {
   validateTableStructure,
   validateCodeBlocks,
 } from './translate-pipeline-validators.js'
+import { fixEmbeddedFences } from './fix-doc-quality.js'
 
 /** Maximum number of retry attempts after the first try. */
 const MAX_RETRIES = 2
@@ -106,6 +107,32 @@ function lastNLines(text: string, n: number): string {
  */
 function sanitizeCI(text: string): string {
   return text.replace(/::/g, '::​')
+}
+
+/**
+ * SF2 chunk boundary fix: ensure a blank line exists before every code fence start
+ * (```lang) that immediately follows a non-empty prose line.
+ * Prevents the LLM from merging the last prose line of a chunk with the opening
+ * fence of the next chunk into a single line during translation.
+ */
+function ensureFenceSpacing(content: string): string {
+  const lines = content.split('\n')
+  const result: string[] = []
+
+  for (const line of lines) {
+    const trimmed = line.trimStart()
+    // If this line opens a code fence with a language identifier
+    if (/^```[a-z]/.test(trimmed)) {
+      // And the previous output line is non-empty, insert a blank separator
+      const prev = result[result.length - 1]
+      if (prev !== undefined && prev.trim() !== '') {
+        result.push('')
+      }
+    }
+    result.push(line)
+  }
+
+  return result.join('\n')
 }
 
 /**
@@ -232,6 +259,8 @@ function main(): number {
     let protectedContent = protectBullets(inputContent)
     // P-A3: protect table pipe characters before translation
     protectedContent = protectTables(protectedContent)
+    // SF2: ensure blank lines before code fence starts (chunk boundary protection)
+    protectedContent = ensureFenceSpacing(protectedContent)
 
     // Write protected content to a temporary file
     tmpDir = mkdtempSync(join(tmpdir(), 'translate-protected-'))
@@ -310,6 +339,8 @@ function main(): number {
       outputContent = restoreBullets(outputContent)
       // P-A3: restore table pipe sentinels in translated output
       outputContent = restoreTables(outputContent)
+      // SF2: fix any embedded fences (prose + ```lang merged by LLM) in output
+      outputContent = fixEmbeddedFences(outputContent)
 
       // P-A1: check for truncation
       const truncCheck = checkTruncation(inputContent, outputContent)

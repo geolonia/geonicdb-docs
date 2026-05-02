@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- fix(translate-pipeline): SF2 embedded fence cascade violations — `fixEmbeddedFences` in `fix-doc-quality.ts` detects and splits `prose```lang` merged lines (`.```[a-z]` pattern); applied as pre-fix in `fixBareCodeBlocks` and as post-process in `translate-protected.ts` after restore steps. `ensureFenceSpacing` pre-processes input to insert blank lines before code fence starts at chunk boundaries, preventing LLM merging. Eliminates bare block cascade violations seen in PR#97. (Closes #104)
+
 ### Changed
 - chore(deps): bump @geolonia/yuuhitsu to 0.1.12 — code-block boundary protection; package.json and sync-and-translate.yml (4 locations) updated. (Closes #95)
 
