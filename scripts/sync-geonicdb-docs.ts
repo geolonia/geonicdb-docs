@@ -114,9 +114,6 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   'STATUS_CODES.md': [
     { dest: 'api-reference/status-codes.md', title: 'Status Codes', description: 'API response status codes' },
   ],
-  'DEVELOPMENT.md': [
-    { dest: 'getting-started/installation.md', title: 'Developer Guide', description: 'Development environment setup and installation' },
-  ],
   'DEMO_SCENARIO.md': [
     { dest: 'getting-started/demo-app.md', title: 'Demo App', description: 'Demo scenarios and apps' },
     { dest: 'getting-started/first-entity.md', title: 'First Entity', description: 'Entity CRUD tutorial' },
@@ -126,9 +123,6 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   ],
   'FAQ.md': [
     { dest: 'faq.md', title: 'FAQ', description: 'Frequently asked questions' },
-  ],
-  'DEPLOYMENT.md': [
-    { dest: 'getting-started/deployment.md', title: 'Deployment', description: 'Deployment guide' },
   ],
   'TELEMETRY.md': [
     { dest: 'features/telemetry.md', title: 'Telemetry', description: 'OpenTelemetry support' },
