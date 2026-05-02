@@ -51,11 +51,13 @@ function sidebar(): DefaultTheme.Sidebar {
         items: [
           { text: 'クイックスタート', link: '/ja/saas/quickstart' },
           { text: 'サインアップ', link: '/ja/saas/sign-up' },
-          { text: 'コンソール', link: '/ja/saas/console' },
+          { text: 'オンボーディング', link: '/ja/saas/onboarding' },
+          { text: 'テナント管理ユーザー', link: '/ja/saas/tenant-admin-user' },
           { text: 'API キー', link: '/ja/saas/api-key' },
           { text: '最初の API 呼び出し', link: '/ja/saas/first-call' },
-          { text: '最初のエンティティ', link: '/ja/saas/first-entity' },
+          { text: 'コンソール', link: '/ja/saas/console' },
           { text: 'デモアプリ', link: '/ja/saas/demo-app' },
+          { text: '最初のエンティティ', link: '/ja/saas/first-entity' },
         ],
       },
       {

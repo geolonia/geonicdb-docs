@@ -51,22 +51,27 @@ GeonicDB 管理コンソールは、SaaS アカウント、テナント、API �
 - アクティブな通知設定の表示・管理
 - JSON または CSV 形式でのデータエクスポート
 
-## 現在のオンボーディングフロー
+## 現在は CLI をご利用ください
 
-コンソールが利用可能になるまで、以下の操作は Geolonia のアカウント担当者が対応します：
+コンソールが利用可能になるまで、**`geonic` CLI** でアカウントを管理できます：
 
-| 操作 | 依頼方法 |
-|------|---------|
-| API キーの発行 | 初回オンボーディング時に提供 |
-| API キーのローテーション | アカウント担当者へメールで依頼 |
-| 追加テナントの作成 | アカウント担当者へメールで依頼 |
-| ユーザー管理 | アカウント担当者へメールで依頼 |
-| 使用状況レポート | アカウント担当者へメールで依頼 |
+| 操作 | CLI コマンド |
+|------|------------|
+| テナントの作成 | `geonic admin tenants create` |
+| ユーザーの作成 | `geonic admin users create` |
+| API キーの発行 | `geonic admin api-keys create` |
+| API キーのローテーション | `geonic admin api-keys update <id>` |
+| API キー一覧の確認 | `geonic admin api-keys list` |
 
-お問い合わせ先：[https://www.geolonia.com/contact/](https://www.geolonia.com/contact/)
+→ [テナント管理ユーザー](/ja/saas/tenant-admin-user) — テナントとユーザー設定の CLI ガイド
+
+→ [API キー](/ja/saas/api-key) — API キー作成の CLI ガイド
+
+CLI でまだサポートされていない操作については、[https://www.geolonia.com/contact/](https://www.geolonia.com/contact/) から Geolonia のアカウント担当者にお問い合わせください。
 
 ## 次のステップ
 
-- [API キー](/ja/saas/api-key) — API キーの使い方
+- [テナント管理ユーザー](/ja/saas/tenant-admin-user) — CLI でユーザーを作成
+- [API キー](/ja/saas/api-key) — CLI で API キーを作成
 - [最初の API 呼び出し](/ja/saas/first-call) — 最初のリクエストを送る
 - [サインアップ](/ja/saas/sign-up) — GeonicDB SaaS アカウントの申請

@@ -1,30 +1,55 @@
 ---
 title: API Key
-description: How to obtain and use your GeonicDB SaaS API key for authenticating API requests.
+description: How to create a GeonicDB SaaS API key using the geonic CLI — Step 5 of the onboarding flow.
 outline: deep
 ---
 
 # API Key
 
-Every GeonicDB SaaS API request must be authenticated with an API key. This page explains how to obtain, use, and manage your keys.
+Step 5 of the SaaS onboarding flow: use the `geonic` CLI to create an API key for authenticating your application's requests to the GeonicDB API.
 
-## Obtaining Your API Key
-
-GeonicDB SaaS API keys are issued by Geolonia during onboarding.
-
-::: info Console not yet available
-The self-service API key management console (`app.geonicdb.com`) is currently **Coming Soon**. During the preview period, keys are provided directly by your Geolonia account manager.
+::: tip Step 5 of the SaaS onboarding flow
+1. ~~[Contact Sales](/en/saas/sign-up)~~
+2. ~~[Geolonia contacts you + credentials delivered](/en/saas/onboarding)~~
+3. ~~Account credentials delivered~~
+4. ~~[Create a tenant admin user](/en/saas/tenant-admin-user)~~
+5. **Create an API key** ← *you are here*
+6. [First API call](/en/saas/first-call)
 :::
 
-**To get your API key:**
+## Prerequisites
 
-1. Complete the account request at [https://www.geolonia.com/contact/](https://www.geolonia.com/contact/)
-2. After your account is provisioned, Geolonia will provide your initial API key via the invitation email
-3. Store the key securely — it will not be shown again after initial delivery
+- `geonic` CLI installed and configured — see [Tenant Admin User](/en/saas/tenant-admin-user)
+- Logged in as a `tenant_admin` or `super_admin` user
 
-**To rotate or request a new key:**
+## Create an API Key
 
-Contact your Geolonia account manager at [https://www.geolonia.com/contact/](https://www.geolonia.com/contact/).
+Use the `geonic admin api-keys create` command to create a new API key:
+
+```bash
+geonic admin api-keys create '{
+  "name": "my-app-key",
+  "tenantId": "my-company"
+}'
+```
+
+The command outputs the new API key value. **Copy and store it securely** — it will not be shown again.
+
+### Create a Key with Rate Limiting
+
+```bash
+geonic admin api-keys create '{
+  "name": "my-sensor-key",
+  "tenantId": "my-company",
+  "rateLimit": { "perMinute": 120 }
+}'
+```
+
+### List Existing API Keys
+
+```bash
+geonic admin api-keys list
+```
 
 ## Using Your API Key
 
@@ -32,7 +57,7 @@ Include the API key in the `x-api-key` request header for every API call:
 
 ```bash
 export GEONICDB_API_KEY="YOUR_API_KEY"
-export GEONICDB_TENANT="YOUR_TENANT"
+export GEONICDB_TENANT="my-company"
 
 curl -X GET "https://geonicdb.geolonia.com/v2/entities" \
   -H "x-api-key: $GEONICDB_API_KEY" \
@@ -51,57 +76,15 @@ The GeonicDB SaaS API endpoint `https://geonicdb.geolonia.com` is subject to cha
 | `Fiware-Service` | Tenant name | `Fiware-Service: my-company` |
 | `Fiware-ServicePath` | Scope path (optional, default `/`) | `Fiware-ServicePath: /sensors` |
 
-### Example: Create an Entity
-
-```bash
-curl -X POST "https://geonicdb.geolonia.com/v2/entities" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: $GEONICDB_API_KEY" \
-  -H "Fiware-Service: $GEONICDB_TENANT" \
-  -d '{
-    "id": "urn:ngsi-ld:Sensor:001",
-    "type": "Sensor",
-    "temperature": {
-      "type": "Number",
-      "value": 22.5
-    }
-  }'
-```
-
-## API Key Scopes
-
-GeonicDB API keys support the following permission levels:
-
-| Scope | Permissions |
-|-------|------------|
-| `read` | GET operations only (list, get entities, subscriptions) |
-| `readwrite` | GET + POST + PATCH + PUT + DELETE on entities and subscriptions |
-| `admin` | Full access including tenant configuration |
-
-Key scope is configured by your Geolonia account manager at provisioning time. The `readwrite` scope is the default for new accounts.
-
 ## Security Best Practices
 
 - **Never commit API keys** to version control
-- **Use environment variables** to inject keys at runtime:
-  ```bash
-  export GEONICDB_API_KEY="YOUR_API_KEY"
-  curl -H "x-api-key: $GEONICDB_API_KEY" ...
-  ```
-- **Rotate keys regularly** — contact your account manager to issue a replacement
-- **Use read-only keys** for public-facing applications that only need to query data
-- **Revoke compromised keys immediately** — contact Geolonia if you suspect a key has been leaked
+- **Use environment variables** to inject keys at runtime
+- **Rotate keys regularly** using `geonic admin api-keys update`
+- **Delete compromised keys immediately** using `geonic admin api-keys delete <id>`
 
-## Troubleshooting
+## What's Next
 
-| Error | Cause | Resolution |
-|-------|-------|------------|
-| `401 Unauthorized` | Missing or invalid `x-api-key` header | Verify the key value and header name |
-| `403 Forbidden` | Key does not have permission for the requested operation | Request a key with the required scope |
-| `404 Not Found` | Tenant not found or key not associated with the tenant | Verify `Fiware-Service` header matches your tenant name |
+With your API key ready, make your first API call to verify the setup.
 
-## Next Steps
-
-- [First API Call](/en/saas/first-call) — Detailed walkthrough with code samples in multiple languages
-- [First Entity Tutorial](/en/saas/first-entity) — CRUD operations step-by-step
-- [Console](/en/saas/console) — Console overview (Coming Soon)
+→ [First API Call](/en/saas/first-call)

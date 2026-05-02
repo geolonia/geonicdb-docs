@@ -1,93 +1,70 @@
 ---
 title: SaaS Quickstart
-description: Get from account request to your first GeonicDB API call in 5 minutes — a Sales-led onboarding guide.
+description: Overview of the 6-step GeonicDB SaaS onboarding flow — from Contact Sales to your first API call.
 outline: deep
 ---
 
 # SaaS Quickstart
 
-This guide walks you through the complete path from requesting a GeonicDB SaaS account to making your first API call.
+GeonicDB SaaS uses a **Sales-led, invitation-only** onboarding model. This page gives you an overview of the complete 6-step flow from requesting access to making your first API call.
 
 ::: tip Invitation-only access
-GeonicDB SaaS is currently in a **controlled release**. Access is invitation-based and managed by the Geolonia team. [Contact Geolonia](https://www.geolonia.com/contact/) to request an account.
+GeonicDB SaaS is currently in a **controlled release**. There is no self-service sign-up. [Contact Geolonia](https://www.geolonia.com/contact/) to request access.
 :::
 
-## Overview
+## The 6-Step Onboarding Flow
 
 ```text
-┌──────────────────────────────────────────────────────────┐
-│  1. Request access  →  Contact Geolonia                  │
-│  2. Receive invite  →  Activate your account             │
-│  3. Open console    →  app.geonicdb.com (Coming Soon)    │
-│  4. Get API key     →  Copy from invitation email        │
-│  5. First API call  →  GET /v2/entities                  │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│  Step 1  Contact Sales         →  sign-up.md                  │
+│  Step 2  Geolonia contacts you →  onboarding.md               │
+│  Step 3  Credentials delivered →  onboarding.md               │
+│  Step 4  Create tenant admin   →  tenant-admin-user.md  (CLI) │
+│  Step 5  Create API key        →  api-key.md            (CLI) │
+│  Step 6  First API call        →  first-call.md               │
+└────────────────────────────────────────────────────────────────┘
 ```
 
-The entire process — from approved account to a working API call — takes about 5 minutes once you have your credentials.
+### Step 1 — Contact Sales
 
-## Step 1: Request Access
+Submit a contact request through the Geolonia website. Describe your use case, organization, and region preference.
 
-GeonicDB SaaS is not open for self-service sign-up. To get started:
+→ [Sign Up](/en/saas/sign-up)
 
-1. Go to [https://www.geolonia.com/contact/](https://www.geolonia.com/contact/)
-2. Select **GeonicDB SaaS** as the inquiry type
-3. Describe your use case (environment data, IoT, smart city, etc.)
-4. Geolonia will respond within 1–2 business days
+### Step 2 — Geolonia Contacts You
 
-Once approved, you will receive an invitation email with account setup instructions.
+Geolonia reviews your request (typically within 1–2 business days) and reaches out to discuss your use case and confirm approval.
 
-## Step 2: Activate Your Account
+→ [Onboarding](/en/saas/onboarding)
 
-Follow the instructions in the invitation email to:
+### Step 3 — Account Credentials Delivered
 
-- Set a password for your GeonicDB SaaS account
-- Confirm your tenant name (e.g., `my-company`)
+Once your tenant is provisioned, Geolonia delivers your Admin API endpoint URL, admin username, temporary password, and tenant name.
 
-You will also receive your **API key** directly — keep it secure.
+→ [Onboarding](/en/saas/onboarding)
 
-## Step 3: Access the Console
+### Step 4 — Create a Tenant Admin User (CLI)
 
-The GeonicDB management console is available at **app.geonicdb.com**.
+Use the `geonic` CLI to log in with the delivered credentials and create a tenant admin user for your organization.
 
-::: warning Coming Soon
-The self-service console at `app.geonicdb.com` is currently under development and not yet publicly available. Your Geolonia account manager will guide you through account setup during onboarding.
-:::
+→ [Tenant Admin User](/en/saas/tenant-admin-user)
 
-See [Console](/en/saas/console) for details on what the console will offer.
+### Step 5 — Create an API Key (CLI)
 
-## Step 4: Get Your API Key
+Use the `geonic` CLI to create an API key for authenticating your application's API requests.
 
-Your API key is provided during onboarding. If you need to rotate or retrieve it:
+→ [API Key](/en/saas/api-key)
 
-- Contact your Geolonia account manager
-- Or use the console once it becomes available
+### Step 6 — First API Call
 
-See [API Key](/en/saas/api-key) for details.
+Use your API key to send your first request to the GeonicDB API and verify that everything is working.
 
-## Step 5: Make Your First API Call
-
-With your API key, send a request to the GeonicDB API:
-
-```bash
-export GEONICDB_API_KEY="YOUR_API_KEY"
-export GEONICDB_TENANT="YOUR_TENANT"
-
-curl -X GET "https://geonicdb.geolonia.com/v2/entities" \
-  -H "x-api-key: $GEONICDB_API_KEY" \
-  -H "Fiware-Service: $GEONICDB_TENANT"
-```
-
-::: info API URL note
-The GeonicDB SaaS API endpoint `https://geonicdb.geolonia.com` is subject to change during the current preview period. Your account manager will notify you of any updates.
-:::
-
-You should receive a `200 OK` with an empty array `[]` if your tenant has no entities yet.
+→ [First API Call](/en/saas/first-call)
 
 ## What's Next
 
-- [Sign Up](/en/saas/sign-up) — Detailed account request process
-- [Console](/en/saas/console) — Management console overview
-- [API Key](/en/saas/api-key) — API key management
-- [First API Call](/en/saas/first-call) — Detailed walkthrough with code samples
-- [First Entity Tutorial](/en/saas/first-entity) — Step-by-step entity CRUD tutorial
+After completing the 6 steps, explore more of what GeonicDB SaaS has to offer:
+
+- [Console](/en/saas/console) — Management console overview (Coming Soon)
+- [Demo App](/en/saas/demo-app) — Try the live demo application
+- [First Entity Tutorial](/en/saas/first-entity) — Step-by-step CRUD tutorial
