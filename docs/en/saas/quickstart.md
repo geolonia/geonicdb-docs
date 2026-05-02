@@ -19,8 +19,8 @@ GeonicDB SaaS is currently in a **controlled release**. Access is invitation-bas
 │  1. Request access  →  Contact Geolonia                  │
 │  2. Receive invite  →  Activate your account             │
 │  3. Open console    →  app.geonicdb.com (Coming Soon)    │
-│  4. Get API key     →  Copy from console                 │
-│  5. First API call  →  POST /v2/entities                 │
+│  4. Get API key     →  Copy from invitation email        │
+│  5. First API call  →  GET /v2/entities                  │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -70,9 +70,12 @@ See [API Key](/en/saas/api-key) for details.
 With your API key, send a request to the GeonicDB API:
 
 ```bash
+export GEONICDB_API_KEY="YOUR_API_KEY"
+export GEONICDB_TENANT="YOUR_TENANT"
+
 curl -X GET "https://geonicdb.geolonia.com/v2/entities" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: YOUR_TENANT"
+  -H "x-api-key: $GEONICDB_API_KEY" \
+  -H "Fiware-Service: $GEONICDB_TENANT"
 ```
 
 ::: info API URL note

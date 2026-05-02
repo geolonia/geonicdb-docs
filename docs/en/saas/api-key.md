@@ -31,9 +31,12 @@ Contact your Geolonia account manager at [https://www.geolonia.com/contact/](htt
 Include the API key in the `x-api-key` request header for every API call:
 
 ```bash
+export GEONICDB_API_KEY="YOUR_API_KEY"
+export GEONICDB_TENANT="YOUR_TENANT"
+
 curl -X GET "https://geonicdb.geolonia.com/v2/entities" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: YOUR_TENANT"
+  -H "x-api-key: $GEONICDB_API_KEY" \
+  -H "Fiware-Service: $GEONICDB_TENANT"
 ```
 
 ::: info API URL note
@@ -53,8 +56,8 @@ The GeonicDB SaaS API endpoint `https://geonicdb.geolonia.com` is subject to cha
 ```bash
 curl -X POST "https://geonicdb.geolonia.com/v2/entities" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: YOUR_TENANT" \
+  -H "x-api-key: $GEONICDB_API_KEY" \
+  -H "Fiware-Service: $GEONICDB_TENANT" \
   -d '{
     "id": "urn:ngsi-ld:Sensor:001",
     "type": "Sensor",

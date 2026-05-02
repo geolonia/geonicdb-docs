@@ -10,7 +10,7 @@ This page walks you through making your first real API calls against GeonicDB Sa
 
 ::: info Prerequisites
 - A GeonicDB SaaS account and API key ([Sign Up](/en/saas/sign-up))
-- `curl` installed, or Node.js / Python for the code samples
+- `curl` and `jq` installed, or Node.js / Python for the code samples
 
 **API URL**: `https://geonicdb.geolonia.com` — subject to change during the current preview period. Your account manager will notify you of any updates.
 :::
@@ -60,24 +60,26 @@ const BASE_URL = process.env.GEONICDB_BASE_URL;
 const API_KEY  = process.env.GEONICDB_API_KEY;
 const TENANT   = process.env.GEONICDB_TENANT;
 
-const res = await fetch(`${BASE_URL}/v2/entities`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': API_KEY,
-    'Fiware-Service': TENANT,
-  },
-  body: JSON.stringify({
-    id: 'urn:ngsi-ld:Sensor:temp-001',
-    type: 'Sensor',
-    temperature: { type: 'Number', value: 22.5 },
-    location: {
-      type: 'geo:json',
-      value: { type: 'Point', coordinates: [139.6917, 35.6895] },
+(async () => {
+  const res = await fetch(`${BASE_URL}/v2/entities`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': API_KEY,
+      'Fiware-Service': TENANT,
     },
-  }),
-});
-console.log(res.status); // 201
+    body: JSON.stringify({
+      id: 'urn:ngsi-ld:Sensor:temp-001',
+      type: 'Sensor',
+      temperature: { type: 'Number', value: 22.5 },
+      location: {
+        type: 'geo:json',
+        value: { type: 'Point', coordinates: [139.6917, 35.6895] },
+      },
+    }),
+  });
+  console.log(res.status); // 201
+})();
 ```
 
 ```python [Python]
@@ -122,11 +124,13 @@ curl -s "$GEONICDB_BASE_URL/v2/entities/urn:ngsi-ld:Sensor:temp-001" \
 ```
 
 ```js [JavaScript]
-const res = await fetch(
-  `${BASE_URL}/v2/entities/urn:ngsi-ld:Sensor:temp-001`,
-  { headers: { 'x-api-key': API_KEY, 'Fiware-Service': TENANT } }
-);
-console.log(await res.json());
+(async () => {
+  const res = await fetch(
+    `${BASE_URL}/v2/entities/urn:ngsi-ld:Sensor:temp-001`,
+    { headers: { 'x-api-key': API_KEY, 'Fiware-Service': TENANT } }
+  );
+  console.log(await res.json());
+})();
 ```
 
 ```python [Python]

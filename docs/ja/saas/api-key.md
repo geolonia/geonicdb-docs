@@ -31,9 +31,12 @@ GeonicDB SaaS の API キーは、オンボーディング時に Geolonia から
 すべての API 呼び出しで、`x-api-key` リクエストヘッダーに API キーを含めてください：
 
 ```bash
+export GEONICDB_API_KEY="YOUR_API_KEY"
+export GEONICDB_TENANT="YOUR_TENANT"
+
 curl -X GET "https://geonicdb.geolonia.com/v2/entities" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: YOUR_TENANT"
+  -H "x-api-key: $GEONICDB_API_KEY" \
+  -H "Fiware-Service: $GEONICDB_TENANT"
 ```
 
 ::: info API URL について
@@ -53,8 +56,8 @@ GeonicDB SaaS の API エンドポイント `https://geonicdb.geolonia.com` は�
 ```bash
 curl -X POST "https://geonicdb.geolonia.com/v2/entities" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: YOUR_TENANT" \
+  -H "x-api-key: $GEONICDB_API_KEY" \
+  -H "Fiware-Service: $GEONICDB_TENANT" \
   -d '{
     "id": "urn:ngsi-ld:Sensor:001",
     "type": "Sensor",

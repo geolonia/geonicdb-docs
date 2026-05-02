@@ -19,8 +19,8 @@ GeonicDB SaaS は現在 **招待制の限定リリース** として提供され
 │  1. アクセス申請   →  Geolonia へ問い合わせ              │
 │  2. 招待受信       →  アカウントを有効化                  │
 │  3. コンソール確認 →  app.geonicdb.com（Coming Soon）    │
-│  4. API キー取得   →  コンソールからコピー                │
-│  5. 初 API 呼び出し →  POST /v2/entities                 │
+│  4. API キー取得   →  招待メールからコピー                │
+│  5. 初 API 呼び出し →  GET /v2/entities                  │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -70,9 +70,12 @@ API キーはオンボーディング時に発行されます。キーのロー�
 API キーが手元にあれば、GeonicDB API にリクエストを送信できます：
 
 ```bash
+export GEONICDB_API_KEY="YOUR_API_KEY"
+export GEONICDB_TENANT="YOUR_TENANT"
+
 curl -X GET "https://geonicdb.geolonia.com/v2/entities" \
-  -H "x-api-key: YOUR_API_KEY" \
-  -H "Fiware-Service: YOUR_TENANT"
+  -H "x-api-key: $GEONICDB_API_KEY" \
+  -H "Fiware-Service: $GEONICDB_TENANT"
 ```
 
 ::: info API URL について
