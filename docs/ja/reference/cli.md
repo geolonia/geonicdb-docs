@@ -429,7 +429,6 @@ cat entities.json | geonic batch upsert
 | `geonic sub delete <id>` | サブスクリプションを削除 |
 
 **`sub list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
-
 ```bash
 geonic sub create '{
   "type": "Subscription",
@@ -658,7 +657,6 @@ geonic admin api-keys update gdb_abc123 '{"name": "renamed-key", "isActive": fal
 ---
 
 ### `health`
-
 ```bash
 geonic health
 ```
@@ -666,7 +664,6 @@ geonic health
 サーバーのヘルスステータスを確認します (`GET /health`)。
 
 ### `version`
-
 ```bash
 geonic version
 ```
@@ -719,7 +716,6 @@ geonic me oauth-clients create '{"name":"my-bot","policyId":"bot-access"}'
 | `geonic me api-keys delete <key-id>` | API キーを削除 |
 
 **`me api-keys list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
-
 ```bash
 # Create a personal API key
 geonic me api-keys create '{
