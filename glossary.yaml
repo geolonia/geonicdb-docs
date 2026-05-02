@@ -95,7 +95,7 @@ terms:
 
   - canonical: Context Broker
     type: domain
-    severity: warn
+    severity: block
     translations:
       en: Context Broker
       ja: コンテキストブローカー
@@ -134,7 +134,7 @@ terms:
 
   - canonical: Subscription
     type: domain
-    severity: warn
+    severity: block
     translations:
       en: Subscription
       ja: サブスクリプション
