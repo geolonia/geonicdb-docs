@@ -7,6 +7,7 @@
 - chore(deps): bump @geolonia/yuuhitsu 0.1.13 → 0.1.14 (SF6 context_exception hybrid schema) (Closes #136)
 
 ### Fixed
+- [fix] glossary.yaml Subscription do_not_use.ja から「購読」削除 — subscribe 自然訳として許容（cmd_366）(Closes #144)
 - [fix] ロゴ配置（geonicdb-logo.svg）+ Phase 1 socialLinks 残務削除（shared.ts の GitHub エントリ削除）（cmd_357）
 
 ### Added
