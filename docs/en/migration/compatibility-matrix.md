@@ -14,7 +14,6 @@ This document compares the features of GeonicDB and FIWARE Orion Context Broker.
 | **Implementation language** | TypeScript/Node.js | C++ |
 | **Architecture** | Serverless (AWS Lambda) | Monolithic (Docker) |
 | **Database** | MongoDB Atlas | MongoDB |
-| **License** | AGPL v3.0 | AGPL v3.0 |
 | **Supported APIs** | NGSIv2 + NGSI-LD | NGSIv2 (Orion) / NGSI-LD (Orion-LD) |
 | **Scalability** | Auto-scaling (Lambda) | Manual scaling (container) |
 | **Cost** | Pay-per-use | Fixed infrastructure cost |

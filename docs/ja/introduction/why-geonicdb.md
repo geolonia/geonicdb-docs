@@ -18,7 +18,6 @@ GeonicDB は FIWARE Orion のモダンな代替として、クラウドネイテ
 | **API サポート** | NGSIv2 + NGSI-LD（単一インスタンス） | NGSIv2（Orion）または NGSI-LD（Orion-LD） |
 | **スケーリング** | 自動（Lambda） | 手動（コンテナオーケストレーション） |
 | **料金体系** | 従量課金 | 固定インフラコスト |
-| **ライセンス** | GPL v3.0（OSS 版） | AGPL v3.0 |
 
 ## 9つの主要な差別化ポイント
 
@@ -122,7 +121,6 @@ GeonicDB はマネージド SaaS として利用できます。デプロイ、�
 | | GeonicDB | Orion |
 |---|---------|-------|
 | SaaS 提供 | ✅ | ❌ |
-| セルフホスト | AWS Lambda | Docker / Kubernetes |
 | 導入手順 | API キー + curl | Clone → Docker Compose → 設定 |
 
 ## GeonicDB を選ぶべきケース

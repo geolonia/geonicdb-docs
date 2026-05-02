@@ -6,6 +6,8 @@ outline: deep
 
 # Orion to GeonicDB Migration Guide
 
+> **GeonicDB is available as a managed SaaS service** — no infrastructure to deploy or maintain. This guide helps you migrate from your existing FIWARE Orion deployment to GeonicDB SaaS in a few steps.
+
 This guide walks through migrating from a self-hosted **FIWARE Orion** (or Orion-LD) deployment to **GeonicDB SaaS**. Because GeonicDB is API-compatible with Orion, most applications can migrate by updating endpoint URLs and authentication configuration.
 
 ## Migration Overview

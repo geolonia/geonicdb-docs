@@ -6,6 +6,8 @@ outline: deep
 
 # Orion から GeonicDB への移行ガイド
 
+> **GeonicDB はマネージド SaaS サービスです** — インフラのデプロイやメンテナンスは不要です。このガイドで既存の FIWARE Orion 環境から GeonicDB SaaS へ数ステップで移行できます。
+
 このガイドでは、セルフホスト型の **FIWARE Orion**（または Orion-LD）から **GeonicDB SaaS** への移行手順を説明します。GeonicDB は Orion と API 互換のため、ほとんどのアプリケーションはエンドポイント URL と認証設定の変更で移行できます。
 
 ## 移行の概要

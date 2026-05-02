@@ -14,7 +14,6 @@ outline: deep
 | **実装言語** | TypeScript/Node.js | C++ |
 | **アーキテクチャ** | サーバーレス (AWS Lambda) | モノリシック (Docker) |
 | **データベース** | MongoDB Atlas | MongoDB |
-| **ライセンス** | AGPL v3.0 | AGPL v3.0 |
 | **サポート API** | NGSIv2 + NGSI-LD | NGSIv2 (Orion) / NGSI-LD (Orion-LD) |
 | **スケーラビリティ** | 自動スケーリング (Lambda) | 手動スケーリング (コンテナ) |
 | **コスト** | 従量課金制 | 固定インフラコスト |

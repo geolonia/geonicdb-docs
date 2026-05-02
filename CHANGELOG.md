@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- docs: SaaS 中心 docs 再編 Phase 2-A — License/Self-hosted 行削除（why-geonicdb / what-is-geonicdb / compatibility-matrix）、faq.md Deployment セクション SaaS 向け全面書き換え、orion-to-geonicdb.md SaaS 前置き追加（Q7=A）(Part of #117)
+
 ### Documentation
 - docs: README に sync 関係（上流リポジトリ・管理区分・pnpm sync-docs 動作・MAPPING_TABLE 編集手順）を追記（B-1〜B-4）(Closes #111)
 - fix: README docs.geonicdb.org → docs.geonicdb.com 誤記修正

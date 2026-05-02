@@ -127,39 +127,17 @@ curl -X POST "https://api.example.com/v2/op/update" \
 
 ## Deployment and Operations
 
-### Q: Where can I deploy this?
+### Q: How do I get started with GeonicDB?
 
-**A:** It runs in the following environments.
+**A:** GeonicDB is available as a managed SaaS service. Sign up at [app.geonicdb.com](https://app.geonicdb.com) — currently invitation-only. [Contact Geolonia](https://geolonia.com/contact/) to request access.
 
-| Environment | Description |
-|------|------|
-| AWS Lambda + API Gateway | Recommended. Serverless with automatic scaling |
-| Local (`npm start`) | For development and testing. Uses in-memory MongoDB |
-| Docker | Can run in any container environment |
+### Q: Where is GeonicDB hosted?
 
-### Q: Which MongoDB should I use?
+**A:** GeonicDB SaaS runs on AWS, fully managed by Geolonia. No installation, no infrastructure, no maintenance required on your part.
 
-**A:** One of the following is recommended.
+### Q: Can I run GeonicDB on my own infrastructure?
 
-| Service | Features |
-|---------|------|
-| MongoDB Atlas | Recommended. Fully managed, automatic scaling |
-| Self-hosted MongoDB | Full control, but high operational overhead |
-
-> **Note**: MongoDB 8.0 or higher is required (for Time Series Collection support). Amazon DocumentDB is not supported as it does not support Time Series Collections.
-
-### Q: What are the estimated costs?
-
-**A:** Since this is a serverless architecture, you are billed only for what you use.
-
-| Component | Small scale (100,000 requests/month) | Medium scale (1,000,000 requests/month) |
-|--------------|---------------------------|----------------------------|
-| Lambda | ~$5 | ~$20 |
-| API Gateway | ~$4 | ~$35 |
-| MongoDB Atlas (M10) | ~$60 | ~$60 |
-| **Total** | **~$70/month** | **~$115/month** |
-
-* Actual costs vary by region, data volume, and request patterns.
+**A:** GeonicDB is currently available as a managed SaaS service only. Custom deployment options may be available in the future. [Contact Geolonia](https://geolonia.com/contact/) for more information.
 
 ---
 
