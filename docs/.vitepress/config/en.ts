@@ -38,11 +38,13 @@ function sidebar(): DefaultTheme.Sidebar {
         items: [
           { text: 'Quickstart', link: '/en/saas/quickstart' },
           { text: 'Sign Up', link: '/en/saas/sign-up' },
-          { text: 'Console', link: '/en/saas/console' },
+          { text: 'Onboarding', link: '/en/saas/onboarding' },
+          { text: 'Tenant Admin User', link: '/en/saas/tenant-admin-user' },
           { text: 'API Key', link: '/en/saas/api-key' },
           { text: 'First API Call', link: '/en/saas/first-call' },
-          { text: 'First Entity Tutorial', link: '/en/saas/first-entity' },
+          { text: 'Console', link: '/en/saas/console' },
           { text: 'Demo App', link: '/en/saas/demo-app' },
+          { text: 'First Entity Tutorial', link: '/en/saas/first-entity' },
         ],
       },
       {

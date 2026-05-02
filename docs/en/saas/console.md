@@ -11,7 +11,7 @@ The GeonicDB management console is the web interface for managing your SaaS acco
 ::: warning Coming Soon
 The console at **app.geonicdb.com** is currently under active development and **not yet publicly available**.
 
-During the current preview period, account setup and API key management are handled directly by your Geolonia account manager. [Contact Geolonia](https://www.geolonia.com/contact/) if you need assistance.
+During the current preview period, use the **`geonic` CLI** to manage your account, tenants, and API keys. For operations not yet supported by the CLI, [contact your Geolonia account manager](https://www.geolonia.com/contact/).
 :::
 
 ## What the Console Will Offer
@@ -51,22 +51,27 @@ When released, the console will provide:
 - View and manage active subscriptions
 - Export data as JSON or CSV
 
-## Current Onboarding Flow
+## Use the CLI in the Meantime
 
-Until the console is available, your Geolonia account manager handles:
+Until the console is available, manage your account using the **`geonic` CLI**:
 
-| Action | How to request |
-|--------|---------------|
-| API key issuance | Provided during initial onboarding |
-| API key rotation | Email your account manager |
-| Additional tenants | Email your account manager |
-| User management | Email your account manager |
-| Usage reports | Email your account manager |
+| Action | CLI Command |
+|--------|-------------|
+| Create a tenant | `geonic admin tenants create` |
+| Create a user | `geonic admin users create` |
+| Issue an API key | `geonic admin api-keys create` |
+| Rotate an API key | `geonic admin api-keys update <id>` |
+| List API keys | `geonic admin api-keys list` |
 
-Contact: [https://www.geolonia.com/contact/](https://www.geolonia.com/contact/)
+→ [Tenant Admin User](/en/saas/tenant-admin-user) — CLI guide for tenant and user setup
+
+→ [API Key](/en/saas/api-key) — CLI guide for creating API keys
+
+For actions not yet supported via the CLI, contact your Geolonia account manager at [https://www.geolonia.com/contact/](https://www.geolonia.com/contact/).
 
 ## Next Steps
 
-- [API Key](/en/saas/api-key) — How to use your API key
+- [Tenant Admin User](/en/saas/tenant-admin-user) — Create users via the CLI
+- [API Key](/en/saas/api-key) — Create API keys via the CLI
 - [First API Call](/en/saas/first-call) — Make your first request
 - [Sign Up](/en/saas/sign-up) — Request a GeonicDB SaaS account

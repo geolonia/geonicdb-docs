@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- feat: SaaS 6 ステップ手順書再編 — onboarding.md / tenant-admin-user.md 新規追加、quickstart / sign-up / api-key / console 更新、sidebar 順序更新（cmd_352） (Closes #126)
 - feat: SaaS 中心 docs 再編 Phase 3 — 新規 SaaS 5 ページ追加（quickstart/sign-up/console/api-key/first-call × en/ja）、sidebar/nav/index.md hero CTA を新ページへ更新 (Closes #123)
 
 ### Changed
