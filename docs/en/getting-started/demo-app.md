@@ -83,6 +83,7 @@ A full-screen geographic interface for spatial data exploration:
 ### Run Locally
 
 ```bash
+# Obtain the demo app package from your Geolonia account portal, then extract it
 # Move into the demo app directory
 cd geonicdb-demo-app
 

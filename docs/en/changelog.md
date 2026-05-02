@@ -1164,5 +1164,3 @@ outline: deep
 - ReDoS（正規表現サービス拒否）防止
 - 全 API エンドポイントの入力検証
 
-[unreleased]: #unreleased
-[0.1.0]: #0-1-0
