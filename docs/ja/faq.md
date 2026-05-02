@@ -125,7 +125,7 @@ curl -X POST "https://api.example.com/v2/op/update" \
 
 ### Q: GeonicDB を使い始めるにはどうすればよいですか?
 
-**A:** GeonicDB はマネージド SaaS サービスとして提供しています。[app.geonicdb.com](https://app.geonicdb.com) からサインアップできます（現在招待制）。アクセスをご希望の方は [Geolonia にお問い合わせ](https://geolonia.com/contact/)ください。
+**A:** GeonicDB はマネージド SaaS サービスとして提供しています。[GeonicDB アプリ](https://app.geonicdb.com)からサインアップできます（現在招待制）。アクセスをご希望の方は [Geolonia にお問い合わせ](https://geolonia.com/contact/)ください。
 
 ### Q: GeonicDB はどこでホストされていますか?
 
