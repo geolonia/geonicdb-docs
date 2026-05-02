@@ -375,4 +375,4 @@ curl -s "https://api.geonicdb.geolonia.com/v2/entities?type=Room&q=temperature==
 
 - [NGSI データモデル](/ja/core-concepts/ngsi-data-model) -- エンティティ、属性、メタデータの理解
 - [マルチテナンシー](/ja/core-concepts/multi-tenancy) -- テナントヘッダーによるデータ分離
-- [最初のエンティティチュートリアル](/ja/getting-started/first-entity) -- クエリ例を含む実践ウォークスルー
+- [最初のエンティティチュートリアル](/ja/saas/first-entity) -- クエリ例を含む実践ウォークスルー

@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Changed
+- refactor: Demo App / First Entity Tutorial を docs/{en,ja}/saas/ 配下に移動（Phase 2-B）、sidebar を SaaS セクションに統合（Q1=B）、内部リンク全更新 (Part of #117)
 - docs: SaaS 中心 docs 再編 Phase 2-A — License/Self-hosted 行削除（why-geonicdb / what-is-geonicdb / compatibility-matrix）、faq.md Deployment セクション SaaS 向け全面書き換え、orion-to-geonicdb.md SaaS 前置き追加（Q7=A）(Part of #117)
 
 ### Documentation

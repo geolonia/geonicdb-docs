@@ -379,5 +379,5 @@ See Authentication and Authorization for details.
 
 - [API Specification](./api-reference/endpoints.md)
 - [FIWARE Orion Comparison](./migration/compatibility-matrix.md)
-- [Demo App](./getting-started/demo-app.md)
+- [Demo App](./saas/demo-app.md)
 - Authentication and Authorization
