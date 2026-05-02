@@ -13,7 +13,7 @@ export const en = defineConfig({
 function nav(): DefaultTheme.NavItem[] {
   return [
     { text: 'GeonicDB', link: '/en/introduction/what-is-geonicdb' },
-    { text: 'Getting Started', link: '/en/saas/demo-app' },
+    { text: 'Getting Started', link: '/en/saas/quickstart' },
     { text: 'API Reference', link: '/en/api-reference/ngsiv2' },
     { text: 'Features', link: '/en/features/subscriptions' },
     { text: 'AI', link: '/en/ai-integration/overview' },
@@ -36,6 +36,11 @@ function sidebar(): DefaultTheme.Sidebar {
       {
         text: 'SaaS',
         items: [
+          { text: 'Quickstart', link: '/en/saas/quickstart' },
+          { text: 'Sign Up', link: '/en/saas/sign-up' },
+          { text: 'Console', link: '/en/saas/console' },
+          { text: 'API Key', link: '/en/saas/api-key' },
+          { text: 'First API Call', link: '/en/saas/first-call' },
           { text: 'First Entity Tutorial', link: '/en/saas/first-entity' },
           { text: 'Demo App', link: '/en/saas/demo-app' },
         ],

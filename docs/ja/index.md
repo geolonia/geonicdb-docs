@@ -8,10 +8,10 @@ hero:
   actions:
     - theme: brand
       text: サインアップ
-      link: /contact
+      link: /ja/saas/sign-up
     - theme: alt
       text: クイックスタート
-      link: /ja/introduction/quick-start
+      link: /ja/saas/quickstart
     - theme: alt
       text: API リファレンス
       link: /ja/api-reference/ngsiv2
