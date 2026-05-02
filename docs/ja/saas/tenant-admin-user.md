@@ -10,7 +10,7 @@ SaaS オンボーディングフローのステップ 4：`geonic` CLI を使用
 
 ::: tip SaaS オンボーディングフローのステップ 4
 1. ~~[Contact Sales（お問い合わせ）](/ja/saas/sign-up)~~
-2. ~~[Geolonia からの連絡 + 認証情報の提供](/ja/saas/onboarding)~~
+2. ~~[Geolonia からの連絡](/ja/saas/onboarding)~~
 3. ~~アカウント情報の提供~~
 4. **テナント管理ユーザーの作成** ← *現在のステップ*
 5. [API キーの作成](/ja/saas/api-key)
@@ -80,10 +80,12 @@ geonic admin tenants list
 ```
 
 ::: details テナント作成でエラーが出た場合
+
 | エラー | 原因 | 対処 |
 |-------|------|------|
 | `401 Unauthorized` | 認証トークンが無効または期限切れ | `geonic auth login` で再ログイン |
 | `409 Conflict` | 同じ ID のテナントが既に存在する | 別のテナント ID を使用するか、既存テナントを確認 |
+
 :::
 
 ## テナント管理ユーザーの作成
@@ -125,11 +127,13 @@ geonic admin users list
 ```
 
 ::: details ユーザー作成でエラーが出た場合
+
 | エラー | 原因 | 対処 |
 |-------|------|------|
 | `401 Unauthorized` | 認証トークンが無効または期限切れ | `geonic auth login` で再ログイン |
 | `409 Conflict` | 同じユーザー名が既に存在する | 別のユーザー名を使用するか、既存ユーザーを確認 |
 | `400 Bad Request` | リクエスト形式が不正（JSON 構文エラー等） | JSON の形式を確認してから再実行 |
+
 :::
 
 ## 次のステップ
