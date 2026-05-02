@@ -48,7 +48,7 @@ GeonicDB SaaS はセルフサービスでのサインアップには対応して
 
 ## ステップ 3: コンソールにアクセスする
 
-GeonicDB の管理コンソールは **app.geonicdb.com** で提供予定です。
+GeonicDB の管理コンソールは `app.geonicdb.com` で提供予定です。
 
 ::: warning Coming Soon
 `app.geonicdb.com` のセルフサービスコンソールは現在開発中のため、まだ一般提供されていません。現在のプレビュー期間中は、Geolonia のアカウント担当者がオンボーディング時にアカウント設定をサポートします。

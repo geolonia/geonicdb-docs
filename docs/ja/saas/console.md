@@ -9,7 +9,7 @@ outline: deep
 GeonicDB 管理コンソールは、SaaS アカウント、テナント、API キーを管理するための Web インターフェースです。
 
 ::: warning Coming Soon
-**app.geonicdb.com** のコンソールは現在開発中のため、**まだ一般提供されていません**。
+`app.geonicdb.com` のコンソールは現在開発中のため、**まだ一般提供されていません**。
 
 現在のプレビュー期間中は、アカウント設定と API キー管理は Geolonia のアカウント担当者が直接サポートします。サポートが必要な場合は [Geolonia へお問い合わせ](https://www.geolonia.com/contact/) ください。
 :::
