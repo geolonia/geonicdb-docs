@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Fixed
-- fix: ロゴ配置（geonicdb-logo.svg）+ Phase 1 残務 shared.ts socialLinks GitHub 削除（cmd_357）
+- [fix] ロゴ配置（geonicdb-logo.svg）+ Phase 1 socialLinks 残務削除（shared.ts の GitHub エントリ削除）（cmd_357）
 
 ### Added
 - feat: SaaS 6 ステップ手順書再編 — onboarding.md / tenant-admin-user.md 新規追加、quickstart / sign-up / api-key / console 更新、sidebar 順序更新（cmd_352） (Closes #126)
