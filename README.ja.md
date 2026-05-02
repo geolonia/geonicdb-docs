@@ -128,7 +128,7 @@ pnpm translate:en -- docs/ja/path/to/file.md
 GEONICDB_REPO_PATH=/path/to/geonicdb pnpm sync-docs
 ```
 
-1. `MAPPING_TABLE` に記載された各 `.md` ファイルを `GEONICDB_REPO_PATH/docs/` から読み込む
+1. `MAPPING_TABLE` に記載された各 `.md` ファイルを `GEONICDB_REPO_PATH/docs/` から読み込む（例外: `CHANGELOG.md` はリポジトリルートから読み込む）
 2. VitePress フロントマター（`title`・`description`・`outline: deep`）を付与する
 3. 内部リンクを `MAPPING_TABLE` の定義に基づいて相対パスへ書き換える
 4. `MAPPING_TABLE` で指定した `docs/en/<dest>` へ書き出す

@@ -128,7 +128,7 @@ Pages under `docs/en/` that do not correspond to any upstream source file are **
 GEONICDB_REPO_PATH=/path/to/geonicdb pnpm sync-docs
 ```
 
-1. Reads each `.md` file listed in `MAPPING_TABLE` from `GEONICDB_REPO_PATH/docs/`
+1. Reads each `.md` file listed in `MAPPING_TABLE` from `GEONICDB_REPO_PATH/docs/` (exception: `CHANGELOG.md` is read from the repository root, not `docs/`)
 2. Adds VitePress frontmatter (`title`, `description`, `outline: deep`)
 3. Rewrites internal links (`./FILENAME.md` → relative path based on `MAPPING_TABLE`)
 4. Writes the result to `docs/en/<dest>` as defined in `MAPPING_TABLE`
