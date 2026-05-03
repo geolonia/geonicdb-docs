@@ -582,7 +582,8 @@ Merge-Patch セマンティクスを使用して、複数のエンティティ�
 | `options=noOverwrite` | 既存の属性を上書きしない |
 
 **レスポンス**
-- すべて成功: `204 No Content`- 部分的な成功: `207 Multi-Status`
+- すべて成功: `204 No Content`
+- 部分的な成功: `207 Multi-Status`
 ---
 
 ### 時系列・バッチ操作 (NGSI-LD)
