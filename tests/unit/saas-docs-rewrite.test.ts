@@ -504,6 +504,108 @@ describe('processFile — R-ENV-TABLE (JA)', () => {
 })
 
 // ---------------------------------------------------------------------------
+// 15. Idempotency — R-ENV-ADMIN (applying twice yields the same result)
+// ---------------------------------------------------------------------------
+describe('idempotency — R-ENV-ADMIN (EN admin.md)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-ADMIN')!
+  const path = 'docs/en/api-reference/admin.md'
+
+  it('applying R-ENV-ADMIN twice yields identical result (en admin.md)', () => {
+    const input =
+      'Restrict admin API access to specific IP addresses or CIDR ranges using the `ADMIN_ALLOWED_IPS` environment variable.'
+    const { content: once, changes: c1 } = processFile(input, rule, path)
+    const { content: twice, changes: c2 } = processFile(once, rule, path)
+    expect(c1).toBe(1)
+    expect(c2).toBe(0)
+    expect(twice).toBe(once)
+  })
+})
+
+describe('idempotency — R-ENV-ADMIN (EN endpoints.md)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-ADMIN')!
+  const path = 'docs/en/api-reference/endpoints.md'
+
+  it('applying R-ENV-ADMIN twice yields identical result (en endpoints.md)', () => {
+    const input =
+      'By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API (`/admin/*`) to specific IP addresses:'
+    const { content: once, changes: c1 } = processFile(input, rule, path)
+    const { content: twice, changes: c2 } = processFile(once, rule, path)
+    expect(c1).toBe(1)
+    expect(c2).toBe(0)
+    expect(twice).toBe(once)
+  })
+})
+
+describe('idempotency — R-ENV-ADMIN (JA admin.md)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-ADMIN')!
+  const path = 'docs/ja/api-reference/admin.md'
+
+  it('applying R-ENV-ADMIN twice yields identical result (ja admin.md)', () => {
+    const input =
+      '`ADMIN_ALLOWED_IPS` 環境変数を使用して、管理 API へのアクセスを特定の IP アドレスまたは CIDR 範囲に制限できます。'
+    const { content: once, changes: c1 } = processFile(input, rule, path)
+    const { content: twice, changes: c2 } = processFile(once, rule, path)
+    expect(c1).toBe(1)
+    expect(c2).toBe(0)
+    expect(twice).toBe(once)
+  })
+})
+
+describe('idempotency — R-ENV-ADMIN (JA endpoints.md)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-ADMIN')!
+  const path = 'docs/ja/api-reference/endpoints.md'
+
+  it('applying R-ENV-ADMIN twice yields identical result (ja endpoints.md)', () => {
+    const input =
+      '`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API (`/admin/*`) へのアクセスを特定の IP アドレスに制限できます:'
+    const { content: once, changes: c1 } = processFile(input, rule, path)
+    const { content: twice, changes: c2 } = processFile(once, rule, path)
+    expect(c1).toBe(1)
+    expect(c2).toBe(0)
+    expect(twice).toBe(once)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 16. Idempotency — R-ENV-TABLE (applying twice yields the same result)
+// ---------------------------------------------------------------------------
+describe('idempotency — R-ENV-TABLE (EN endpoints.md)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-TABLE')!
+  const path = 'docs/en/api-reference/endpoints.md'
+
+  it('applying R-ENV-TABLE twice yields identical result (en endpoints.md)', () => {
+    const input =
+      '| `ADMIN_ALLOWED_IPS` | - | IPs/CIDRs allowed to access the Admin API (comma-separated) |'
+    const { content: once, changes: c1 } = processFile(input, rule, path)
+    const { content: twice, changes: c2 } = processFile(once, rule, path)
+    expect(c1).toBe(1)
+    expect(c2).toBe(0)
+    expect(twice).toBe(once)
+  })
+})
+
+describe('idempotency — R-ENV-TABLE (JA endpoints.md)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-TABLE')!
+  const path = 'docs/ja/api-reference/endpoints.md'
+
+  it('applying R-ENV-TABLE twice yields identical result (ja endpoints.md)', () => {
+    const input =
+      '| `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR(カンマ区切り) |'
+    const { content: once, changes: c1 } = processFile(input, rule, path)
+    const { content: twice, changes: c2 } = processFile(once, rule, path)
+    expect(c1).toBe(1)
+    expect(c2).toBe(0)
+    expect(twice).toBe(once)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // matchesScope
 // ---------------------------------------------------------------------------
 describe('matchesScope', () => {
