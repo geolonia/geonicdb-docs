@@ -426,6 +426,22 @@ describe('processFile — R-ENV-ADMIN (JA)', () => {
     const origIdx = result.indexOf('`ADMIN_ALLOWED_IPS` 環境変数を使用して')
     expect(noteIdx).toBeLessThan(origIdx)
   })
+
+  it('prepends JA SaaS note before ADMIN_ALLOWED_IPS description in endpoints.md', () => {
+    const input =
+      '`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API (`/admin/*`) へのアクセスを特定の IP アドレスに制限できます:'
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/ja/api-reference/endpoints.md'
+    )
+    expect(changes).toBe(1)
+    expect(result).toContain('**SaaS 利用者の方へ**')
+    expect(result).toContain('`ADMIN_ALLOWED_IPS` 環境変数を設定することで')
+    const noteIdx = result.indexOf('**SaaS 利用者の方へ**')
+    const origIdx = result.indexOf('`ADMIN_ALLOWED_IPS` 環境変数を設定することで')
+    expect(noteIdx).toBeLessThan(origIdx)
+  })
 })
 
 // ---------------------------------------------------------------------------
