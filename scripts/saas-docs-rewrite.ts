@@ -59,14 +59,22 @@ export function matchesScope(relPath: string, scopePattern: string): boolean {
   const normalizedFile = relPath.replace(/\\/g, '/')
   const normalizedScope = scopePattern.replace(/\\/g, '/')
 
-  // Escape regex special chars except * and ?
-  const escaped = normalizedScope.replace(/([.+^${}()|[\]\\])/g, '\\$1')
-  // Convert glob wildcards to regex
-  const regexStr = escaped
-    .replace(/\\\*\\\*/g, '.*')   // \*\* → .*
-    .replace(/\*/g, '[^/]*')      // * → [^/]*
-    .replace(/\?/g, '[^/]')       // ? → [^/]
-  const regex = new RegExp(`^${regexStr}$`)
+  // Convert glob pattern to regex segment by segment so that ** is handled
+  // correctly before single-* replacement (avoids the .* → .[^/]* double-replace bug).
+  const segments = normalizedScope.split('/')
+  const regexParts: string[] = []
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]
+    if (seg === '**') {
+      // Match zero or more path segments (including the following slash)
+      regexParts.push('(?:[^/]+/)*')
+    } else {
+      const escaped = seg.replace(/([.+^${}()|[\]\\])/g, '\\$1')
+      const part = escaped.replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]')
+      regexParts.push(part + (i < segments.length - 1 ? '/' : ''))
+    }
+  }
+  const regex = new RegExp(`^${regexParts.join('')}$`)
   return regex.test(normalizedFile)
 }
 
@@ -103,9 +111,24 @@ export function applyPattern(
     }
     if (inFencedBlock) return line
 
-    // Reset lastIndex between reuses (regex has 'g' flag)
-    regex.lastIndex = 0
-    return line.replace(regex, replacement)
+    // When the pattern itself targets backtick-delimited spans (e.g. removing
+    // "`MaxBatchSize` SAM parameter"), apply to the whole line.
+    // Otherwise split by inline code spans so accidental matches inside
+    // backticks are prevented.
+    if (pattern.includes('`')) {
+      regex.lastIndex = 0
+      return line.replace(regex, replacement)
+    }
+
+    // Split line by inline code spans (`...`); odd-indexed segments are inside
+    // backticks and must not be replaced.
+    const segments = line.split(/(`[^`]*`)/g)
+    const replaced = segments.map((seg, idx) => {
+      if (idx % 2 === 1) return seg  // inside backticks, skip
+      regex.lastIndex = 0
+      return seg.replace(regex, replacement)
+    })
+    return replaced.join('')
   })
 
   return result.join('\n')

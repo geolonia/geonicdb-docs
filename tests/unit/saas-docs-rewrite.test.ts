@@ -234,6 +234,18 @@ describe('applyPattern — skip_in_code', () => {
     expect(result).not.toMatch(/^Normal text: See DEVELOPMENT/m)
   })
 
+  it('does not replace pattern inside inline code when skip_in_code=true', () => {
+    const content = 'Run `See DEVELOPMENT.md for configuration details.` to configure.'
+    const result = applyPattern(
+      content,
+      'See DEVELOPMENT\\.md for configuration details\\.',
+      '',
+      true
+    )
+    // Inline code must be preserved
+    expect(result).toBe('Run `See DEVELOPMENT.md for configuration details.` to configure.')
+  })
+
   it('replaces pattern inside a fenced code block when skip_in_code=false', () => {
     const content = [
       '```bash',
@@ -290,6 +302,10 @@ describe('matchesScope', () => {
 
   it('matches a glob pattern with **', () => {
     expect(matchesScope('docs/en/api-reference/ngsiv2.md', 'docs/en/**/*.md')).toBe(true)
+  })
+
+  it('matches a multi-level path with ** glob', () => {
+    expect(matchesScope('docs/en/nested/deep/page.md', 'docs/en/**/*.md')).toBe(true)
   })
 
   it('does not match a file outside scope', () => {
