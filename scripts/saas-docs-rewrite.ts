@@ -194,7 +194,7 @@ export function processFile(
 export interface RunStats {
   ruleId: string
   files: number
-  replacements: number
+  matchedPatterns: number
 }
 
 export interface RunOptions {
@@ -231,7 +231,7 @@ export function run(dirs: string[], options: RunOptions): RunStats[] {
     if (!rule.enabled) continue
     if (options.ruleFilter && rule.id !== options.ruleFilter) continue
 
-    statsMap.set(rule.id, { ruleId: rule.id, files: 0, replacements: 0 })
+    statsMap.set(rule.id, { ruleId: rule.id, files: 0, matchedPatterns: 0 })
 
     for (const filePath of files) {
       const relPath = relative(baseDir, filePath).replace(/\\/g, '/')
@@ -241,7 +241,7 @@ export function run(dirs: string[], options: RunOptions): RunStats[] {
       if (changes > 0) {
         const s = statsMap.get(rule.id)!
         s.files++
-        s.replacements += changes
+        s.matchedPatterns += changes
 
         if (options.dryRun) {
           console.log(`[dry-run] ${rule.id}: ${relPath} (${changes} pattern(s) matched)`)
@@ -255,16 +255,16 @@ export function run(dirs: string[], options: RunOptions): RunStats[] {
 
   // Print summary
   const stats = [...statsMap.values()]
-  const applied = stats.filter(s => s.replacements > 0)
+  const applied = stats.filter(s => s.matchedPatterns > 0)
   const totalFiles = applied.reduce((n, s) => n + s.files, 0)
-  const totalReplacements = applied.reduce((n, s) => n + s.replacements, 0)
+  const totalMatchedPatterns = applied.reduce((n, s) => n + s.matchedPatterns, 0)
 
   console.log('\n--- saas-docs-rewrite summary ---')
   for (const s of applied) {
-    console.log(`  ${s.ruleId}: ${s.files} file(s), ${s.replacements} replacement(s)`)
+    console.log(`  ${s.ruleId}: ${s.files} file(s), ${s.matchedPatterns} matched pattern(s)`)
   }
   console.log(
-    `Applied ${applied.length} rule(s) across ${totalFiles} file(s): ${totalReplacements} total replacement(s)`
+    `Applied ${applied.length} rule(s) across ${totalFiles} file(s): ${totalMatchedPatterns} total matched pattern(s)`
   )
 
   return stats
