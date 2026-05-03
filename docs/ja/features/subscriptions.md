@@ -123,7 +123,7 @@ ws://localhost:3000?tenant={tenantName}
 
 ### クライアント → サーバー
 
-#
+
 
 ### subscribe (フィルタ設定)
 
@@ -141,7 +141,7 @@ ws://localhost:3000?tenant={tenantName}
 | `entityTypes` | string[] | フィルタするエンティティタイプ |
 | `idPattern` | string | エンティティ ID の正規表現パターン |
 
-#
+
 
 ### dpop_bind (DPoP proof 検証)
 
@@ -156,7 +156,7 @@ DPoP バインドトークン(`cnf.jkt` を含む JWT)で接続する際に必�
 
 詳細は AUTH.md — DPoP Token Binding を参照してください。
 
-#
+
 
 ### ping (キープアライブ)
 
@@ -170,7 +170,7 @@ DPoP バインドトークン(`cnf.jkt` を含む JWT)で接続する際に必�
 
 ### サーバー → クライアント
 
-#
+
 
 ### エンティティ変更イベント
 
@@ -210,7 +210,7 @@ DPoP バインドトークン(`cnf.jkt` を含む JWT)で接続する際に必�
    - `idPattern`: `entityId` と照合する正規表現
 3. **XACML 認可フィルタ** — 上記を通過した各接続に対して、ブロードキャスターはアクティブな XACML ポリシーを実行します。サブジェクトがイベントに対して `Permit` された接続のみに配信されます。
 
-#
+
 
 ### XACML で利用可能なイベントごとのリソース属性 (#1107)
 

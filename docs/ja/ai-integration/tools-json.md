@@ -45,7 +45,9 @@ MCP ツールは、属性値から NGSI-LD タイプを自動的に推論しま�
 | その他すべての値 | `Property` | `25.5`、`"text"`、`true`、`[1, 2, 3]` |
 
 タイプを明示的に指定することもできます:
-- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+- `{"type": "Property", "value": 25.5}`
+- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`
+- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
 
 ### レスポンス構造
 
