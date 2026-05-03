@@ -10,6 +10,7 @@
 - chore(deps): bump @geolonia/yuuhitsu 0.1.13 → 0.1.14 (SF6 context_exception hybrid schema) (Closes #136)
 
 ### Fixed
+- [fix] cmd_373 — PR#155 ja list/heading 連結 + アンカー hotfix（ngsild.md 11箇所 list 分離 + ngsiv2-vs-ngsild.md heading/hr 分離 + #federation → #フェデレーション）(Closes #157)
 - [fix] PR#146 close + bare fence 修正 (6 ja files) + DEVELOPMENT.md 参照暫定削除（cmd_368）(Closes #148)
   ※ cmd_370 で DEVELOPMENT.md 参照の適切リンク整備予定
 - [fix] glossary.yaml Subscription do_not_use.ja から「購読」削除 — subscribe 自然訳として許容（cmd_366）(Closes #144)

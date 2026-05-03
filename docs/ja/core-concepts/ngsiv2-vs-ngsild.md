@@ -106,7 +106,9 @@ interface EntityDocument {
 }
 ```
 
----## プロトコル分離
+---
+
+## プロトコル分離
 
 エンティティは、それを作成したプロトコルによって分離されます。各エンティティには `protocol` フィールド(`'ngsiv2'` または `'ngsild'`)があり、どの API がアクセスできるかを決定します。
 
@@ -125,7 +127,7 @@ interface EntityDocument {
 
 ### フェデレーションによるプロトコル間アクセス
 
-直接的なプロトコル間アクセスはサポートされていません。プロトコル間でエンティティにアクセスする必要がある場合は、**フェデレーション**(コンテキストソース登録)を使用して、1 つの GeonicDB インスタンスを他のプロトコルのコンテキストプロバイダーとして登録してください。詳細については、[フェデレーション](#federation)セクションを参照してください。
+直接的なプロトコル間アクセスはサポートされていません。プロトコル間でエンティティにアクセスする必要がある場合は、**フェデレーション**(コンテキストソース登録)を使用して、1 つの GeonicDB インスタンスを他のプロトコルのコンテキストプロバイダーとして登録してください。詳細については、[フェデレーション](#フェデレーション)セクションを参照してください。
 
 ### 例: プロトコル分離の動作
 
@@ -145,7 +147,9 @@ curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001 -H "Fiware-S
 # => 404 Not Found
 ```
 
----## 属性タイプマッピングテーブル
+---
+
+## 属性タイプマッピングテーブル
 
 GeonicDB は、以下のルールに従って NGSIv2 タイプ、内部タイプ、NGSI-LD タイプ間で変換を行います。
 
@@ -266,7 +270,9 @@ GeonicDB は、以下のルールに従って NGSIv2 タイプ、内部タイプ
 }
 ```
 
----## 出力形式の違い
+---
+
+## 出力形式の違い
 
 各 API は複数のレスポンス形式をサポートしています。
 
@@ -312,7 +318,9 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=c
 curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=keyValues'
 ```
 
----## 共有機能
+---
+
+## 共有機能
 
 以下の機能は両方の API で共有されています。
 
@@ -636,7 +644,9 @@ NGSI-LD では、エンティティに `@context` を含めることで語彙を
 - NGSIv2 には `@context` の概念がありません
 - GeonicDB は Smart Data Models の `@context` の自動補完をサポートしていますが、`@context` は NGSIv2 API から返されません
 
----## エンティティ ID に関する考慮事項
+---
+
+## エンティティ ID に関する考慮事項
 
 ### エンティティ ID の一意性 (GeonicDB 拡張)
 
@@ -685,7 +695,9 @@ urn:ngsi-ld:WeatherObserved:Tokyo-2026-02-08
 - NGSIv2 API を使用する場合でも、すべてのエンティティに URN 形式を使用してください
 - NGSIv2 から NGSI-LD へ移行する場合、エンティティは NGSI-LD API 経由で再作成する必要があります (プロトコル分離により API 間のアクセスができません)
 
----## フェデレーション
+---
+
+## フェデレーション
 
 GeonicDB のフェデレーション機能は、リモートコンテキストプロバイダーのプロトコルを自動的に検出します。
 
@@ -733,7 +745,8 @@ curl http://localhost:3000/v2/entities/urn:ngsi-ld:Vehicle:V999 \
 
 1. GeonicDB は `urn:ngsi-ld:Vehicle:V999` がローカルに存在しないことを検出します
 2. 登録情報から `http://remote-provider.example.com/ngsi-ld/v1` を特定します
-3. NGSI-LD プロトコルを使用してクエリを転送します: `GET /ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:V999`4. レスポンスを NGSI-LD → 内部形式 → NGSIv2 に変換し、クライアントに返します
+3. NGSI-LD プロトコルを使用してクエリを転送します: `GET /ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:V999`
+4. レスポンスを NGSI-LD → 内部形式 → NGSIv2 に変換し、クライアントに返します
 
 ### NGSI-LD からのフェデレーション
 
@@ -768,11 +781,14 @@ curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:S888 \
 
 1. GeonicDB は `urn:ngsi-ld:Sensor:S888` がローカルに存在しないことを検出します
 2. 登録情報から `http://legacy-system.example.com/v2` を特定します
-3. NGSIv2 プロトコルを使用してクエリを転送します: `GET /v2/entities/urn:ngsi-ld:Sensor:S888`4. レスポンスを NGSIv2 → 内部形式 → NGSI-LD に変換し、クライアントに返します
+3. NGSIv2 プロトコルを使用してクエリを転送します: `GET /v2/entities/urn:ngsi-ld:Sensor:S888`
+4. レスポンスを NGSIv2 → 内部形式 → NGSI-LD に変換し、クライアントに返します
 
 ---
 
-## ユースケースとベストプラクティス### どの API を使用すべきか？
+## ユースケースとベストプラクティス
+
+### どの API を使用すべきか？
 
 #### NGSIv2 を選択するべき場合
 
