@@ -37,7 +37,9 @@ GeonicDB は、次のドメインから主要な Smart Data Models をサポー�
 - スキーマ URL
 - サンプル プロパティ
 
-## MCP ツール: `data_models`Smart Data Models カタログを参照するための MCP ツールが利用可能です。
+## MCP ツール: `data_models`
+
+Smart Data Models カタログを参照するための MCP ツールが利用可能です。
 
 ### アクション
 
