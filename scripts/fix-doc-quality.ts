@@ -779,6 +779,13 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
       let enContent = readFileSync(enFile, 'utf-8')
       let changed = false
 
+      // Fix embedded fences first (idempotent; same pipeline issue as ja/)
+      const afterEmbeddedFencesEn = fixEmbeddedFences(enContent)
+      if (afterEmbeddedFencesEn !== enContent) {
+        enContent = afterEmbeddedFencesEn
+        changed = true
+      }
+
       // Fix block boundary merges for en/ files (same translation pipeline)
       const afterListMergeEn = fixListMerge(enContent)
       if (afterListMergeEn !== enContent) {
