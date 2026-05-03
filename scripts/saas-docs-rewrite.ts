@@ -210,6 +210,10 @@ export function run(dirs: string[], options: RunOptions): RunStats[] {
 
   const config = loadConfig(configPath)
 
+  if (options.ruleFilter && !config.rules.some(r => r.id === options.ruleFilter)) {
+    throw new Error(`Unknown rule id: ${options.ruleFilter}`)
+  }
+
   if (!config.enabled) {
     console.log('saas-docs-rewrite: disabled (enabled: false). No-op.')
     return []
