@@ -151,6 +151,46 @@ describe('fixEmbeddedFences', () => {
     expect(lines[1]).toBe('')
     expect(lines[2]).toBe('  ```json')
   })
+
+  // B-axis: 4-backtick edge case (PR#161 ai-integration L253 pattern)
+  it('splits 4-backtick embedded fence: inline-close + fence-open (B-axis regression)', () => {
+    // Pattern: text`````json → text` + blank + ```json  (4 backticks = 1 inline-close + 3 fence)
+    const broken = 'text````json'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('text`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```json')
+  })
+
+  it('splits 5-backtick embedded fence: 2 inline-close + fence-open (B-axis regression)', () => {
+    // Pattern: text`````bash → text`` + blank + ```bash  (5 backticks = 2 inline-close + 3 fence)
+    const broken = 'text`````bash'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('text``')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```bash')
+  })
+
+  it('splits list item with 4-backtick fence (PR#161 ai-integration macOS/Windows path pattern)', () => {
+    // Simulates the yuuhitsu newline-loss pattern from ai-integration L253
+    const broken = '- **macOS**: `~/config.json`- **Windows**: `%APPDATA%\\config.json````json'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('- **macOS**: `~/config.json`- **Windows**: `%APPDATA%\\config.json`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```json')
+  })
+
+  it('splits standard 3-backtick fence (regression: existing behaviour unchanged)', () => {
+    const broken = 'text```json'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('text')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```json')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -548,6 +588,39 @@ describe('fixHeadingMerge', () => {
 
   it('does not modify standalone hr lines', () => {
     expect(fixHeadingMerge('---')).toBe('---')
+  })
+
+  // C-axis: heading + inline-code + body (PR#161 smart-data-models.md L40 pattern)
+  it('splits heading + inline-code + body when no space between close-backtick and body (C-axis)', () => {
+    const input = '## MCP ツール: `data_models`Smart Data Models カタログを参照するための MCP ツールが利用可能です。'
+    const result = fixHeadingMerge(input)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('## MCP ツール: `data_models`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('Smart Data Models カタログを参照するための MCP ツールが利用可能です。')
+  })
+
+  it('does not split heading + inline-code when no body follows (C-axis: no change)', () => {
+    const input = '## H `code`'
+    expect(fixHeadingMerge(input)).toBe(input)
+  })
+
+  it('does not split heading + inline-code when body is separated by a space (C-axis: space → no change)', () => {
+    const input = '## H `code` body text'
+    expect(fixHeadingMerge(input)).toBe(input)
+  })
+
+  it('splits heading + multiple inline-codes + body at last inline-close (C-axis)', () => {
+    const input = '## H `a` `b`body'
+    const result = fixHeadingMerge(input)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('## H `a` `b`')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('body')
+  })
+
+  it('does not split plain heading without inline-code (C-axis: no change)', () => {
+    expect(fixHeadingMerge('## Normal Heading Text')).toBe('## Normal Heading Text')
   })
 })
 
