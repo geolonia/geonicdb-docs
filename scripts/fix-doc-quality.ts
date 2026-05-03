@@ -336,6 +336,314 @@ export function addFrontmatterTitle(content: string, title: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// slugify — VitePress-compatible anchor slug generation (internal helper)
+// ---------------------------------------------------------------------------
+
+function slugify(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w぀-ヿ㐀-鿿豈-﫿-]/g, '')
+    .replace(/^-+|-+$/g, '')
+}
+
+// ---------------------------------------------------------------------------
+// fixListMerge — split merged unordered list items onto separate lines
+// ---------------------------------------------------------------------------
+
+/**
+ * Fix merged unordered list items: splits lines where multiple `- ` markers
+ * appear on the same line due to yuuhitsu newline loss.
+ *
+ * Detects mid-line `- ` preceded by a closing char (backtick, ), ], CJK).
+ * Skips code blocks and table rows. Numbered lists are out of scope (Phase 2).
+ */
+export function fixListMerge(content: string): string {
+  const lines = content.split('\n')
+  const result: string[] = []
+  let inFencedBlock = false
+
+  for (const line of lines) {
+    const trimmed = line.trimStart()
+
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFencedBlock = !inFencedBlock
+      result.push(line)
+      continue
+    }
+
+    if (inFencedBlock || trimmed.startsWith('|')) {
+      result.push(line)
+      continue
+    }
+
+    // Only split unordered list items (- or *)
+    if (!trimmed.startsWith('- ') && !trimmed.startsWith('* ')) {
+      result.push(line)
+      continue
+    }
+
+    // Find mid-line list markers: closing-char followed by `- `
+    // closing chars: backtick, ), ], fullwidth ), CJK closing quotes, hiragana/katakana/kanji
+    const splitRegex = /([`)\]）」』぀-ヿ㐀-鿿豈-﫿])(?:- |\* )/g
+    const parts: string[] = []
+    let lastSplit = 0
+    let match: RegExpExecArray | null
+
+    splitRegex.lastIndex = 0
+    while ((match = splitRegex.exec(line)) !== null) {
+      const splitAt = match.index + 1 // split right after the closing char
+      const backtickCount = (line.slice(0, splitAt).match(/`/g) ?? []).length
+      if (backtickCount % 2 !== 0) continue // inside inline code — skip
+      parts.push(line.slice(lastSplit, splitAt))
+      lastSplit = splitAt
+    }
+
+    if (parts.length > 0) {
+      parts.push(line.slice(lastSplit))
+      result.push(...parts)
+    } else {
+      result.push(line)
+    }
+  }
+
+  return result.join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// fixHeadingMerge — split headings merged with preceding content/hr
+// ---------------------------------------------------------------------------
+
+/**
+ * Fix headings merged with preceding text or horizontal rules.
+ * Handles three patterns:
+ *   `text## heading`     → `text\n\n## heading`
+ *   `---## heading`      → `---\n\n## heading`
+ *   `text---## heading`  → `text\n\n---\n\n## heading`
+ *
+ * Skips h1 and code blocks. h1 (`# `) is excluded to reduce false positives.
+ */
+export function fixHeadingMerge(content: string): string {
+  const lines = content.split('\n')
+  const result: string[] = []
+  let inFencedBlock = false
+
+  for (const line of lines) {
+    const trimmed = line.trimStart()
+
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFencedBlock = !inFencedBlock
+      result.push(line)
+      continue
+    }
+
+    if (inFencedBlock) {
+      result.push(line)
+      continue
+    }
+
+    // Skip lines that already start with a heading or are standalone hr/empty
+    if (/^#{1,6} /.test(trimmed) || trimmed === '---' || trimmed === '***' || trimmed === '___' || trimmed === '') {
+      result.push(line)
+      continue
+    }
+
+    // Find mid-line heading marker (h2–h6 only; h1 excluded)
+    // Skip matches inside inline code (even backtick count before match position)
+    let headingIdx = -1
+    for (const m of line.matchAll(/#{2,6} /g)) {
+      const idx = m.index ?? -1
+      if (idx <= 0) continue
+      const backtickCount = (line.slice(0, idx).match(/`/g) ?? []).length
+      if (backtickCount % 2 === 0) {
+        headingIdx = idx
+        break
+      }
+    }
+    if (headingIdx <= 0) {
+      result.push(line)
+      continue
+    }
+
+    const before = line.slice(0, headingIdx)
+    const headingPart = line.slice(headingIdx)
+
+    if (before.endsWith('---')) {
+      const textBefore = before.slice(0, -3).trimEnd()
+      if (textBefore) {
+        // Pattern: `text---## heading`
+        result.push(textBefore)
+        result.push('')
+        result.push('---')
+        result.push('')
+        result.push(headingPart)
+      } else {
+        // Pattern: `---## heading`
+        result.push('---')
+        result.push('')
+        result.push(headingPart)
+      }
+    } else {
+      // Pattern: `text## heading`
+      result.push(before.trimEnd())
+      result.push('')
+      result.push(headingPart)
+    }
+  }
+
+  return result.join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// fixHorizontalRuleMerge — split horizontal rules merged with surrounding text
+// ---------------------------------------------------------------------------
+
+/**
+ * Fix horizontal rules merged with surrounding prose (non-heading cases).
+ * `---## heading` patterns are handled by fixHeadingMerge; this function
+ * covers the remaining cases:
+ *   `text---`  → `text\n\n---`
+ *   `---text`  → `---\n\ntext` (where text doesn't start with ## heading)
+ *
+ * Skips code blocks, table rows, and standalone hr lines.
+ */
+export function fixHorizontalRuleMerge(content: string): string {
+  const lines = content.split('\n')
+  const result: string[] = []
+  let inFencedBlock = false
+
+  for (const line of lines) {
+    const trimmed = line.trimStart()
+
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFencedBlock = !inFencedBlock
+      result.push(line)
+      continue
+    }
+
+    if (inFencedBlock || trimmed.startsWith('|') || trimmed === '') {
+      result.push(line)
+      continue
+    }
+
+    // Skip standalone hr / setext-style markers
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      result.push(line)
+      continue
+    }
+
+    let processed = false
+
+    // Case 1: non-dash content followed by `---` at end of line
+    // Require the char before `---` to be non-dash to avoid `----`
+    const hrAtEndMatch = trimmed.match(/^(.+[^-])(---)$/)
+    if (hrAtEndMatch) {
+      result.push(hrAtEndMatch[1].trimEnd())
+      result.push('')
+      result.push('---')
+      processed = true
+    }
+
+    // Case 2: `---` at start followed by non-heading, non-dash text
+    // `---## heading` is handled by fixHeadingMerge; skip it here
+    if (!processed) {
+      const hrAtStartMatch = trimmed.match(/^---([^-#].+)$/)
+      if (hrAtStartMatch) {
+        result.push('---')
+        result.push('')
+        result.push(hrAtStartMatch[1].trimStart())
+        processed = true
+      }
+    }
+
+    if (!processed) {
+      result.push(line)
+    }
+  }
+
+  return result.join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// fixAnchorI18n — fix internal link anchors in Japanese docs (Hybrid mode)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fix internal link anchors in Japanese docs where English anchors remain
+ * after yuuhitsu translation (anchor text was not translated).
+ *
+ * Hybrid mode (Q4=C):
+ *   - heading present in file AND link text slug matches → auto-fix
+ *   - no heading match found → warn-only, keep as-is
+ *
+ * Only applies to Japanese files (isJaFile=true). English files are no-ops.
+ *
+ * @param content - Markdown file content
+ * @param isJaFile - true for docs/ja/ files; false for docs/en/ (no-op)
+ */
+export function fixAnchorI18n(content: string, isJaFile: boolean): string {
+  if (!isJaFile) return content
+
+  // Build slug → heading-text map (fence-aware; duplicate slugs tracked for warn-only)
+  const headingMap = new Map<string, string>()
+  const slugCount = new Map<string, number>()
+  let inFence = false
+  for (const headingLine of content.split('\n')) {
+    const htrimmed = headingLine.trimStart()
+    if (htrimmed.startsWith('```') || htrimmed.startsWith('~~~')) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence) continue
+    const hm = htrimmed.match(/^#{1,6}\s+(.+)$/)
+    if (hm) {
+      const text = hm[1].trim()
+      const slug = slugify(text)
+      if (slug) {
+        slugCount.set(slug, (slugCount.get(slug) ?? 0) + 1)
+        if (!headingMap.has(slug)) headingMap.set(slug, text)
+      }
+    }
+  }
+
+  // Replace anchors fence-aware: skip lines inside fenced code blocks
+  const replaceAnchorsInLine = (line: string): string =>
+    line.replace(/\[([^\]]+)\]\(#([^)]+)\)/g, (full, linkText, anchor) => {
+      // Anchor already valid (slug exists in this file) — keep as-is
+      if (headingMap.has(anchor)) return full
+
+      // Try to match by slugifying link text
+      const linkTextSlug = slugify(linkText)
+      if (linkTextSlug && headingMap.has(linkTextSlug)) {
+        // Warn-only for ambiguous (duplicate) heading slugs
+        if ((slugCount.get(linkTextSlug) ?? 0) > 1) {
+          console.warn(`[anchor-i18n] Ambiguous anchor (duplicate heading) #${linkTextSlug} in link [${linkText}]`)
+          return full
+        }
+        return `[${linkText}](#${linkTextSlug})`
+      }
+
+      // No match — warn and preserve original
+      console.warn(`[anchor-i18n] Could not resolve anchor #${anchor} in link [${linkText}]`)
+      return full
+    })
+
+  const anchorResult: string[] = []
+  let inFenceAnchor = false
+  for (const line of content.split('\n')) {
+    const trimmed = line.trimStart()
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFenceAnchor = !inFenceAnchor
+      anchorResult.push(line)
+      continue
+    }
+    anchorResult.push(inFenceAnchor ? line : replaceAnchorsInLine(line))
+  }
+  return anchorResult.join('\n')
+}
+
+// ---------------------------------------------------------------------------
 // Quality fix runner (exported for testability)
 // ---------------------------------------------------------------------------
 
@@ -344,6 +652,8 @@ export interface QualityFixResult {
   titleFixes: number
   parityFixes: number
   glossaryFixes: number
+  blockMergeFixes: number
+  anchorFixes: number
 }
 
 function collectMdFiles(dir: string): string[] {
@@ -383,15 +693,51 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
   let titleFixes = 0
   let parityFixes = 0
   let glossaryFixes = 0
+  let blockMergeFixes = 0
+  let anchorFixes = 0
 
-  // (1) Process docs/ja/ files using content inference (no reference)
+  // (1) Process docs/ja/ files
+  // Order: fixEmbeddedFences → fixListMerge → fixHeadingMerge → fixHorizontalRuleMerge
+  //        → fixBareCodeBlocks → fixGlossaryViolations → fixAnchorI18n → addFrontmatterTitle
   for (const jaFile of jaFiles) {
     const relPath = relative(jaDir, jaFile)
 
     let jaContent = readFileSync(jaFile, 'utf-8')
     let changed = false
 
-    // Fix bare code blocks by inferring language from content
+    // Fix embedded fences first (idempotent; also called inside fixBareCodeBlocks)
+    const afterEmbeddedFences = fixEmbeddedFences(jaContent)
+    if (afterEmbeddedFences !== jaContent) {
+      jaContent = afterEmbeddedFences
+      changed = true
+    }
+
+    // Fix block boundary merges (list / heading / hr) before bare-code-block processing
+    const afterListMerge = fixListMerge(jaContent)
+    if (afterListMerge !== jaContent) {
+      jaContent = afterListMerge
+      changed = true
+      blockMergeFixes++
+      console.log(`  [list-merge] Fixed: ja/${relPath}`)
+    }
+
+    const afterHeadingMerge = fixHeadingMerge(jaContent)
+    if (afterHeadingMerge !== jaContent) {
+      jaContent = afterHeadingMerge
+      changed = true
+      blockMergeFixes++
+      console.log(`  [heading-merge] Fixed: ja/${relPath}`)
+    }
+
+    const afterHrMerge = fixHorizontalRuleMerge(jaContent)
+    if (afterHrMerge !== jaContent) {
+      jaContent = afterHrMerge
+      changed = true
+      blockMergeFixes++
+      console.log(`  [hr-merge] Fixed: ja/${relPath}`)
+    }
+
+    // Fix bare code blocks (also handles embedded fences internally)
     const fixedJa = fixBareCodeBlocks(jaContent, null)
     if (fixedJa !== jaContent) {
       jaContent = fixedJa
@@ -407,6 +753,15 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
       changed = true
       glossaryFixes += glossaryCount
       console.log(`  [glossary] Fixed ${glossaryCount} term(s): ja/${relPath}`)
+    }
+
+    // Fix internal link anchors (ja files only)
+    const afterAnchorFix = fixAnchorI18n(jaContent, true)
+    if (afterAnchorFix !== jaContent) {
+      jaContent = afterAnchorFix
+      changed = true
+      anchorFixes++
+      console.log(`  [anchor-i18n] Fixed: ja/${relPath}`)
     }
 
     // Fix missing frontmatter title
@@ -436,6 +791,38 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
 
       let enContent = readFileSync(enFile, 'utf-8')
       let changed = false
+
+      // Fix embedded fences first (idempotent; same pipeline issue as ja/)
+      const afterEmbeddedFencesEn = fixEmbeddedFences(enContent)
+      if (afterEmbeddedFencesEn !== enContent) {
+        enContent = afterEmbeddedFencesEn
+        changed = true
+      }
+
+      // Fix block boundary merges for en/ files (same translation pipeline)
+      const afterListMergeEn = fixListMerge(enContent)
+      if (afterListMergeEn !== enContent) {
+        enContent = afterListMergeEn
+        changed = true
+        blockMergeFixes++
+        console.log(`  [list-merge] Fixed: en/${relPath}`)
+      }
+
+      const afterHeadingMergeEn = fixHeadingMerge(enContent)
+      if (afterHeadingMergeEn !== enContent) {
+        enContent = afterHeadingMergeEn
+        changed = true
+        blockMergeFixes++
+        console.log(`  [heading-merge] Fixed: en/${relPath}`)
+      }
+
+      const afterHrMergeEn = fixHorizontalRuleMerge(enContent)
+      if (afterHrMergeEn !== enContent) {
+        enContent = afterHrMergeEn
+        changed = true
+        blockMergeFixes++
+        console.log(`  [hr-merge] Fixed: en/${relPath}`)
+      }
 
       // Fix bare code blocks using ja/ as reference
       const jaContent = existsSync(jaFile) ? readFileSync(jaFile, 'utf-8') : null
@@ -480,8 +867,8 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
     }
   }
 
-  console.log(`\nDone: ${codeBlockFixes} code-block fixes, ${titleFixes} title fixes, ${parityFixes} parity fixes, ${glossaryFixes} glossary fixes.`)
-  return { codeBlockFixes, titleFixes, parityFixes, glossaryFixes }
+  console.log(`\nDone: ${codeBlockFixes} code-block fixes, ${titleFixes} title fixes, ${parityFixes} parity fixes, ${glossaryFixes} glossary fixes, ${blockMergeFixes} merge fixes, ${anchorFixes} anchor fixes.`)
+  return { codeBlockFixes, titleFixes, parityFixes, glossaryFixes, blockMergeFixes, anchorFixes }
 }
 
 // ---------------------------------------------------------------------------
