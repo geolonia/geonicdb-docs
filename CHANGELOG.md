@@ -13,6 +13,7 @@
 - chore(deps): bump @geolonia/yuuhitsu 0.1.13 → 0.1.14 (SF6 context_exception hybrid schema) (Closes #136)
 
 ### Fixed
+- [fix] cmd_381 — saas-rewrite 冪等化: R-ENV-ADMIN/R-ENV-TABLE に negative lookbehind/lookahead 追加、skip_in_code: false に変更して全文一括マッチングを有効化。unit tests 6 件追加 (Closes #171)
 - [fix] cmd_379 — PR#166 残課題 hotfix: saas-rewrite 重複注記削除（en+ja admin.md）、fixListMerge 範囲外 list 5箇所・OS パス 1箇所分離、changelog.md 見出し連結修正、ngsiv2-vs-ngsild.md TOC アンカー + heading 連結修正、subscriptions.md 誤記修正 + DPoP アンカー追加、endpoints.md bare fence 2件修正 (Closes #167)
 - [fix] cmd_376 — PR#161 残課題 3 種 hotfix: bare fence 55 件修正 (11 merged lines in 7 files)、geonicdb 小文字 prose 露出解消（Glossary Check 修正と共通原因）、smart-data-models.md heading 連結分離 (Closes #162)
 - [fix] cmd_373 — PR#155 ja list/heading 連結 + アンカー hotfix（ngsild.md 11箇所 list 分離 + ngsiv2-vs-ngsild.md heading/hr 分離 + #federation → #フェデレーション）(Closes #157)

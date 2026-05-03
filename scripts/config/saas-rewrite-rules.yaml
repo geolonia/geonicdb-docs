@@ -88,19 +88,19 @@ rules:
   - id: R-ENV-ADMIN
     description: "ADMIN_ALLOWED_IPS env var section → prepend SaaS note (en/ja, admin+endpoints)"
     enabled: true
-    skip_in_code: true
+    skip_in_code: false  # full-content matching required for cross-line negative lookbehind
     skip_in_changelog: true
     matchers:
-      - pattern: 'Restrict admin API access to specific IP addresses or CIDR ranges using the `ADMIN_ALLOWED_IPS` environment variable\.'
+      - pattern: '(?<!Contact Geolonia support for details\.\n\n)Restrict admin API access to specific IP addresses or CIDR ranges using the `ADMIN_ALLOWED_IPS` environment variable\.'
         replacement: "**SaaS users**: This is configured via the tenant settings API. Contact Geolonia support for details.\n\nRestrict admin API access to specific IP addresses or CIDR ranges using the `ADMIN_ALLOWED_IPS` environment variable."
         scope: ['docs/en/api-reference/admin.md']
-      - pattern: 'By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API \(`/admin/\*`\) to specific IP addresses:'
+      - pattern: '(?<!Contact Geolonia support for details\.\n\n)By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API \(`/admin/\*`\) to specific IP addresses:'
         replacement: "**SaaS users**: This is configured via the tenant settings API. Contact Geolonia support for details.\n\nBy setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API (`/admin/*`) to specific IP addresses:"
         scope: ['docs/en/api-reference/endpoints.md']
-      - pattern: '`ADMIN_ALLOWED_IPS` 環境変数を使用して、管理 API へのアクセスを特定の IP アドレスまたは CIDR 範囲に制限できます。'
+      - pattern: '(?<!詳細は Geolonia サポートにお問い合わせください。\n\n)`ADMIN_ALLOWED_IPS` 環境変数を使用して、管理 API へのアクセスを特定の IP アドレスまたは CIDR 範囲に制限できます。'
         replacement: "**SaaS 利用者の方へ**: これは tenant 設定 API 経由で設定されます。詳細は Geolonia サポートにお問い合わせください。\n\n`ADMIN_ALLOWED_IPS` 環境変数を使用して、管理 API へのアクセスを特定の IP アドレスまたは CIDR 範囲に制限できます。"
         scope: ['docs/ja/api-reference/admin.md']
-      - pattern: '`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API \(`/admin/\*`\) へのアクセスを特定の IP アドレスに制限できます:'
+      - pattern: '(?<!詳細は Geolonia サポートにお問い合わせください。\n\n)`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API \(`/admin/\*`\) へのアクセスを特定の IP アドレスに制限できます:'
         replacement: "**SaaS 利用者の方へ**: これは tenant 設定 API 経由で設定されます。詳細は Geolonia サポートにお問い合わせください。\n\n`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API (`/admin/*`) へのアクセスを特定の IP アドレスに制限できます:"
         scope: ['docs/ja/api-reference/endpoints.md']
 
@@ -108,12 +108,12 @@ rules:
   - id: R-ENV-TABLE
     description: "endpoints.md env var table → append SaaS note after ADMIN_ALLOWED_IPS row (en/ja)"
     enabled: true
-    skip_in_code: true
+    skip_in_code: false  # full-content matching required for negative lookahead across lines
     skip_in_changelog: true
     matchers:
-      - pattern: '\| `ADMIN_ALLOWED_IPS` \| - \| IPs/CIDRs allowed to access the Admin API \(comma-separated\) \|'
+      - pattern: '\| `ADMIN_ALLOWED_IPS` \| - \| IPs/CIDRs allowed to access the Admin API \(comma-separated\) \|(?!\n\n> \*\*SaaS users\*\*)'
         replacement: "| `ADMIN_ALLOWED_IPS` | - | IPs/CIDRs allowed to access the Admin API (comma-separated) |\n\n> **SaaS users**: These environment variables are managed via the GeonicDB SaaS console. Direct configuration is not required."
         scope: ['docs/en/api-reference/endpoints.md']
-      - pattern: '\| `ADMIN_ALLOWED_IPS` \| - \| 管理 API へのアクセスを許可する IP/CIDR\(カンマ区切り\) \|'
+      - pattern: '\| `ADMIN_ALLOWED_IPS` \| - \| 管理 API へのアクセスを許可する IP/CIDR\(カンマ区切り\) \|(?!\n\n> \*\*SaaS 利用者の方へ\*\*)'
         replacement: "| `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR(カンマ区切り) |\n\n> **SaaS 利用者の方へ**: これらの環境変数は GeonicDB SaaS コンソールで管理されます。直接設定は不要です。"
         scope: ['docs/ja/api-reference/endpoints.md']
