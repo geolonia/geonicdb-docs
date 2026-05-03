@@ -862,6 +862,8 @@ geonicdb_request_duration_seconds_bucket{le="0.1"} 1300000
 
 **SaaS 利用者の方へ**: これは tenant 設定 API 経由で設定されます。詳細は Geolonia サポートにお問い合わせください。
 
+**SaaS 利用者の方へ**: これは tenant 設定 API 経由で設定されます。詳細は Geolonia サポートにお問い合わせください。
+
 `ADMIN_ALLOWED_IPS` 環境変数を使用して、管理 API へのアクセスを特定の IP アドレスまたは CIDR 範囲に制限できます。
 
 ```text
