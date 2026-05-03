@@ -360,12 +360,15 @@ function slugify(text: string): string {
  * Skips code blocks and table rows. Numbered lists are out of scope (Phase 2).
  */
 export function fixListMerge(content: string): string {
+  const DEBUG = process.env.DEBUG_FIXLISTMERGE === '1'
   const lines = content.split('\n')
   const result: string[] = []
   let inFencedBlock = false
 
-  for (const line of lines) {
+  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+    const line = lines[lineNum]
     const trimmed = line.trimStart()
+    const lineNo = lineNum + 1
 
     if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
       inFencedBlock = !inFencedBlock
@@ -374,12 +377,19 @@ export function fixListMerge(content: string): string {
     }
 
     if (inFencedBlock || trimmed.startsWith('|')) {
+      if (DEBUG) {
+        const reason = inFencedBlock ? 'fence' : 'table'
+        console.error(`[fixListMerge] L${lineNo} skip(${reason}): ${line.slice(0, 80)}`)
+      }
       result.push(line)
       continue
     }
 
     // Only split unordered list items (- or *)
     if (!trimmed.startsWith('- ') && !trimmed.startsWith('* ')) {
+      if (DEBUG) {
+        console.error(`[fixListMerge] L${lineNo} skip(non-list): ${line.slice(0, 80)}`)
+      }
       result.push(line)
       continue
     }
@@ -395,15 +405,29 @@ export function fixListMerge(content: string): string {
     while ((match = splitRegex.exec(line)) !== null) {
       const splitAt = match.index + 1 // split right after the closing char
       const backtickCount = (line.slice(0, splitAt).match(/`/g) ?? []).length
-      if (backtickCount % 2 !== 0) continue // inside inline code — skip
+      if (backtickCount % 2 !== 0) {
+        if (DEBUG) {
+          console.error(`[fixListMerge] L${lineNo} skip(inline-code) col${splitAt}: backticks=${backtickCount}, context="${line.slice(Math.max(0, splitAt - 10), splitAt + 10)}"`)
+        }
+        continue // inside inline code — skip
+      }
+      if (DEBUG) {
+        console.error(`[fixListMerge] L${lineNo} split col${splitAt}: context="${line.slice(Math.max(0, splitAt - 10), splitAt + 10)}"`)
+      }
       parts.push(line.slice(lastSplit, splitAt))
       lastSplit = splitAt
     }
 
     if (parts.length > 0) {
       parts.push(line.slice(lastSplit))
+      if (DEBUG) {
+        console.error(`[fixListMerge] L${lineNo} process(split ${parts.length} parts): ${line.slice(0, 80)}`)
+      }
       result.push(...parts)
     } else {
+      if (DEBUG) {
+        console.error(`[fixListMerge] L${lineNo} skip(no-match): ${line.slice(0, 80)}`)
+      }
       result.push(line)
     }
   }
