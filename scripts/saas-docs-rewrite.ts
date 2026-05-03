@@ -94,7 +94,12 @@ export function applyPattern(
   replacement: string,
   skipInCode: boolean
 ): string {
-  const regex = new RegExp(pattern, 'g')
+  let regex: RegExp
+  try {
+    regex = new RegExp(pattern, 'g')
+  } catch (cause) {
+    throw new Error(`Invalid rewrite pattern: ${pattern}`, { cause: cause as Error })
+  }
 
   if (!skipInCode) {
     return content.replace(regex, replacement)
@@ -167,7 +172,13 @@ export function processFile(
     if (!inScope) continue
 
     const before = current
-    current = applyPattern(current, matcher.pattern, matcher.replacement, rule.skip_in_code)
+    try {
+      current = applyPattern(current, matcher.pattern, matcher.replacement, rule.skip_in_code)
+    } catch (cause) {
+      throw new Error(`Rule ${rule.id} failed for pattern "${matcher.pattern}"`, {
+        cause: cause as Error,
+      })
+    }
     if (current !== before) {
       changes++
     }
@@ -267,7 +278,14 @@ function main() {
   const dryRun = args.includes('--dry-run')
 
   const ruleIdx = args.indexOf('--rule')
-  const ruleFilter = ruleIdx >= 0 ? args[ruleIdx + 1] : undefined
+  let ruleFilter: string | undefined
+  if (ruleIdx >= 0) {
+    const candidate = args[ruleIdx + 1]
+    if (!candidate || candidate.startsWith('--')) {
+      throw new Error('Invalid arguments: --rule requires a rule id')
+    }
+    ruleFilter = candidate
+  }
 
   const dirs = args.filter(a => !a.startsWith('--') && a !== ruleFilter)
 
