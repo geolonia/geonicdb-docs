@@ -919,7 +919,7 @@ Returns a list of API endpoints in JSON format.
   "documentation": {
     "llms_txt": "/llms.txt",
     "openapi": "/openapi.json",
-    "full": "https://docs.geonicdb.com"
+    "full": "https://github.com/geolonia/geonicdb/blob/main/docs/API.md"
   },
   "apis": {
     "ngsiv2": { "basePath": "/v2", "endpoints": {...} },
@@ -961,7 +961,7 @@ Returns FIWARE Orion-compatible version information.
     "compiled_in": "aws-lambda",
     "release_date": "2026-01-25",
     "machine": "x64",
-    "doc": "https://docs.geonicdb.com"
+    "doc": "https://github.com/geolonia/geonicdb"
   },
   "vendor": {
     "name": "Geolonia Inc.",

@@ -45,7 +45,11 @@ MCP ツールは、属性値から NGSI-LD タイプを自動的に推論しま�
 | その他すべての値 | `Property` | `25.5`、`"text"`、`true`、`[1, 2, 3]` |
 
 タイプを明示的に指定することもできます:
-- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`### レスポンス構造
+- `{"type": "Property", "value": 25.5}`
+- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`
+- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+
+### レスポンス構造
 
 ```json
 {
@@ -147,12 +151,17 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 
 ### 概要
 
-- **エンドポイント**: `POST /mcp`- **トランスポート**: Streamable HTTP (JSON レスポンスモード)
+- **エンドポイント**: `POST /mcp`
+- **トランスポート**: Streamable HTTP (JSON レスポンスモード)
 - **プロトコルバージョン**: 2025-03-26
 - **動作モード**: ステートレス (Lambda 互換)
-- **認証**: `AUTH_ENABLED=true` の場合、JWT Bearer トークンによるアクセス制御とテナント分離が適用されます### Claude Desktop の設定
+- **認証**: `AUTH_ENABLED=true` の場合、JWT Bearer トークンによるアクセス制御とテナント分離が適用されます
 
-#### ローカル開発 (認証なし)
+### Claude Desktop の設定
+
+
+
+### ローカル開発 (認証なし)
 
 ```json
 {
@@ -173,7 +182,9 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 
 > **注意**: `--transport http-only` が必要です。GeonicDB は Streamable HTTP (POST) のみをサポートしており、SSE は利用できません。`--allow-http` は `http://` URL に必要です (本番環境の `https://` では不要です)。
 
-#### 本番環境 (JWT 認証を使用)
+
+
+### 本番環境 (JWT 認証を使用)
 
 ```json
 {
@@ -195,7 +206,9 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 
 JWT トークンは `/auth/login` エンドポイントから取得できます。JWT トークンには有効期限があり、定期的な更新が必要です。
 
-#### 本番環境 (API キー認証を使用)
+
+
+### 本番環境 (API キー認証を使用)
 
 API キーには有効期限がなく、Claude Desktop などの長期間使用する統合に推奨されます。
 
@@ -243,7 +256,9 @@ API キーで利用可能なスコープ:
 
 Claude Desktop の設定ファイルを編集します:
 
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
 ```json
 {
   "mcpServers": {
@@ -274,7 +289,9 @@ Claude Desktop の設定ファイルを編集します:
 
 設定を保存した後、Claude Desktop を完全に終了して再起動してください。GeonicDB MCP サーバーが利用可能なツールに表示されるはずです。
 
-#### API キーの管理
+
+
+### API キーの管理
 
 ```bash
 # List your API keys
@@ -289,11 +306,15 @@ geonic me api-keys delete <key-id>
 各ツールには、操作の対象テナントを指定するための `tenant` パラメータがあります。
 
 - **認証が無効の場合**: 省略すると、`default` テナントが使用されます。
-- **認証が有効の場合**: 省略すると、ログイン中のユーザーのテナントがデフォルトとして使用されます。`super_admin` はデータツールを使用できません (403 を返します)。代わりに `tenant_admin` または `user` ロールを使用してください。ただし、`tenant_admin`/`user` は自分のテナントにのみアクセスできます。### ServicePathの指定
+- **認証が有効の場合**: 省略すると、ログイン中のユーザーのテナントがデフォルトとして使用されます。`super_admin` はデータツールを使用できません (403 を返します)。代わりに `tenant_admin` または `user` ロールを使用してください。ただし、`tenant_admin`/`user` は自分のテナントにのみアクセスできます。
+
+### ServicePathの指定
 
 `entities`、`types`、`attributes`、`batch`、`temporal` の各ツールには、階層的なスコープ内でエンティティを管理できる `servicePath` パラメータがあります。
 
-#### 基本形式
+
+
+### 基本形式
 
 - **形式**: `/` で始まるパス (例: `/hello`、`/city/sensors`)
 - **デフォルト**: 省略した場合、ルートパス `/` が使用されます
@@ -307,7 +328,9 @@ entities tool:
   servicePath: "/hello"
 ```
 
-#### 階層検索 (`/#`)
+
+
+### 階層検索 (`/#`)
 
 `/#` サフィックスを使用すると、指定されたパスとそのすべての子パスを検索します。
 
@@ -319,7 +342,9 @@ entities tool:
   servicePath: "/Madrid/Gardens/#"
 ```
 
-#### 複数パスの指定 (カンマ区切り)
+
+
+### 複数パスの指定 (カンマ区切り)
 
 カンマで区切ることで、複数のパス (最大 10 パス) を同時に検索できます。
 
