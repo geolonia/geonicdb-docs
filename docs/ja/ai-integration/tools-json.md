@@ -17,7 +17,8 @@ GeonicDB は、AI エージェント (Claude、GPT-4、Gemini など) が API �
 | `GET /openapi.json` | JSON | OpenAPI 3.0 仕様 |
 | `GET /api.json` | JSON | API リファレンス |
 
-## Tool Use スキーマ (`/tools.json`)
+## Tool Use スキーマ (`/tools.json`
+)
 
 Claude Tool Use および OpenAI Function Calling と互換性のあるツール定義を提供します。
 
@@ -45,7 +46,10 @@ MCP ツールは、属性値から NGSI-LD タイプを自動的に推論しま�
 | その他すべての値 | `Property` | `25.5`、`"text"`、`true`、`[1, 2, 3]` |
 
 タイプを明示的に指定することもできます:
-- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`### レスポンス構造
+- `{"type": "Property", "value": 25.5}`
+- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`
+- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
+### レスポンス構造
 
 ```json
 {
@@ -76,7 +80,8 @@ MCP ツールは、属性値から NGSI-LD タイプを自動的に推論しま�
 }
 ```
 
-## AI プラグインマニフェスト (`/.well-known/ai-plugin.json`)
+## AI プラグインマニフェスト (`/.well-known/ai-plugin.json`
+)
 
 API 検出情報を提供します。
 
@@ -251,9 +256,7 @@ API キーで利用可能なスコープ:
 
 Claude Desktop の設定ファイルを編集します:
 
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
@@ -325,7 +328,8 @@ entities tool:
 
 
 
-### 階層検索 (`/#`)
+### 階層検索 (`/#`
+)
 
 `/#` サフィックスを使用すると、指定されたパスとそのすべての子パスを検索します。
 

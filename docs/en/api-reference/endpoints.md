@@ -145,7 +145,9 @@ curl "http://localhost:3000/v2/entities" \
   -H "Fiware-ServicePath: /Madrid/Gardens"
 ```
 
-#### Hierarchical Search (`/#`)
+#### Hierarchical Search (`/#`
+
+)
 
 Using the `/#` suffix allows searching the specified path and all its child paths (**query operations only**).
 
@@ -2355,7 +2357,9 @@ Reference: https://github.com/CADDE-sip/connector
 | GET | `/cadde/api/v4/catalog` | Catalog search (cross-domain search / detailed search) |
 | GET | `/cadde/api/v4/entities` | NGSI data exchange |
 
-#### Catalog Search (`/cadde/api/v4/catalog`)
+#### Catalog Search (`/cadde/api/v4/catalog`
+
+)
 
 Specify the search type using the `x-cadde-search` header:
 
@@ -2383,7 +2387,9 @@ curl "http://localhost:3000/cadde/api/v4/catalog?id=sensor" \
   -H "Fiware-Service: smartcity"
 ```
 
-#### NGSI Data Exchange (`/cadde/api/v4/entities`)
+#### NGSI Data Exchange (`/cadde/api/v4/entities`
+
+)
 
 Parses query parameters from the `x-cadde-resource-url` header to retrieve entities.
 

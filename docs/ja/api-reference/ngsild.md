@@ -356,7 +356,8 @@ DELETE /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
 | `datasetId` | string | 削除するマルチ属性インスタンスの datasetId |
 | `deleteAll` | boolean | `true` の場合、すべてのインスタンスを削除します |
 
-**レスポンス**: `204 No Content`### マルチ属性 (datasetId)
+**レスポンス**: `204 No Content`
+### マルチ属性 (datasetId)
 
 > **ETSI GS CIM 009 リファレンス**: Section 4.5.3 - Multi-Attribute
 
@@ -581,7 +582,9 @@ Merge-Patch セマンティクスを使用して、複数のエンティティ�
 | `options=noOverwrite` | 既存の属性を上書きしない |
 
 **レスポンス**
-- すべて成功: `204 No Content`- 部分的な成功: `207 Multi-Status`---
+- すべて成功: `204 No Content`
+- 部分的な成功: `207 Multi-Status`
+---
 
 ### 時系列・バッチ操作 (NGSI-LD)
 
@@ -680,7 +683,6 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
 `options=temporalValues` を指定すると、各属性が `values` 配列 (`[value, timestamp]` のペア) を含む簡易形式で返されます。
 
 **例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?options=temporalValues`
-
 ```json
 {
   "id": "urn:ngsi-ld:Sensor:1",
@@ -704,7 +706,6 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
 | `aggrPeriodDuration` | string | ISO 8601 期間 (例: `PT1H` は 1 時間)。`aggrMethods` 指定時に必須 |
 
 **例**: `GET /ngsi-ld/v1/temporal/entities/{entityId}?aggrMethods=avg&aggrPeriodDuration=PT1H&timerel=after&timeAt=2024-01-01T00:00:00Z`
-
 ```json
 {
   "id": "urn:ngsi-ld:Sensor:1",
@@ -1260,7 +1261,8 @@ Content-Type: application/ld+json
 DELETE /ngsi-ld/v1/entityMaps/{entityMapId}
 ```
 
-**レスポンス**: `204 No Content`### リンクエンティティの取得 (join/joinLevel)
+**レスポンス**: `204 No Content`
+### リンクエンティティの取得 (join/joinLevel)
 
 エンティティ取得エンドポイント (`GET /ngsi-ld/v1/entities` と `GET /ngsi-ld/v1/entities/{entityId}`) では、`join` と `joinLevel` のクエリパラメータを使用してリンクされたエンティティを取得できます。
 
@@ -1387,7 +1389,8 @@ PATCH /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}
 DELETE /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}
 ```
 
-**レスポンス**: `204 No Content`### JSON-LD Context 管理
+**レスポンス**: `204 No Content`
+### JSON-LD Context 管理
 
 ETSI GS CIM 009 Section 5.12 に準拠した JSON-LD context 管理 API です。ユーザー定義の JSON-LD context の登録と管理が可能です。
 
@@ -1461,7 +1464,8 @@ GET /ngsi-ld/v1/jsonldContexts/{contextId}
 DELETE /ngsi-ld/v1/jsonldContexts/{contextId}
 ```
 
-**レスポンス**: `204 No Content`### Vector Tiles (NGSI-LD)
+**レスポンス**: `204 No Content`
+### Vector Tiles (NGSI-LD)
 
 地図可視化のためにエンティティデータを GeoJSON ベクタータイルとして提供します。TileJSON 3.0 準拠のメタデータと、ズームレベルおよびタイル座標による GeoJSON タイルの取得をサポートします。
 
