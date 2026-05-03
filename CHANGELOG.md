@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- [feat] Phase 2 — saas-rewrite-rules.yaml に R-SAM-DEPLOY + R-ENV-ADMIN + R-ENV-TABLE 3 rules 追加 + unit tests 9 件（cmd_372）(Closes #154)
 - [feat] Phase 1 — saas-docs-rewrite.ts + YAML rule config (R-DEV-MD + R-SAM-BATCH) 実装（cmd_371）(Closes #152)
 
 ### Changed
