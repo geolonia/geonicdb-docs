@@ -291,6 +291,203 @@ describe('ConfigSchema — enabled: false', () => {
 })
 
 // ---------------------------------------------------------------------------
+// 9. R-SAM-DEPLOY: EventStreamingEnabled SAM deploy block → SaaS note (EN)
+// ---------------------------------------------------------------------------
+describe('processFile — R-SAM-DEPLOY (EN)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-SAM-DEPLOY')!
+
+  it('replaces EN SAM deploy block with SaaS note', () => {
+    const input = [
+      'Set the `EventStreamingEnabled` parameter to `true` in the SAM template and deploy.',
+      '',
+      '```bash',
+      'sam deploy -t infrastructure/template.yaml \\',
+      '  --parameter-overrides EventStreamingEnabled=true',
+      '```',
+    ].join('\n')
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/en/features/subscriptions.md'
+    )
+    expect(changes).toBe(1)
+    expect(result).toBe(
+      'Event streaming is enabled by default in GeonicDB SaaS. No additional configuration is required.'
+    )
+    expect(result).not.toContain('sam deploy')
+  })
+
+  it('does not modify an out-of-scope file for R-SAM-DEPLOY', () => {
+    const input = [
+      'Set the `EventStreamingEnabled` parameter to `true` in the SAM template and deploy.',
+      '',
+      '```bash',
+      'sam deploy -t infrastructure/template.yaml \\',
+      '  --parameter-overrides EventStreamingEnabled=true',
+      '```',
+    ].join('\n')
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/en/other/page.md'
+    )
+    expect(result).toBe(input)
+    expect(changes).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 10. R-SAM-DEPLOY: EventStreamingEnabled SAM deploy block → SaaS note (JA)
+// ---------------------------------------------------------------------------
+describe('processFile — R-SAM-DEPLOY (JA)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-SAM-DEPLOY')!
+
+  it('replaces JA SAM deploy block with SaaS note', () => {
+    const input = [
+      'SAM テンプレートで `EventStreamingEnabled` パラメータを `true` に設定してデプロイします。',
+      '',
+      '```bash',
+      'sam deploy -t infrastructure/template.yaml \\',
+      '  --parameter-overrides EventStreamingEnabled=true',
+      '```',
+    ].join('\n')
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/ja/features/subscriptions.md'
+    )
+    expect(changes).toBe(1)
+    expect(result).toBe(
+      'GeonicDB SaaS ではイベントストリーミングは既定で有効です。追加の設定は不要です。'
+    )
+    expect(result).not.toContain('sam deploy')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 11. R-ENV-ADMIN: ADMIN_ALLOWED_IPS SaaS note prepended (EN admin.md)
+// ---------------------------------------------------------------------------
+describe('processFile — R-ENV-ADMIN (EN admin.md)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-ADMIN')!
+
+  it('prepends EN SaaS note before ADMIN_ALLOWED_IPS description in admin.md', () => {
+    const input =
+      'Restrict admin API access to specific IP addresses or CIDR ranges using the `ADMIN_ALLOWED_IPS` environment variable.'
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/en/api-reference/admin.md'
+    )
+    expect(changes).toBe(1)
+    expect(result).toContain('**SaaS users**: This is configured via the tenant settings API.')
+    expect(result).toContain('Restrict admin API access to specific IP addresses')
+    // SaaS note comes before the original text
+    const noteIdx = result.indexOf('**SaaS users**')
+    const origIdx = result.indexOf('Restrict admin API access')
+    expect(noteIdx).toBeLessThan(origIdx)
+  })
+
+  it('prepends EN SaaS note before ADMIN_ALLOWED_IPS description in endpoints.md', () => {
+    const input =
+      'By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API (`/admin/*`) to specific IP addresses:'
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/en/api-reference/endpoints.md'
+    )
+    expect(changes).toBe(1)
+    expect(result).toContain('**SaaS users**: This is configured via the tenant settings API.')
+    expect(result).toContain('By setting the `ADMIN_ALLOWED_IPS`')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 12. R-ENV-ADMIN: ADMIN_ALLOWED_IPS SaaS note prepended (JA)
+// ---------------------------------------------------------------------------
+describe('processFile — R-ENV-ADMIN (JA)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-ADMIN')!
+
+  it('prepends JA SaaS note before ADMIN_ALLOWED_IPS description in admin.md', () => {
+    const input =
+      '`ADMIN_ALLOWED_IPS` 環境変数を使用して、管理 API へのアクセスを特定の IP アドレスまたは CIDR 範囲に制限できます。'
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/ja/api-reference/admin.md'
+    )
+    expect(changes).toBe(1)
+    expect(result).toContain('**SaaS 利用者の方へ**')
+    expect(result).toContain('`ADMIN_ALLOWED_IPS` 環境変数を使用して')
+    const noteIdx = result.indexOf('**SaaS 利用者の方へ**')
+    const origIdx = result.indexOf('`ADMIN_ALLOWED_IPS` 環境変数を使用して')
+    expect(noteIdx).toBeLessThan(origIdx)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 13. R-ENV-TABLE: env var table SaaS note appended (EN endpoints.md)
+// ---------------------------------------------------------------------------
+describe('processFile — R-ENV-TABLE (EN)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-TABLE')!
+
+  it('appends EN SaaS note after ADMIN_ALLOWED_IPS table row', () => {
+    const input =
+      '| `ADMIN_ALLOWED_IPS` | - | IPs/CIDRs allowed to access the Admin API (comma-separated) |'
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/en/api-reference/endpoints.md'
+    )
+    expect(changes).toBe(1)
+    expect(result).toContain('> **SaaS users**: These environment variables are managed via the GeonicDB SaaS console.')
+    // Original table row still present
+    expect(result).toContain('| `ADMIN_ALLOWED_IPS` | - | IPs/CIDRs allowed to access the Admin API (comma-separated) |')
+    // SaaS note comes after the table row
+    const rowIdx = result.indexOf('| `ADMIN_ALLOWED_IPS`')
+    const noteIdx = result.indexOf('> **SaaS users**')
+    expect(rowIdx).toBeLessThan(noteIdx)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 14. R-ENV-TABLE: env var table SaaS note appended (JA endpoints.md)
+// ---------------------------------------------------------------------------
+describe('processFile — R-ENV-TABLE (JA)', () => {
+  const config = loadConfig(join(process.cwd(), 'scripts/config/saas-rewrite-rules.yaml'))
+  const rule = config.rules.find(r => r.id === 'R-ENV-TABLE')!
+
+  it('appends JA SaaS note after ADMIN_ALLOWED_IPS table row', () => {
+    const input =
+      '| `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR(カンマ区切り) |'
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/ja/api-reference/endpoints.md'
+    )
+    expect(changes).toBe(1)
+    expect(result).toContain('> **SaaS 利用者の方へ**: これらの環境変数は GeonicDB SaaS コンソールで管理されます。')
+    expect(result).toContain('| `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR(カンマ区切り) |')
+  })
+
+  it('does not modify an out-of-scope file for R-ENV-TABLE', () => {
+    const input =
+      '| `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR(カンマ区切り) |'
+    const { content: result, changes } = processFile(
+      input,
+      rule,
+      'docs/ja/api-reference/admin.md'
+    )
+    expect(result).toBe(input)
+    expect(changes).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // matchesScope
 // ---------------------------------------------------------------------------
 describe('matchesScope', () => {
