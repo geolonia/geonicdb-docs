@@ -9,7 +9,9 @@ outline: deep
 
 ---
 
-## エンティティ操作### エンティティの一覧取得
+## エンティティ操作
+
+### エンティティの一覧取得
 
 ```http
 GET /v2/entities
@@ -168,7 +170,11 @@ POST /v2/entities
 **レスポンス**
 - ステータス: `201 Created` (新規作成)、`204 No Content` (upsert による更新)
 - ステータス: `409 AlreadyExists` 同じ ID のエンティティが既に存在する場合 (タイプに関わらず)
-- ヘッダー: `Location: /v2/entities/Room1?type=Room`> **GeonicDB 拡張 — エンティティ ID の一意性**: エンティティ ID はテナントとServicePathのスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成することはできず、`409 AlreadyExists` が返されます。これは、同じ ID で異なるタイプのエンティティを許可する NGSIv2 仕様とは異なります。詳細は[エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension)を参照してください。### 単一エンティティの取得
+- ヘッダー: `Location: /v2/entities/Room1?type=Room`
+
+> **GeonicDB 拡張 — エンティティ ID の一意性**: エンティティ ID はテナントとServicePathのスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成することはできず、`409 AlreadyExists` が返されます。これは、同じ ID で異なるタイプのエンティティを許可する NGSIv2 仕様とは異なります。詳細は[エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension)を参照してください。
+
+### 単一エンティティの取得
 
 ```http
 GET /v2/entities/{entityId}
@@ -258,7 +264,9 @@ DELETE /v2/entities/{entityId}
 
 **レスポンス**: `204 No Content`---
 
-## 属性操作### エンティティ属性の取得
+## 属性操作
+
+### エンティティ属性の取得
 
 エンティティのすべての属性を取得します (`id` および `type` フィールドは含まれません)。
 
@@ -441,7 +449,9 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
   -d '{"type":"Point","coordinates":[140.0,36.0]}'
 ```
 
-**レスポンス**: `204 No Content`**注意**: この操作では、既存の属性の type や metadata は変更されません — これらは保持されます。
+**レスポンス**: `204 No Content`
+
+**注意**: この操作では、既存の属性の type や metadata は変更されません — これらは保持されます。
 
 ---
 
@@ -559,7 +569,9 @@ POST /v2/op/notify
 
 **レスポンス**: `200 OK`---
 
-## サブスクリプション### サブスクリプションの作成
+## サブスクリプション
+
+### サブスクリプションの作成
 
 ```http
 POST /v2/subscriptions

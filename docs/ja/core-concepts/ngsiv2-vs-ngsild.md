@@ -106,7 +106,9 @@ interface EntityDocument {
 }
 ```
 
----## プロトコル分離
+---
+
+## プロトコル分離
 
 エンティティは、それを作成したプロトコルによって分離されます。各エンティティには `protocol` フィールド(`'ngsiv2'` または `'ngsild'`)があり、どの API がアクセスできるかを決定します。
 
@@ -125,7 +127,7 @@ interface EntityDocument {
 
 ### フェデレーションによるプロトコル間アクセス
 
-直接的なプロトコル間アクセスはサポートされていません。プロトコル間でエンティティにアクセスする必要がある場合は、**フェデレーション**(コンテキストソース登録)を使用して、1 つの GeonicDB インスタンスを別のプロトコルのコンテキストプロバイダとして登録してください。詳細については、[フェデレーション](#federation)セクションを参照してください。
+直接的なプロトコル間アクセスはサポートされていません。プロトコル間でエンティティにアクセスする必要がある場合は、**フェデレーション**(コンテキストソース登録)を使用して、1 つの GeonicDB インスタンスを別のプロトコルのコンテキストプロバイダとして登録してください。詳細については、[フェデレーション](#フェデレーション)セクションを参照してください。
 
 ### 例:プロトコル分離の実際
 
@@ -145,7 +147,9 @@ curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001 -H "Fiware-S
 # => 404 Not Found
 ```
 
----## 属性タイプマッピングテーブル
+---
+
+## 属性タイプマッピングテーブル
 
 GeonicDB は、以下のルールに従って NGSIv2 タイプ、内部タイプ、NGSI-LD タイプ間で変換を行います。
 
@@ -266,7 +270,9 @@ GeonicDB は、以下のルールに従って NGSIv2 タイプ、内部タイプ
 }
 ```
 
----## 出力フォーマットの違い
+---
+
+## 出力フォーマットの違い
 
 各 API は複数のレスポンスフォーマットをサポートしています。
 
@@ -312,7 +318,9 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=c
 curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1?options=keyValues'
 ```
 
----## 共有機能
+---
+
+## 共有機能
 
 以下の機能は、両方の API で共有されています。
 
@@ -334,7 +342,9 @@ curl 'http://localhost:3000/v2/entities?type=Room&q=temperature>20'
 curl 'http://localhost:3000/ngsi-ld/v1/entities?type=Room&q=temperature>20'
 ```
 
-#### メタデータクエリ (mq) の詳細
+#
+
+### メタデータクエリ (mq) の詳細
 
 NGSIv2 の `mq` パラメータは、属性メタデータに対するクエリをサポートしています。
 
@@ -367,7 +377,9 @@ curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.unit==Celsius,F
 curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.accuracy>0.9;temperature.unit==Celsius'
 ```
 
-#### スコープクエリ (scopeQ) の詳細
+#
+
+### スコープクエリ (scopeQ) の詳細
 
 NGSI-LD の `scopeQ` パラメータは、エンティティのスコープ階層に対するクエリをサポートしています。
 
@@ -445,7 +457,9 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&ge
 
 ## NGSI-LD 固有の機能
 
-以下の機能は NGSI-LD API でのみサポートされており、NGSIv2 API では直接利用できません。### 1. Relationship
+以下の機能は NGSI-LD API でのみサポートされており、NGSIv2 API では直接利用できません。
+
+### 1. Relationship
 
 エンティティ間の関連を表します。
 
@@ -534,11 +548,15 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo'
 - **servicePath と scope は独立した概念です (#964):** これらは自動的には同期されません
   - NGSIv2 `Fiware-ServicePath` → DB に `servicePath` として保存（インフラストラクチャレベルの分離）
   - NGSI-LD `scope` → DB に `scope` として保存（ユーザー定義の論理階層）
-  - NGSI-LD は ETSI GS CIM 009 仕様に従い `Fiware-ServicePath` ヘッダを無視します### 4. 属性の射影 (pick / omit パラメータ)
+  - NGSI-LD は ETSI GS CIM 009 仕様に従い `Fiware-ServicePath` ヘッダを無視します
+
+### 4. 属性の射影 (pick / omit パラメータ)
 
 NGSI-LD では、`pick` および `omit` クエリパラメータを使用して、レスポンスに含まれる属性を制御できます。
 
-#### pick パラメータ (属性の選択)
+#
+
+### pick パラメータ (属性の選択)
 
 指定された属性のみをレスポンスに含めます。
 
@@ -567,7 +585,9 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?pick=temper
 }
 ```
 
-#### omit パラメータ (属性の除外)
+#
+
+### omit パラメータ (属性の除外)
 
 指定された属性をレスポンスから除外します。
 
@@ -635,7 +655,9 @@ NGSI-LD では、エンティティに `@context` を含めることで語彙を
 - NGSIv2 には `@context` の概念がありません
 - GeonicDB は Smart Data Models の `@context` の自動補完をサポートしていますが、`@context` は NGSIv2 API によって返されません
 
----## エンティティ ID の考慮事項
+---
+
+## エンティティ ID の考慮事項
 
 ### エンティティ ID の一意性 (GeonicDB 拡張)
 
@@ -684,7 +706,9 @@ urn:ngsi-ld:WeatherObserved:Tokyo-2026-02-08
 - NGSIv2 API を使用する場合でも、すべてのエンティティに URN 形式を使用してください
 - NGSIv2 から NGSI-LD に移行する場合、エンティティは NGSI-LD API を介して再作成する必要があります (プロトコルの分離により、API 間のアクセスが防止されます)
 
----## フェデレーション
+---
+
+## フェデレーション
 
 GeonicDB のフェデレーション機能は、リモートコンテキストプロバイダーのプロトコルを自動的に検出します。
 
@@ -771,9 +795,13 @@ curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:S888 \
 
 ---
 
-## ユースケースとベストプラクティス### どの API を使用すべきか？
+## ユースケースとベストプラクティス
 
-#### NGSIv2 を選択すべき場合
+### どの API を使用すべきか？
+
+#
+
+### NGSIv2 を選択すべき場合
 
 - **既存の FIWARE Orion 互換システム** - レガシーシステムとの統合
 - **シンプルな IoT データ管理** - センサーデータの収集と可視化
@@ -786,7 +814,9 @@ curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:S888 \
 - 基本的なスマートシティのデータ収集
 - プロトタイピングと PoC
 
-#### NGSI-LD を選択すべき場合
+#
+
+### NGSI-LD を選択すべき場合
 
 - **セマンティック Web / Linked Data** - JSON-LD と RDF の活用
 - **複雑なエンティティの関係性** - Relationship と LanguageProperty の使用
@@ -800,7 +830,9 @@ curl http://localhost:3000/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:S888 \
 - エンティティ間の複雑な関係性を表現する必要があるシステム
 - データ統合とオープンデータの公開
 
-#### 両方の API を同時に実行する
+#
+
+### 両方の API を同時に実行する
 
 GeonicDB は両方の API を同時にサポートしていますが、エンティティはプロトコルごとに分離されています。各 API は独自のエンティティセットに対して独立して動作します。
 
@@ -808,9 +840,13 @@ GeonicDB は両方の API を同時にサポートしていますが、エンテ
 
 1. **ユースケースごとに 1 つの API を選択** - 同じデータに対してプロトコルを混在させないでください。要件に基づいて NGSIv2 または NGSI-LD を選択し、それを使い続けてください
 2. **プロトコル間連携には Federation を使用** - NGSIv2 クライアントが NGSI-LD エンティティにアクセスする必要がある場合(またはその逆)、Federation 経由でコンテキストソースを登録してください
-3. **マイグレーションには再作成が必要** - NGSIv2 から NGSI-LD にエンティティを移行するには、NGSIv2 API からエクスポートし、NGSI-LD API 経由で再作成してください。自動的なプロトコル間マイグレーションはありません### ベストプラクティス
+3. **マイグレーションには再作成が必要** - NGSIv2 から NGSI-LD にエンティティを移行するには、NGSIv2 API からエクスポートし、NGSI-LD API 経由で再作成してください。自動的なプロトコル間マイグレーションはありません
 
-#### 1. エンティティ ID には URN 形式を使用する
+### ベストプラクティス
+
+#
+
+### 1. エンティティ ID には URN 形式を使用する
 
 **推奨:**
 
@@ -827,7 +863,9 @@ sensor-abc
 
 理由: NGSI-LD 仕様に準拠し、両 API 間での互換性を維持します。
 
-#### 2. 地理空間データには GeoJSON を使用する
+#
+
+### 2. 地理空間データには GeoJSON を使用する
 
 **推奨 (NGSIv2):**
 
@@ -859,7 +897,9 @@ sensor-abc
 
 理由: ジオクエリは GeoJSON 形式のみをサポートしています。
 
-#### 3. Smart Data Models を活用する
+#
+
+### 3. Smart Data Models を活用する
 
 GeonicDB は Smart Data Models `@context` を自動的に補完します。
 
@@ -878,7 +918,9 @@ GeonicDB は Smart Data Models `@context` を自動的に補完します。
 
 理由: `type` が Smart Data Models のモデル名と一致すると、適切な `@context` が自動的に補完されます。
 
-#### 4. 用途に応じたサブスクリプションを選択する
+#
+
+### 4. 用途に応じたサブスクリプションを選択する
 
 | 用途 | 推奨チャネル | 理由 |
 |---------|---------------------|--------|
@@ -886,7 +928,9 @@ GeonicDB は Smart Data Models `@context` を自動的に補完します。
 | サーバー間連携 | HTTP Webhook | 信頼性、リトライ機能 |
 | IoT デバイス | MQTT | 軽量、QoS 保証 |
 
-#### 5. テナント分離を活用する
+#
+
+### 5. テナント分離を活用する
 
 `Fiware-Service` ヘッダーを使用してテナントを分離します。
 

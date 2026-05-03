@@ -56,7 +56,9 @@ outline: deep
     - `tests/e2e/features/auth/rules-auto-fire.feature` で「entity 作成 API のみで Rule action が自動実行される」シナリオを 2 つ追加 (`triggerRuleExecution` を介さない再現テスト)
     - `tests/unit/infrastructure/sam-template.test.ts` で `infrastructure/template.yaml` の最小構造を検証 (RuleProcessorFunction / SubscriptionMatcherFunction / WsBroadcastFunction が EventBridgeRule で 3 種の detail-type を listen していることを機械的に確認)
     - `tests/unit/handlers/rules/processor.test.ts` で新規 handler 単体の挙動 (3 種イベント委譲・secondary region スキップ・エラー握り潰し・タイムアウト) を検証
-  - 関連: `src/handlers/rules/processor.ts` (新規)、`src/handlers/streams/change-stream.ts` (rule engine 呼び出しを除去)、`infrastructure/template.yaml` (`RuleProcessorFunction` 追加)、`tests/e2e/support/hooks.ts` / `tests/e2e/features/auth/rules-auto-fire.feature` / `tests/unit/infrastructure/sam-template.test.ts` / `tests/unit/handlers/rules/processor.test.ts`## [0.6.0] — 2026-05-01### 2026-05-01
+  - 関連: `src/handlers/rules/processor.ts` (新規)、`src/handlers/streams/change-stream.ts` (rule engine 呼び出しを除去)、`infrastructure/template.yaml` (`RuleProcessorFunction` 追加)、`tests/e2e/support/hooks.ts` / `tests/e2e/features/auth/rules-auto-fire.feature` / `tests/unit/infrastructure/sam-template.test.ts` / `tests/unit/handlers/rules/processor.test.ts`## [0.6.0] — 2026-05-01
+
+### 2026-05-01
 - **認可**: WebSocket 配信時の XACML AuthzRequest に `entityOwner` / `entityId` を inject (issue #1107) (#1116)
   - `src/handlers/websocket/broadcaster.ts` の `filterByAuthz` と `src/core/streaming/local-ws-server.ts` の `broadcastEventAsync` を改修。各コネクションに対する `authorizeWs()` 呼び出しに、配信対象 entity の `entityOwner` (createdBy) / `entityId` / `entityType` を渡す。これまで `entityType` のみだったため、「**自分が所有する entity の更新だけ受信する**」per-user 通知フィルタが XACML カスタムポリシーで書けなかった
   - これに伴い `EntityChangeEvent.entity` に optional な `owner?: string` を追加。`entity.service.ts` の publish 経路 (CREATE/UPDATE/DELETE 各種) で entity の `createdBy` を transparent に伝播する。`InternalEntity.createdBy` も追加 (内部用; NGSI トランスフォーマでは出力されない)
@@ -93,7 +95,9 @@ outline: deep
   - テスト: `tests/unit/core/auth/pow/pow.service.test.ts` の `default difficulty` 期待値と探索条件 (先頭 16 ビット 0) を更新
 - **セキュリティ**: `MONGODB_ENFORCE_SECRETS=true` で `MONGODB_URI` 環境変数経路を fail-closed に禁止 (issue #1086) (#1111)
   - `src/infrastructure/mongodb/client.ts` の `getMongoUriAsync()` を改修。`HA.SECRETS_MANAGER.MONGODB_ENFORCE_SECRETS` (env 由来、`@config/defaults`) が真のとき:
-    - `MONGODB_URI_ARN` 未設定なら起動時に throw (ARN 必須)### 2026-04-30
+    - `MONGODB_URI_ARN` 未設定なら起動時に throw (ARN 必須)
+
+### 2026-04-30
 - **セキュリティ**: Lambda IAM の `kms:CreateKey` に Condition を追加し用途・タグを強制 (issue #1071) (#1108)
   - `infrastructure/template.yaml` の `ApiHandlerFunction.Policies` 内 `kms:CreateKey` Statement に `Condition` を追加: `kms:KeyUsage = ENCRYPT_DECRYPT` / `kms:KeySpec = SYMMETRIC_DEFAULT` / `aws:RequestTag/geonicdb:purpose = envelope-encryption` を強制し、未知タグキーは `ForAllValues:StringEquals` の `aws:TagKeys` で `geonicdb:tenantId` / `geonicdb:purpose` のみに制限。`Null: aws:RequestTag/geonicdb:tenantId = false` で tenant 所有情報のないキー作成を禁止
   - `Resource` は AWS 仕様上 `kms:CreateKey` (new-resource action) では `'*'` 必須のため変更しない。代わりに `kms:TagResource` を別 Statement として `arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*` で許可し、`CreateKeyCommand` の `Tags` パラメータ適用に必要な権限を Region/Account 制限付きで付与
@@ -138,7 +142,9 @@ outline: deep
 - **[Breaking] WebSocket 認証**: URL クエリパラメータ `?token=` 経路を完全廃止 (issue #1072) (#1099)
   - 旧挙動: `extractWebSocketToken()` (`src/handlers/websocket/connect.ts`) と `extractLocalWebSocketToken()` (`src/core/streaming/local-ws-server.ts`) が `Authorization` ヘッダ / `Sec-WebSocket-Protocol` に加え、フォールバックとして `?token=<jwt>` URL クエリも受領していた (deprecation warning ログのみで実利用許可) (#1099)
   - 攻撃面: URL に乗ったトークンはリバースプロキシ / WAF / LB のアクセスログに記録され、ブラウザ履歴やキャッシュにも残存。`Referer` ヘッダ経由で外部に漏洩する経路もあり (Referrer-Policy 未設定と相乗) (#1099)
-  - 対応: query token 抽出ロジックを auth flow の最先頭に移動して **fail-closed** 化。クエリに `token` が含まれていれば、たとえ有効な `Authorization` ヘッダや `Sec-WebSocket-Protocol` が併送されていても warn ログを残した上で `null` を返し、1008 / 401 で接続を拒否する。URL は既に上流プロキシのログに記録された後### 2026-04-29
+  - 対応: query token 抽出ロジックを auth flow の最先頭に移動して **fail-closed** 化。クエリに `token` が含まれていれば、たとえ有効な `Authorization` ヘッダや `Sec-WebSocket-Protocol` が併送されていても warn ログを残した上で `null` を返し、1008 / 401 で接続を拒否する。URL は既に上流プロキシのログに記録された後
+
+### 2026-04-29
 - **CORS / セキュリティ**: Origin echo back + テナント単位 `allowedOrigins` でトークン漏洩・CSRF 経路を遮断 (issue #1069) (#1097)
   - 旧挙動: `Access-Control-Allow-Origin: '*'` を返しつつ `Authorization` / `X-Api-Key` / `DPoP` を `Access-Control-Allow-Headers` に含めていたため、攻撃者制御のサイトからブラウザに乗ったユーザの Bearer トークン / API Key 付きリクエストを送らせる経路が成立していた (CSRF + トークン漏洩懸念) (#1097)
   - 環境変数による単一ホワイトリストは GeonicDB がマルチテナント・データ連携基盤 (Context Broker) であるため不適切。許可 origin はテナント運用者がランタイムに DB 越しで設定できる設計に変更 (#1097)
@@ -157,7 +163,9 @@ outline: deep
   - ログイン失敗経路 (user not found / env super admin password mismatch) にダミー PBKDF2 検証を追加。timing-based user enumeration を防ぐため、応答時間を均等化 (#1095)
   - `loadBoundPolicy()` のテナント不一致 / global→tenant 違反バインドを `error` レベル + `errorCode` / `securityEvent` 構造化フィールドに昇格。CloudWatch メトリクスフィルタで検知可能化 (#1081)
   - `validateAllowedPath()` にパストラバーサル拒否 (`..`, `//`, `/./`) を追加。string-prefix チェックでの誤評価を防御層として完全排除。テスト 6 ケース追加 (#1083)
-  - `docs/AUTH.md` に「Path-Level vs Entity-Level Authorization」節を追加。`requireAuthz` (fail-closed) と `requireEntityAuthz` (fail-open) の設計判断と運用上の含意 (owner-only ポリシーは明示的 Deny ルールが必要) を明文化 (#1076)### 2026-04-28
+  - `docs/AUTH.md` に「Path-Level vs Entity-Level Authorization」節を追加。`requireAuthz` (fail-closed) と `requireEntityAuthz` (fail-open) の設計判断と運用上の含意 (owner-only ポリシーは明示的 Deny ルールが必要) を明文化 (#1076)
+
+### 2026-04-28
 - **CORS 修正**: `Access-Control-Allow-Headers` に `If-None-Match` / `If-Modified-Since` を追加 (#1065)
   - 旧設定では cross-origin リクエストにこれら 2 ヘッダーが allow されていなかったため、ブラウザの HTTP cache 自動再検証と SDK の `_cachedRequest` が CORS preflight (OPTIONS) で reject され、INM 付き GET を送ることができなかった (#1065)
   - 結果として PR #1060 (SDK invalidation 削除) / #1062 (CORS expose ETag) / #1063 (Cache-Control: no-cache strip) という 3 段の修正が揃っていても、INM そのものがブラウザから出ないため 304 経路全体が機能していなかった (incident 2026-04-28: pulse で SDK キャッシュが効かない現象の最終真因) (#1065)
@@ -205,7 +213,9 @@ outline: deep
   - **#1053: lint テスト追加** — `meta.controller.test.ts` に「Cache-Control policy assignment lint」を新設。各公開エンドポイントが `public, max-age=3600` を返し、`private` / `no-cache` を含まないこと、`Vary` がテナント / 認証次元を含まないこと、`/openapi.json` の tenant スキーマありケースで `meta` フォールバックが効くことを 12 ケースで検証 (#1057)
   - **#1048: Vary 網羅性 audit + 文書化** — 現状の `Vary` (`Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept`) が網羅的であることを確認。`DPoP` (リクエスト毎)、`Accept-Language` (NGSI で使われない)、`Origin`、`X-Forwarded-For` (認証段階で評価) を意図的に除外することを `docs/SECURITY.md` に明記 (#1057)
   - **#1052: DPoP / DPoP-Nonce × cache 検証 + 文書化** — `DPoP-Nonce` が 304 パススルーホワイトリストに既に含まれていることをユニットテストで固定。DPoP 認証失敗が `evaluateConditionalRequest` より前に評価される invariant を `docs/AUTH.md` / `docs/SECURITY.md` に明記 (#1057)
-  - **ドキュメント**: `docs/SECURITY.md` に「Vary Header Coverage Audit」「DPoP / DPoP-Nonce & Cache Integrity」「Public vs Authenticated Endpoint Cache Policy Matrix」3 セクション追加。`docs/AUTH.md` に「DPoP & HTTP Cache Interaction」サブセクション追加 (#1057)### 2026-04-28
+  - **ドキュメント**: `docs/SECURITY.md` に「Vary Header Coverage Audit」「DPoP / DPoP-Nonce & Cache Integrity」「Public vs Authenticated Endpoint Cache Policy Matrix」3 セクション追加。`docs/AUTH.md` に「DPoP & HTTP Cache Interaction」サブセクション追加 (#1057)
+
+### 2026-04-28
 - **セキュリティ強化**: Security Audit Group 2 — 認可整合性 (#1056)
   - **#1049: HMAC ベース ETag** — ETag 生成を `createHash` から `createHmac(algo, secret)` に変更。鍵は `ETAG_HMAC_SECRET` 環境変数から取得し、本番 (`ENVIRONMENT='prod'`) では未設定なら fail-fast で起動失敗。dev/test では documented なフォールバックを使う。これまで決定的だった ETag が攻撃者に再現不能化され、`If-None-Match` 試行による `modifiedAt` / 件数ブラインド情報リークを根本的に排除。同テナント内の正規ユーザは同じ鍵で計算されるため 304 帯域節約は維持 (#1056)
   - **#1050: XACML ポリシー Revoke 後のキャッシュ整合性** — handler の評価順 (`requireAuthz` → controller → `evaluateConditionalRequest`) を unit test で固定 (jest `invocationCallOrder` で controller 含めた順序を検証)。`requireAuthz` が throw した場合、catch 経路が 4xx を返し controller / `evaluateConditionalRequest` を経由しないため、認可剥奪後に旧 ETag の `If-None-Match` が 304 で旧 view を resurface することはない。E2E では実 ETag を取得後に認証 / テナントを変更して投げ直し、4xx が返ることを検証 (#1056)
@@ -280,7 +290,9 @@ outline: deep
 - **Feature**: カスタムデータモデルに `additionalProperties` フィールドを追加。`false` 指定でモデル未定義の属性を拒否する厳格モードを有効化。デフォルトは `true` (NGSI-LD の自然な挙動を維持) (#1007)
 - **Feature**: SDK に型付きエラークラスを導入。`GeonicDBError` 基底クラスと `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ConflictError`, `ValidationError`, `RateLimitError`, `NetworkError` を追加。`instanceof` でエラー種別を判定可能に (#1008)
 - **Feature**: SDK WebSocket イベント (`entityCreated`/`entityUpdated`/`entityDeleted`) に `entity` フィールドを追加。`id` + `type` + `data` から構築した完全な NGSI-LD エンティティオブジェクトを直接取得可能に (#1009)
-- **Feature**: SDK に `debug` オプションを追加。有効時に HTTP リクエスト/レスポンス、WebSocket 接続・イベント、トークンリフレッシュをコンソールにログ出力 (#1010)### 2026-04-23
+- **Feature**: SDK に `debug` オプションを追加。有効時に HTTP リクエスト/レスポンス、WebSocket 接続・イベント、トークンリフレッシュをコンソールにログ出力 (#1010)
+
+### 2026-04-23
 - **Feature**: ReactiveCore Rules のクロスプロトコル エンティティ生成 (#1004)
   - `createEntity` / `updateAttribute` / `deleteAttribute` アクションに `protocol` フィールドを追加（NGSIv2 ↔ NGSI-LD の壁を越えた操作が可能に）
   - `createEntity` に `servicePath` / `scope` フィールドを追加（ターゲットの階層パスを制御）
@@ -332,7 +344,9 @@ outline: deep
 ### 2026-04-07
 - **Fix**: 不正な GeoJSON データが存在する場合のインデックス初期化失敗を自動回復 — 問題のあるエンティティを隔離して `2dsphere` インデックスを再構築 (#857)
 - **Fix**: WAF `EC2MetaDataSSRF_BODY` ルールが `allowedOrigins` 内の `localhost` URL を SSRF として誤検知しブロックする問題を修正 (#848)
-- **Fix**: WAF `CrossSiteScripting_BODY` ルールが `allowedOrigins` 内の URL を XSS と誤検知し API キー作成が 403 になる問題を修正 (#846)### 2026-04-05
+- **Fix**: WAF `CrossSiteScripting_BODY` ルールが `allowedOrigins` 内の URL を XSS と誤検知し API キー作成が 403 になる問題を修正 (#846)
+
+### 2026-04-05
 - **Breaking**: `onTokenRefresh(callback)` を廃止し `on('tokenRefresh', cb)` イベントに統一 (#831)
 - **Change**: `request()` がエラーチェック + JSON パース済みの値を返すように変更（生 Response → `Promise<Object|string|null>`） (#831)
 - **Feature**: `GET /sdk/v1/geonicdb.d.ts` エンドポイントを追加 — TypeScript 型定義を配信 (#831)
@@ -369,7 +383,9 @@ outline: deep
 - **Security**: `permit-overrides` 結合アルゴリズムを `super_admin` 以外に禁止（defense in depth） (#785) (#793)
   - `validateCombiningAlgorithm()` に `actorRole` パラメータを追加
   - `tenant_admin`/`user` が `permit-overrides` を指定した場合 `ForbiddenError` (403) を返す
-  - 更新時に `ruleCombiningAlgorithm` を指定しない場合も既存値（有効アルゴリズム）を検証### 2026-03-24
+  - 更新時に `ruleCombiningAlgorithm` を指定しない場合も既存値（有効アルゴリズム）を検証
+
+### 2026-03-24
 - **Perf**: テナントデータ二重取得の排除 (#776)
   - `handlers/api/index.ts` のリクエストボディサイズチェックで `tenantData` を直接更新するよう修正
   - レート制限無効かつリクエストボディあり時に、ボディチェックとレスポンスサイズチェックで計 2 回発生していた `TenantRepository.getByName()` を 1 回に削減
@@ -415,7 +431,9 @@ outline: deep
 - **Fix**: XACML Target の同一 `attributeId` 複数値が OR 評価されるように修正 (#756)
   - 同一 `attributeId` 内の複数 `matchValue` を OR（いずれかマッチ）で評価
   - 異なる `attributeId` 間は AND（全てマッチ必須）を維持
-  - これにより `actions` に `POST` と `PATCH` を並記して複数メソッドを許可可能に### 2026-03-20
+  - これにより `actions` に `POST` と `PATCH` を並記して複数メソッドを許可可能に
+
+### 2026-03-20
 - **Feature**: API キー作成時に XACML ポリシーを自動生成する (#749)
   - `permissions` フィールド（`read`/`write`/`create`/`update`/`delete`）を指定するだけで XACML ポリシーが自動生成
   - `write` は `create` + `update` + `delete` のエイリアス
@@ -466,7 +484,9 @@ outline: deep
 - **Fix**: ユーザー作成・更新時に指定された `tenantId` のテナント存在確認を追加 (#722)
   - 存在しないテナント ID でユーザーを作成すると 400 エラーを返す
   - ユーザー更新時のテナント移動先も同様に検証（`null` への変更は許可）
-  - `UserService` に `TenantService` を注入しバリデーション層で整合性を担保### 2026-03-12
+  - `UserService` に `TenantService` を注入しバリデーション層で整合性を担保
+
+### 2026-03-12
 - **Fix**: ログイン時のテナントヘッダー（`NGSILD-Tenant` / `Fiware-Service`）フォーマット検証を追加 (issue #708) (#711)
   - 不正な形式のヘッダー値で 400 エラーを返す
 - **Fix**: テナント名フォーマットバリデーションを Zod スキーマに追加 (issue #709) (#711)
@@ -517,7 +537,9 @@ outline: deep
 - **Feat**: API キー認証基盤の追加 (`/admin/api-keys`, `/me/api-keys`) (#676)
 - **Feat**: テナント単位フィーチャーフラグ (`features.apiKeysEnabled`, `features.oauthClientsEnabled`) の追加 (#676)
 - **Feat**: X-Api-Key ヘッダーによる認証のサポート (#676)
-- **BREAKING**: `OAUTH_ENABLED` 環境変数の廃止（OAuth は `AUTH_ENABLED=true` なら常に有効） (#676)### 2026-03-06
+- **BREAKING**: `OAUTH_ENABLED` 環境変数の廃止（OAuth は `AUTH_ENABLED=true` なら常に有効） (#676)
+
+### 2026-03-06
 - **Fix**: 認証無効時に `/me` エンドポイントが匿名ユーザー情報を返すように修正 (#663)
 - **Feat**: `limit=0` と `count` の組み合わせによるカウントのみクエリをサポート (#664)
 - **Feat**: XACML AuthzRequest に entityType 自動抽出を追加 (#665)
@@ -552,7 +574,9 @@ outline: deep
 - **Fix**: Custom Data Model バリデーションの複数の不具合を修正 (#597)
   - `validateValueType()` の case mismatch を修正 (PascalCase `"String"` 等が lowercase `'string'` と不一致で型チェックが無効化されていた)
   - `batchCreateEntities` / `batchUpsertEntities` にカスタムデータモデルバリデーションを追加 (type 別キャッシュ付き)
-  - `getActiveDataModel()` のフェイルオープン動作を修正 (DB 障害時にバリデーションをスキップせずエラーを伝播)### 2026-02-28
+  - `getActiveDataModel()` のフェイルオープン動作を修正 (DB 障害時にバリデーションをスキップせずエラーを伝播)
+
+### 2026-02-28
 - **Feat**: Crypto-Shredding と削除完了レポート生成 (#554)
   - `DELETE /admin/tenants/{tenantId}?shred=true` で暗号化テナントの Crypto-Shredding を実行
   - KMS CMK の DisableKey → ScheduleKeyDeletion → 全テナントデータ物理削除 → テナント論理削除
@@ -595,7 +619,9 @@ outline: deep
   - 暗号化/非暗号化テナントの後方互換共存
   - Temporal/Snapshot リポジトリの暗号化統合
   - SAM テンプレート: KMS IAM ポリシー、DynamoDB SSE 設定、`EncryptionEnabled` パラメータ追加
-  - 依存追加: `@aws-sdk/client-kms`### 2026-02-25
+  - 依存追加: `@aws-sdk/client-kms`
+
+### 2026-02-25
 - **Feat**: マルチリージョン HA アーキテクチャ Phase 1+2 (#557)
   - Active-Passive 構成 (Primary: ap-northeast-1, Secondary: ap-northeast-3)
   - ヘルスチェック強化: `/health`、`/health/live`、`/health/ready` に `region`、`regionRole` を追加
@@ -624,7 +650,9 @@ outline: deep
 ### 2026-02-21
 - **Fix**: minimatch ReDoS 脆弱性を修正 (Dependabot #5) (#537)
   - `minimatch` の npm override を追加し全インスタンスを `^10.2.1` に統一
-  - ajv@6.12.6 (eslint devDependency) は 6.x 系にパッチなし、tolerable_risk として dismiss### 2026-02-20
+  - ajv@6.12.6 (eslint devDependency) は 6.x 系にパッチなし、tolerable_risk として dismiss
+
+### 2026-02-20
 - **Feat**: リソーススコープ付きトークン Phase 1 (#536)
   - JWT にリソーススコープを埋め込み、エンティティタイプ/ID パターン/属性/操作レベルの細粒度アクセス制御を実現
   - `POST /auth/login` に `resourceScopes` パラメータ追加
@@ -669,7 +697,9 @@ outline: deep
   - バッチ操作・NGSI-LD 固有エンドポイント・PATCH/PUT/DELETE メソッド施行
   - ポリシー無効化・動的変更・クロス API 漏洩防止
   - ポリシー優先度競合・デフォルト決定エッジケース・email 属性制御
-  - `/rules` エンドポイント施行・テナント分離 + XACML 複合テスト### 2026-02-18
+  - `/rules` エンドポイント施行・テナント分離 + XACML 複合テスト
+
+### 2026-02-18
 - **Fix**: E2E テストで見逃された仕様準拠バグ 10 件を修正 (#520)
   - **[BREAKING]** NGSIv2 `Fiware-Total-Count` ヘッダーが `options=count` 指定時のみ返されるよう修正(仕様: NGSIv2 spec "Pagination" section)(#520)
   - **[BREAKING]** NGSI-LD `NGSILD-Results-Count` ヘッダーが `count=true` 指定時のみ返されるよう修正(仕様: ETSI GS CIM 009)(#520)
@@ -708,7 +738,9 @@ outline: deep
   - 通知送信(notifier)に SSRF バリデーションを追加、プライベート IP への送信を阻止 (#495 M-1)
   - NGSI-LD `@context` URL に defense-in-depth バリデーションを追加 (#495 M-2)
 - **Tests**: SSRF 防御のユニットテスト追加(IPv4-mapped IPv6、DNS Rebinding、通知 SSRF)(#490, #493, #495)
-- **Tests**: E2E シナリオ追加(IPv4-mapped IPv6 / ULA でのサブスクリプション・レジストレーション拒否)(#490)### 2026-02-17
+- **Tests**: E2E シナリオ追加(IPv4-mapped IPv6 / ULA でのサブスクリプション・レジストレーション拒否)(#490)
+
+### 2026-02-17
 - **Security**: `validateExternalUrl` の SSRF バイパス脆弱性を修正 (#490)
   - IPv4-mapped IPv6 アドレス（`[::ffff:127.0.0.1]` 等）による内部ネットワークアクセスをブロック
   - 10進数/8進数/16進数 IPv4 表記のバイパスに対するテストを追加（Node.js URL パーサーの正規化で防御済み）
@@ -741,7 +773,9 @@ outline: deep
   - `createdBy` 未設定の既存データは後方互換で誰でも操作可能
   - read 操作（GET/LIST）は制限なし（NGSI 仕様準拠のテナント隔離のみ）
 - **Tests**: オーナーシップ検証のユニットテスト追加（Subscription/Registration サービス）(#467)
-- **Tests**: オーナーシップ検証の E2E テスト追加（ownership.feature: 4 シナリオ）(#467)### 2026-02-16
+- **Tests**: オーナーシップ検証の E2E テスト追加（ownership.feature: 4 シナリオ）(#467)
+
+### 2026-02-16
 - **Security**: WebSocket 認証トークンを URL クエリパラメータから `Authorization` ヘッダー / `Sec-WebSocket-Protocol` ヘッダーへ移行（#464）(#472)
   - `Authorization: Bearer <token>` ヘッダー（推奨）
   - `Sec-WebSocket-Protocol: access_token, <token>` ヘッダー（ブラウザクライアント向け）
@@ -791,7 +825,9 @@ outline: deep
   - `--proxy` オプションで非マッチ URL をアプリ側 dev server に透過転送（URL 重複時は GeonicDB 優先）
   - `--silent` オプションでコンソール出力抑制
 - **Build**: `tsc-alias` 導入でビルド時にパスエイリアスを相対パスに解決 (#453)
-- **Package**: `bin`、`types`、`files`、`peerDependencies` 設定で npm パッケージに対応 (#453)### 2026-02-15
+- **Package**: `bin`、`types`、`files`、`peerDependencies` 設定で npm パッケージに対応 (#453)
+
+### 2026-02-15
 - **Documentation**: `docs/INSTRUCTION.md` のカスタムデータモデルセクション（14.9）を大幅に拡充 (#445)
   - `isActive` フラグの詳細な説明を追加（バリデーション、OpenAPI、一覧取得への影響）
   - Smart Data Models との違いを明記（用途、バリデーション、管理方法の比較表）
@@ -863,7 +899,9 @@ outline: deep
   - Endpoint Implementation Checklist にカバレッジ確認ステップを追加
 - **依存関係**: `eslint` を 9.39.2 → 10.0.0 にメジャーアップグレード (#438)
 - **依存関係**: `typescript-eslint` を 8.55.0 → 8.55.1-alpha.4 に更新（ESLint 10 対応 canary 版）(#438)
-- **依存関係**: `@typescript-eslint/eslint-plugin`、`@typescript-eslint/parser` を直接依存から削除（`typescript-eslint` ラッパーに統合）(#438)### 2026-02-14
+- **依存関係**: `@typescript-eslint/eslint-plugin`、`@typescript-eslint/parser` を直接依存から削除（`typescript-eslint` ラッパーに統合）(#438)
+
+### 2026-02-14
 - **Infrastructure**: Lambda Runtime を `nodejs20.x` → `nodejs24.x` に更新（Node.js 24 LTS に統一）(#437)
 - **CI**: Dependabot で `@types/node` のメジャーバージョンアップを抑制（LTS 以外への更新を防止）(#437)
 - **Branding**: プロダクト名を VelaOS から GeonicDB に変更 (#436)
@@ -904,7 +942,9 @@ outline: deep
   - CEL コンテキスト変数: `entity.id`, `entity.type`, `attribute.<name>.value`, `attribute.<name>.type`  - 式の最大長制限 (1000 文字)、構文バリデーション、非 boolean 結果のハンドリング
   - `@marcbachmann/cel-js` ライブラリ使用（ゼロ依存、TypeScript 対応）
 - **OpenAPI**: `CelExpressionCondition` スキーマを `/openapi.json` に追加 (#387)
-- **Documentation**: `docs/REACTIVCORE_RULES.md` に CEL 式条件の仕様・使用例を追加 (#387)### 2026-02-13
+- **Documentation**: `docs/REACTIVCORE_RULES.md` に CEL 式条件の仕様・使用例を追加 (#387)
+
+### 2026-02-13
 - **Documentation**: ReactiveCore Rules に不快指数（DI）による熱中症アラート通知の使用例を追加しました (#419)
   - `docs/REACTIVCORE_RULES.md` — 例6: CEL 式による不快指数計算、sendNotification/Webhook アクション
   - `docs/INSTRUCTION.md` — セクション13.7 例4: ステップバイステップの導入手順
@@ -1013,7 +1053,9 @@ outline: deep
   - バッチ操作
   - 時系列クエリ
   - JSON-LD コンテキスト管理
-  - 管理操作### 2026-02-02
+  - 管理操作
+
+### 2026-02-02
 - **Fixed**: クォータシステムのバグ修正 (#391)
   - Retry-After ヘッダーの修正
   - 負数カウントバイパスの修正
@@ -1061,7 +1103,9 @@ outline: deep
   - ストレージクォータ(エンティティ/属性数)
   - DynamoDB によるリアルタイム監視
   - テナント固有のクォータ設定
-  - レート制限レスポンスの Retry-After ヘッダー### 初期実装（〜2026-01-15）
+  - レート制限レスポンスの Retry-After ヘッダー
+
+### 初期実装（〜2026-01-15）
 - GeonicDB 初回実装 - AWS Lambda 上で動作する FIWARE Orion 互換 Context Broker
 - NGSIv2 API 実装
   - エンティティ CRUD 操作

@@ -97,7 +97,7 @@ geonic entities get urn:ngsi-ld:Room:001
 
 ## グローバルオプション
 
-すべてのコマンドで使用可能です。優先順位のルールについては [オプション解決順序](#option-resolution-order) を参照してください。
+すべてのコマンドで使用可能です。優先順位のルールについては [オプション解決順序](#オプションの解決順序) を参照してください。
 
 | オプション | 説明 |
 |--------|-------------|
@@ -138,27 +138,45 @@ CLI は `~/.config/geonic/config.json` に設定を保存します。`GEONIC_CON
 
 **設定キー**: `url`, `service`, `token`, `refreshToken`, `format`, `apiKey`, `clientId`, `clientSecret`
 
-#### `geonic config set <key> <value>`設定値を保存します。機密性の高い値(`token`, `refreshToken`, `apiKey`, `clientId`, `clientSecret`)は出力時にマスクされます。
+#
 
-#### `geonic config get <key>`設定値を取得します。
+### `geonic config set <key> <value>`設定値を保存します。機密性の高い値(`token`, `refreshToken`, `apiKey`, `clientId`, `clientSecret`)は出力時にマスクされます。
 
-#### `geonic config list`現在のプロファイルのすべての設定値を表示します。
+#
 
-#### `geonic config delete <key>`設定値を削除します。
+### `geonic config get <key>`設定値を取得します。
+
+#
+
+### `geonic config list`現在のプロファイルのすべての設定値を表示します。
+
+#
+
+### `geonic config delete <key>`設定値を削除します。
 
 ### プロファイル管理
 
 複数の接続プロファイル(例:本番環境、ステージング環境、開発環境)を管理します。デフォルトのプロファイルは `default` という名前で、削除できません。
 
-#### `geonic profile list`すべてのプロファイルをリスト表示します。アクティブなプロファイルは `*` でマークされます。
+#
 
-#### `geonic profile use <name>`アクティブなプロファイルを切り替えます。
+### `geonic profile list`すべてのプロファイルをリスト表示します。アクティブなプロファイルは `*` でマークされます。
 
-#### `geonic profile create <name>`新しい空のプロファイルを作成します。
+#
 
-#### `geonic profile delete <name>`プロファイルを削除します。`default` プロファイルは削除できません。
+### `geonic profile use <name>`アクティブなプロファイルを切り替えます。
 
-#### `geonic profile show [name]`プロファイル設定を表示します。デフォルトではアクティブなプロファイルが対象です。機密性の高い値はマスクされます。
+#
+
+### `geonic profile create <name>`新しい空のプロファイルを作成します。
+
+#
+
+### `geonic profile delete <name>`プロファイルを削除します。`default` プロファイルは削除できません。
+
+#
+
+### `geonic profile show [name]`プロファイル設定を表示します。デフォルトではアクティブなプロファイルが対象です。機密性の高い値はマスクされます。
 
 ### 環境変数
 
@@ -316,13 +334,15 @@ CLI は 24 時間ごとに新しいバージョンをチェックし、アップ
 
 ---
 
-# コマンドリファレンス
+## コマンドリファレンス
 
 ### `entities`
 
 NGSI-LD コンテキストエンティティ (`/ngsi-ld/v1/entities`) を管理します。
 
-#### `geonic entities list`オプションのフィルタを使用してエンティティをリストします。
+#
+
+### `geonic entities list`オプションのフィルタを使用してエンティティをリストします。
 
 | オプション | 説明 |
 |--------|-------------|
@@ -355,13 +375,17 @@ geonic entities list --query "temperature>25" --limit 10 --offset 0 --count
 geonic entities list --type Sensor --count-only
 ```
 
-#### `geonic entities get <id>`ID で単一のエンティティを取得します。
+#
+
+### `geonic entities get <id>`ID で単一のエンティティを取得します。
 
 | オプション | 説明 |
 |--------|-------------|
 | `--key-values` | 簡略化されたキー・バリュー形式で返す |
 
-#### `geonic entities create [json]`新しいエンティティを作成します。
+#
+
+### `geonic entities create [json]`新しいエンティティを作成します。
 
 ```bash
 geonic entities create '{
@@ -375,17 +399,25 @@ geonic entities create '{
 }'
 ```
 
-#### `geonic entities update <id> [json]`エンティティ属性を部分的に更新します (`PATCH /entities/{id}/attrs`)。
+#
+
+### `geonic entities update <id> [json]`エンティティ属性を部分的に更新します (`PATCH /entities/{id}/attrs`)。
 
 ```bash
 geonic entities update urn:ngsi-ld:Room:001 '{"temperature": {"type": "Property", "value": 25.0}}'
 ```
 
-#### `geonic entities replace <id> [json]`すべてのエンティティ属性を置き換えます (`PUT /entities/{id}/attrs`)。
+#
 
-#### `geonic entities upsert [json]`エンティティを作成または更新します (`POST /entityOperations/upsert`)。
+### `geonic entities replace <id> [json]`すべてのエンティティ属性を置き換えます (`PUT /entities/{id}/attrs`)。
 
-#### `geonic entities delete <id>`エンティティを削除します。
+#
+
+### `geonic entities upsert [json]`エンティティを作成または更新します (`POST /entityOperations/upsert`)。
+
+#
+
+### `geonic entities delete <id>`エンティティを削除します。
 
 ---
 
@@ -486,7 +518,9 @@ geonic sub create '{
 
 ### `temporal`時系列エンティティデータを管理します (`/ngsi-ld/v1/temporal`)。
 
-#### `geonic temporal entities list`時系列エンティティの一覧を取得します。
+#
+
+### `geonic temporal entities list`時系列エンティティの一覧を取得します。
 
 | オプション | 説明 |
 |--------|-------------|
@@ -512,15 +546,23 @@ geonic temporal entities get urn:ngsi-ld:Room:001 \
   --time-at 2026-01-01T00:00:00Z
 ```
 
-#### `geonic temporal entities get <id>`エンティティの時系列表現を取得します。
+#
+
+### `geonic temporal entities get <id>`エンティティの時系列表現を取得します。
 
 **オプション**: `--attrs`、`--time-rel`、`--time-at`、`--end-time-at`、`--last-n`
 
-#### `geonic temporal entities create [json]`時系列エンティティを作成します。
+#
 
-#### `geonic temporal entities delete <id>`時系列エンティティを削除します。
+### `geonic temporal entities create [json]`時系列エンティティを作成します。
 
-#### `geonic temporal entityOperations query [json]`集約サポート付きで POST による時系列エンティティのクエリを実行します。
+#
+
+### `geonic temporal entities delete <id>`時系列エンティティを削除します。
+
+#
+
+### `geonic temporal entityOperations query [json]`集約サポート付きで POST による時系列エンティティのクエリを実行します。
 
 | オプション | 説明 |
 |--------|-------------|
@@ -593,7 +635,9 @@ DCAT-AP データカタログを参照します。
 
 ### `admin`管理操作。`tenant_admin` または `super_admin` ロールが必要です。詳細は認証・認可ガイドを参照してください。
 
-#### `admin tenants`| コマンド | 説明 |
+#
+
+### `admin tenants`| コマンド | 説明 |
 |---------|-------------|
 | `geonic admin tenants list` | テナント一覧を取得 |
 | `geonic admin tenants get <id>` | テナントを取得 |
@@ -603,7 +647,9 @@ DCAT-AP データカタログを参照します。
 | `geonic admin tenants activate <id>` | テナントを有効化 |
 | `geonic admin tenants deactivate <id>` | テナントを無効化 |
 
-#### `admin users`| コマンド | 説明 |
+#
+
+### `admin users`| コマンド | 説明 |
 |---------|-------------|
 | `geonic admin users list` | ユーザー一覧を取得 |
 | `geonic admin users get <id>` | ユーザーを取得 |
@@ -614,7 +660,9 @@ DCAT-AP データカタログを参照します。
 | `geonic admin users deactivate <id>` | ユーザーを無効化 |
 | `geonic admin users unlock <id>` | ロックされたユーザーをアンロック |
 
-#### `admin policies`XACML ポリシー管理。詳細は XACML ポリシーベース認可を参照してください。
+#
+
+### `admin policies`XACML ポリシー管理。詳細は XACML ポリシーベース認可を参照してください。
 
 | コマンド | 説明 |
 |---------|-------------|
@@ -626,7 +674,9 @@ DCAT-AP データカタログを参照します。
 | `geonic admin policies activate <id>` | ポリシーを有効化 |
 | `geonic admin policies deactivate <id>` | ポリシーを無効化 |
 
-#### `admin oauth-clients`OAuth 2.0 クライアント管理。詳細は OAuth 2.0 M2M 認証を参照してください。
+#
+
+### `admin oauth-clients`OAuth 2.0 クライアント管理。詳細は OAuth 2.0 M2M 認証を参照してください。
 
 | コマンド | 説明 |
 |---------|-------------|
@@ -636,7 +686,9 @@ DCAT-AP データカタログを参照します。
 | `geonic admin oauth-clients update <id> [json]` | OAuth クライアントを更新 |
 | `geonic admin oauth-clients delete <id>` | OAuth クライアントを削除 |
 
-#### `admin api-keys`API キー管理。`tenant_admin` または `super_admin` ロールが必要です。詳細は API キー認証を参照してください。
+#
+
+### `admin api-keys`API キー管理。`tenant_admin` または `super_admin` ロールが必要です。詳細は API キー認証を参照してください。
 
 | コマンド | 説明 |
 |---------|-------------|
@@ -677,7 +729,9 @@ geonic admin api-keys update gdb_abc123 '{"name": "renamed-key", "isActive": fal
 
 > **注意**: 平文の API キーは作成レスポンスの `key` フィールドで一度だけ返されます。安全に保管してください。
 
-#### `admin cadde`CADDE (Connector Architecture for Decentralized Data Exchange) 設定管理。
+#
+
+### `admin cadde`CADDE (Connector Architecture for Decentralized Data Exchange) 設定管理。
 
 | コマンド | 説明 |
 |---------|-------------|
@@ -711,7 +765,9 @@ geonic me
 
 現在のユーザー情報、JWT トークンの有効期限 (期限切れの場合は赤、5 分以内に期限切れの場合は黄色)、およびアクティブなプロファイル名を表示します。
 
-#### `me oauth-clients`自分の OAuth クライアントを管理します (`/me/oauth-clients`)。`admin oauth-clients` とは異なり、管理者権限は不要で、認証されたユーザーは誰でも自分のクライアントを管理できます。
+#
+
+### `me oauth-clients`自分の OAuth クライアントを管理します (`/me/oauth-clients`)。`admin oauth-clients` とは異なり、管理者権限は不要で、認証されたユーザーは誰でも自分のクライアントを管理できます。
 
 | コマンド | 説明 |
 |---------|-------------|
@@ -740,7 +796,9 @@ geonic me oauth-clients create '{"name":"my-bot","policyId":"bot-access"}'
 
 `--save` が使用された場合、CLI は即座に Client Credentials グラントを実行し、`clientId`、`clientSecret`、および取得した `token` を設定ファイルに保存します。以降のトークン期限切れは自動的に処理されます。
 
-#### `me api-keys`自分の API キーを管理します (`/me/api-keys`)。`admin api-keys` とは異なり、管理者権限は不要で、認証されたユーザーは誰でも自分のキーを管理できます。1 ユーザーあたり 5 つのキーに制限されています。
+#
+
+### `me api-keys`自分の API キーを管理します (`/me/api-keys`)。`admin api-keys` とは異なり、管理者権限は不要で、認証されたユーザーは誰でも自分のキーを管理できます。1 ユーザーあたり 5 つのキーに制限されています。
 
 | コマンド | 説明 |
 |---------|-------------|

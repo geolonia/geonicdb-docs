@@ -48,11 +48,15 @@ Link: <https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld>; rel="http:/
 
 ### 自然言語照合 (lang + orderBy)
 
-`lang` パラメータと `orderBy` を組み合わせることで、指定された言語のロケールに基づいて結果をソートできます。たとえば、`lang=ja` は日本語の照合順序をソートに適用します。### エンティティ操作 (NGSI-LD)
+`lang` パラメータと `orderBy` を組み合わせることで、指定された言語のロケールに基づいて結果をソートできます。たとえば、`lang=ja` は日本語の照合順序をソートに適用します。
+
+### エンティティ操作 (NGSI-LD)
 
 > **ETSI GS CIM 009 リファレンス**: セクション 5.6 - エンティティ操作
 
-#### エンティティリストの取得
+#
+
+### エンティティリストの取得
 
 ```http
 GET /ngsi-ld/v1/entities
@@ -124,7 +128,9 @@ Link: <https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld>; rel="http:/
 |---------|------|
 | `NGSILD-Results-Count` | 総件数 (常に返される) |
 
-#### エンティティの作成
+#
+
+### エンティティの作成
 
 ```http
 POST /ngsi-ld/v1/entities
@@ -167,9 +173,13 @@ Content-Type: application/ld+json
 **レスポンス**
 - ステータス: `201 Created`
 - ステータス: 同じ ID のエンティティが既に存在する場合は `409 AlreadyExists` (タイプに関係なく)
-- ヘッダー: `Location: /ngsi-ld/v1/entities/urn:ngsi-ld:Room:001`> **注意**: エンティティ ID はテナントとServicePathスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成すると `409 AlreadyExists` が返されます。詳細は [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
+- ヘッダー: `Location: /ngsi-ld/v1/entities/urn:ngsi-ld:Room:001`
 
-#### 単一エンティティの取得
+> **注意**: エンティティ ID はテナントとServicePathスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成すると `409 AlreadyExists` が返されます。詳細は [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
+
+#
+
+### 単一エンティティの取得
 
 ```http
 GET /ngsi-ld/v1/entities/{entityId}
@@ -186,7 +196,9 @@ GET /ngsi-ld/v1/entities/{entityId}
 | `lang` | string | LanguageProperty の言語フィルタ (BCP 47) |
 | `options` | string | `keyValues`、`concise`、`entityMap` |
 
-#### エンティティの置換
+#
+
+### エンティティの置換
 
 ```http
 PUT /ngsi-ld/v1/entities/{entityId}
@@ -196,7 +208,9 @@ PUT /ngsi-ld/v1/entities/{entityId}
 
 **レスポンス**: `204 No Content`
 
-#### エンティティの更新
+#
+
+### エンティティの更新
 
 ```http
 PATCH /ngsi-ld/v1/entities/{entityId}
@@ -209,7 +223,9 @@ PATCH /ngsi-ld/v1/entities/{entityId}
 
 **レスポンス**: `204 No Content`
 
-#### 属性の追加
+#
+
+### 属性の追加
 
 ```http
 POST /ngsi-ld/v1/entities/{entityId}
@@ -224,7 +240,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: `204 No Content`
 
-#### 複数属性の部分更新
+#
+
+### 複数属性の部分更新
 
 ```http
 PATCH /ngsi-ld/v1/entities/{entityId}/attrs
@@ -246,7 +264,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: `204 No Content`
 
-#### エンティティの削除
+#
+
+### エンティティの削除
 
 ```http
 DELETE /ngsi-ld/v1/entities/{entityId}
@@ -254,7 +274,9 @@ DELETE /ngsi-ld/v1/entities/{entityId}
 
 **レスポンス**: `204 No Content`
 
-#### エンティティのすべての属性を取得
+#
+
+### エンティティのすべての属性を取得
 
 ```http
 GET /ngsi-ld/v1/entities/{entityId}/attrs
@@ -264,7 +286,9 @@ GET /ngsi-ld/v1/entities/{entityId}/attrs
 
 **レスポンス**: `200 OK`
 
-#### 単一属性の取得
+#
+
+### 単一属性の取得
 
 ```http
 GET /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
@@ -274,7 +298,9 @@ GET /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
 
 **レスポンス**: `200 OK`
 
-#### 属性の上書き (PUT)
+#
+
+### 属性の上書き (PUT)
 
 ```http
 PUT /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
@@ -294,7 +320,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: `204 No Content`
 
-#### 属性の置換
+#
+
+### 属性の置換
 
 ```http
 POST /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
@@ -314,7 +342,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: `204 No Content`
 
-#### 属性の部分更新
+#
+
+### 属性の部分更新
 
 ```http
 PATCH /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
@@ -330,9 +360,13 @@ Content-Type: application/ld+json
 }
 ```
 
-**レスポンス**: `204 No Content`> **注意**: エンティティまたは属性が存在しない場合、`404 Not Found` が返されます (ETSI GS CIM 009 V1.9.1 clause 5.6.4)。この操作は既存の属性の部分更新のみを実行し、新しい属性は作成しません。
+**レスポンス**: `204 No Content`
 
-#### 属性の削除
+> **注意**: エンティティまたは属性が存在しない場合、`404 Not Found` が返されます (ETSI GS CIM 009 V1.9.1 clause 5.6.4)。この操作は既存の属性の部分更新のみを実行し、新しい属性は作成しません。
+
+#
+
+### 属性の削除
 
 ```http
 DELETE /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
@@ -343,7 +377,9 @@ DELETE /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
 | パラメータ | 型 | 説明 |
 |-----------|-----|------|
 | `datasetId` | string | 削除するマルチ属性インスタンスの datasetId |
-| `deleteAll` | boolean | `true` の場合、すべてのインスタンスを削除します |**レスポンス**: `204 No Content`
+| `deleteAll` | boolean | `true` の場合、すべてのインスタンスを削除します |
+
+**レスポンス**: `204 No Content`
 
 ### マルチ属性 (datasetId)
 
@@ -351,7 +387,9 @@ DELETE /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}
 
 NGSI-LD では、同じ属性名に対して複数のインスタンスを保持できます。各インスタンスは `datasetId` (URI 形式) によって区別されます。`datasetId` を持たないインスタンスは「デフォルトインスタンス」と呼ばれ、属性ごとに最大 1 つ存在できます。
 
-#### 作成 (CREATE)
+#
+
+### 作成 (CREATE)
 
 エンティティを作成する際、属性を配列形式で指定することで複数のインスタンスを作成できます。
 
@@ -381,11 +419,15 @@ NGSI-LD では、同じ属性名に対して複数のインスタンスを保持
 
 上記の例では、`speed` 属性に対して 3 つのインスタンスがあります: GPS から 1 つ、OBD から 1 つ、そしてデフォルトインスタンスが 1 つです。
 
-#### 取得 (RETRIEVE)
+#
+
+### 取得 (RETRIEVE)
 
 エンティティを取得する際、マルチ属性は配列形式で返されます。`keyValues` 形式では、デフォルトインスタンス (`datasetId` なし) の値のみが返されます。
 
-#### 更新 (UPDATE)
+#
+
+### 更新 (UPDATE)
 
 属性を更新する際 (PATCH/POST)、`datasetId` を指定することで特定のインスタンスのみを更新できます。
 
@@ -399,7 +441,9 @@ NGSI-LD では、同じ属性名に対して複数のインスタンスを保持
 }
 ```
 
-#### 削除 (DELETE)
+#
+
+### 削除 (DELETE)
 
 属性を削除する際、`datasetId` クエリパラメータを指定すると特定のインスタンスのみが削除されます。`deleteAll=true` を指定すると、すべてのインスタンスが削除されます。
 
@@ -414,7 +458,9 @@ DELETE /ngsi-ld/v1/entities/{entityId}/attrs/{attrName}?deleteAll=true
 
 > **注意**: バッチ操作は、1 リクエストあたり最大 **1,000** 個のエンティティを処理できます。1,000 個を超えるリクエストは `400 Bad Request` エラーになります。
 
-#### バッチ作成
+#
+
+### バッチ作成
 
 ```http
 POST /ngsi-ld/v1/entityOperations/create
@@ -444,7 +490,9 @@ Content-Type: application/ld+json
 - すべて成功: `201 Created`
 - 部分的に成功: `207 Multi-Status`
 
-#### バッチアップサート
+#
+
+### バッチアップサート
 
 ```http
 POST /ngsi-ld/v1/entityOperations/upsert
@@ -460,7 +508,9 @@ POST /ngsi-ld/v1/entityOperations/upsert
 - すべて成功: `201 Created` (新規作成) または `204 No Content` (更新)
 - 部分的に成功: `207 Multi-Status`
 
-#### バッチ更新
+#
+
+### バッチ更新
 
 ```http
 POST /ngsi-ld/v1/entityOperations/update
@@ -470,7 +520,9 @@ POST /ngsi-ld/v1/entityOperations/update
 - すべて成功: `204 No Content`
 - 部分的に成功: `207 Multi-Status`
 
-#### バッチ削除
+#
+
+### バッチ削除
 
 ```http
 POST /ngsi-ld/v1/entityOperations/delete
@@ -490,7 +542,9 @@ Content-Type: application/json
 - すべて成功: `204 No Content`
 - 部分的に成功: `207 Multi-Status`
 
-#### エンティティパージ
+#
+
+### エンティティパージ
 
 ```http
 POST /ngsi-ld/v1/entityOperations/purge
@@ -509,7 +563,9 @@ Content-Type: application/json
 - 成功: `204 No Content`
 - タイプが指定されていない: `400 Bad Request`
 
-#### バッチクエリ
+#
+
+### バッチクエリ
 
 ```http
 POST /ngsi-ld/v1/entityOperations/query
@@ -533,7 +589,9 @@ Content-Type: application/json
 
 **レスポンス**: エンティティの配列
 
-#### バッチマージ
+#
+
+### バッチマージ
 
 ```http
 POST /ngsi-ld/v1/entityOperations/merge
@@ -575,7 +633,9 @@ Merge-Patch セマンティクスを使用して、複数のエンティティ�
 
 > **注**: 時系列 entityOperations の create / upsert / delete は、ETSI GS CIM 009 仕様には含まれていない GeonicDB の拡張機能です。仕様に準拠しているのは query のみです。これらの拡張機能は、時系列データの一括取り込みの効率を向上させるために提供されています。
 
-#### 時系列・バッチ作成
+#
+
+### 時系列・バッチ作成
 
 ```http
 POST /ngsi-ld/v1/temporal/entityOperations/create
@@ -586,7 +646,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: すべて成功した場合は `201 Created`、部分的に失敗した場合は `207 Multi-Status`
 
-#### 時系列・バッチアップサート
+#
+
+### 時系列・バッチアップサート
 
 ```http
 POST /ngsi-ld/v1/temporal/entityOperations/upsert
@@ -597,7 +659,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: すべて成功した場合は `204 No Content`、部分的に失敗した場合は `207 Multi-Status`
 
-#### 時系列・バッチ削除
+#
+
+### 時系列・バッチ削除
 
 ```http
 POST /ngsi-ld/v1/temporal/entityOperations/delete
@@ -608,7 +672,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: すべて成功した場合は `204 No Content`、部分的に失敗した場合は `207 Multi-Status`
 
-#### 時系列・バッチクエリ
+#
+
+### 時系列・バッチクエリ
 
 ```http
 POST /ngsi-ld/v1/temporal/entityOperations/query
@@ -631,7 +697,9 @@ POST ベースの時系列クエリ。クエリ条件はリクエストボディ
 
 **レスポンス**: `200 OK` - 時系列エンティティの配列
 
-#### 時系列クエリパラメータ
+#
+
+### 時系列クエリパラメータ
 
 以下のクエリパラメータは時系列エンティティの GET エンドポイントで使用できます。
 
@@ -653,7 +721,9 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
   -H "Fiware-Service: myservice"
 ```
 
-#### 時系列レスポンス形式オプション
+#
+
+### 時系列レスポンス形式オプション
 
 `options=temporalValues` を指定すると、各属性が `values` 配列 (`[value, timestamp]` のペア) を含む簡易形式で返されます。
 
@@ -670,7 +740,9 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
 }
 ```
 
-#### 時系列集計クエリ (単一エンティティ)
+#
+
+### 時系列集計クエリ (単一エンティティ)
 
 時系列エンティティの GET エンドポイントでは、`aggrMethods` および `aggrPeriodDuration` クエリパラメータを使用して集計クエリを実行できます。リスト取得エンドポイントと単一エンティティ取得エンドポイントの両方で利用可能です。
 
@@ -706,7 +778,9 @@ curl "http://localhost:3000/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:001?
 
 ### エンティティタイプ操作 (NGSI-LD)
 
-#### タイプリストの取得
+#
+
+### タイプリストの取得
 
 ```http
 GET /ngsi-ld/v1/types
@@ -727,7 +801,9 @@ GET /ngsi-ld/v1/types
 
 **ヘッダー**: 合計数は `NGSILD-Results-Count` 経由で返されます
 
-#### タイプ詳細の取得
+#
+
+### タイプ詳細の取得
 
 ```http
 GET /ngsi-ld/v1/types/{typeName}
@@ -755,7 +831,9 @@ GET /ngsi-ld/v1/types/{typeName}
 
 ### 属性操作 (NGSI-LD)
 
-#### 属性リストの取得
+#
+
+### 属性リストの取得
 
 ```http
 GET /ngsi-ld/v1/attributes
@@ -776,7 +854,9 @@ GET /ngsi-ld/v1/attributes
 
 **ヘッダー**: 合計数は `NGSILD-Results-Count` 経由で返されます
 
-#### 属性詳細の取得
+#
+
+### 属性詳細の取得
 
 ```http
 GET /ngsi-ld/v1/attributes/{attrName}
@@ -803,7 +883,9 @@ GET /ngsi-ld/v1/attributes/{attrName}
 
 > **ETSI GS CIM 009 リファレンス**: セクション 5.8 - サブスクリプション操作
 
-#### サブスクリプションの作成
+#
+
+### サブスクリプションの作成
 
 ```http
 POST /ngsi-ld/v1/subscriptions
@@ -880,7 +962,9 @@ NGSI-LD では、エンドポイント URI に `mqtt://` または `mqtts://` �
 - ステータス: `201 Created`
 - ヘッダー: `Location: /ngsi-ld/v1/subscriptions/{subscriptionId}`
 
-#### サブスクリプション一覧
+#
+
+### サブスクリプション一覧
 
 ```http
 GET /ngsi-ld/v1/subscriptions
@@ -893,7 +977,9 @@ GET /ngsi-ld/v1/subscriptions
 | `limit` | integer | 取得する結果の数 | 20 |
 | `offset` | integer | オフセット | 0 |
 
-#### サブスクリプションの取得
+#
+
+### サブスクリプションの取得
 
 ```http
 GET /ngsi-ld/v1/subscriptions/{subscriptionId}
@@ -912,7 +998,9 @@ GET /ngsi-ld/v1/subscriptions/{subscriptionId}
 
 **リトライ動作**: 通知配信が失敗した場合、一時的なエラー (5xx、ネットワークエラー) に対しては、指数バックオフ (1 秒、2 秒、4 秒) で最大 3 回のリトライが実行されます。4xx エラーに対してはリトライは実行されません。
 
-#### サブスクリプションの更新
+#
+
+### サブスクリプションの更新
 
 ```http
 PATCH /ngsi-ld/v1/subscriptions/{subscriptionId}
@@ -920,7 +1008,9 @@ PATCH /ngsi-ld/v1/subscriptions/{subscriptionId}
 
 **レスポンス**: `204 No Content`
 
-#### サブスクリプションの削除
+#
+
+### サブスクリプションの削除
 
 ```http
 DELETE /ngsi-ld/v1/subscriptions/{subscriptionId}
@@ -928,7 +1018,9 @@ DELETE /ngsi-ld/v1/subscriptions/{subscriptionId}
 
 **レスポンス**: `204 No Content`
 
-#### 所有権検証 (GeonicDB 拡張)
+#
+
+### 所有権検証 (GeonicDB 拡張)
 
 認証が有効な場合 (`AUTH_ENABLED=true`)、サブスクリプションの更新 (PATCH) および削除 (DELETE) 操作は、`createdBy` フィールドに基づいて所有権検証を実行します。作成者以外のユーザーがこれらの操作を試みると `403 Forbidden` を受け取ります。`super_admin` および `tenant_admin` ロールはこの検証をバイパスできます。詳細については、AUTH.md を参照してください。
 
@@ -938,7 +1030,9 @@ DELETE /ngsi-ld/v1/subscriptions/{subscriptionId}
 
 NGSI-LD では、外部コンテキストプロバイダーは Context Source Registration として登録されます。
 
-#### レジストレーションの作成
+#
+
+### レジストレーションの作成
 
 ```http
 POST /ngsi-ld/v1/csourceRegistrations
@@ -994,7 +1088,9 @@ Content-Type: application/ld+json
 - ステータス: `201 Created`
 - ヘッダー: `Location: /ngsi-ld/v1/csourceRegistrations/{registrationId}`
 
-#### レジストレーション一覧の取得
+#
+
+### レジストレーション一覧の取得
 
 ```http
 GET /ngsi-ld/v1/csourceRegistrations
@@ -1027,13 +1123,17 @@ GET /ngsi-ld/v1/csourceRegistrations
 ]
 ```
 
-#### レジストレーションの取得
+#
+
+### レジストレーションの取得
 
 ```http
 GET /ngsi-ld/v1/csourceRegistrations/{registrationId}
 ```
 
-#### レジストレーションの更新
+#
+
+### レジストレーションの更新
 
 ```http
 PATCH /ngsi-ld/v1/csourceRegistrations/{registrationId}
@@ -1050,7 +1150,9 @@ PATCH /ngsi-ld/v1/csourceRegistrations/{registrationId}
 
 **レスポンス**: `204 No Content`
 
-#### レジストレーションの削除
+#
+
+### レジストレーションの削除
 
 ```http
 DELETE /ngsi-ld/v1/csourceRegistrations/{registrationId}
@@ -1058,11 +1160,15 @@ DELETE /ngsi-ld/v1/csourceRegistrations/{registrationId}
 
 **レスポンス**: `204 No Content`
 
-#### 所有権の検証 (GeonicDB 拡張)
+#
+
+### 所有権の検証 (GeonicDB 拡張)
 
 認証が有効な場合 (`AUTH_ENABLED=true`)、レジストレーションの更新 (PATCH) と削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権の検証を実行します。作成者以外のユーザーがこれらの操作を試みると `403 Forbidden` を受け取ります。`super_admin` および `tenant_admin` ロールはこの検証をバイパスできます。詳細は AUTH.md を参照してください。
 
-#### CSR 拡張フィールド (ETSI GS CIM 009 V1.9.1)
+#
+
+### CSR 拡張フィールド (ETSI GS CIM 009 V1.9.1)
 
 Context Source Registration では、以下の拡張フィールドがサポートされています:
 
@@ -1073,9 +1179,13 @@ Context Source Registration では、以下の拡張フィールドがサポー�
 | `timeout` | integer (ms) | コンテキストソースへのリクエストタイムアウト |
 | `contextSourceAlias` | string | コンテキストソースのエイリアス名 |
 | `contextSourceInfo` | object[] | コンテキストソースの追加メタデータ |
-| `operationGroup` | string[] | 操作グループ: `federationOps`、`retrieveOps`、`updateOps`、`redirectionOps` |### 分散操作情報
+| `operationGroup` | string[] | 操作グループ: `federationOps`、`retrieveOps`、`updateOps`、`redirectionOps` |
 
-#### Context Broker ID の取得
+### 分散操作情報
+
+#
+
+### Context Broker ID の取得
 
 ```http
 GET /ngsi-ld/v1/info/sourceIdentity
@@ -1085,7 +1195,9 @@ GET /ngsi-ld/v1/info/sourceIdentity
 
 **レスポンス**: `200 OK` (`application/ld+json`)
 
-#### 適合性情報の取得
+#
+
+### 適合性情報の取得
 
 ```http
 GET /ngsi-ld/v1/info/conformance
@@ -1095,33 +1207,45 @@ NGSI-LD 仕様への準拠状況を返します。
 
 **レスポンス**: `200 OK` (`application/ld+json`)
 
-#### 分散クエリパラメータ
+#
+
+### 分散クエリパラメータ
 
 | パラメータ | タイプ | 説明 |
 |-----------|-----|------|
 | `localOnly` | boolean | `true` の場合、フェデレーションをスキップしてローカルデータのみを返します |
 | `csf` | string | コンテキストソースフィルタ式 (例: `name==value`、`endpoint~=pattern`) |
 
-#### 分散操作レスポンスヘッダー
+#
+
+### 分散操作レスポンスヘッダー
 
 | ヘッダー | 説明 |
 |----------|------|
 | `NGSILD-Warning` | フェデレーション中に一部のコンテキストソースが失敗した場合に設定される警告メッセージ (ETSI GS CIM 009 - 6.3.6) |
 | `Via` | 分散操作におけるループ検出用のヘッダー。Context Broker は転送されたリクエストに自身の ID を追加します (ETSI GS CIM 009 - 6.3.5) |
 
-#### CSR 変更通知
+#
+
+### CSR 変更通知
 
 コンテキストソース登録が作成、更新、または削除されると、一致する CSource サブスクリプションの通知エンドポイントに自動的に通知が送信されます (ETSI GS CIM 009 - 5.11)。通知には変更のタイプを示す `Ngsild-Trigger` ヘッダー (`csourceRegistration-created`、`csourceRegistration-updated`、`csourceRegistration-deleted`) が含まれます。
 
-#### 分散型タイプと属性の検出
+#
 
-`/ngsi-ld/v1/types` と `/ngsi-ld/v1/attributes` エンドポイントは、ローカルエンティティに加えて、コンテキストソース登録に登録されたエンティティタイプと属性を返します (ETSI GS CIM 009 - 5.9.3.3)。### EntityMap 操作
+### 分散型タイプと属性の検出
+
+`/ngsi-ld/v1/types` と `/ngsi-ld/v1/attributes` エンドポイントは、ローカルエンティティに加えて、コンテキストソース登録に登録されたエンティティタイプと属性を返します (ETSI GS CIM 009 - 5.9.3.3)。
+
+### EntityMap 操作
 
 > **ETSI GS CIM 009 リファレンス**: セクション 5.14 - Entity Map
 
 NGSI-LD EntityMap は、クエリ結果をマップとして保存し、後でエンティティ ID による効率的なアクセスを可能にする機能です。
 
-#### EntityMap 形式でエンティティを取得
+#
+
+### EntityMap 形式でエンティティを取得
 
 `options=entityMap` を `GET /ngsi-ld/v1/entities` のクエリパラメータに指定すると、レスポンスがエンティティ ID をキーとするオブジェクトとして返されます。
 
@@ -1147,7 +1271,9 @@ curl "http://localhost:3000/ngsi-ld/v1/entities?type=Room&options=entityMap" \
 }
 ```
 
-#### EntityMap の作成
+#
+
+### EntityMap の作成
 
 ```http
 POST /ngsi-ld/v1/entityMaps
@@ -1156,7 +1282,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: `201 Created`、作成された EntityMap の URL が `Location` ヘッダに含まれます
 
-#### EntityMap リストの取得
+#
+
+### EntityMap リストの取得
 
 ```http
 GET /ngsi-ld/v1/entityMaps
@@ -1171,7 +1299,9 @@ GET /ngsi-ld/v1/entityMaps
 
 **レスポンス**: `200 OK`
 
-#### EntityMap の取得
+#
+
+### EntityMap の取得
 
 ```http
 GET /ngsi-ld/v1/entityMaps/{entityMapId}
@@ -1179,7 +1309,9 @@ GET /ngsi-ld/v1/entityMaps/{entityMapId}
 
 **レスポンス**: `200 OK`
 
-#### EntityMap の更新
+#
+
+### EntityMap の更新
 
 ```http
 PATCH /ngsi-ld/v1/entityMaps/{entityMapId}
@@ -1188,7 +1320,9 @@ Content-Type: application/ld+json
 
 **レスポンス**: `204 No Content`
 
-#### EntityMap の削除
+#
+
+### EntityMap の削除
 
 ```http
 DELETE /ngsi-ld/v1/entityMaps/{entityMapId}
@@ -1220,7 +1354,9 @@ curl "https://api.example.com/ngsi-ld/v1/entities/urn:ngsi-ld:Room:001?join=flat
 
 NGSI-LD では、コンテキスト ソース登録サブスクリプション (CSR サブスクリプション) は、コンテキスト ソース登録の変更を監視するサブスクリプションを管理します。
 
-#### CSR サブスクリプションの作成
+#
+
+### CSR サブスクリプションの作成
 
 ```http
 POST /ngsi-ld/v1/csourceSubscriptions
@@ -1259,7 +1395,9 @@ Content-Type: application/ld+json
 - ステータス: `201 Created`
 - ヘッダー: `Location: /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}`
 
-#### CSR サブスクリプションリストの取得
+#
+
+### CSR サブスクリプションリストの取得
 
 ```http
 GET /ngsi-ld/v1/csourceSubscriptions
@@ -1289,13 +1427,17 @@ GET /ngsi-ld/v1/csourceSubscriptions
 ]
 ```
 
-#### CSR サブスクリプションの取得
+#
+
+### CSR サブスクリプションの取得
 
 ```http
 GET /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}
 ```
 
-#### CSR サブスクリプションの更新
+#
+
+### CSR サブスクリプションの更新
 
 ```http
 PATCH /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}
@@ -1312,7 +1454,9 @@ PATCH /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}
 
 **レスポンス**: `204 No Content`
 
-#### CSR サブスクリプションの削除
+#
+
+### CSR サブスクリプションの削除
 
 ```http
 DELETE /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}
@@ -1324,7 +1468,9 @@ DELETE /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}
 
 ETSI GS CIM 009 Section 5.12 に準拠した JSON-LD context 管理 API です。ユーザー定義の JSON-LD context の登録と管理が可能です。
 
-#### JSON-LD Context の登録
+#
+
+### JSON-LD Context の登録
 
 ```http
 POST /ngsi-ld/v1/jsonldContexts
@@ -1347,7 +1493,9 @@ Content-Type: application/json
 - ステータス: `201 Created`
 - ヘッダー: `Location: /ngsi-ld/v1/jsonldContexts/{contextId}`
 
-#### JSON-LD Context リストの取得
+#
+
+### JSON-LD Context リストの取得
 
 ```http
 GET /ngsi-ld/v1/jsonldContexts
@@ -1362,7 +1510,9 @@ GET /ngsi-ld/v1/jsonldContexts
 
 **レスポンス**: `200 OK`
 
-#### JSON-LD Context の取得
+#
+
+### JSON-LD Context の取得
 
 ```http
 GET /ngsi-ld/v1/jsonldContexts/{contextId}
@@ -1387,7 +1537,9 @@ GET /ngsi-ld/v1/jsonldContexts/{contextId}
 
 **レスポンス**: `200 OK` / `304 Not Modified`
 
-#### JSON-LD Context の削除
+#
+
+### JSON-LD Context の削除
 
 ```http
 DELETE /ngsi-ld/v1/jsonldContexts/{contextId}
@@ -1399,7 +1551,9 @@ DELETE /ngsi-ld/v1/jsonldContexts/{contextId}
 
 地図可視化のためにエンティティデータを GeoJSON ベクタータイルとして提供します。TileJSON 3.0 準拠のメタデータと、ズームレベルおよびタイル座標による GeoJSON タイルの取得をサポートします。
 
-#### TileJSON メタデータの取得
+#
+
+### TileJSON メタデータの取得
 
 ```http
 GET /ngsi-ld/v1/tiles
@@ -1407,7 +1561,9 @@ GET /ngsi-ld/v1/tiles
 
 **レスポンス**: `200 OK` (TileJSON 3.0 形式)
 
-#### GeoJSON タイルの取得
+#
+
+### GeoJSON タイルの取得
 
 ```http
 GET /ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson
@@ -1517,7 +1673,9 @@ ETSI NGSI-LD 互換 Context Broker API。
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |---------------|---------|------|------|--------|-----------------|
 | `/ngsi-ld/v1/attributes` | GET | 属性リストの取得 | 200 | 400, 401 | ✅ (最大: 1000) |
-| `/ngsi-ld/v1/attributes/{attrName}` | GET | 属性詳細の取得 | 200 | 401, 404 | - |### サブスクリプション操作
+| `/ngsi-ld/v1/attributes/{attrName}` | GET | 属性詳細の取得 | 200 | 401, 404 | - |
+
+### サブスクリプション操作
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |---------------|---------|------|------|--------|-----------------|
@@ -1612,7 +1770,9 @@ ETSI NGSI-LD 互換 Context Broker API。
 | `/ngsi-ld/v1/temporal/entityOperations/create` | POST | 時系列バッチ作成 (最大: 1000) | 201/207 | 400, 401, 415 | - |
 | `/ngsi-ld/v1/temporal/entityOperations/upsert` | POST | 時系列バッチアップサート (最大: 1000) | 204/207 | 400, 401, 415 | - |
 | `/ngsi-ld/v1/temporal/entityOperations/delete` | POST | 時系列バッチ削除 | 204/207 | 400, 401, 415 | - |
-| `/ngsi-ld/v1/temporal/entityOperations/query` | POST | 時系列バッチクエリ | 200 | 400, 401, 415 | ✅ (最大: 1000) |### ベクタータイル操作
+| `/ngsi-ld/v1/temporal/entityOperations/query` | POST | 時系列バッチクエリ | 200 | 400, 401, 415 | ✅ (最大: 1000) |
+
+### ベクタータイル操作
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |---------------|---------|------|------|--------|-----------------|

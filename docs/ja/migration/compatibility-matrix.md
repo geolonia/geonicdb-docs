@@ -52,7 +52,9 @@ outline: deep
 | `GET /v2/registrations/{id}` | ✅ | ✅ | 登録の取得 |
 | `PATCH /v2/registrations/{id}` | ✅ | ✅ | 登録の更新 |
 | `DELETE /v2/registrations/{id}` | ✅ | ✅ | 登録の削除 |
-| `GET /version` | ✅ | ✅ | バージョン情報 |### NGSI-LD API
+| `GET /version` | ✅ | ✅ | バージョン情報 |
+
+### NGSI-LD API
 
 | 機能 | GeonicDB | FIWARE Orion-LD | 備考 |
 |---------|:------------------:|:---------------:|-------|
