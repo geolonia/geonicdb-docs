@@ -147,7 +147,8 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 
 ### 概要
 
-- **エンドポイント**: `POST /mcp`- **トランスポート**: Streamable HTTP (JSON レスポンスモード)
+- **エンドポイント**: `POST /mcp`
+- **トランスポート**: Streamable HTTP (JSON レスポンスモード)
 - **プロトコルバージョン**: 2025-03-26
 - **動作モード**: ステートレス (Lambda 互換)
 - **認証**: `AUTH_ENABLED=true` の場合、JWT Bearer トークンによるアクセス制御とテナント分離が適用されます### Claude Desktop の設定
@@ -243,7 +244,10 @@ API キーで利用可能なスコープ:
 
 Claude Desktop の設定ファイルを編集します:
 
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json````json
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
 {
   "mcpServers": {
     "geonicdb": {

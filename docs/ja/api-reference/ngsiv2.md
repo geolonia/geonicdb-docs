@@ -207,7 +207,9 @@ PATCH /v2/entities/{entityId}/attrs
 }
 ```
 
-**レスポンス**: `204 No Content`### エンティティの更新 (PUT)
+**レスポンス**: `204 No Content`
+
+### エンティティの更新 (PUT)
 
 ```http
 PUT /v2/entities/{entityId}/attrs
@@ -221,7 +223,9 @@ PUT /v2/entities/{entityId}/attrs
 |-----------|------|-------------|
 | `type` | string | エンティティタイプ |
 
-**レスポンス**: `204 No Content`### 属性の追加 (POST)
+**レスポンス**: `204 No Content`
+
+### 属性の追加 (POST)
 
 ```http
 POST /v2/entities/{entityId}/attrs
@@ -238,7 +242,9 @@ POST /v2/entities/{entityId}/attrs
 | `type` | string | エンティティタイプ |
 | `options` | string | `append`: 既存属性の上書きを禁止 (厳密な追加モード) |
 
-**レスポンス**: `204 No Content`### エンティティの削除
+**レスポンス**: `204 No Content`
+
+### エンティティの削除
 
 ```http
 DELETE /v2/entities/{entityId}
@@ -340,7 +346,9 @@ PUT /v2/entities/{entityId}/attrs/{attrName}
 }
 ```
 
-**レスポンス**: `204 No Content`### 単一属性の削除
+**レスポンス**: `204 No Content`
+
+### 単一属性の削除
 
 ```http
 DELETE /v2/entities/{entityId}/attrs/{attrName}
@@ -352,7 +360,9 @@ DELETE /v2/entities/{entityId}/attrs/{attrName}
 |-----------|------|-------------|
 | `type` | string | エンティティタイプ |
 
-**レスポンス**: `204 No Content`### 属性値の直接取得
+**レスポンス**: `204 No Content`
+
+### 属性値の直接取得
 
 ```http
 GET /v2/entities/{entityId}/attrs/{attrName}/value
@@ -433,9 +443,11 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 
 **レスポンス**: `204 No Content`**注意**: この操作では、既存の属性の type や metadata は変更されません — これらは保持されます。
 
----## バッチ操作
+---
 
-> **注意**: バッチ操作は、1 リクエストあたり最大 **`MAX_BATCH_SIZE`** 個のエンティティを処理できます (デフォルト: 100、`MaxBatchSize` SAM パラメータで最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーになります。設定の詳細については DEVELOPMENT.md を参照してください。
+## バッチ操作
+
+> **注意**: バッチ操作は、1 リクエストあたり最大 **`MAX_BATCH_SIZE`** 個のエンティティを処理できます (デフォルト: 100、`MaxBatchSize` SAM パラメータで最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーになります。
 
 ### バッチ更新
 
@@ -474,7 +486,8 @@ POST /v2/op/update
 | `delete` | エンティティまたは属性を削除 |
 
 **レスポンス**
-- すべて成功: `204 No Content`- 部分的成功/エラー: `200 OK` とエラー詳細
+- すべて成功: `204 No Content`
+- 部分的成功/エラー: `200 OK` とエラー詳細
 
 ```json
 {
@@ -707,7 +720,10 @@ POST /v2/subscriptions
 | `onlyChangedAttrs` | boolean | `true` の場合、実際に変更された属性のみが通知に含まれます。`attrs`/`exceptAttrs` と組み合わせることができます。 |
 
 **レスポンス**
-- ステータス: `201 Created`- ヘッダー: `Location: /v2/subscriptions/{subscriptionId}`### サブスクリプションの一覧取得
+- ステータス: `201 Created`
+- ヘッダー: `Location: /v2/subscriptions/{subscriptionId}`
+
+### サブスクリプションの一覧取得
 
 ```http
 GET /v2/subscriptions
@@ -741,17 +757,23 @@ PATCH /v2/subscriptions/{subscriptionId}
 }
 ```
 
-**レスポンス**: `204 No Content`### サブスクリプションの削除
+**レスポンス**: `204 No Content`
+
+### サブスクリプションの削除
 
 ```http
 DELETE /v2/subscriptions/{subscriptionId}
 ```
 
-**レスポンス**: `204 No Content`### 所有権の検証 (GeonicDB 拡張機能)
+**レスポンス**: `204 No Content`
+
+### 所有権の検証 (GeonicDB 拡張機能)
 
 認証が有効な場合 (`AUTH_ENABLED=true`)、サブスクリプションの更新 (PATCH) と削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権の検証を実行します。作成者以外のユーザーがこれらの操作を試みた場合、`403 Forbidden` が返されます。`super_admin` および `tenant_admin` ロールはこの検証をバイパスできます。詳細については AUTH.md を参照してください。
 
----## 登録 (Registrations)
+---
+
+## 登録 (Registrations)
 
 登録 (Registration) は、外部コンテキストプロバイダを登録し、エンティティ情報のソースを管理します。
 
@@ -795,7 +817,10 @@ POST /v2/registrations
 | `mode` | string | - | 転送モード (`inclusive` / `exclusive` / `redirect` / `auxiliary`)。NGSI-LD 互換拡張 |
 
 **レスポンス**
-- ステータス: `201 Created`- ヘッダー: `Location: /v2/registrations/{registrationId}`### 登録の一覧取得
+- ステータス: `201 Created`
+- ヘッダー: `Location: /v2/registrations/{registrationId}`
+
+### 登録の一覧取得
 
 ```http
 GET /v2/registrations
@@ -847,17 +872,23 @@ PATCH /v2/registrations/{registrationId}
 }
 ```
 
-**レスポンス**: `204 No Content`### 登録の削除
+**レスポンス**: `204 No Content`
+
+### 登録の削除
 
 ```http
 DELETE /v2/registrations/{registrationId}
 ```
 
-**レスポンス**: `204 No Content`### 所有権検証 (GeonicDB 拡張)
+**レスポンス**: `204 No Content`
+
+### 所有権検証 (GeonicDB 拡張)
 
 認証が有効な場合 (`AUTH_ENABLED=true`)、登録の更新 (PATCH) と削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権検証を実行します。作成者以外のユーザーがこれらの操作を試みた場合、`403 Forbidden` が返されます。`super_admin` と `tenant_admin` ロールはこの検証をバイパスできます。詳細は AUTH.md を参照してください。
 
----## フェデレーション (クエリ転送 / 更新転送)
+---
+
+## フェデレーション (クエリ転送 / 更新転送)
 
 登録 (Registrations) に基づいて、GeonicDB はクエリを外部コンテキストプロバイダーに転送し、結果を統合して返すほか、更新も転送します。
 
@@ -995,7 +1026,9 @@ GET /v2/types/{typeName}
 }
 ```
 
----## HTTP キャッシュ制御
+---
+
+## HTTP キャッシュ制御
 
 GET エンドポイントは、エンドポイントのクラスに応じてキャッシュ関連のヘッダーを返します:
 
@@ -1057,13 +1090,16 @@ GET エンドポイントは、エンドポイントのクラスに応じてキ�
 }
 ```
 
----## エンドポイントリファレンス
+---
+
+## エンドポイントリファレンス
 
 FIWARE NGSIv2 互換 Context Broker API。
 
 ### 共通仕様
 
-- **Content-Type**: `application/json`- **認証**: `AUTH_ENABLED=true` の場合に必須
+- **Content-Type**: `application/json`
+- **認証**: `AUTH_ENABLED=true` の場合に必須
 - **テナント分離**: `Fiware-Service` ヘッダーによるテナント分離
 - **ページネーション**: `limit`/`offset` パラメータ; 総件数を取得するには `options=count` を使用
 

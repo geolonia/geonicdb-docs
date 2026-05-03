@@ -9,7 +9,9 @@ outline: deep
 
 - **リポジトリ**: [geolonia/geonicdb-cli](https://github.com/geolonia/geonicdb-cli)
 - **ランタイム**: Node.js >= 20
-- **パッケージ**: `@geolonia/geonicdb-cli`## 目次
+- **パッケージ**: `@geolonia/geonicdb-cli`
+
+## 目次
 
 - [インストール](#インストール)
 - [クイックスタート](#クイックスタート)
@@ -109,7 +111,9 @@ geonic entities get urn:ngsi-ld:Room:001
 | `-v, --verbose` | HTTP リクエスト/レスポンスの詳細を stderr に表示 (機密値はマスクされます) |
 | `--dry-run` | リクエストを実行せずに同等の `curl` コマンドを出力 |
 
----## 設定とプロファイル
+---
+
+## 設定とプロファイル
 
 ### 設定ファイル
 
@@ -132,7 +136,9 @@ CLI は `~/.config/geonic/config.json` に設定を保存します。`GEONIC_CON
 }
 ```
 
-**設定キー**: `url`, `service`, `token`, `refreshToken`, `format`, `apiKey`, `clientId`, `clientSecret`#### `geonic config set <key> <value>`設定値を保存します。機密性の高い値(`token`, `refreshToken`, `apiKey`, `clientId`, `clientSecret`)は出力時にマスクされます。
+**設定キー**: `url`, `service`, `token`, `refreshToken`, `format`, `apiKey`, `clientId`, `clientSecret`
+
+#### `geonic config set <key> <value>`設定値を保存します。機密性の高い値(`token`, `refreshToken`, `apiKey`, `clientId`, `clientSecret`)は出力時にマスクされます。
 
 #### `geonic config get <key>`設定値を取得します。
 
@@ -174,7 +180,9 @@ CLI は `~/.config/geonic/config.json` に設定を保存します。`GEONIC_CON
 2. 設定ファイル(プロファイル設定)
 3. デフォルト値
 
----## 認証
+---
+
+## 認証
 
 ### メール / パスワード ログイン
 
@@ -306,7 +314,13 @@ curl \
 
 CLI は 24 時間ごとに新しいバージョンをチェックし、アップデートが利用可能な場合に通知ボックスを表示します。チェックは CI 環境および非 TTY ターミナルではスキップされます。`NO_UPDATE_NOTIFIER=1` を設定することで無効化できます。
 
----# コマンドリファレンス### `entities`NGSI-LD コンテキストエンティティ (`/ngsi-ld/v1/entities`) を管理します。
+---
+
+# コマンドリファレンス
+
+### `entities`
+
+NGSI-LD コンテキストエンティティ (`/ngsi-ld/v1/entities`) を管理します。
 
 #### `geonic entities list`オプションのフィルタを使用してエンティティをリストします。
 
@@ -416,7 +430,9 @@ geonic batch create @entities.json
 cat entities.json | geonic batch upsert
 ```
 
----### `subscriptions` (sub)
+---
+
+### `subscriptions` (sub)
 
 コンテキストサブスクリプション (`/ngsi-ld/v1/subscriptions`) を管理します。エイリアス: `sub`。
 
@@ -428,7 +444,9 @@ cat entities.json | geonic batch upsert
 | `geonic sub update <id> [json]` | サブスクリプションの更新 |
 | `geonic sub delete <id>` | サブスクリプションの削除 |
 
-**`sub list` オプション**: `--limit <n>`、`--offset <n>`、`--count````bash
+**`sub list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
+
+```bash
 geonic sub create '{
   "type": "Subscription",
   "entities": [{"type": "Room"}],
@@ -453,7 +471,9 @@ geonic sub create '{
 | `geonic reg update <id> [json]` | 登録の更新 |
 | `geonic reg delete <id>` | 登録の削除 |
 
-**`reg list` オプション**: `--limit <n>`、`--offset <n>`、`--count`---
+**`reg list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
+
+---
 
 ### `types`利用可能なエンティティタイプを照会します (`/ngsi-ld/v1/types`)。
 
@@ -462,7 +482,9 @@ geonic sub create '{
 | `geonic types list` | すべてのエンティティタイプの一覧表示 |
 | `geonic types get <typeName>` | 特定のタイプの詳細を取得 |
 
----### `temporal`時系列エンティティデータを管理します (`/ngsi-ld/v1/temporal`)。
+---
+
+### `temporal`時系列エンティティデータを管理します (`/ngsi-ld/v1/temporal`)。
 
 #### `geonic temporal entities list`時系列エンティティの一覧を取得します。
 
@@ -492,7 +514,9 @@ geonic temporal entities get urn:ngsi-ld:Room:001 \
 
 #### `geonic temporal entities get <id>`エンティティの時系列表現を取得します。
 
-**オプション**: `--attrs`、`--time-rel`、`--time-at`、`--end-time-at`、`--last-n`#### `geonic temporal entities create [json]`時系列エンティティを作成します。
+**オプション**: `--attrs`、`--time-rel`、`--time-at`、`--end-time-at`、`--last-n`
+
+#### `geonic temporal entities create [json]`時系列エンティティを作成します。
 
 #### `geonic temporal entities delete <id>`時系列エンティティを削除します。
 
@@ -522,7 +546,9 @@ geonic temporal entityOperations query @query.json \
 | `geonic snapshots delete <id>` | スナップショットを削除 |
 | `geonic snapshots clone <id>` | スナップショットをクローン |
 
-**`snapshots list` のオプション**: `--limit <n>`、`--offset <n>`---
+**`snapshots list` のオプション**: `--limit <n>`、`--offset <n>`
+
+---
 
 ### `rules`ReactiveCore ルールを管理します。詳細は ReactiveCore Rules を参照してください。
 
@@ -550,7 +576,9 @@ geonic temporal entityOperations query @query.json \
 | `geonic models update <id> [json]` | データモデルを更新 |
 | `geonic models delete <id>` | データモデルを削除 |
 
----### DCAT-AP
+---
+
+### DCAT-AP
 
 DCAT-AP データカタログを参照します。
 
@@ -561,7 +589,9 @@ DCAT-AP データカタログを参照します。
 | `geonic catalog datasets get <id>` | データセットを取得する |
 | `geonic catalog datasets sample <id>` | データセットからサンプルを取得する |
 
----### `admin`管理操作。`tenant_admin` または `super_admin` ロールが必要です。詳細は認証・認可ガイドを参照してください。
+---
+
+### `admin`管理操作。`tenant_admin` または `super_admin` ロールが必要です。詳細は認証・認可ガイドを参照してください。
 
 #### `admin tenants`| コマンド | 説明 |
 |---------|-------------|
@@ -655,13 +685,19 @@ geonic admin api-keys update gdb_abc123 '{"name": "renamed-key", "isActive": fal
 | `geonic admin cadde set [json]` | CADDE 設定を設定 |
 | `geonic admin cadde delete` | CADDE 設定を削除 |
 
----### `health````bash
+---
+
+### `health`
+
+```bash
 geonic health
 ```
 
 サーバーのヘルス状態を確認します (`GET /health`)。
 
-### `version````bash
+### `version`
+
+```bash
 geonic version
 ```
 
@@ -712,7 +748,9 @@ geonic me oauth-clients create '{"name":"my-bot","policyId":"bot-access"}'
 | `geonic me api-keys create [json]` | 新しい API キーを作成 |
 | `geonic me api-keys delete <key-id>` | API キーを削除 |
 
-**`me api-keys list` のオプション**: `--limit <n>`、`--offset <n>`、`--count````bash
+**`me api-keys list` のオプション**: `--limit <n>`、`--offset <n>`、`--count`
+
+```bash
 # Create a personal API key
 geonic me api-keys create '{
   "name": "my-dev-key",
