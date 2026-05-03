@@ -9,8 +9,7 @@ outline: deep
 
 - **リポジトリ**: [geolonia/geonicdb-cli](https://github.com/geolonia/geonicdb-cli)
 - **ランタイム**: Node.js >= 20
-- **パッケージ**: `@geolonia/geonicdb-cli`
-## 目次
+- **パッケージ**: `@geolonia/geonicdb-cli`## 目次
 
 - [インストール](#インストール)
 - [クイックスタート](#クイックスタート)
@@ -135,8 +134,7 @@ CLI は `~/.config/geonic/config.json` に設定を保存します。`GEONIC_CON
 }
 ```
 
-**設定キー**: `url`, `service`, `token`, `refreshToken`, `format`, `apiKey`, `clientId`, `clientSecret`
-#
+**設定キー**: `url`, `service`, `token`, `refreshToken`, `format`, `apiKey`, `clientId`, `clientSecret`#
 
 ### `geonic config set <key> <value>`設定値を保存します。機密性の高い値(`token`, `refreshToken`, `apiKey`, `clientId`, `clientSecret`)は出力時にマスクされます。
 
@@ -334,8 +332,7 @@ CLI は 24 時間ごとに新しいバージョンをチェックし、アップ
 
 ## コマンドリファレンス
 
-### `entities`
-NGSI-LD コンテキストエンティティ (`/ngsi-ld/v1/entities`) を管理します。
+### `entities`NGSI-LD コンテキストエンティティ (`/ngsi-ld/v1/entities`) を管理します。
 
 #
 
@@ -473,8 +470,7 @@ cat entities.json | geonic batch upsert
 | `geonic sub update <id> [json]` | サブスクリプションの更新 |
 | `geonic sub delete <id>` | サブスクリプションの削除 |
 
-**`sub list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
-```bash
+**`sub list` オプション**: `--limit <n>`、`--offset <n>`、`--count````bash
 geonic sub create '{
   "type": "Subscription",
   "entities": [{"type": "Room"}],
@@ -499,8 +495,7 @@ geonic sub create '{
 | `geonic reg update <id> [json]` | 登録の更新 |
 | `geonic reg delete <id>` | 登録の削除 |
 
-**`reg list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
----
+**`reg list` オプション**: `--limit <n>`、`--offset <n>`、`--count`---
 
 ### `types`利用可能なエンティティタイプを照会します (`/ngsi-ld/v1/types`)。
 
@@ -545,8 +540,7 @@ geonic temporal entities get urn:ngsi-ld:Room:001 \
 
 ### `geonic temporal entities get <id>`エンティティの時系列表現を取得します。
 
-**オプション**: `--attrs`、`--time-rel`、`--time-at`、`--end-time-at`、`--last-n`
-#
+**オプション**: `--attrs`、`--time-rel`、`--time-at`、`--end-time-at`、`--last-n`#
 
 ### `geonic temporal entities create [json]`時系列エンティティを作成します。
 
@@ -582,8 +576,7 @@ geonic temporal entityOperations query @query.json \
 | `geonic snapshots delete <id>` | スナップショットを削除 |
 | `geonic snapshots clone <id>` | スナップショットをクローン |
 
-**`snapshots list` のオプション**: `--limit <n>`、`--offset <n>`
----
+**`snapshots list` のオプション**: `--limit <n>`、`--offset <n>`---
 
 ### `rules`ReactiveCore ルールを管理します。詳細は ReactiveCore Rules を参照してください。
 
@@ -734,15 +727,13 @@ geonic admin api-keys update gdb_abc123 '{"name": "renamed-key", "isActive": fal
 
 ---
 
-### `health`
-```bash
+### `health````bash
 geonic health
 ```
 
 サーバーのヘルス状態を確認します (`GET /health`)。
 
-### `version`
-```bash
+### `version````bash
 geonic version
 ```
 
@@ -797,8 +788,7 @@ geonic me oauth-clients create '{"name":"my-bot","policyId":"bot-access"}'
 | `geonic me api-keys create [json]` | 新しい API キーを作成 |
 | `geonic me api-keys delete <key-id>` | API キーを削除 |
 
-**`me api-keys list` のオプション**: `--limit <n>`、`--offset <n>`、`--count`
-```bash
+**`me api-keys list` のオプション**: `--limit <n>`、`--offset <n>`、`--count````bash
 # Create a personal API key
 geonic me api-keys create '{
   "name": "my-dev-key",

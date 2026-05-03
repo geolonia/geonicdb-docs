@@ -354,6 +354,8 @@ curl -i "http://localhost:3000/v2/entities" \
 | `SUPER_ADMIN_PASSWORD` | - | 環境変数で設定するスーパー管理者のパスワード |
 | `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR(カンマ区切り) |
 
+> **SaaS 利用者の方へ**: これらの環境変数は GeonicDB SaaS コンソールで管理されます。直接設定は不要です。
+
 ### ロールと権限
 
 | ロール | 説明 | 権限 |
@@ -462,8 +464,7 @@ Content-Type: application/json
 }
 ```
 
-**レスポンス**: `204 No Content`
-**注意**: パスワードを変更すると、既存のすべてのアクセストークンとリフレッシュトークンが無効化されます。新しいトークンを取得するため、再度ログインしてください。
+**レスポンス**: `204 No Content`**注意**: パスワードを変更すると、既存のすべてのアクセストークンとリフレッシュトークンが無効化されます。新しいトークンを取得するため、再度ログインしてください。
 
 ### ログアウト
 
@@ -474,8 +475,7 @@ Authorization: Bearer <accessToken>
 
 すべてのセッションを無効化します。このユーザーに対して発行されたすべてのアクセストークンとリフレッシュトークンが即座に無効化されます。
 
-**レスポンス**: `204 No Content`
-### API キー トークン交換
+**レスポンス**: `204 No Content`### API キー トークン交換
 
 #
 
@@ -489,8 +489,7 @@ Origin: https://example.com
 {"api_key": "gdb_your_api_key_here"}
 ```
 
-**レスポンス**: `200 OK`
-```json
+**レスポンス**: `200 OK````json
 {
   "nonce": "base64url_timestamp.hmac_signature",
   "challenge": "sha256_challenge_string",
@@ -515,8 +514,7 @@ Origin: https://example.com
 }
 ```
 
-**レスポンス**: `200 OK`
-```json
+**レスポンス**: `200 OK````json
 {
   "access_token": "<session_jwt>",
   "token_type": "Bearer",
@@ -717,9 +715,11 @@ Authorization: Bearer <accessToken>
 
 ### カスタムデータモデル管理
 
-> **注意**: カスタムデータモデル API は `/custom-data-models` に移動しました。詳細については [カスタムデータモデル API](#custom-data-models-api) セクションを参照してください。
+> **注意**: カスタムデータモデル API は `/custom-data-models` に移動しました。詳細については [カスタムデータモデル API](#カスタムデータモデル-api) セクションを参照してください。
 
 ### IP 制限
+
+**SaaS 利用者の方へ**: これは tenant 設定 API 経由で設定されます。詳細は Geolonia サポートにお問い合わせください。
 
 `ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API (`/admin/*`) へのアクセスを特定の IP アドレスに制限できます:
 
@@ -924,7 +924,8 @@ OAuth 2.0 Client Credentials Grant フローを使用した Machine-to-Machine�
 
 **主要なエンドポイント:**
 - `POST /auth/nonce` - Nonce と PoW チャレンジのリクエスト（API キーと Origin ヘッダーが必要）
-- `POST /oauth/token`（`grant_type=api_key`）- API キー + nonce + PoW 証明をセッション JWT に交換
+- `POST /oauth/token`（`grant_type=api_key`）
+- API キー + nonce + PoW 証明をセッション JWT に交換
 
 **JavaScript SDK:** `npm install @geolonia/geonicdb-sdk` — トークン交換、DPoP、WebSocket、再接続を自動的に処理します。
 
@@ -947,8 +948,7 @@ GET /llms.txt
 AI フレンドリーな [llms.txt](https://llmstxt.org/) フォーマットで API ドキュメントを返します。AI エージェントや LLM が理解しやすい Markdown フォーマットで構造化されています。
 
 **レスポンス**
-- Content-Type: `text/markdown; charset=utf-8`
-### API ドキュメント（JSON フォーマット）
+- Content-Type: `text/markdown; charset=utf-8`### API ドキュメント（JSON フォーマット）
 
 ```http
 GET /api.json

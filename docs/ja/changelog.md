@@ -23,7 +23,9 @@ outline: deep
     - **strict tsconfig 環境を再現** した consumer プロジェクトを `tmpdir` に組み立て、`tsc --project` で実コンパイルし、各エラークラス / public type の named import (`import { ... }` および `import type { ... }`) が **TS2614 にならないこと** を assertion
     - 公開 d.ts に `export * from` 形式が混入しないことを正規表現で禁止
     - `src/sdk/index.ts` ソースの export 名と公開 d.ts の export 名が一致することを drift guard で検証
-  - ドキュメント: `docs/SDK.md` / `src/sdk/README.md` に「TypeScript」節を追加し、strict tsconfig でも named import が解決できる旨を明記## [0.7.0] — 2026-05-02
+  - ドキュメント: `docs/SDK.md` / `src/sdk/README.md` に「TypeScript」節を追加し、strict tsconfig でも named import が解決できる旨を明記
+
+## [0.7.0] — 2026-05-02
 
 ### 2026-05-02
 - **改善**: ReactiveCore Rules の SLO 超過に対する協調キャンセルを実装 (issue #1122) (#1123)
@@ -56,7 +58,8 @@ outline: deep
     - `tests/e2e/features/auth/rules-auto-fire.feature` で「entity 作成 API のみで Rule action が自動実行される」シナリオを 2 つ追加 (`triggerRuleExecution` を介さない再現テスト)
     - `tests/unit/infrastructure/sam-template.test.ts` で `infrastructure/template.yaml` の最小構造を検証 (RuleProcessorFunction / SubscriptionMatcherFunction / WsBroadcastFunction が EventBridgeRule で 3 種の detail-type を listen していることを機械的に確認)
     - `tests/unit/handlers/rules/processor.test.ts` で新規 handler 単体の挙動 (3 種イベント委譲・secondary region スキップ・エラー握り潰し・タイムアウト) を検証
-  - 関連: `src/handlers/rules/processor.ts` (新規)、`src/handlers/streams/change-stream.ts` (rule engine 呼び出しを除去)、`infrastructure/template.yaml` (`RuleProcessorFunction` 追加)、`tests/e2e/support/hooks.ts` / `tests/e2e/features/auth/rules-auto-fire.feature` / `tests/unit/infrastructure/sam-template.test.ts` / `tests/unit/handlers/rules/processor.test.ts`## [0.6.0] — 2026-05-01
+  - 関連: `src/handlers/rules/processor.ts` (新規)、`src/handlers/streams/change-stream.ts` (rule engine 呼び出しを除去)、`infrastructure/template.yaml` (`RuleProcessorFunction` 追加)、`tests/e2e/support/hooks.ts` / `tests/e2e/features/auth/rules-auto-fire.feature` / `tests/unit/infrastructure/sam-template.test.ts` / `tests/unit/handlers/rules/processor.test.ts`
+## [0.6.0] — 2026-05-01
 
 ### 2026-05-01
 - **認可**: WebSocket 配信時の XACML AuthzRequest に `entityOwner` / `entityId` を inject (issue #1107) (#1116)
@@ -243,7 +246,9 @@ outline: deep
     - `local-server.ts` — Express の自動 ETag 生成を `app.set('etag', false)` で無効化。ローカル開発でも本番 (API Gateway + Lambda) と同じ挙動を再現
     - **追加カバレッジ**: NGSIv2 / NGSI-LD の attribute-level GET エンドポイント (`/v2/entities/{id}/attrs`, `/v2/entities/{id}/attrs/{name}`, `/v2/entities/{id}/attrs/{name}/value`, `/ngsi-ld/v1/entities/{id}/attrs/{name}`) も `applyCacheHeaders` 経由で ETag/Last-Modified/Cache-Control/Vary を返すよう追加。Express auto-ETag 無効化に伴うキャッシュ無し状態を回避
   - **テスト** (#1054): cache-control middleware unit test に scope 検証 11 ケース追加。`http-cache-control.feature` に B-1 / B-2 / B-3 / B-4 シナリオ 7 件追加。`head-requests.feature` を 200 期待形に書き換え (HEAD が GET 等価で動作することを検証)
-  - **ドキュメント** (#1054): `docs/API.md` に Temporal クラス追加、ETag scope (path + Accept) の説明追加、HEAD サポート明記、attribute-level エンドポイント追加## [0.4.0] — 2026-04-27
+  - **ドキュメント** (#1054): `docs/API.md` に Temporal クラス追加、ETag scope (path + Accept) の説明追加、HEAD サポート明記、attribute-level エンドポイント追加
+
+## [0.4.0] — 2026-04-27
 
 ### 2026-04-27
 - **Feature**: SDK クライアントキャッシュ Phase A — `@geolonia/geonicdb-sdk` に in-memory cache + ETag/304 自動ハンドリング + リクエスト重複排除 + ETag ベースの `poll()` API を追加 (#1043)
@@ -619,8 +624,7 @@ outline: deep
   - 暗号化/非暗号化テナントの後方互換共存
   - Temporal/Snapshot リポジトリの暗号化統合
   - SAM テンプレート: KMS IAM ポリシー、DynamoDB SSE 設定、`EncryptionEnabled` パラメータ追加
-  - 依存追加: `@aws-sdk/client-kms`
-### 2026-02-25
+  - 依存追加: `@aws-sdk/client-kms`### 2026-02-25
 - **Feat**: マルチリージョン HA アーキテクチャ Phase 1+2 (#557)
   - Active-Passive 構成 (Primary: ap-northeast-1, Secondary: ap-northeast-3)
   - ヘルスチェック強化: `/health`、`/health/live`、`/health/ready` に `region`、`regionRole` を追加

@@ -347,6 +347,8 @@ Authentication is disabled by default. It can be enabled with the following envi
 | `SUPER_ADMIN_PASSWORD` | - | Super admin password set via environment variable |
 | `ADMIN_ALLOWED_IPS` | - | IPs/CIDRs allowed to access the Admin API (comma-separated) |
 
+> **SaaS users**: These environment variables are managed via the GeonicDB SaaS console. Direct configuration is not required.
+
 ### Roles and Permissions
 
 | Role | Description | Permissions |
@@ -687,6 +689,8 @@ Authorization: Bearer <accessToken>
 > **Note**: The custom data model API has moved to `/custom-data-models`. See the [Custom Data Models API](#custom-data-models-api) section for details.
 
 ### IP Restrictions
+
+**SaaS users**: This is configured via the tenant settings API. Contact Geolonia support for details.
 
 By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API (`/admin/*`) to specific IP addresses:
 

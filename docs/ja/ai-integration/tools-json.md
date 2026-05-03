@@ -45,8 +45,7 @@ MCP ツールは、属性値から NGSI-LD タイプを自動的に推論しま�
 | その他すべての値 | `Property` | `25.5`、`"text"`、`true`、`[1, 2, 3]` |
 
 タイプを明示的に指定することもできます:
-- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
-### レスポンス構造
+- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`### レスポンス構造
 
 ```json
 {
@@ -252,8 +251,7 @@ API キーで利用可能なスコープ:
 
 Claude Desktop の設定ファイルを編集します:
 
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-```json
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json````json
 {
   "mcpServers": {
     "geonicdb": {
@@ -423,7 +421,9 @@ curl -X POST http://localhost:3000/mcp \
 - **セッション管理なし**: 各リクエストは独立して処理されます。`GET /mcp` (SSE) と `DELETE /mcp` (セッション終了) は 405 を返します。
 - **認証**: `AUTH_ENABLED=true` の場合、Bearer トークンが必要です。`AUTH_ENABLED=false` の場合、認証なしで動作します。
 - **OAuth スコープ**: OAuth トークンを使用する場合、各 MCP ツール操作に対応する OAuth スコープが必要です (例: エンティティの読み取りには `read:entities`、書き込みには `write:entities`)。スコープ制限は JWT RBAC トークンには適用されません。
-- **レート制限**: MCP エンドポイントは、REST API と同じレート制限、ストレージクォータ、リクエストボディサイズ制限の対象となります。## JSON Schema とカスタムデータモデル
+- **レート制限**: MCP エンドポイントは、REST API と同じレート制限、ストレージクォータ、リクエストボディサイズ制限の対象となります。
+
+## JSON Schema とカスタムデータモデル
 
 カスタムデータモデルは作成時に自動的に JSON Schema (Draft 2020-12) が生成されます。この JSON Schema は AI ツールで以下の目的に利用できます。
 
@@ -586,7 +586,9 @@ GeonicDB JavaScript SDK (`@geolonia/geonicdb-sdk`) は AI 支援開発向けに�
 1. 開発者が SDK をインストール: `npm install @geolonia/geonicdb-sdk`2. 開発者が SDK をインポート: `import GeonicDB from '@geolonia/geonicdb-sdk'`3. AI がパッケージから TypeScript 宣言を読み取り
 4. AI が文書化された API を使用して正しいコードを生成
 
-別途ドキュメント URL や特別な設定は不要です。TypeScript プロジェクトでは、すぐに完全な型チェックと IDE のオートコンプリートが利用できます。詳細は SDK ドキュメントを参照してください。## A2A (Agent-to-Agent プロトコル) サポート
+別途ドキュメント URL や特別な設定は不要です。TypeScript プロジェクトでは、すぐに完全な型チェックと IDE のオートコンプリートが利用できます。詳細は SDK ドキュメントを参照してください。
+
+## A2A (Agent-to-Agent プロトコル) サポート
 
 GeonicDB は [A2A (Agent-to-Agent) プロトコル](https://google.github.io/A2A/)をサポートしており、他の AI エージェントが標準化されたエージェント間通信を通じてコンテキストブローカーと対話できるようにします。
 
