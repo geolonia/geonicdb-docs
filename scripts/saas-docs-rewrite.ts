@@ -215,14 +215,15 @@ export function run(dirs: string[], options: RunOptions): RunStats[] {
     return []
   }
 
-  // Collect all markdown files under specified directories
-  const files: string[] = []
+  // Collect all markdown files under specified directories (dedup via Set)
+  const filesSet = new Set<string>()
   for (const dir of dirs) {
     const absDir = resolve(baseDir, dir)
     const pattern = join(absDir, '**/*.md').replace(/\\/g, '/')
     const found = fg.sync(pattern, { dot: false })
-    files.push(...found)
+    for (const f of found) filesSet.add(f)
   }
+  const files = [...filesSet]
 
   const statsMap = new Map<string, RunStats>()
 
