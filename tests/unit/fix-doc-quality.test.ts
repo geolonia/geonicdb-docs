@@ -10,6 +10,10 @@ import {
   addFrontmatterTitle,
   hasFrontmatterTitle,
   fixGlossaryViolations,
+  fixListMerge,
+  fixHeadingMerge,
+  fixHorizontalRuleMerge,
+  fixAnchorI18n,
   runQualityFixes,
 } from '../../scripts/fix-doc-quality.js'
 
@@ -437,6 +441,195 @@ describe('fixGlossaryViolations', () => {
     // コンテキストブローカ (without ー) → コンテキストブローカー
     // コンテキストブローカー (with ー) is preserved
     expect(result).toBe('コンテキストブローカー への接続と、コンテキストブローカー を使用します。')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// fixListMerge
+// ---------------------------------------------------------------------------
+describe('fixListMerge', () => {
+  it('splits 2 merged list items separated by backtick (PR#155 ngsild.md pattern)', () => {
+    const input = '- ステータス: `201 Created`- ステータス: `409 AlreadyExists`'
+    const result = fixListMerge(input)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('- ステータス: `201 Created`')
+    expect(lines[1]).toBe('- ステータス: `409 AlreadyExists`')
+  })
+
+  it('splits 3 merged list items (multiple backtick boundaries)', () => {
+    const input = '- A `x`- B `y`- C'
+    const result = fixListMerge(input)
+    expect(result).toBe('- A `x`\n- B `y`\n- C')
+  })
+
+  it('splits list items separated by Japanese text (CJK boundary)', () => {
+    const input = '- 日本語テキスト- 次のアイテム'
+    const result = fixListMerge(input)
+    expect(result).toBe('- 日本語テキスト\n- 次のアイテム')
+  })
+
+  it('does not modify list items inside fenced code blocks', () => {
+    const input = '```\n- A- B\n```'
+    expect(fixListMerge(input)).toBe(input)
+  })
+
+  it('does not modify table rows', () => {
+    const input = '| col1 - col2 | col3 |'
+    expect(fixListMerge(input)).toBe(input)
+  })
+
+  it('does not modify lines without list item markers', () => {
+    const input = 'some prose with a - hyphen in text'
+    expect(fixListMerge(input)).toBe(input)
+  })
+
+  it('does not modify a single well-formed list item', () => {
+    const input = '- single item with `code`'
+    expect(fixListMerge(input)).toBe(input)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// fixHeadingMerge
+// ---------------------------------------------------------------------------
+describe('fixHeadingMerge', () => {
+  it('splits text+heading merge (PR#155 ngsiv2-vs-ngsild.md pattern)', () => {
+    const input = '前の段落テキスト## プロトコル分離'
+    const result = fixHeadingMerge(input)
+    expect(result).toBe('前の段落テキスト\n\n## プロトコル分離')
+  })
+
+  it('splits ---+heading merge', () => {
+    const input = '---## プロトコル分離'
+    const result = fixHeadingMerge(input)
+    expect(result).toBe('---\n\n## プロトコル分離')
+  })
+
+  it('splits text+---+heading merge (full pattern)', () => {
+    const input = '前の段落テキスト---## プロトコル分離'
+    const result = fixHeadingMerge(input)
+    expect(result).toBe('前の段落テキスト\n\n---\n\n## プロトコル分離')
+  })
+
+  it('handles h3 heading merge', () => {
+    const input = 'prose text### サブセクション'
+    const result = fixHeadingMerge(input)
+    expect(result).toBe('prose text\n\n### サブセクション')
+  })
+
+  it('does not modify normal heading lines', () => {
+    expect(fixHeadingMerge('## Normal Heading')).toBe('## Normal Heading')
+    expect(fixHeadingMerge('# H1 Heading')).toBe('# H1 Heading')
+  })
+
+  it('does not modify headings inside fenced code blocks', () => {
+    const input = '```\ntext## heading inside fence\n```'
+    expect(fixHeadingMerge(input)).toBe(input)
+  })
+
+  it('does not modify standalone hr lines', () => {
+    expect(fixHeadingMerge('---')).toBe('---')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// fixHorizontalRuleMerge
+// ---------------------------------------------------------------------------
+describe('fixHorizontalRuleMerge', () => {
+  it('splits text+hr merge at end of line', () => {
+    const input = '前の段落テキスト---'
+    const result = fixHorizontalRuleMerge(input)
+    expect(result).toBe('前の段落テキスト\n\n---')
+  })
+
+  it('splits hr+text merge at start of line (non-heading)', () => {
+    const input = '---次の段落テキスト'
+    const result = fixHorizontalRuleMerge(input)
+    expect(result).toBe('---\n\n次の段落テキスト')
+  })
+
+  it('does not modify standalone hr lines', () => {
+    expect(fixHorizontalRuleMerge('---')).toBe('---')
+    expect(fixHorizontalRuleMerge('***')).toBe('***')
+    expect(fixHorizontalRuleMerge('___')).toBe('___')
+  })
+
+  it('does not modify hr inside fenced code blocks', () => {
+    const input = '```\ntext---\n```'
+    expect(fixHorizontalRuleMerge(input)).toBe(input)
+  })
+
+  it('does not process ---## heading (handled by fixHeadingMerge)', () => {
+    const input = '---## heading'
+    // fixHorizontalRuleMerge should not modify this; fixHeadingMerge handles it
+    expect(fixHorizontalRuleMerge(input)).toBe(input)
+  })
+
+  it('does not modify table rows containing dashes', () => {
+    const input = '| --- | --- |'
+    expect(fixHorizontalRuleMerge(input)).toBe(input)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// fixAnchorI18n
+// ---------------------------------------------------------------------------
+describe('fixAnchorI18n', () => {
+  it('fixes English anchor to Japanese anchor when heading matches (PR#155 pattern)', () => {
+    const input = [
+      '## フェデレーション',
+      '',
+      '詳細は[フェデレーション](#federation)を参照。',
+    ].join('\n')
+    const result = fixAnchorI18n(input, true)
+    expect(result).toContain('[フェデレーション](#フェデレーション)')
+    expect(result).not.toContain('#federation)')
+  })
+
+  it('does not modify content for en files (isJaFile=false)', () => {
+    const input = '[Federation](#federation) details.'
+    expect(fixAnchorI18n(input, false)).toBe(input)
+  })
+
+  it('does not modify already-valid anchors', () => {
+    const input = [
+      '## フェデレーション',
+      '',
+      '詳細は[フェデレーション](#フェデレーション)を参照。',
+    ].join('\n')
+    expect(fixAnchorI18n(input, true)).toBe(input)
+  })
+
+  it('keeps anchor unchanged when heading not found (warn-only)', () => {
+    const input = '[不明なリンク](#unknown-anchor) のテキスト。'
+    const result = fixAnchorI18n(input, true)
+    // anchor kept unchanged (warn-only mode)
+    expect(result).toContain('#unknown-anchor)')
+  })
+
+  it('handles slugify with spaces: link text with space slugifies to heading slug', () => {
+    // Link text "API リファレンス" → slugify → "api-リファレンス"
+    // heading "## API リファレンス" → slug "api-リファレンス" → match → auto-fix
+    const input = [
+      '## API リファレンス',
+      '',
+      '[API リファレンス](#api-reference)を参照。',
+    ].join('\n')
+    const result = fixAnchorI18n(input, true)
+    expect(result).toContain('#api-リファレンス)')
+  })
+
+  it('handles multiple anchors: link text matches heading slugs (auto-fix)', () => {
+    // Link texts match the heading slugs exactly after slugify
+    const input = [
+      '## セクション一',
+      '## セクション二',
+      '',
+      '[セクション一](#section-one)と[セクション二](#section-two)を参照。',
+    ].join('\n')
+    const result = fixAnchorI18n(input, true)
+    expect(result).toContain('[セクション一](#セクション一)')
+    expect(result).toContain('[セクション二](#セクション二)')
   })
 })
 
