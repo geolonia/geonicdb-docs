@@ -487,6 +487,19 @@ describe('fixListMerge', () => {
     const input = '- single item with `code`'
     expect(fixListMerge(input)).toBe(input)
   })
+
+  it('does not split list markers inside inline code spans', () => {
+    const input = '- 例）`- サンプル`- 次のアイテム'
+    const result = fixListMerge(input)
+    // should split at the closing backtick boundary, not inside the code span
+    expect(result).toBe('- 例）`- サンプル`\n- 次のアイテム')
+  })
+
+  it('splits * style merged list items (CJK boundary)', () => {
+    const input = '* アイテムひとつ* アイテムふたつ'
+    const result = fixListMerge(input)
+    expect(result).toBe('* アイテムひとつ\n* アイテムふたつ')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -636,6 +649,23 @@ describe('fixAnchorI18n', () => {
     const result = fixAnchorI18n(input, true)
     expect(result).toContain('[セクション一](#セクション一)')
     expect(result).toContain('[セクション二](#セクション二)')
+  })
+
+  it('does not rewrite anchors inside fenced code blocks', () => {
+    const input = [
+      '## フェデレーション',
+      '',
+      '```md',
+      '[フェデレーション](#federation)',
+      '```',
+      '',
+      '[フェデレーション](#federation)を参照。',
+    ].join('\n')
+    const result = fixAnchorI18n(input, true)
+    // Inside fence: unchanged
+    expect(result).toContain('```md\n[フェデレーション](#federation)\n```')
+    // Outside fence: fixed
+    expect(result).toContain('[フェデレーション](#フェデレーション)を参照。')
   })
 })
 

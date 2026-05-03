@@ -394,6 +394,8 @@ export function fixListMerge(content: string): string {
     splitRegex.lastIndex = 0
     while ((match = splitRegex.exec(line)) !== null) {
       const splitAt = match.index + 1 // split right after the closing char
+      const backtickCount = (line.slice(0, splitAt).match(/`/g) ?? []).length
+      if (backtickCount % 2 !== 0) continue // inside inline code — skip
       parts.push(line.slice(lastSplit, splitAt))
       lastSplit = splitAt
     }
@@ -605,10 +607,9 @@ export function fixAnchorI18n(content: string, isJaFile: boolean): string {
     }
   }
 
-  // Replace anchors: if current anchor is invalid but link-text slug matches a heading, fix it
-  return content.replace(
-    /\[([^\]]+)\]\(#([^)]+)\)/g,
-    (full, linkText, anchor) => {
+  // Replace anchors fence-aware: skip lines inside fenced code blocks
+  const replaceAnchorsInLine = (line: string): string =>
+    line.replace(/\[([^\]]+)\]\(#([^)]+)\)/g, (full, linkText, anchor) => {
       // Anchor already valid (slug exists in this file) — keep as-is
       if (headingMap.has(anchor)) return full
 
@@ -626,8 +627,20 @@ export function fixAnchorI18n(content: string, isJaFile: boolean): string {
       // No match — warn and preserve original
       console.warn(`[anchor-i18n] Could not resolve anchor #${anchor} in link [${linkText}]`)
       return full
+    })
+
+  const anchorResult: string[] = []
+  let inFenceAnchor = false
+  for (const line of content.split('\n')) {
+    const trimmed = line.trimStart()
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFenceAnchor = !inFenceAnchor
+      anchorResult.push(line)
+      continue
     }
-  )
+    anchorResult.push(inFenceAnchor ? line : replaceAnchorsInLine(line))
+  }
+  return anchorResult.join('\n')
 }
 
 // ---------------------------------------------------------------------------
