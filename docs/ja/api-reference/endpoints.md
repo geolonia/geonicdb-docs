@@ -463,7 +463,6 @@ Content-Type: application/json
 ```
 
 **レスポンス**: `204 No Content`
-
 **注意**: パスワードを変更すると、既存のすべてのアクセストークンとリフレッシュトークンが無効化されます。新しいトークンを取得するため、再度ログインしてください。
 
 ### ログアウト
@@ -476,7 +475,6 @@ Authorization: Bearer <accessToken>
 すべてのセッションを無効化します。このユーザーに対して発行されたすべてのアクセストークンとリフレッシュトークンが即座に無効化されます。
 
 **レスポンス**: `204 No Content`
-
 ### API キー トークン交換
 
 #
@@ -492,7 +490,6 @@ Origin: https://example.com
 ```
 
 **レスポンス**: `200 OK`
-
 ```json
 {
   "nonce": "base64url_timestamp.hmac_signature",
@@ -519,7 +516,6 @@ Origin: https://example.com
 ```
 
 **レスポンス**: `200 OK`
-
 ```json
 {
   "access_token": "<session_jwt>",
@@ -952,7 +948,6 @@ AI フレンドリーな [llms.txt](https://llmstxt.org/) フォーマットで 
 
 **レスポンス**
 - Content-Type: `text/markdown; charset=utf-8`
-
 ### API ドキュメント（JSON フォーマット）
 
 ```http

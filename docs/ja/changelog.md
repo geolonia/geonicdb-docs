@@ -620,7 +620,6 @@ outline: deep
   - Temporal/Snapshot リポジトリの暗号化統合
   - SAM テンプレート: KMS IAM ポリシー、DynamoDB SSE 設定、`EncryptionEnabled` パラメータ追加
   - 依存追加: `@aws-sdk/client-kms`
-
 ### 2026-02-25
 - **Feat**: マルチリージョン HA アーキテクチャ Phase 1+2 (#557)
   - Active-Passive 構成 (Primary: ap-northeast-1, Secondary: ap-northeast-3)
