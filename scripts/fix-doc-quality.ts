@@ -386,7 +386,7 @@ export function fixListMerge(content: string): string {
 
     // Find mid-line list markers: closing-char followed by `- `
     // closing chars: backtick, ), ], fullwidth ), CJK closing quotes, hiragana/katakana/kanji
-    const splitRegex = /([`)\]）」』぀-ヿ㐀-鿿豈-﫿])(- )/g
+    const splitRegex = /([`)\]）」』぀-ヿ㐀-鿿豈-﫿])(?:- |\* )/g
     const parts: string[] = []
     let lastSplit = 0
     let match: RegExpExecArray | null
@@ -448,7 +448,17 @@ export function fixHeadingMerge(content: string): string {
     }
 
     // Find mid-line heading marker (h2–h6 only; h1 excluded)
-    const headingIdx = line.search(/#{2,6} /)
+    // Skip matches inside inline code (even backtick count before match position)
+    let headingIdx = -1
+    for (const m of line.matchAll(/#{2,6} /g)) {
+      const idx = m.index ?? -1
+      if (idx <= 0) continue
+      const backtickCount = (line.slice(0, idx).match(/`/g) ?? []).length
+      if (backtickCount % 2 === 0) {
+        headingIdx = idx
+        break
+      }
+    }
     if (headingIdx <= 0) {
       result.push(line)
       continue
@@ -573,15 +583,25 @@ export function fixHorizontalRuleMerge(content: string): string {
 export function fixAnchorI18n(content: string, isJaFile: boolean): string {
   if (!isJaFile) return content
 
-  // Build slug → heading-text map from the file's headings
+  // Build slug → heading-text map (fence-aware; duplicate slugs tracked for warn-only)
   const headingMap = new Map<string, string>()
-  const headingRegex = /^#{1,6}\s+(.+)$/gm
-  let match: RegExpExecArray | null
-  while ((match = headingRegex.exec(content)) !== null) {
-    const text = match[1].trim()
-    const slug = slugify(text)
-    if (slug && !headingMap.has(slug)) {
-      headingMap.set(slug, text)
+  const slugCount = new Map<string, number>()
+  let inFence = false
+  for (const headingLine of content.split('\n')) {
+    const htrimmed = headingLine.trimStart()
+    if (htrimmed.startsWith('```') || htrimmed.startsWith('~~~')) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence) continue
+    const hm = htrimmed.match(/^#{1,6}\s+(.+)$/)
+    if (hm) {
+      const text = hm[1].trim()
+      const slug = slugify(text)
+      if (slug) {
+        slugCount.set(slug, (slugCount.get(slug) ?? 0) + 1)
+        if (!headingMap.has(slug)) headingMap.set(slug, text)
+      }
     }
   }
 
@@ -595,6 +615,11 @@ export function fixAnchorI18n(content: string, isJaFile: boolean): string {
       // Try to match by slugifying link text
       const linkTextSlug = slugify(linkText)
       if (linkTextSlug && headingMap.has(linkTextSlug)) {
+        // Warn-only for ambiguous (duplicate) heading slugs
+        if ((slugCount.get(linkTextSlug) ?? 0) > 1) {
+          console.warn(`[anchor-i18n] Ambiguous anchor (duplicate heading) #${linkTextSlug} in link [${linkText}]`)
+          return full
+        }
         return `[${linkText}](#${linkTextSlug})`
       }
 
@@ -666,6 +691,13 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
 
     let jaContent = readFileSync(jaFile, 'utf-8')
     let changed = false
+
+    // Fix embedded fences first (idempotent; also called inside fixBareCodeBlocks)
+    const afterEmbeddedFences = fixEmbeddedFences(jaContent)
+    if (afterEmbeddedFences !== jaContent) {
+      jaContent = afterEmbeddedFences
+      changed = true
+    }
 
     // Fix block boundary merges (list / heading / hr) before bare-code-block processing
     const afterListMerge = fixListMerge(jaContent)

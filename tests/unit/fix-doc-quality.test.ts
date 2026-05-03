@@ -527,6 +527,12 @@ describe('fixHeadingMerge', () => {
     expect(fixHeadingMerge(input)).toBe(input)
   })
 
+  it('does not split ## inside inline code backticks', () => {
+    // e.g. prose ending with `## sample` should NOT be split
+    const input = 'See the `## config` option for details.'
+    expect(fixHeadingMerge(input)).toBe(input)
+  })
+
   it('does not modify standalone hr lines', () => {
     expect(fixHeadingMerge('---')).toBe('---')
   })
