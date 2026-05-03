@@ -159,7 +159,7 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 
 ### Claude Desktop の設定
 
-#
+
 
 ### ローカル開発 (認証なし)
 
@@ -182,7 +182,7 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 
 > **注意**: `--transport http-only` が必要です。GeonicDB は Streamable HTTP (POST) のみをサポートしており、SSE は利用できません。`--allow-http` は `http://` URL に必要です (本番環境の `https://` では不要です)。
 
-#
+
 
 ### 本番環境 (JWT 認証を使用)
 
@@ -206,7 +206,7 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 
 JWT トークンは `/auth/login` エンドポイントから取得できます。JWT トークンには有効期限があり、定期的な更新が必要です。
 
-#
+
 
 ### 本番環境 (API キー認証を使用)
 
@@ -289,7 +289,7 @@ Claude Desktop の設定ファイルを編集します:
 
 設定を保存した後、Claude Desktop を完全に終了して再起動してください。GeonicDB MCP サーバーが利用可能なツールに表示されるはずです。
 
-#
+
 
 ### API キーの管理
 
@@ -312,7 +312,7 @@ geonic me api-keys delete <key-id>
 
 `entities`、`types`、`attributes`、`batch`、`temporal` の各ツールには、階層的なスコープ内でエンティティを管理できる `servicePath` パラメータがあります。
 
-#
+
 
 ### 基本形式
 
@@ -328,7 +328,7 @@ entities tool:
   servicePath: "/hello"
 ```
 
-#
+
 
 ### 階層検索 (`/#`)
 
@@ -342,7 +342,7 @@ entities tool:
   servicePath: "/Madrid/Gardens/#"
 ```
 
-#
+
 
 ### 複数パスの指定 (カンマ区切り)
 
