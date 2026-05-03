@@ -226,7 +226,9 @@ outline: deep
 | **通知配信** | | | |
 | 順序保証 | ✅ (SQS FIFO) | ⚠️ 限定的 | |
 | リトライ機能 | ✅ | ✅ | |
-| Dead Letter Queue | ✅ | ❌ | |## 登録 / コンテキストプロバイダー
+| Dead Letter Queue | ✅ | ❌ | |
+
+## 登録 / コンテキストプロバイダー
 
 | 機能 | GeonicDB | FIWARE Orion | 備考 |
 |---------|:------------------:|:------------:|-------|
@@ -308,7 +310,9 @@ outline: deep
 | MCP 認証 (JWT) | ✅ | ❌ | テナント分離サポート |
 | **llms.txt** | ✅ | ❌ | AI/LLM 向け API ドキュメント (`GET /llms.txt`) |
 | **tools.json** | ✅ | ❌ | AI エージェント向けツール定義 (`GET /tools.json`) |
-| **OpenAPI 3.0** | ✅ | ✅ | `GET /openapi.json` |## 運用と監視
+| **OpenAPI 3.0** | ✅ | ✅ | `GET /openapi.json` |
+
+## 運用と監視
 
 | 機能 | GeonicDB | FIWARE Orion | 備考 |
 |---------|:------------------:|:------------:|-------|
@@ -394,7 +398,9 @@ outline: deep
 - オンプレミス環境で運用する必要がある
 - 他の FIWARE エコシステムコンポーネント (Keyrock、Wilma など) と統合する
 - Docker/Kubernetes で運用する予定
-- AWS 以外のクラウドまたはマルチクラウド環境で運用する## 参考資料
+- AWS 以外のクラウドまたはマルチクラウド環境で運用する
+
+## 参考資料
 
 - [GeonicDB Repository](https://github.com/geolonia/geonicdb) (プライベートリポジトリ)
 - [FIWARE Orion Documentation](https://fiware-orion.readthedocs.io/)

@@ -49,12 +49,7 @@ EventBridge ─┬─> SubscriptionMatcher -> SQS -> HTTP/MQTT  [existing]
 
 ### 有効化
 
-SAM テンプレートで `EventStreamingEnabled` パラメータを `true` に設定してデプロイします。
-
-```bash
-sam deploy -t infrastructure/template.yaml \
-  --parameter-overrides EventStreamingEnabled=true
-```
+GeonicDB SaaS ではイベントストリーミングは既定で有効です。追加の設定は不要です。
 
 ### 環境変数
 
