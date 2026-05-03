@@ -1,0 +1,71 @@
+version: 1
+enabled: true
+
+rules:
+  # ---- R-DEV-MD: DEVELOPMENT.md 参照恒久化 (cmd_368 HF2 暫定削除の後継) ----
+  - id: R-DEV-MD-EN-BATCH
+    description: "Remove 'See DEVELOPMENT.md for configuration details.' from EN ngsiv2"
+    enabled: true
+    skip_in_code: true
+    skip_in_changelog: true
+    matchers:
+      - pattern: 'See DEVELOPMENT\.md for configuration details\.'
+        replacement: ''
+        scope: ['docs/en/api-reference/ngsiv2.md']
+
+  - id: R-DEV-MD-EN-PAGINATION
+    description: "Replace DEVELOPMENT.md API Spec reference with Pagination link in EN"
+    enabled: true
+    skip_in_code: true
+    skip_in_changelog: true
+    matchers:
+      - pattern: 'For details, see the "API Specification" section in DEVELOPMENT\.md\.'
+        replacement: 'For details, see [Pagination](/en/api-reference/pagination).'
+        scope: ['docs/en/core-concepts/ngsiv2-vs-ngsild.md']
+
+  - id: R-DEV-MD-JA-BATCH
+    description: "Remove 'DEVELOPMENT.md を参照してください' from JA ngsiv2"
+    enabled: true
+    skip_in_code: true
+    skip_in_changelog: true
+    matchers:
+      - pattern: '設定の詳細については DEVELOPMENT\.md を参照してください。'
+        replacement: ''
+        scope: ['docs/ja/api-reference/ngsiv2.md']
+
+  - id: R-DEV-MD-JA-PAGINATION
+    description: "Replace DEVELOPMENT.md API Spec reference with Pagination link in JA"
+    enabled: true
+    skip_in_code: true
+    skip_in_changelog: true
+    matchers:
+      - pattern: 'DEVELOPMENT\.md の「API 仕様」セクションを参照してください。'
+        replacement: '[ページネーション](/ja/api-reference/pagination)を参照してください。'
+        scope: ['docs/ja/core-concepts/ngsiv2-vs-ngsild.md']
+
+  # ---- R-SAM-BATCH: MaxBatchSize SAM パラメータ言及削除 ----
+  - id: R-SAM-BATCH-EN
+    description: "Remove MaxBatchSize SAM parameter mention from EN ngsiv2"
+    enabled: true
+    skip_in_code: true
+    skip_in_changelog: true
+    matchers:
+      - pattern: ', configurable up to 10,000 via the `MaxBatchSize` SAM parameter'
+        replacement: ''
+        scope: ['docs/en/api-reference/ngsiv2.md']
+      - pattern: ', configurable up to 10,000\)'
+        replacement: ')'
+        scope: ['docs/en/api-reference/ngsiv2.md']
+
+  - id: R-SAM-BATCH-JA
+    description: "Remove MaxBatchSize SAM parameter mention from JA ngsiv2"
+    enabled: true
+    skip_in_code: true
+    skip_in_changelog: true
+    matchers:
+      - pattern: '、`MaxBatchSize` SAM パラメータで最大 10,000 まで設定可能'
+        replacement: ''
+        scope: ['docs/ja/api-reference/ngsiv2.md']
+      - pattern: '、最大 10,000 まで設定可能'
+        replacement: ''
+        scope: ['docs/ja/api-reference/ngsiv2.md']

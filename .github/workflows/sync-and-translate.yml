@@ -120,6 +120,11 @@ jobs:
         if: steps.detect.outputs.has_changes == 'true'
         run: npx tsx scripts/fix-doc-quality.ts
 
+      - name: SaaS docs rewrite postscript
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          npx tsx scripts/saas-docs-rewrite.ts docs/en docs/ja
+
       - name: Glossary check — block tier
         if: steps.detect.outputs.has_changes == 'true'
         run: |
