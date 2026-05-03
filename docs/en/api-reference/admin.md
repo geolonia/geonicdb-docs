@@ -862,8 +862,6 @@ geonicdb_request_duration_seconds_bucket{le="0.1"} 1300000
 
 **SaaS users**: This is configured via the tenant settings API. Contact Geolonia support for details.
 
-**SaaS users**: This is configured via the tenant settings API. Contact Geolonia support for details.
-
 Restrict admin API access to specific IP addresses or CIDR ranges using the `ADMIN_ALLOWED_IPS` environment variable.
 
 ```text
