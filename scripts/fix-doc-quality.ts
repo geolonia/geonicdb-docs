@@ -163,8 +163,8 @@ export function fixEmbeddedFences(content: string): string {
   for (const line of lines) {
     const trimmed = line.trimStart()
 
-    // Track fenced block boundaries — toggle on any ``` line
-    if (trimmed.startsWith('```')) {
+    // Track fenced block boundaries — toggle on any ``` or ~~~ line
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
       inFencedBlock = !inFencedBlock
       result.push(line)
       continue
@@ -176,20 +176,20 @@ export function fixEmbeddedFences(content: string): string {
       continue
     }
 
-    // Find last occurrence of ``` in the line (potential embedded fence)
-    const fenceIdx = line.lastIndexOf('```')
-    if (fenceIdx > 0) {
-      const afterFence = line.slice(fenceIdx + 3)
-      // Must be followed by a language identifier (a–z)
-      if (/^[a-z]/.test(afterFence)) {
-        const prose = line.slice(0, fenceIdx)
-        const indent = line.match(/^\s*/)?.[0] ?? ''
-        const fencePart = indent + line.slice(fenceIdx)
-        result.push(prose)
-        result.push('')
-        result.push(fencePart)
-        continue
-      }
+    // Detect mid-line fence: prose + (N≥3 consecutive backticks) + lang identifier, at EOL.
+    // When N>3, the extra (N-3) leading backticks are inline-code close chars and stay with prose.
+    // Handles both standard 3-backtick (N=3) and 4/5-backtick edge cases from yuuhitsu newline loss.
+    const fenceMatch = line.match(/^(.*?)(`{3,})([a-z][a-z0-9_+-]*)\s*$/i)
+    if (fenceMatch && fenceMatch[1].length > 0) {
+      const proseEnd = fenceMatch[1]
+      const inlineCloseCount = fenceMatch[2].length - 3
+      const lang = fenceMatch[3]
+      const finalProse = inlineCloseCount > 0 ? proseEnd + '`'.repeat(inlineCloseCount) : proseEnd
+      const indent = line.match(/^\s*/)?.[0] ?? ''
+      result.push(finalProse)
+      result.push('')
+      result.push(indent + '```' + lang)
+      continue
     }
 
     result.push(line)
@@ -441,6 +441,20 @@ export function fixHeadingMerge(content: string): string {
     if (inFencedBlock) {
       result.push(line)
       continue
+    }
+
+    // Detect heading + inline-code + body: ## heading `code`body → split.
+    // Greedy `.+` finds the LAST inline-code span; body must start with non-space char.
+    // Must run BEFORE the heading skip-check below to catch this pattern.
+    if (/^#{1,6} /.test(trimmed)) {
+      const headingBodyMatch = trimmed.match(/^(#{1,6} .+`[^`]+`)([^\s`].*)$/)
+      if (headingBodyMatch) {
+        const indent = line.match(/^\s*/)?.[0] ?? ''
+        result.push(indent + headingBodyMatch[1])
+        result.push('')
+        result.push(headingBodyMatch[2])
+        continue
+      }
     }
 
     // Skip lines that already start with a heading or are standalone hr/empty
