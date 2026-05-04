@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- [feat] cmd_386 — demo-app.md に Live Demo リンク追加 (demo.geonicdb.com) (Closes #177)
 - [feat] cmd_382 — fixListMerge に DEBUG_FIXLISTMERGE=1 制御の debug logging 追加（skip 理由・行番号記録）(Closes #172)
 - [feat] cmd_378 — fix-doc-quality.ts SF4 拡張: fixEmbeddedFences 4/5-backtick edge case (B軸) + fixHeadingMerge heading+inline-code+body 分離 (C軸)。unit tests 9 件追加 (Closes #164)
 - [feat] cmd_375 SF4 — fix-doc-quality.ts に fixListMerge / fixHeadingMerge / fixHorizontalRuleMerge / fixAnchorI18n 4 関数追加 + unit tests 29 件。list/heading/hr 連結検出・自動分割、ja docs アンカー Hybrid auto-fix 実装 (Closes #159)

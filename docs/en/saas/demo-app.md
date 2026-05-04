@@ -6,6 +6,8 @@ outline: deep
 
 # Demo App
 
+Try the live demo at **[demo.geonicdb.com](https://demo.geonicdb.com)** — no setup required.
+
 The GeonicDB Demo App is a collection of interactive applications that showcase GeonicDB capabilities. Built with React, Vite, and MapLibre GL JS, the demos cover real-world use cases from executive dashboards to geo-spatial city maps.
 
 ## Demo Applications
@@ -22,6 +24,8 @@ An executive summary view that aggregates data from GeonicDB entities into actio
 - **Entity Table** — Sortable overview of all entities with key attributes
 - **Mini Map** — Location-aware entities plotted on a map
 
+[Try it →](https://demo.geonicdb.com/dashboard)
+
 ### API Tutorial
 
 **Audience**: Developers and evaluators
@@ -36,6 +40,8 @@ A guided, 5-step interactive walkthrough that teaches you the GeonicDB API hands
 
 Each step provides multi-language code samples (curl, JavaScript, Python) and lets you execute API calls directly in the browser.
 
+[Try it →](https://demo.geonicdb.com/tutorial)
+
 ### Smart Building
 
 **Audience**: Facility managers and building operators
@@ -49,6 +55,8 @@ A building management interface demonstrating IoT sensor data visualization:
 - **Live Simulation** — Run simulations with adjustable speed to see real-time data changes
 - **Inline Editing** — Modify entity attributes directly from the UI
 
+[Try it →](https://demo.geonicdb.com/smart-building)
+
 ### City Map
 
 **Audience**: GIS engineers and smart city planners
@@ -60,6 +68,8 @@ A full-screen geographic interface for spatial data exploration:
 - **Query Result Overlay** — See matching entities with the generated curl command
 - **Entity Panel** — Browse and filter entities by type
 - **AI Chat** — Natural language queries powered by MCP, with tool call visualization
+
+[Try it →](https://demo.geonicdb.com/city-map)
 
 ## Tech Stack
 
@@ -140,6 +150,7 @@ geonicdb-demo-app/
 
 ## Links
 
+- **Live Demo**: [demo.geonicdb.com](https://demo.geonicdb.com)
 - **Geolonia Maps**: [geolonia.com](https://geolonia.com/)
 
 ## Next Steps

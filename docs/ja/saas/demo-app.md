@@ -6,6 +6,8 @@ outline: deep
 
 # デモアプリ
 
+**[demo.geonicdb.com](https://demo.geonicdb.com)** でライブデモをお試しいただけます — セットアップ不要です。
+
 GeonicDB Demo App は、GeonicDB の機能を体験できるインタラクティブなアプリケーション集です。React、Vite、MapLibre GL JS で構築され、エグゼクティブダッシュボードから地理空間シティマップまで、実際のユースケースをカバーしています。
 
 ## デモアプリケーション
@@ -22,6 +24,8 @@ GeonicDB エンティティのデータをアクション可能なメトリク�
 - **エンティティテーブル** — 主要属性付きの全エンティティのソート可能な一覧
 - **ミニマップ** — 位置情報を持つエンティティの地図表示
 
+[試す →](https://demo.geonicdb.com/dashboard)
+
 ### API Tutorial（API チュートリアル）
 
 **対象**: 開発者、評価者
@@ -36,6 +40,8 @@ GeonicDB API をハンズオンで学ぶ、ガイド付き5ステップのイン
 
 各ステップでマルチ言語のコードサンプル（curl、JavaScript、Python）を提供し、ブラウザ内で直接 API コールを実行できます。
 
+[試す →](https://demo.geonicdb.com/tutorial)
+
 ### Smart Building（スマートビルディング）
 
 **対象**: 施設管理者、ビルオペレーター
@@ -49,6 +55,8 @@ IoT センサーデータの可視化を示すビル管理インターフェー�
 - **ライブシミュレーション** — 速度調整可能なシミュレーションでリアルタイムデータ変化を確認
 - **インライン編集** — UI から直接エンティティ属性を変更
 
+[試す →](https://demo.geonicdb.com/smart-building)
+
 ### City Map（シティマップ）
 
 **対象**: GIS エンジニア、スマートシティプランナー
@@ -60,6 +68,8 @@ IoT センサーデータの可視化を示すビル管理インターフェー�
 - **クエリ結果オーバーレイ** — マッチしたエンティティと生成された curl コマンドの表示
 - **エンティティパネル** — タイプ別フィルタリング付きのエンティティ一覧
 - **AI チャット** — MCP によるツールコール可視化付きの自然言語クエリ
+
+[試す →](https://demo.geonicdb.com/city-map)
 
 ## 技術スタック
 
@@ -140,6 +150,7 @@ geonicdb-demo-app/
 
 ## リンク
 
+- **ライブデモ**: [demo.geonicdb.com](https://demo.geonicdb.com)
 - **Geolonia Maps**: [geolonia.com](https://geolonia.com/)
 
 ## 次のステップ
