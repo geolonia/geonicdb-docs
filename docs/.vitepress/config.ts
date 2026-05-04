@@ -1,9 +1,9 @@
-import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 import { shared } from './config/shared'
 import { en } from './config/en'
 import { ja } from './config/ja'
 
-export default defineConfig({
+export default withMermaid({
   ...shared,
 
   locales: {
