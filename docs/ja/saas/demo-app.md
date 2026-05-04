@@ -6,7 +6,7 @@ outline: deep
 
 # デモアプリ
 
-**[demo.geonicdb.com](https://demo.geonicdb.com)** でライブデモをお試しいただけます — セットアップ不要です。
+**[GeonicDB デモ](https://demo.geonicdb.com)** でライブデモをお試しいただけます — セットアップ不要です。
 
 GeonicDB Demo App は、GeonicDB の機能を体験できるインタラクティブなアプリケーション集です。React、Vite、MapLibre GL JS で構築され、エグゼクティブダッシュボードから地理空間シティマップまで、実際のユースケースをカバーしています。
 
@@ -150,7 +150,7 @@ geonicdb-demo-app/
 
 ## リンク
 
-- **ライブデモ**: [demo.geonicdb.com](https://demo.geonicdb.com)
+- **ライブデモ**: [GeonicDB デモ](https://demo.geonicdb.com)
 - **Geolonia Maps**: [geolonia.com](https://geolonia.com/)
 
 ## 次のステップ
