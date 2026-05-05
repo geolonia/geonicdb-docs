@@ -25,6 +25,12 @@ export interface GlossaryRule {
    * replacing "サブスクリプション" (which already starts with "サブスク").
    */
   negLookahead?: string
+  /**
+   * Additional negative lookahead strings (each escaped independently).
+   * Combined with negLookahead when both are present.
+   * E.g., negLookaheads=["-", "."] prevents replacing "geonicdb-docs" and "geonicdb.geolonia.com".
+   */
+  negLookaheads?: string[]
 }
 
 /**
@@ -35,6 +41,10 @@ export interface GlossaryRule {
 export const JA_GLOSSARY_RULES: GlossaryRule[] = [
   // brand
   { forbidden: 'ジオニックDB', correct: 'GeonicDB' },
+  // "geonicdb" without suffix is prose violation; compound names ("geonicdb-docs"),
+  // URLs ("geonicdb.geolonia.com", "geolonia/geonicdb/compare"), IAM keys ("geonicdb:purpose"),
+  // metrics ("geonicdb_uptime"), and inline code ("`npx geonicdb`") are excluded.
+  { forbidden: 'geonicdb', correct: 'GeonicDB', negLookaheads: ['-', '.', '/', ':', '_', '`'] },
   { forbidden: 'リアクティブコア', correct: 'ReactiveCore' },
   { forbidden: 'マップリブレ', correct: 'MapLibre' },
   { forbidden: 'ファイウェア', correct: 'FIWARE' },
@@ -64,14 +74,19 @@ export const JA_GLOSSARY_RULES: GlossaryRule[] = [
 
 /**
  * Build a RegExp for a single glossary rule.
- * If the rule has a negLookahead, the regex will NOT match when `forbidden`
- * is immediately followed by that string (preventing partial-word replacement).
+ * Negative lookaheads from both `negLookahead` and `negLookaheads` are combined.
  */
 function buildGlossaryRegex(rule: GlossaryRule): RegExp {
   const escaped = rule.forbidden.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  if (rule.negLookahead) {
-    const lookaheadEscaped = rule.negLookahead.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return new RegExp(`${escaped}(?!${lookaheadEscaped})`, 'g')
+  const allLookaheads = [
+    ...(rule.negLookahead ? [rule.negLookahead] : []),
+    ...(rule.negLookaheads ?? []),
+  ]
+  if (allLookaheads.length > 0) {
+    const negParts = allLookaheads
+      .map(la => `(?!${la.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`)
+      .join('')
+    return new RegExp(`${escaped}${negParts}`, 'g')
   }
   return new RegExp(escaped, 'g')
 }
