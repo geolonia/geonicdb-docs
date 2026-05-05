@@ -11,3 +11,4 @@ docs/.vitepress/cache/
 .geonicdb-upstream/
 test-results/
 playwright-report/
+.code-review-done
