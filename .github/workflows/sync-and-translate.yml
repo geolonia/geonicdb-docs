@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout geonicdb-docs
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ inputs.base_branch || 'main' }}
 
       - name: Checkout geolonia/geonicdb (docs/ and CHANGELOG.md via sparse-checkout)
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
