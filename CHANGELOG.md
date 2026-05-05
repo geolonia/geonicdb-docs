@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- [feat] cmd_411 — `@geolonia/yuuhitsu` 0.2.0 canary dogfood 開始（1週間 monitoring、Phase 0 PoC QC PASS確認済み）(Part of #196)
 - [feat] cmd_387 — vitepress-plugin-mermaid 導入（architecture ページ Mermaid グラフ表示対応）(Closes #179)
 - [feat] cmd_386 — demo-app.md に Live Demo リンク追加 (demo.geonicdb.com) (Closes #177)
 - [feat] cmd_382 — fixListMerge に DEBUG_FIXLISTMERGE=1 制御の debug logging 追加（skip 理由・行番号記録）(Closes #172)
