@@ -5,11 +5,11 @@ outline: deep
 ---
 # NGSIv2 API
 
-> このドキュメントは[API.md](./endpoints.md)から分割されました。メインの API 仕様については、[API.md](./endpoints.md)を参照してください。
+> このドキュメントは [API.md](./endpoints.md) から分割されました。メインの API 仕様については、[API.md](./endpoints.md) を参照してください。
 
 ---
 
-## エンティティ操作### エンティティの一覧取得
+## エンティティ操作### エンティティ一覧取得
 
 ```http
 GET /v2/entities
@@ -19,29 +19,29 @@ GET /v2/entities
 
 | パラメータ | 型 | 説明 | デフォルト |
 |-----------|------|-------------|---------|
-| `id` | string | エンティティ ID でフィルタ (複数の値をカンマ区切りリストで指定可能) | - |
-| `limit` | integer | 取得する結果の数 (最大: 1000) | 20 |
+| `id` | string | エンティティ ID でフィルタ (カンマ区切りで複数指定可能) | - |
+| `limit` | integer | 取得する結果の件数 (最大: 1000) | 20 |
 | `offset` | integer | オフセット (ページネーション用) | 0 |
 | `orderBy` | string | ソート条件 (`entityId`、`entityType`、`modifiedAt`、または属性名)。FIWARE Orion 互換の `!` プレフィックスで降順指定可能 (例: `!temperature`) | - |
-| `orderDirection` | string | ソート方向 (`asc`、`desc`)。**GeonicDB 拡張** (公式仕様は `!` プレフィックス方式のみサポート) | `asc` |
+| `orderDirection` | string | ソート方向 (`asc`、`desc`)。**GeonicDB 拡張** (公式仕様では `!` プレフィックス方式のみサポート) | `asc` |
 | `type` | string | エンティティタイプでフィルタ | - |
 | `typePattern` | string | エンティティタイプの正規表現パターン | - |
 | `idPattern` | string | エンティティ ID の正規表現パターン | - |
-| `q` | string | 属性値でフィルタ ([クエリ言語](./endpoints.md#query-language)を参照) | - |
-| `mq` | string | メタデータでフィルタ ([クエリ言語](./endpoints.md#query-language)を参照) | - |
+| `q` | string | 属性値でフィルタ ([クエリ言語](./endpoints.md#query-language) を参照) | - |
+| `mq` | string | メタデータでフィルタ ([クエリ言語](./endpoints.md#query-language) を参照) | - |
 | `attrs` | string | 取得する属性名 (カンマ区切り) | - |
-| `metadata` | string | メタデータ出力制御 (`on`、`off`)。**GeonicDB 拡張** (公式仕様では `*` ワイルドカードなどを含むカンマ区切りの名前リストを使用) | `on` |
-| `georel` | string | ジオクエリ演算子 ([ジオクエリ](./endpoints.md#geo-queries)を参照) | - |
+| `metadata` | string | メタデータ出力制御 (`on`、`off`)。**GeonicDB 拡張** (公式仕様ではカンマ区切りの名前リストと `*` ワイルドカード等を使用) | `on` |
+| `georel` | string | ジオクエリ演算子 ([ジオクエリ](./endpoints.md#geo-queries) を参照) | - |
 | `geometry` | string | ジオメトリタイプ | - |
 | `coords` | string | 座標 (緯度,経度 形式、セミコロン区切り) | - |
-| `spatialId` | string | 空間 ID でフィルタ (ZFXY 形式) ([空間 ID 検索](./endpoints.md#spatial-id-search)を参照) | - |
+| `spatialId` | string | 空間 ID でフィルタ (ZFXY 形式) ([空間 ID 検索](./endpoints.md#spatial-id-search) を参照) | - |
 | `spatialIdDepth` | integer | 空間 ID 階層展開の深さ (0-4) | 0 |
-| `crs` | string | 座標参照系 ([座標参照系 (CRS)](./endpoints.md#coordinate-reference-system-crs)を参照) | `EPSG:4326` |
+| `crs` | string | 座標参照系 ([座標参照系 (CRS)](./endpoints.md#coordinate-reference-system-crs) を参照) | `EPSG:4326` |
 | `options` | string | `keyValues`、`values`、`count`、`geojson`、`sysAttrs`、`unique` | - |
 
 **組み込み属性**
 
-`attrs` パラメータは、ユーザー定義属性に加えて、以下の組み込み属性をサポートします:
+`attrs` パラメータは、ユーザー定義属性に加えて以下の組み込み属性をサポートしています:
 
 | 組み込み属性 | 型 | 説明 |
 |---|---|---|
@@ -119,9 +119,9 @@ curl "http://localhost:3000/v2/entities?type=Store" \
 }
 ```
 
-レスポンスヘッダーには `Content-Type: application/geo+json` が設定されます。
+レスポンスヘッダーに `Content-Type: application/geo+json` が設定されます。
 
-### エンティティの作成
+### エンティティ作成
 
 ```http
 POST /v2/entities
@@ -161,14 +161,14 @@ POST /v2/entities
 }
 ```
 
-**Upsert 動作** (`options=upsert`)
+**アップサート動作** (`options=upsert`)
 
 エンティティが存在しない場合は作成され (`201 Created`)、既に存在する場合はその属性が更新されます (`204 No Content`)。
 
 **レスポンス**
-- ステータス: `201 Created` (新規作成)、`204 No Content` (upsert による更新)
-- ステータス: `409 AlreadyExists` 同じ ID のエンティティが既に存在する場合 (タイプに関わらず)
-- ヘッダー: `Location: /v2/entities/Room1?type=Room`> **GeonicDB 拡張 — エンティティ ID の一意性**: エンティティ ID はテナントとServicePathのスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成することはできず、`409 AlreadyExists` が返されます。これは、同じ ID で異なるタイプのエンティティを許可する NGSIv2 仕様とは異なります。詳細は [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension)を参照してください。
+- ステータス: `201 Created` (新規作成)、`204 No Content` (アップサートによる更新)
+- ステータス: `409 AlreadyExists` 同じ ID のエンティティが既に存在する場合 (タイプに関係なく)
+- ヘッダー: `Location: /v2/entities/Room1?type=Room`> **GeonicDB 拡張 — エンティティ ID の一意性**: エンティティ ID は、テナントとServicePathのスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成することはできず、`409 AlreadyExists` が返されます。これは、同じ ID で異なるタイプのエンティティを許可する NGSIv2 仕様とは異なります。詳細は [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
 
 ### 単一エンティティの取得
 
@@ -180,11 +180,11 @@ GET /v2/entities/{entityId}
 
 | パラメータ | 型 | 説明 |
 |-----------|------|-------------|
-| `type` | string | エンティティタイプ (オプションのフィルタ; エンティティ ID は一意であるため、タイプの曖昧さ解消は不要 — [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照) |
-| `attrs` | string | 取得する属性名 (カンマ区切り) |
+| `type` | string | エンティティタイプ(オプションのフィルタ; エンティティ ID は一意であるため、タイプの曖昧性解消は不要 — [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension)を参照) |
+| `attrs` | string | 取得する属性名(カンマ区切り) |
 | `options` | string | `keyValues`、`values` |
 
-### エンティティの更新 (PATCH)
+### エンティティの更新(PATCH)
 
 ```http
 PATCH /v2/entities/{entityId}/attrs
@@ -209,13 +209,13 @@ PATCH /v2/entities/{entityId}/attrs
 }
 ```
 
-**レスポンス**: `204 No Content`### エンティティの更新 (PUT)
+**レスポンス**: `204 No Content`### エンティティの更新(PUT)
 
 ```http
 PUT /v2/entities/{entityId}/attrs
 ```
 
-すべての属性を置き換えます (指定されていない属性は削除されます)。
+すべての属性を置き換えます(指定されていない属性は削除されます)。
 
 **クエリパラメータ**
 
@@ -223,22 +223,22 @@ PUT /v2/entities/{entityId}/attrs
 |-----------|------|-------------|
 | `type` | string | エンティティタイプ |
 
-**レスポンス**: `204 No Content`### 属性の追加 (POST)
+**レスポンス**: `204 No Content`### 属性の追加(POST)
 
 ```http
 POST /v2/entities/{entityId}/attrs
 ```
 
-新しい属性を追加します (既存の属性は上書きされます)。
+新しい属性を追加します(既存の属性は上書きされます)。
 
-`options=append` が指定された場合、既存の属性は上書きされず、新しい属性のみが追加されます (厳密な追加モード)。既に存在する属性名が含まれている場合、`422 Unprocessable Entity` エラーが返されます。
+`options=append` を指定すると、既存の属性は上書きされず、新しい属性のみが追加されます(厳密な追加モード)。すでに存在する属性名が含まれている場合、`422 Unprocessable Entity` エラーが返されます。
 
 **クエリパラメータ**
 
 | パラメータ | 型 | 説明 |
 |-----------|------|-------------|
 | `type` | string | エンティティタイプ |
-| `options` | string | `append`: 既存の属性の上書きを禁止 (厳密な追加モード) |
+| `options` | string | `append`: 既存の属性の上書きを禁止(厳密な追加モード) |
 
 **レスポンス**: `204 No Content`### エンティティの削除
 
@@ -254,9 +254,9 @@ DELETE /v2/entities/{entityId}
 
 **レスポンス**: `204 No Content`---
 
-## 属性の操作### エンティティの属性を取得
+## 属性操作### エンティティの属性を取得
 
-エンティティのすべての属性を取得します (`id` および `type` フィールドは含まれません)。
+エンティティのすべての属性を取得します(`id` と `type` フィールドは含まれません)。
 
 ```http
 GET /v2/entities/{entityId}/attrs
@@ -267,9 +267,9 @@ GET /v2/entities/{entityId}/attrs
 | パラメータ | 型 | 説明 | デフォルト |
 |-----------|------|-------------|---------|
 | `type` | string | エンティティタイプ | - |
-| `attrs` | string | 取得する属性名 (カンマ区切り) | - |
-| `metadata` | string | メタデータ出力制御 (`on`、`off`) | `on` |
-| `options` | string | `keyValues`、`values`、`sysAttrs` | - |
+| `attrs` | string | 取得する属性名(カンマ区切り) | - |
+| `metadata` | string | メタデータ出力制御(`on`, `off`) | `on` |
+| `options` | string | `keyValues`, `values`, `sysAttrs` | - |
 
 **レスポンス例**
 
@@ -297,9 +297,9 @@ GET /v2/entities/{entityId}/attrs
 }
 ```
 
-> **注意**: `/v2/entities/{entityId}?attrs=...` とは異なり、このエンドポイントには `id` および `type` フィールドが含まれません。属性のみが必要な場合に使用してください。
+> **注意**: `/v2/entities/{entityId}?attrs=...` とは異なり、このエンドポイントには `id` と `type` フィールドが含まれません。属性のみが必要な場合に使用してください。
 
-### 単一属性の取得
+### 単一属性を取得
 
 ```http
 GET /v2/entities/{entityId}/attrs/{attrName}
@@ -321,7 +321,7 @@ GET /v2/entities/{entityId}/attrs/{attrName}
 }
 ```
 
-### 単一属性の更新
+### 単一属性を更新
 
 ```http
 PUT /v2/entities/{entityId}/attrs/{attrName}
@@ -342,7 +342,7 @@ PUT /v2/entities/{entityId}/attrs/{attrName}
 }
 ```
 
-**レスポンス**: `204 No Content`### 単一属性の削除
+**レスポンス**: `204 No Content`### 単一属性を削除
 
 ```http
 DELETE /v2/entities/{entityId}/attrs/{attrName}
@@ -360,7 +360,7 @@ DELETE /v2/entities/{entityId}/attrs/{attrName}
 GET /v2/entities/{entityId}/attrs/{attrName}/value
 ```
 
-属性の値のみを取得します (型とメタデータは含まれません)。
+属性の値のみを取得します(タイプとメタデータは含まれません)。
 
 **クエリパラメータ**
 
@@ -370,7 +370,7 @@ GET /v2/entities/{entityId}/attrs/{attrName}/value
 
 **レスポンス**
 
-値の型に応じて異なる Content-Type で返されます:
+値のタイプに応じて異なる Content-Type で返されます:
 
 | 値の型 | Content-Type | 例 |
 |------------|--------------|---------|
@@ -414,7 +414,7 @@ PUT /v2/entities/{entityId}/attrs/{attrName}/value
 
 | Content-Type | 解釈 |
 |--------------|----------------|
-| `application/json` | JSON としてパース |
+| `application/json` | JSON として解析されます |
 | `text/plain` | プリミティブ値 (`null`、`true`、`false`、数値) または文字列 |
 
 **使用例**
@@ -433,13 +433,13 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
   -d '{"type":"Point","coordinates":[140.0,36.0]}'
 ```
 
-**レスポンス**: `204 No Content`**注**: この操作では、既存の属性の型やメタデータは変更されず、保持されます。
+**レスポンス**: `204 No Content`**注意**: この操作は既存の属性の型やメタデータを変更しません — それらは保持されます。
 
 ---
 
 ## バッチ操作
 
-> **注**: バッチ操作は 1 回のリクエストで最大 **`MAX_BATCH_SIZE`** 個のエンティティを処理できます (デフォルト: 100、SAM パラメータ `MaxBatchSize` で最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーになります。
+> **注意**: バッチ操作は、1 リクエストあたり最大 **`MAX_BATCH_SIZE`** エンティティを処理できます(デフォルト: 100、`MaxBatchSize` SAM パラメータにより最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーとなります。
 
 ### バッチ更新
 
@@ -472,15 +472,13 @@ POST /v2/op/update
 | アクション | 説明 |
 |--------|-------------|
 | `append` | 既存エンティティの属性を追加/更新 |
-| `appendStrict` | 既存エンティティに新しい属性を追加 (既存属性が存在する場合はエラーを返す) |
-| `update` | 既存の属性のみを更新 (エンティティが存在しない場合はエラー) |
+| `appendStrict` | 既存エンティティに新しい属性を追加(既存の属性が存在する場合はエラーを返す) |
+| `update` | 既存の属性のみを更新(エンティティが存在しない場合はエラー) |
 | `replace` | すべての属性を置換 |
 | `delete` | エンティティまたは属性を削除 |
 
 **レスポンス**
-- すべて成功: `204 No Content`- 部分的成功/エラー: `200 OK` とエラー詳細
-
-```json
+- すべて成功: `204 No Content`- 部分的な成功/エラー: エラー詳細を含む `200 OK````json
 {
   "success": [
     { "entityId": "Room1" }
@@ -528,7 +526,7 @@ POST /v2/op/query
 POST /v2/op/notify
 ```
 
-外部 Context Broker からの通知を受信し、append でエンティティを処理します (存在しない場合は作成、既に存在する場合は更新)。
+外部のコンテキストブローカーからの通知を受信し、append でエンティティを処理します(存在しない場合は作成、既に存在する場合は更新)。
 
 **リクエストボディ**
 
@@ -546,7 +544,7 @@ POST /v2/op/notify
 ```
 
 - `subscriptionId`: 必須 - 通知をトリガーしたサブスクリプション ID
-- `data`: 必須 - NGSIv2 正規化形式のエンティティの配列
+- `data`: 必須 - NGSIv2 正規化形式のエンティティ配列
 
 **レスポンス**: `200 OK`---
 
@@ -584,7 +582,7 @@ POST /v2/subscriptions
 }
 ```
 
-**httpCustom 通知の例(カスタムテンプレート)**
+**httpCustom 通知の例 (カスタムテンプレート)**
 
 ```json
 {
@@ -611,23 +609,23 @@ POST /v2/subscriptions
 
 | フィールド | タイプ | 必須 | 説明 |
 |-------|------|----------|-------------|
-| `url` | string | ✓ | 通知送信先 URL |
-| `method` | string | - | HTTP メソッド(GET、POST、PUT、PATCH、DELETE)。デフォルト: POST |
+| `url` | string | ✓ | 通知先の URL |
+| `method` | string | - | HTTP メソッド (GET、POST、PUT、PATCH、DELETE)。デフォルト: POST |
 | `headers` | object | - | カスタム HTTP ヘッダー |
-| `qs` | object | - | クエリ文字列パラメータ(`${...}` マクロ置換をサポート) |
-| `payload` | string | - | リクエストボディテンプレート(`${...}` マクロ置換をサポート) |
+| `qs` | object | - | クエリ文字列パラメータ (`${...}` マクロ置換をサポート) |
+| `payload` | string | - | リクエストボディテンプレート (`${...}` マクロ置換をサポート) |
 
 **マクロ置換**
 
-`${...}` 構文を使用して `payload` および `qs` の値にエンティティデータを埋め込むことができます:
+`payload` と `qs` の値に `${...}` 構文を使用してエンティティデータを埋め込むことができます:
 
 | マクロ | 置換値 |
 |-------|-------------------|
 | `${id}` | エンティティ ID |
 | `${type}` | エンティティタイプ |
-| `${attrName}` | 属性値(正規化された属性から `.value` を抽出) |
+| `${attrName}` | 属性値 (正規化された属性から `.value` を抽出) |
 
-存在しない属性は文字列 `null` に置き換えられます。マクロは attrs/exceptAttrs フィルターが適用される前の完全なエンティティに対して評価されます。
+存在しない属性は文字列 `null` に置き換えられます。マクロは attrs/exceptAttrs フィルタが適用される前の完全なエンティティに対して評価されます。
 
 **MQTT 通知の例**
 
@@ -661,8 +659,8 @@ POST /v2/subscriptions
 | フィールド | タイプ | 必須 | 説明 |
 |-------|------|----------|-------------|
 | `url` | string | ✓ | MQTT ブローカー URL (`mqtt://` または `mqtts://`) |
-| `topic` | string | ✓ | 通知送信先トピック |
-| `qos` | integer | - | QoS レベル(0、1、2)。デフォルト: 0 |
+| `topic` | string | ✓ | 通知先トピック |
+| `qos` | integer | - | QoS レベル (0、1、2)。デフォルト: 0 |
 | `retain` | boolean | - | メッセージ保持フラグ。デフォルト: false |
 | `user` | string | - | 認証ユーザー名 |
 | `passwd` | string | - | 認証パスワード |
@@ -699,7 +697,7 @@ POST /v2/subscriptions
 
 | フォーマット | 説明 |
 |--------|-------------|
-| `normalized` | 標準 NGSIv2 フォーマット(デフォルト) |
+| `normalized` | 標準 NGSIv2 フォーマット (デフォルト) |
 | `keyValues` | 簡略化されたキーバリューフォーマット |
 
 **通知属性のフィルタリング**
@@ -723,7 +721,7 @@ GET /v2/subscriptions
 |-----------|------|-------------|---------|
 | `limit` | integer | 取得する結果の数 | 20 |
 | `offset` | integer | オフセット | 0 |
-| `status` | string | ステータスでフィルタリング(`active`、`inactive`) | - |
+| `status` | string | ステータスによるフィルタ (`active`、`inactive`) | - |
 
 ### サブスクリプションの取得
 
@@ -754,15 +752,15 @@ DELETE /v2/subscriptions/{subscriptionId}
 
 **レスポンス**: `204 No Content`### 所有権の検証 (GeonicDB 拡張)
 
-認証が有効になっている場合 (`AUTH_ENABLED=true`)、サブスクリプションの更新 (PATCH) と削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権の検証を実行します。作成者以外のユーザーがこれらの操作を試みた場合、`403 Forbidden` が返されます。`super_admin` と `tenant_admin` ロールはこの検証をバイパスできます。詳細については AUTH.md を参照してください。
+認証が有効な場合 (`AUTH_ENABLED=true`)、サブスクリプションの更新 (PATCH) および削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権の検証を実行します。作成者以外のユーザーがこれらの操作を試みた場合、`403 Forbidden` が返されます。`super_admin` および `tenant_admin` ロールはこの検証をバイパスできます。詳細については AUTH.md を参照してください。
 
 ---
 
-## 登録
+## Registration
 
-登録は外部コンテキストプロバイダを登録し、エンティティ情報のソースを管理します。
+Registration は、外部コンテキストプロバイダーを登録し、エンティティ情報のソースを管理します。
 
-### 登録の作成
+### Registration の作成
 
 ```http
 POST /v2/registrations
@@ -791,18 +789,18 @@ POST /v2/registrations
 
 **リクエストフィールド**
 
-| フィールド | タイプ | 必須 | 説明 |
+| フィールド | 型 | 必須 | 説明 |
 |-------|------|----------|-------------|
-| `description` | string | - | 登録の説明 |
+| `description` | string | - | Registration の説明 |
 | `dataProvided.entities` | array | ✓ | 対象エンティティ (id、idPattern、type) |
 | `dataProvided.attrs` | array | - | 提供する属性名 |
-| `provider.http.url` | string | ✓ | プロバイダ URL |
+| `provider.http.url` | string | ✓ | プロバイダー URL |
 | `expires` | string | - | 有効期限 (ISO 8601 形式) |
 | `status` | string | - | ステータス (`active` / `inactive`)。デフォルト: `active` |
 | `mode` | string | - | 転送モード (`inclusive` / `exclusive` / `redirect` / `auxiliary`)。NGSI-LD 互換拡張 |
 
 **レスポンス**
-- ステータス: `201 Created`- ヘッダー: `Location: /v2/registrations/{registrationId}`### 登録の一覧取得
+- ステータス: `201 Created`- ヘッダー: `Location: /v2/registrations/{registrationId}`### Registration の一覧取得
 
 ```http
 GET /v2/registrations
@@ -810,7 +808,7 @@ GET /v2/registrations
 
 **クエリパラメータ**
 
-| パラメータ | タイプ | 説明 | デフォルト |
+| パラメータ | 型 | 説明 | デフォルト |
 |-----------|------|-------------|---------|
 | `limit` | integer | 取得する結果の数 | 20 |
 | `offset` | integer | オフセット | 0 |
@@ -834,13 +832,13 @@ GET /v2/registrations
 ]
 ```
 
-### 登録の取得
+### Registration の取得
 
 ```http
 GET /v2/registrations/{registrationId}
 ```
 
-### 登録の更新
+### Registration の更新
 
 ```http
 PATCH /v2/registrations/{registrationId}
@@ -854,7 +852,7 @@ PATCH /v2/registrations/{registrationId}
 }
 ```
 
-**レスポンス**: `204 No Content`### 登録の削除
+**レスポンス**: `204 No Content`### Registration の削除
 
 ```http
 DELETE /v2/registrations/{registrationId}
@@ -862,17 +860,17 @@ DELETE /v2/registrations/{registrationId}
 
 **レスポンス**: `204 No Content`### 所有権検証 (GeonicDB 拡張)
 
-認証が有効な場合 (`AUTH_ENABLED=true`)、登録の更新 (PATCH) と削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権検証を実行します。作成者以外のユーザがこれらの操作を試みた場合、`403 Forbidden` が返されます。`super_admin` と `tenant_admin` ロールはこの検証をバイパスできます。詳細は AUTH.md を参照してください。
+認証が有効な場合 (`AUTH_ENABLED=true`)、Registration の更新 (PATCH) および削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権検証を行います。作成者以外のユーザーがこれらの操作を試みた場合、`403 Forbidden` が返されます。`super_admin` および `tenant_admin` ロールはこの検証をバイパスできます。詳細は AUTH.md を参照してください。
 
 ---
 
 ## フェデレーション (クエリ転送 / 更新転送)
 
-登録情報に基づいて、GeonicDB は外部コンテキストプロバイダーにクエリを転送し、結果を統合して返します。また、更新も転送します。
+登録に基づいて、GeonicDB はクエリを外部コンテキストプロバイダーに転送し、結果を統合して返し、更新を転送します。
 
 ### フェデレーションの仕組み
 
-エンティティをクエリする際、一致する登録情報が存在する場合、そのプロバイダーにも並行してクエリが送信され、結果がマージされて返されます。
+エンティティをクエリする際、一致する登録が存在する場合、そのプロバイダーにもクエリが並行して送信され、結果がマージされて返されます。
 
 ```text
 Client → Context Broker
@@ -888,14 +886,14 @@ Client → Context Broker
 
 | モード | 動作 |
 |------|----------|
-| `inclusive` | ローカルとリモートの両方の結果を返します (デフォルト) |
-| `exclusive` | リモートの結果のみを返します (ローカルデータは無視されます) |
-| `redirect` | 303 リダイレクト URL を返します |
-| `auxiliary` | ローカルデータが優先され、リモートは不足データを補完します |
+| `inclusive` | ローカルとリモートの両方の結果を返す (デフォルト) |
+| `exclusive` | リモートの結果のみを返す (ローカルデータは無視される) |
+| `redirect` | 303 リダイレクト URL を返す |
+| `auxiliary` | ローカルデータを優先し、リモートが不足データを補完する |
 
 ### フェデレーションの例
 
-1. 外部プロバイダーを登録します:
+1. 外部プロバイダーを登録する:
 
 ```bash
 curl -X POST "http://localhost:3000/v2/registrations" \
@@ -913,7 +911,7 @@ curl -X POST "http://localhost:3000/v2/registrations" \
   }'
 ```
 
-2. クエリ時にフェデレーションが自動的に行われます:
+2. クエリ時にフェデレーションが自動的に実行される:
 
 ```bash
 curl "http://localhost:3000/v2/entities?type=WeatherObserved" \
@@ -924,15 +922,15 @@ curl "http://localhost:3000/v2/entities?type=WeatherObserved" \
 
 ### 更新転送
 
-エンティティを更新または削除する際、一致する登録情報が存在する場合、更新もそのプロバイダーに並行して転送されます。
+エンティティを更新または削除する際、一致する登録が存在する場合、更新もそのプロバイダーに並行して転送されます。
 
-**サポートされる更新操作**
+**サポートされている更新操作**
 
 | 操作 | 説明 |
 |-----------|-------------|
 | エンティティ属性の更新 | `PATCH /v2/entities/{id}/attrs` |
 | エンティティ属性の追加 | `POST /v2/entities/{id}/attrs` |
-| エンティティ属性の置換 | `PUT /v2/entities/{id}/attrs` |
+| エンティティ属性の置き換え | `PUT /v2/entities/{id}/attrs` |
 | エンティティの削除 | `DELETE /v2/entities/{id}` |
 | 属性の削除 | `DELETE /v2/entities/{id}/attrs/{attr}` |
 
@@ -940,24 +938,24 @@ curl "http://localhost:3000/v2/entities?type=WeatherObserved" \
 
 | モード | 動作 |
 |------|----------|
-| `inclusive` | ローカルとリモートの両方を更新します |
-| `exclusive` | リモートのみを更新します (ローカルは更新されません) |
-| `redirect` | 303 リダイレクト URL を返します (ローカルは更新されません) |
-| `auxiliary` | ローカルのみを更新します (リモートは読み取り専用) |
+| `inclusive` | ローカルとリモートの両方を更新する |
+| `exclusive` | リモートのみを更新する (ローカルは更新されない) |
+| `redirect` | 303 リダイレクト URL を返す (ローカルは更新されない) |
+| `auxiliary` | ローカルのみを更新する (リモートは読み取り専用) |
 
 ### エラー処理
 
 | シナリオ | 動作 |
 |----------|----------|
-| プロバイダー接続失敗 | 警告をログに記録し、ローカル結果のみを返します |
-| プロバイダータイムアウト | 警告をログに記録し、ローカル結果のみを返します |
-| 排他モードですべてのプロバイダーが失敗 | 502 エラーを返します (オプション) |
+| プロバイダー接続失敗 | 警告をログに記録し、ローカル結果のみを返す |
+| プロバイダータイムアウト | 警告をログに記録し、ローカル結果のみを返す |
+| 排他モードですべてのプロバイダーが失敗 | 502 エラーを返す (オプション) |
 
 ---
 
 ## エンティティタイプ
 
-### タイプ一覧
+### タイプの一覧取得
 
 ```http
 GET /v2/types
@@ -967,8 +965,8 @@ GET /v2/types
 
 | パラメータ | 説明 |
 |-----------|-------------|
-| `options=count` | エンティティ数を含めます |
-| `options=values` | 属性の詳細を含めます |
+| `options=count` | エンティティ数を含める |
+| `options=values` | 属性の詳細を含める |
 
 **レスポンス例**
 
@@ -985,7 +983,7 @@ GET /v2/types
 ]
 ```
 
-### 特定タイプの取得
+### 特定のタイプの取得
 
 ```http
 GET /v2/types/{typeName}
@@ -1006,18 +1004,18 @@ GET /v2/types/{typeName}
 
 ---
 
-## HTTP キャッシュコントロール
+## HTTP キャッシュ制御
 
-GET エンドポイントは、エンドポイントのクラスごとにキャッシュ関連のヘッダーを返します:
+GET エンドポイントは、エンドポイントのクラスに応じてキャッシュ関連のヘッダーを返します:
 
-### データエンドポイント (エンティティ、サブスクリプション、登録) — 完全な RFC 7232 + RFC 7234 サポート
+### データエンドポイント (エンティティ、サブスクリプション、登録) — RFC 7232 + RFC 7234 完全サポート
 
 | ヘッダー | 値 | 目的 |
 |--------|-------|---------|
-| `ETag` | `W/"..."` | 弱いバリデーター。生成シードには `path + Accept + Fiware-Service + Fiware-ServicePath` が含まれるため、異なるエンドポイント / Accept / テナント / ServicePathは常に異なる ETag を生成します。リスト: `id + modifiedAt` のストリーミングダイジェストと総数およびスコープを混合。単一: `modifiedAt` のハッシュとスコープを混合。 |
+| `ETag` | `W/"..."` | 弱いバリデータ。生成シードには `path + Accept + Fiware-Service + Fiware-ServicePath` が含まれるため、異なるエンドポイント / Accept / テナント / ServicePathは常に異なる ETag を生成します。リスト: `id + modifiedAt` のストリーミングダイジェストと総数およびスコープを混合。単一: `modifiedAt` のハッシュとスコープを混合。 |
 | `Last-Modified` | RFC 1123 HTTP-date | 結果セット内の最新の `modifiedAt` のタイムスタンプ。 |
-| `Cache-Control` | `private, no-cache` | `private` は共有 / 中間キャッシュストレージをブロック; `no-cache` はプライベートキャッシュからの再検証を強制。 |
-| `Vary` | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | 共有キャッシュ向けのテナント + 認証 + コンテンツネゴシエーション分離。 |
+| `Cache-Control` | `private, no-cache` | `private` は共有 / 中間キャッシュストレージをブロックします; `no-cache` はプライベートキャッシュからの再検証を強制します。 |
+| `Vary` | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | 共有キャッシュ用のテナント + 認証 + コンテンツネゴシエーション分離。 |
 
 条件付きリクエストがサポートされています:
 
@@ -1031,10 +1029,10 @@ GET エンドポイントは、エンドポイントのクラスごとにキャ�
 
 | ヘッダー | 値 | 目的 |
 |--------|-------|---------|
-| `Cache-Control` | `max-age=60, stale-while-revalidate=120` | バックグラウンド再検証を伴う短期キャッシング。 |
+| `Cache-Control` | `max-age=60, stale-while-revalidate=120` | バックグラウンド再検証による短期キャッシング。 |
 | `Vary` | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | データエンドポイントと同じテナント / 認証分離。 |
 
-メタエンドポイントは `ETag` / `Last-Modified` を返さず、`If-None-Match` / `If-Modified-Since` 条件付きリクエストをサポートしていません。クライアントは代わりに `max-age` / `stale-while-revalidate` ディレクティブに依存する必要があります。
+メタエンドポイントは `ETag` / `Last-Modified` を返さず、`If-None-Match` / `If-Modified-Since` 条件付きリクエストをサポートしません。クライアントは代わりに `max-age` / `stale-while-revalidate` ディレクティブに依存する必要があります。
 
 完全なセマンティクスについては [API.md §HTTP Cache Control](./endpoints.md#http-cache-control-etag--conditional-requests) を参照してください。
 
@@ -1045,8 +1043,8 @@ GET エンドポイントは、エンドポイントのクラスごとにキャ�
 | ステータスコード | エラーコード | 説明 |
 |-------------|------------|-------------|
 | 400 | BadRequest | 無効なリクエストパラメータまたはボディ |
-| 400 | InvalidModification | 無効な属性変更 (例: id や type の変更) |
-| 401 | Unauthorized | 認証が必要、またはトークンが無効 |
+| 400 | InvalidModification | 無効な属性変更 (例: id または type の変更) |
+| 401 | Unauthorized | 認証が必要またはトークンが無効 |
 | 403 | Forbidden | 権限不足 |
 | 404 | NotFound | エンティティ、サブスクリプションなどが見つかりません |
 | 405 | MethodNotAllowed | HTTP メソッドが許可されていません |
@@ -1055,11 +1053,11 @@ GET エンドポイントは、エンドポイントのクラスごとにキャ�
 | 411 | ContentLengthRequired | Content-Length ヘッダーが必要です |
 | 413 | RequestEntityTooLarge | リクエストボディが大きすぎます |
 | 415 | UnsupportedMediaType | サポートされていない Content-Type |
-| 422 | Unprocessable | エンティティフォーマットが無効です |
+| 422 | Unprocessable | エンティティ形式が無効です |
 | 429 | TooManyRequests | レート制限を超過しました |
 | 500 | InternalError | 内部サーバーエラー |
 
-**エラーレスポンスフォーマット**
+**エラーレスポンス形式**
 
 ```json
 {
@@ -1072,65 +1070,65 @@ GET エンドポイントは、エンドポイントのクラスごとにキャ�
 
 ## エンドポイントリファレンス
 
-FIWARE NGSIv2 互換の Context Broker API です。
+FIWARE NGSIv2 互換の Context Broker API。
 
 ### 共通仕様
 
-- **Content-Type**: `application/json`- **認証**: `AUTH_ENABLED=true` の場合は必須
+- **Content-Type**: `application/json`- **認証**: `AUTH_ENABLED=true` の場合に必須
 - **テナント分離**: `Fiware-Service` ヘッダーによるテナント分離
-- **ページネーション**: `limit`/`offset` パラメータを使用。総数を取得するには `options=count` を使用
+- **ページネーション**: `limit`/`offset` パラメータ; 総数を取得するには `options=count` を使用
 
 ### エンティティ操作
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/v2/entities` | GET | エンティティ一覧の取得 | 200 | 400, 401 | ✅ (最大: 1000) |
-| `/v2/entities` | POST | エンティティの作成 | 201 | 400, 401, 409, 415 | - |
-| `/v2/entities/{entityId}` | GET | エンティティの取得 | 200 | 400, 401, 404 | - |
-| `/v2/entities/{entityId}` | DELETE | エンティティの削除 | 204 | 401, 404 | - |
-| `/v2/entities/{entityId}/attrs` | GET | 属性のみを取得 (id/type フィールドなし) | 200 | 400, 401, 404 | - |
-| `/v2/entities/{entityId}/attrs` | PATCH | 属性の更新 | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs` | POST | 属性の追加 | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs` | PUT | 属性の置換 | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}` | GET | 属性の取得 | 200 | 401, 404 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}` | PUT | 属性の更新 | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}` | DELETE | 属性の削除 | 204 | 401, 404 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}/value` | GET | 属性値の取得 | 200 | 401, 404 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}/value` | PUT | 属性値の更新 | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities` | GET | エンティティ一覧取得 | 200 | 400, 401 | ✅ (最大: 1000) |
+| `/v2/entities` | POST | エンティティ作成 | 201 | 400, 401, 409, 415 | - |
+| `/v2/entities/{entityId}` | GET | エンティティ取得 | 200 | 400, 401, 404 | - |
+| `/v2/entities/{entityId}` | DELETE | エンティティ削除 | 204 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs` | GET | 属性のみ取得 (id/type フィールドなし) | 200 | 400, 401, 404 | - |
+| `/v2/entities/{entityId}/attrs` | PATCH | 属性更新 | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities/{entityId}/attrs` | POST | 属性追加 | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities/{entityId}/attrs` | PUT | 属性置換 | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}` | GET | 属性取得 | 200 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}` | PUT | 属性更新 | 204 | 400, 401, 404, 415 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}` | DELETE | 属性削除 | 204 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}/value` | GET | 属性値取得 | 200 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}/value` | PUT | 属性値更新 | 204 | 400, 401, 404, 415 | - |
 
 ### タイプ操作
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/v2/types` | GET | タイプ一覧の取得 | 200 | 400, 401 | ✅ (最大: 1000) |
-| `/v2/types/{typeName}` | GET | タイプ詳細の取得 | 200 | 401, 404 | - |
+| `/v2/types` | GET | タイプ一覧取得 | 200 | 400, 401 | ✅ (最大: 1000) |
+| `/v2/types/{typeName}` | GET | タイプ詳細取得 | 200 | 401, 404 | - |
 
 ### サブスクリプション操作
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/v2/subscriptions` | GET | サブスクリプション一覧の取得 | 200 | 400, 401 | ✅ (最大: 1000) |
-| `/v2/subscriptions` | POST | サブスクリプションの作成 | 201 | 400, 401, 415 | - |
-| `/v2/subscriptions/{subscriptionId}` | GET | サブスクリプションの取得 | 200 | 401, 404 | - |
-| `/v2/subscriptions/{subscriptionId}` | PATCH | サブスクリプションの更新 | 204 | 400, 401, 404, 415 | - |
-| `/v2/subscriptions/{subscriptionId}` | DELETE | サブスクリプションの削除 | 204 | 401, 404 | - |
+| `/v2/subscriptions` | GET | サブスクリプション一覧取得 | 200 | 400, 401 | ✅ (最大: 1000) |
+| `/v2/subscriptions` | POST | サブスクリプション作成 | 201 | 400, 401, 415 | - |
+| `/v2/subscriptions/{subscriptionId}` | GET | サブスクリプション取得 | 200 | 401, 404 | - |
+| `/v2/subscriptions/{subscriptionId}` | PATCH | サブスクリプション更新 | 204 | 400, 401, 404, 415 | - |
+| `/v2/subscriptions/{subscriptionId}` | DELETE | サブスクリプション削除 | 204 | 401, 404 | - |
 
-### 登録操作(フェデレーション)
+### 登録操作 (フェデレーション)
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/v2/registrations` | GET | 登録一覧の取得 | 200 | 400, 401 | ✅ (最大: 1000) |
-| `/v2/registrations` | POST | 登録の作成 | 201 | 400, 401, 415 | - |
-| `/v2/registrations/{registrationId}` | GET | 登録の取得 | 200 | 401, 404 | - |
-| `/v2/registrations/{registrationId}` | PATCH | 登録の更新 | 204 | 400, 401, 404, 415 | - |
-| `/v2/registrations/{registrationId}` | DELETE | 登録の削除 | 204 | 401, 404 | - |
+| `/v2/registrations` | GET | 登録一覧取得 | 200 | 400, 401 | ✅ (最大: 1000) |
+| `/v2/registrations` | POST | 登録作成 | 201 | 400, 401, 415 | - |
+| `/v2/registrations/{registrationId}` | GET | 登録取得 | 200 | 401, 404 | - |
+| `/v2/registrations/{registrationId}` | PATCH | 登録更新 | 204 | 400, 401, 404, 415 | - |
+| `/v2/registrations/{registrationId}` | DELETE | 登録削除 | 204 | 401, 404 | - |
 
 ### バッチ操作
 
-> **注意**: バッチ操作(クエリを除く)は、1 リクエストあたり **`MAX_BATCH_SIZE`** エンティティに制限されています(デフォルト: 100)。この制限を超えると `400 Bad Request` が返されます。
+> **注意**: バッチ操作 (クエリを除く) は、1 リクエストあたり **`MAX_BATCH_SIZE`** エンティティまでに制限されています (デフォルト: 100)。この制限を超えると `400 Bad Request` が返されます。
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/v2/op/update` | POST | バッチ更新(最大: `MAX_BATCH_SIZE`) | 204 | 400, 401, 415 | - |
+| `/v2/op/update` | POST | バッチ更新 (最大: `MAX_BATCH_SIZE`) | 204 | 400, 401, 415 | - |
 | `/v2/op/query` | POST | バッチクエリ | 200 | 400, 401, 415 | ✅ (最大: 1000) |
-| `/v2/op/notify` | POST | 通知の受信 | 200 | 400, 401, 415 | - |
+| `/v2/op/notify` | POST | 通知受信 | 200 | 400, 401, 415 | - |
