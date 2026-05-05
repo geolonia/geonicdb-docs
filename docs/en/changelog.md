@@ -12,6 +12,28 @@ outline: deep
 
 ## [Unreleased]
 
+### 2026-05-05
+- **修正**: SDK の `db.request()` が空ボディ + JSON Content-Type のレスポンスで `SyntaxError: Unexpected end of JSON input` を投げて落ちる問題 (issue #1145) (#1146)
+  - 背景: NGSI-LD `POST /entities` (201) など仕様上ボディが空のレスポンスでも、サーバ実装は `Content-Type: application/ld+json` を付けて返している。SDK 側 `db.request()` は Content-Type が `json` を含むと無条件に `res.json()` を呼ぶため、空ボディで SyntaxError を投げていた (`db.createEntity` 等の専用メソッドは body を読まないので影響なし、`db.request()` 経由で同パスを叩くと壊れる、という非対称が問題)
+  - 修正: `db.request()` を空ボディに堅牢化。`Content-Length: 0` を短絡 + `text()` で先に読んで空文字なら null を返す形に変更
+  - 追加: `tests/unit/sdk/index.test.ts` に 201 + 空 body + JSON Content-Type / Content-Length: 0 の 2 件の regression テスト
+  - 残課題: NGSI-LD spec / RFC 9110 上は空ボディに `Content-Type` を付けない方が望ましい。サーバ側 (`entities.controller.ts` ほか) は別 issue で spec 準拠化する
+- 🚨 **破壊的変更**: Custom Data Models の `valueType` 入力契約導入により観測可能な挙動変更が 3 点 (issue #1131) (#1147)
+  - **未知の `valueType` を含む Custom Data Model の作成は 400 で拒否される**: 旧は任意文字列を受理して後段で silent skip。新は Zod の preprocess + enum で正準形 (9 値) に解決できないと作成時に 400。`String` / `GeoJSON` / `text` / `int` / `bool` / `json` / `geo` / `GeoJSON Point` 等の旧 alias は **入力時に自動正規化されるので影響なし**。完全に未知の値 (タイポ等) のみ影響を受ける
+  - **既存モデルに未知 `valueType` が残っている場合、エンティティ書き込みが 400 になる**: 旧は `validation.service` の switch default で silent skip (fail-open) → 不正データも保存可。新は `Unsupported valueType '<v>' in data model definition` で ValidationError (fail-closed)。API 経由で作成された既存モデルは preprocess を当時通っていれば該当しない。**影響を受けるのは直接 DB に書き込まれた壊れたモデルのみ**。リリース前に `propertyDetails.*.valueType` を点検して未知値の有無を確認することを推奨
+  - **`datetime` / `uri` valueType の値が新たにバリデーションされる**: 旧は該当 case が無く skip (= どんな文字列も保存可)。新は `datetime` が **RFC 3339 strict** (T リテラル + 秒必須 + タイムゾーン必須)、`uri` が `URL` コンストラクタで形式検証。`schema-generator.service.ts` が出力する JSON Schema の `format: 'date-time'` (RFC 3339) と検証ルールが整合する
+  - SemVer: 観測可能な挙動変更を含むため **minor バンプ (0.8.0)** を推奨
+- **修正**: Custom Data Models の `valueType` に入力契約を導入し、コンポーネント間の挙動の食い違いを解消 (issue #1131) (#1147)
+  - 背景: #595 で `validation.service` の case mismatch を `toLowerCase()` で吸収したが、Zod スキーマには enum 制約がなく、`schema-generator` / `mcp tool` は依然として小文字厳密一致だったため、PascalCase / 独自表記 (`'GeoJSON Point'`) / タイポを silent skip するか挙動分岐するかが箇所ごとに違っていた
+  - 修正:
+    - **`src/core/custom-data-models/value-type.ts`** を新設し `VALUE_TYPES` 9 値 (`string`, `number`, `integer`, `boolean`, `array`, `object`, `geojson`, `uri`, `datetime`) と `normalizeValueType()` を single source of truth として提供
+    - **Zod スキーマ** (`ExtendedPropertyDetailSchema.valueType`) を `preprocess(toLowerCase + alias) → z.enum(VALUE_TYPES)` に変更。後方互換: `String` / `GeoJSON` / `text` / `int` / `bool` / `json` / `geo` / `GeoJSON Point` 等を入力時に自動正規化、未知値は 400
+    - **`validation.service.ts`** が `normalizeValueType` を経由するように変更し、`uri` / `datetime` のケースを追加。未知 valueType は silent skip ではなく `logger.warn` を出すように変更
+    - **`schema-generator.service.ts`** / **MCP tool (`config.tools.ts`)** も `normalizeValueType` 経由で正規化してから switch するように変更
+    - **OpenAPI 例** (`meta.controller.ts`): `'GeoJSON Point'` → `'geojson'` に修正
+    - **`docs/INSTRUCTION.md`** のフィールド表で `valueType` の正準形と alias の扱いを明記
+  - 追加: `tests/unit/core/custom-data-models/value-type.test.ts` (純粋関数の網羅), `custom-data-model.schemas.test.ts` の `property valueType enum (#1131)` セクション (canonical 9 値受理 + alias preprocess + 未知値拒否)
+
 ## [0.7.1] — 2026-05-02
 
 ### 2026-05-02
