@@ -5,11 +5,11 @@ outline: deep
 ---
 # AI 統合
 
-GeonicDB は AI エージェント（Claude、GPT-4、Gemini など）が API を簡単に利用できるよう、複数の AI 指向インターフェースを提供しています。
+GeonicDB は複数の AI 指向インターフェースを提供しており、AI エージェント（Claude、GPT-4、Gemini など）が API を簡単に利用できるようになっています。
 
 ## エンドポイント一覧
 
-| エンドポイント | 形式 | 説明 |
+| エンドポイント | フォーマット | 説明 |
 |---------------|------|------|
 | `GET /llms.txt` | Markdown (llms.txt) | LLM 向け API ドキュメント |
 | `GET /tools.json` | JSON | Claude Tool Use / OpenAI Function Calling 互換スキーマ |
@@ -22,34 +22,31 @@ GeonicDB は AI エージェント（Claude、GPT-4、Gemini など）が API �
 
 Claude Tool Use および OpenAI Function Calling と互換性のあるツール定義を提供します。
 
-### 利用可能なツール (5 ツール)
+### 利用可能なツール（5 つのツール）
 
-各ツールは `action` および `resource` パラメータを介して操作を選択します。
+各ツールは `action` と `resource` パラメータを通じて操作を選択します。
 
 | ツール名 | リソース | アクション | 説明 |
 |---------|---------|-----------|------|
-| `entities` | entities (デフォルト)、types、attributes | list、get、create、update、delete、replace、search_by_location、search_by_attribute、get_info、get_all、append、patch_all、patch | IoT エンティティ、型、属性の管理 |
+| `entities` | entities (デフォルト)、types、attributes | list、get、create、update、delete、replace、search_by_location、search_by_attribute、get_info、get_all、append、patch_all、patch | IoT エンティティ、タイプ、および属性の管理 |
 | `batch` | - | create、upsert、update、merge、delete、query、purge | 一括エンティティ操作（最大 1,000 件） |
 | `temporal` | - | get、query、create、delete、add_attributes、delete_attribute、merge、modify_instance、delete_instance、batch_create、batch_upsert、batch_delete、batch_query | 時系列データ管理 |
 | `config` | rules、jsonld_contexts、data_models、cadde_config | list、get、create、update、delete、activate、deactivate、list_domains、list_models、get_model、generate_template | ReactiveCore ルール、JSON-LD コンテキスト、Smart Data Models、カスタムデータモデル管理、テンプレート生成、および CADDE 設定管理（super_admin、get/update/delete） |
-| `admin` | users、tenants、policies | list、get、create、update、delete、activate、deactivate、change_password | ユーザー、テナント、ポリシー管理（認証が必要） |
+| `admin` | users、tenants、policies | list、get、create、update、delete、activate、deactivate、change_password | ユーザー、テナント、およびポリシー管理（認証が必要） |
 
 ### 自動 NGSI-LD 属性タイプ検出
 
-MCP ツールは属性値から NGSI-LD タイプを自動的に推論します:
+MCP ツールは属性値から NGSI-LD タイプを自動的に推論します：
 
 | 値のパターン | 検出されるタイプ | 例 |
 |------------|-----------|-----|
 | `urn:` で始まる文字列 | `Relationship` | `"urn:ngsi-ld:Building:001"` |
-| GeoJSON オブジェクト (Point、Polygon、LineString、MultiPoint、MultiPolygon、MultiLineString) | `GeoProperty` | `{"type": "Point", "coordinates": [139.7, 35.6]}` |
+| GeoJSON オブジェクト（Point、Polygon、LineString、MultiPoint、MultiPolygon、MultiLineString） | `GeoProperty` | `{"type": "Point", "coordinates": [139.7, 35.6]}` |
 | `languageMap` フィールドを含むオブジェクト | `LanguageProperty` | `{"languageMap": {"en": "Hello", "ja": "こんにちは"}}` |
 | その他すべての値 | `Property` | `25.5`、`"text"`、`true`、`[1, 2, 3]` |
 
-タイプを明示的に指定することもできます:
-- `{"type": "Property", "value": 25.5}`
-- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`
-- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`
-### レスポンス構造
+タイプを明示的に指定することもできます：
+- `{"type": "Property", "value": 25.5}`- `{"type": "Relationship", "object": "urn:ngsi-ld:Building:001"}`- `{"type": "GeoProperty", "value": {"type": "Point", "coordinates": [139.7, 35.6]}}`### レスポンス構造
 
 ```json
 {
@@ -83,7 +80,7 @@ MCP ツールは属性値から NGSI-LD タイプを自動的に推論します:
 ## AI プラグインマニフェスト (`/.well-known/ai-plugin.json`
 )
 
-API 検出情報を提供します。
+API ディスカバリー情報を提供します。
 
 ```json
 {
@@ -146,22 +143,20 @@ response = client.chat.completions.create(
 )
 ```
 
-## MCP (Model Context Protocol) サポート
+## MCP（Model Context Protocol）サポート
 
-GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) をサポートしています。MCP 互換の AI クライアント（Claude Desktop など）は、コンテキストブローカーに直接接続できます。
+GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) をサポートしています。MCP 互換の AI クライアント（Claude Desktop など）はコンテキストブローカーに直接接続できます。
 
 ### 概要
 
-- **エンドポイント**: `POST /mcp`- **トランスポート**: Streamable HTTP (JSON レスポンスモード)
+- **エンドポイント**: `POST /mcp`- **トランスポート**: ストリーム可能な HTTP (JSON レスポンスモード)
 - **プロトコルバージョン**: 2025-03-26
 - **動作モード**: ステートレス (Lambda 互換)
-- **認証**: `AUTH_ENABLED=true` の場合、JWT Bearer トークンによるアクセス制御とテナント分離が適用されます
+- **認証**: `AUTH_ENABLED=true` の場合、アクセス制御とテナント分離が JWT Bearer トークンを介して実施されます
 
 ### Claude Desktop の設定
 
-
-
-### ローカル開発環境（認証なし）
+#### ローカル開発環境（認証なし）
 
 ```json
 {
@@ -180,11 +175,9 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 }
 ```
 
-> **注意**: `--transport http-only` は必須です。これは GeonicDB が Streamable HTTP (POST) のみをサポートしており、SSE が利用できないためです。`--allow-http` は `http://` URL に必要です（本番環境の `https://` では不要です）。
+> **注意**: GeonicDB は Streamable HTTP (POST) のみをサポートしており、SSE は利用できないため、`--transport http-only` が必要です。`http://` URL には `--allow-http` が必要です（本番環境の `https://` では不要です）。
 
-
-
-### 本番環境（JWT 認証あり）
+#### 本番環境（JWT 認証を使用）
 
 ```json
 {
@@ -204,13 +197,11 @@ GeonicDB は [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) �
 }
 ```
 
-JWT トークンは `/auth/login` エンドポイントから取得できます。JWT トークンは有効期限があり、定期的な更新が必要です。
+JWT トークンは `/auth/login` エンドポイントから取得できます。JWT トークンは有効期限があるため、定期的な更新が必要です。
 
+#### 本番環境（API キー認証を使用）
 
-
-### 本番環境（API キー認証あり）
-
-API キーは有効期限がなく、Claude Desktop などの長期的な統合に推奨されます。
+API キーは有効期限がなく、Claude Desktop などの長期稼働する統合には推奨されます。
 
 **ステップ 1: GeonicDB CLI のインストール**
 
@@ -239,9 +230,9 @@ geonic me api-keys create \
   --save
 ```
 
-> **重要**: API キー（`gdb_` で始まる文字列）は作成時に一度だけ表示されます。安全に保管してください。`--save` フラグは、自動使用のためにキーを CLI 設定に保存します。
+> **重要**: API キー（`gdb_` プレフィックス付きの文字列）は作成時に一度だけ表示されます。安全に保管してください。`--save` フラグは、自動使用のために CLI 設定にキーを保存します。
 
-API キーで利用可能なスコープ:
+API キーの利用可能なスコープ:
 
 | スコープ | 説明 |
 |---|---|
@@ -254,10 +245,9 @@ API キーで利用可能なスコープ:
 
 **ステップ 4: Claude Desktop の設定**
 
-Claude Desktop 設定ファイルを編集します:
+Claude Desktop の設定ファイルを編集します:
 
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-```json
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json````json
 {
   "mcpServers": {
     "geonicdb": {
@@ -281,15 +271,13 @@ Claude Desktop 設定ファイルを編集します:
 }
 ```
 
-> **注意**: `env` の値を実際の API キーとテナント名に置き換えてください。環境変数を使用することで、認証情報を `args` 配列から分離できます。
+> **注意**: `env` の値を実際の API キーとテナント名に置き換えてください。環境変数を使用することで、認証情報を `args` 配列の外に保持できます。
 
 **ステップ 5: Claude Desktop の再起動**
 
 設定を保存した後、Claude Desktop を完全に終了して再起動してください。GeonicDB MCP サーバーが利用可能なツールに表示されるはずです。
 
-
-
-### API キーの管理
+#### API キーの管理
 
 ```bash
 # List your API keys
@@ -304,18 +292,16 @@ geonic me api-keys delete <key-id>
 各ツールには、操作の対象テナントを指定するための `tenant` パラメータがあります。
 
 - **認証が無効の場合**: 省略すると、`default` テナントが使用されます。
-- **認証が有効の場合**: 省略すると、ログインしているユーザーのテナントがデフォルトとして使用されます。`super_admin` はデータツールを使用できません（403 を返します）。代わりに `tenant_admin` または `user` ロールを使用してください。ただし、`tenant_admin`/`user` は自分のテナントにのみアクセスできます。
+- **認証が有効の場合**: 省略すると、ログインユーザーのテナントがデフォルトとして使用されます。`super_admin` はデータツールを使用できません（403 を返します）。代わりに `tenant_admin` または `user` ロールを使用してください。ただし、`tenant_admin`/`user` は自分自身のテナントにのみアクセスできます。
 
-### ServicePath仕様
+### Service Path の指定
 
-`entities`、`types`、`attributes`、`batch`、`temporal` の各ツールには、階層的なスコープ内でエンティティを管理できる `servicePath` パラメータがあります。
+`entities`、`types`、`attributes`、`batch`、`temporal` ツールには、階層的なスコープ内でエンティティを管理するための `servicePath` パラメータがあります。
 
+#### 基本形式
 
-
-### 基本フォーマット
-
-- **フォーマット**: `/` で始まるパス (例: `/hello`、`/city/sensors`)
-- **デフォルト**: 省略された場合、ルートパス `/` が使用されます
+- **形式**: `/` で始まるパス (例: `/hello`、`/city/sensors`)
+- **デフォルト**: 省略した場合、ルートパス `/` が使用されます
 - **使用例**: 同じテナント内でエンティティをグループ化または分離するために使用されます
 
 ```yaml
@@ -326,9 +312,7 @@ entities tool:
   servicePath: "/hello"
 ```
 
-
-
-### 階層検索 (`/#`
+#### 階層検索 (`/#`
 )
 
 `/#` サフィックスを使用すると、指定されたパスとそのすべての子パスを検索します。
@@ -341,9 +325,7 @@ entities tool:
   servicePath: "/Madrid/Gardens/#"
 ```
 
-
-
-### 複数パス指定 (カンマ区切り)
+#### 複数パスの指定 (カンマ区切り)
 
 カンマで区切ることで、複数のパスを同時に検索できます (最大 10 パス)。
 
@@ -359,21 +341,21 @@ entities tool:
 
 ### NGSI-LD クエリパラメータ
 
-`entities` ツールは、NGSI-LD クエリパラメータの完全なセットをサポートしています:
+`entities` ツールは、NGSI-LD クエリパラメータの全セットをサポートしています:
 
 | パラメータ | 説明 | 例 |
 |---|---|---|
-| `idList` | 一括取得のためのカンマ区切りエンティティ ID | `"urn:ngsi-ld:Room:001,urn:ngsi-ld:Room:002"` |
-| `idPattern` | エンティティ ID に一致する正規表現パターン | `"Room.*"` |
-| `orderBy` | 属性またはシステムフィールドでソート。降順の場合は `!` をプレフィックスとして付与 | `"createdAt"`、`"!modifiedAt"` |
-| `orderDirection` | ソート方向 (`!` プレフィックスの代替) | `"asc"`、`"desc"` |
+| `idList` | 一括取得用のカンマ区切りエンティティ ID | `"urn:ngsi-ld:Room:001,urn:ngsi-ld:Room:002"` |
+| `idPattern` | エンティティ ID にマッチする正規表現パターン | `"Room.*"` |
+| `orderBy` | 属性またはシステムフィールドでソート。降順の場合は `!` を接頭辞として付ける | `"createdAt"`、`"!modifiedAt"` |
+| `orderDirection` | ソート方向 (`!` 接頭辞の代替) | `"asc"`、`"desc"` |
 | `sysAttrs` | 結果にシステム属性 (`createdAt`、`modifiedAt`) を含める | `true` |
 | `pick` | 含める属性名のカンマ区切りリスト | `"temperature,humidity"` |
 | `omit` | 除外する属性名のカンマ区切りリスト | `"status"` |
 | `scopeQ` | スコープクエリ式 | `"/Madrid/Gardens"` |
 | `lang` | LanguageProperty 値の言語フィルタ | `"ja"` |
 | `geoproperty` | ジオクエリ用の GeoProperty 属性名 (デフォルト: `location`) | `"observationArea"` |
-| `spatialId` | ZFXY フォーマットの空間 ID | `"18/232814/103224"` |
+| `spatialId` | ZFXY 形式の空間 ID | `"18/232814/103224"` |
 | `spatialIdDepth` | 空間 ID 階層検索の深さ | `2` |
 
 ```yaml
@@ -426,19 +408,19 @@ curl -X POST http://localhost:3000/mcp \
 
 - **ステートレスモード**: Lambda 環境の制約により、SSE ストリーミングは利用できません。すべてのリクエストは JSON レスポンスとして返されます。
 - **セッション管理なし**: 各リクエストは独立して処理されます。`GET /mcp` (SSE) と `DELETE /mcp` (セッション終了) は 405 を返します。
-- **認証**: `AUTH_ENABLED=true` の場合、Bearer トークンが必要です。`AUTH_ENABLED=false` の場合、認証なしで操作が進行します。
-- **OAuth スコープ**: OAuth トークンを使用する場合、各 MCP ツール操作に対応する OAuth スコープが必要です (例: エンティティの読み取りには `read:entities`、書き込みには `write:entities`)。スコープ制限は JWT RBAC トークンには適用されません。
+- **認証**: `AUTH_ENABLED=true` の場合、Bearer トークンが必要です。`AUTH_ENABLED=false` の場合、認証なしで動作します。
+- **OAuth スコープ**: OAuth トークンを使用する場合、各 MCP ツール操作に対応する OAuth スコープが必要です (例: エンティティの読み取りには `read:entities`、書き込みには `write:entities`)。JWT RBAC トークンにはスコープ制限は適用されません。
 - **レート制限**: MCP エンドポイントは、REST API と同じレート制限、ストレージクォータ、リクエストボディサイズ制限の対象となります。
 
-## JSON スキーマとカスタムデータモデル
+## JSON Schema とカスタムデータモデル
 
-カスタムデータモデルは、作成時に JSON スキーマ (Draft 2020-12) が自動的に生成されます。この JSON スキーマは、AI ツールで以下の目的に活用できます。
+カスタムデータモデルは作成時に自動的に JSON Schema (Draft 2020-12) が生成されます。この JSON Schema は AI ツールで次の目的に活用できます。
 
-**`additionalProperties` フィールド**: エンティティが `propertyDetails` で定義されていない属性を持つことができるかどうかを制御します。デフォルトは `true` (NGSI-LD のセマンティクスに従い、追加の属性を許可します)。厳密な検証を強制するには `false` に設定します。この場合、定義された属性のみが受け入れられます。AI エージェントは、エンティティを作成する際にこのフィールドをチェックして、追加の属性が許可されているかどうかを判断する必要があります。
+**`additionalProperties` フィールド**: エンティティが `propertyDetails` で定義されていない属性を持てるかどうかを制御します。デフォルトは `true` (追加の属性を許可し、NGSI-LD のセマンティクスに従います) です。`false` に設定すると厳格な検証が適用され、定義された属性のみが受け入れられます。AI エージェントはエンティティ作成時にこのフィールドをチェックして、追加の属性が許可されているかを判断する必要があります。
 
 ### AI ツールでの使用例
 
-**エンティティ作成時のスキーマ参照**: AI エージェントは、`config` ツールの `data_models` リソースを使用してカスタムデータモデルを取得し、`jsonSchema` フィールドを参照して、正しい型と検証ルールに準拠したエンティティを生成できます。
+**エンティティ作成時のスキーマ参照**: AI エージェントは `config` ツールの `data_models` リソースを使用してカスタムデータモデルを取得し、`jsonSchema` フィールドを参照して、正しい型と検証ルールに準拠したエンティティを生成できます。
 
 ```yaml
 # 1. Retrieve the JSON Schema for the custom data model
@@ -457,9 +439,9 @@ entities tool:
     unit: "Celsius"    # enum: ["Celsius", "Fahrenheit", "Kelvin"]
 ```
 
-**検証エラーの自動修正**: エンティティ作成時に検証エラーが返された場合、AI エージェントは JSON スキーマを参照してエラーの原因を特定し、有効な値に修正できます。
+**検証エラーの自動修正**: エンティティ作成時に検証エラーが返された場合、AI エージェントは JSON Schema を参照してエラーの原因を特定し、有効な値に修正できます。
 
-### エンティティテンプレートの生成
+### エンティティテンプレート生成
 
 `config` ツールの `generate_template` アクションを使用すると、カスタムデータモデルから NGSI-LD エンティティテンプレートを自動生成できます。
 
@@ -492,15 +474,16 @@ config tool:
 }
 ```
 
-テンプレートは、以下の優先順位で値を決定します:
-1. 定義されている場合は `defaultValue`2. 定義されている場合は `example` の値
+テンプレートは次の優先順位で値を決定します:
+1. `defaultValue` が定義されている場合はそれを使用
+2. `example` 値が定義されている場合はそれを使用
 3. `valueType` に基づくデフォルト値 (string → `""`、number → `0`、boolean → `false` など)
 
-AI エージェントは、このテンプレートをベースとして使用し、ユーザーの指示に従って値を変更してエンティティを作成できます。
+AI エージェントはこのテンプレートをベースとして、ユーザーの指示に従って値を変更してエンティティを作成できます。
 
 ### OpenAPI 仕様との動的統合
 
-`/openapi.json` エンドポイントは、認証されたユーザーのテナントに関連付けられたカスタムデータモデルの JSON スキーマを `components/schemas` に動的に追加します。これにより、OpenAPI 仕様を参照する AI ツールやコード生成ツールが、テナント固有のデータモデルを自動的に認識できるようになります。
+`/openapi.json` エンドポイントは、認証されたユーザーのテナントに紐づくカスタムデータモデルの JSON Schema を `components/schemas` に動的に追加します。これにより、OpenAPI 仕様を参照する AI ツールやコード生成ツールが、テナント固有のデータモデルを自動的に認識できます。
 
 ```bash
 # Retrieve the OpenAPI specification with authentication (includes custom schemas)
@@ -508,7 +491,7 @@ curl https://api.example.com/openapi.json \
   -H "Authorization: Bearer <accessToken>"
 ```
 
-カスタムデータモデルの JSON スキーマは、レスポンスの `components.schemas` に追加されます:
+カスタムデータモデルの JSON Schema は、レスポンスの `components.schemas` に追加されます:
 
 ```json
 {
@@ -530,7 +513,7 @@ curl https://api.example.com/openapi.json \
 
 ### 語彙マッピングのためのプロパティ @context
 
-`propertyDetails` の各プロパティには、オプションで HTTP(S) URL を持つ `@context` フィールドを含めることができます。属性を定義する際は、[schema.org](https://schema.org/docs/full.html) で一致する語彙を確認し、それを `@context` の値として設定してください。
+`propertyDetails` の各プロパティには、HTTP(S) URL を持つオプションの `@context` フィールドを含めることができます。属性定義時に [schema.org](https://schema.org/docs/full.html) で一致する語彙を確認し、それを `@context` 値として設定してください。
 
 ```yaml
 # Create a model with schema.org vocabulary
@@ -553,7 +536,7 @@ config tool:
       # No @context → auto-generated URL
 ```
 
-生成される JSON-LD `@context` は以下のようになります:
+生成される JSON-LD `@context` は次のようになります:
 
 ```json
 {
@@ -565,15 +548,15 @@ config tool:
 }
 ```
 
-プロパティ URI はエンティティタイプに依存しません。同じプロパティ名 (例: `email`) は、同じテナント内の異なるエンティティタイプ間で同じ URI を共有します。
+プロパティ URI はエンティティタイプに依存しません — 同じプロパティ名 (例: `email`) は、同じテナント内の異なるエンティティタイプ間で同じ URI を共有します。
 
 ### @context 解決の拡張
 
-NGSI-LD API を介してエンティティを取得する際、カスタムデータモデルに `contextUrl` が設定されている場合、カスタムコンテキストはレスポンスの `@context` に自動的に含まれます。Smart Data Models のコンテキストと同様に、AI エージェントはこの `@context` を使用してエンティティのセマンティック情報を解釈できます。
+NGSI-LD API を介してエンティティを取得する際、カスタムデータモデルに `contextUrl` が設定されている場合、カスタムコンテキストがレスポンスの `@context` に自動的に含まれます。Smart Data Models のコンテキストと同様に、AI エージェントはこの `@context` を使用してエンティティのセマンティック情報を解釈できます。
 
-## AI コーディングアシスタントを使った JavaScript SDK
+## AI コーディングアシスタントと JavaScript SDK
 
-GeonicDB JavaScript SDK (`@geolonia/geonicdb-sdk`) は、AI 支援開発向けに設計されています。npm パッケージには完全な TypeScript 型宣言が含まれているため、AI コーディングアシスタント (Claude Code、Cursor、GitHub Copilot など) は、追加設定なしで完全なパブリック API を自動的に検出できます。
+GeonicDB JavaScript SDK (`@geolonia/geonicdb-sdk`) は、AI 支援開発向けに設計されています。npm パッケージには完全な TypeScript 型宣言が含まれているため、AI コーディングアシスタント (Claude Code、Cursor、GitHub Copilot など) は、追加の設定なしで完全なパブリック API を自動的に検出できます。
 
 ### AI ツールが SDK から学習する内容
 
@@ -585,33 +568,33 @@ GeonicDB JavaScript SDK (`@geolonia/geonicdb-sdk`) は、AI 支援開発向け�
 | クエリパラメータ | `GetEntitiesParams` 型 |
 | サブスクリプションオプション | `SubscribeOptions` 型 |
 | イベントペイロード | `EntityEvent`、`ReconnectingEvent` 型 |
-| 全 10 種類のイベントタイプ | 型宣言に記載 |
+| すべての 10 イベントタイプ | 型宣言にドキュメント化 |
 
 ### 仕組み
 
 1. 開発者が SDK をインストール: `npm install @geolonia/geonicdb-sdk`2. 開発者が SDK をインポート: `import GeonicDB from '@geolonia/geonicdb-sdk'`3. AI がパッケージから TypeScript 宣言を読み取る
 4. AI がドキュメント化された API を使用して正しいコードを生成
 
-別途ドキュメント URL や特別な設定は不要です。TypeScript プロジェクトでは、完全な型チェックと IDE の自動補完がすぐに利用できます。詳細は SDK ドキュメントを参照してください。
+個別のドキュメント URL や特別な設定は不要です。TypeScript プロジェクトでは、すぐに完全な型チェックと IDE オートコンプリートが利用できます。詳細については、SDK ドキュメントを参照してください。
 
 ## A2A (Agent-to-Agent Protocol) サポート
 
-GeonicDB は [A2A (Agent-to-Agent) プロトコル](https://google.github.io/A2A/)をサポートしており、他の AI エージェントが標準化されたエージェント間通信を通じてコンテキストブローカーと対話できます。
+GeonicDB は [A2A (Agent-to-Agent) プロトコル](https://google.github.io/A2A/)をサポートしており、他の AI エージェントが標準化されたエージェント間通信を通じてコンテキストブローカーと対話できるようにします。
 
 ### エンドポイント
 
 | エンドポイント | メソッド | 説明 |
 |----------|--------|-------------|
-| `/.well-known/agent-card.json` | GET | エージェントカード — 機能、スキル、認証を記述 |
-| `/a2a` | POST | A2A 操作用の JSON-RPC 2.0 エンドポイント |
+| `/.well-known/agent-card.json` | GET | エージェントカード — 機能、スキル、認証方法を記述 |
+| `/a2a` | POST | A2A 操作のための JSON-RPC 2.0 エンドポイント |
 
 ### サポートされているメソッド (フェーズ 1)
 
 | JSON-RPC メソッド | 説明 |
 |-----------------|-------------|
-| `message/send` | メッセージを送信し同期レスポンスを受信 |
+| `message/send` | メッセージを送信し、同期的なレスポンスを受信 |
 | `tasks/get` | タスクの現在の状態を取得 |
-| `tasks/list` | フィルタリングとページネーションを使用してタスクを一覧表示 |
+| `tasks/list` | フィルタリングとページネーションを使用してタスクをリスト表示 |
 | `tasks/cancel` | タスクのキャンセルをリクエスト |
 
 ### スキル
@@ -631,8 +614,8 @@ A2A は MCP 経由で利用可能な同じ 5 つのツールにマッピング�
 A2A は REST API と同じ認証方法を使用します:
 - **Bearer JWT**: `Authorization: Bearer <token>` ヘッダー
 - **API キー**: `X-Api-Key: <key>` ヘッダー
-- **OAuth 2.0**: `POST /oauth/token` によるクライアントクレデンシャルフロー
-- **DPoP**: `Authorization: DPoP <token>` + `DPoP` 証明ヘッダー (有効化時)
+- **OAuth 2.0**: `POST /oauth/token` 経由のクライアント認証情報フロー
+- **DPoP**: `Authorization: DPoP <token>` + `DPoP` 証明ヘッダー (有効な場合)
 
 `Fiware-Service` ヘッダーによるテナント指定を推奨します (未指定時はデフォルトテナントにフォールバック)。
 
@@ -663,7 +646,7 @@ curl -X POST https://your-geonicdb.example.com/a2a \
 
 ### MCP との関係
 
-A2A と MCP は補完的です:
+A2A と MCP は相互補完的です:
 - **MCP** はツール呼び出し用 — AI エージェントが GeonicDB をツールとして使用
 - **A2A** はエージェント間通信用 — AI エージェントが GeonicDB とピアエージェントとして協調
 
