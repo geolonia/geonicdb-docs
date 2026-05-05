@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- [chore] cmd_415 — sync-and-translate.yml に `base_branch` 入力追加（任意ブランチへの sync PR 作成対応、dogfood テスト用）(Closes #199)
 - [feat] cmd_387 — vitepress-plugin-mermaid 導入（architecture ページ Mermaid グラフ表示対応）(Closes #179)
 - [feat] cmd_386 — demo-app.md に Live Demo リンク追加 (demo.geonicdb.com) (Closes #177)
 - [feat] cmd_382 — fixListMerge に DEBUG_FIXLISTMERGE=1 制御の debug logging 追加（skip 理由・行番号記録）(Closes #172)

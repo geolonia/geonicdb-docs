@@ -2,6 +2,12 @@ name: Sync and Translate GeonicDB Docs
 
 on:
   workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Base branch for sync PR (default: main)'
+        required: false
+        default: 'main'
+        type: string
   repository_dispatch:
     types: [geonicdb-docs-updated]
 
@@ -228,6 +234,7 @@ jobs:
 
             **Trigger**: ${{ github.event_name }}
             **GeonicDB SHA**: ${{ github.event.client_payload.sha || 'N/A (manual dispatch)' }}
+            **Base branch**: ${{ inputs.base_branch || 'main' }}
 
             ### Changed files
             ${{ steps.detect.outputs.file_list }}
@@ -236,6 +243,6 @@ jobs:
             1. Synced English source docs from geolonia/geonicdb → docs/en/
             2. Translated English docs to Japanese via yuuhitsu → docs/ja/
             3. Build verification passed
-          branch: docs/auto-sync-translate
-          base: main
+          branch: docs/auto-sync-translate-${{ inputs.base_branch || 'main' }}
+          base: ${{ inputs.base_branch || 'main' }}
           labels: documentation,automated
