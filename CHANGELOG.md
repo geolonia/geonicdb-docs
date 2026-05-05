@@ -12,6 +12,7 @@
 - [feat] Phase 1 — saas-docs-rewrite.ts + YAML rule config (R-DEV-MD + R-SAM-BATCH) 実装（cmd_371）(Closes #152)
 
 ### Changed
+- chore(deps): bump @geolonia/yuuhitsu 0.1.14 → 0.1.16 (Phase 4 monitoring: HTML comment sentinel <!--BB--> + 3-pass restore) (Closes #185)
 - chore(deps): rollback @geolonia/yuuhitsu 0.1.15 → 0.1.14 (exact pin) — SF1 P-A4 sentinel が LLM により %%BB%% → %%BB__ に変形される silent failure を確認 (Closes #183)
 - chore(deps): bump @geolonia/yuuhitsu 0.1.14 → 0.1.15 — SF1 P-A4 newline sentinel (Closes #175)
 - [glossary] Context Broker hybrid 形式化 — 「ブローカー」を except_after で復活、MQTT/Message/Event broker 文脈を許容（cmd_361）(Closes #137)
