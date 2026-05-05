@@ -12,6 +12,7 @@
 - [feat] Phase 1 — saas-docs-rewrite.ts + YAML rule config (R-DEV-MD + R-SAM-BATCH) 実装（cmd_371）(Closes #152)
 
 ### Changed
+- chore(deps): rollback @geolonia/yuuhitsu 0.1.16 → 0.1.14 (exact pin) — list 境界保護が 0.1.16 で不十分 (integration test 3/5 FAIL)、yuuhitsu 0.1.17 fix 後に再 bump 予定 (Closes #188)
 - chore(deps): bump @geolonia/yuuhitsu 0.1.14 → 0.1.16 (Phase 4 monitoring: HTML comment sentinel <!--BB--> + 3-pass restore) (Closes #185)
 - chore(deps): rollback @geolonia/yuuhitsu 0.1.15 → 0.1.14 (exact pin) — SF1 P-A4 sentinel が LLM により %%BB%% → %%BB__ に変形される silent failure を確認 (Closes #183)
 - chore(deps): bump @geolonia/yuuhitsu 0.1.14 → 0.1.15 — SF1 P-A4 newline sentinel (Closes #175)
