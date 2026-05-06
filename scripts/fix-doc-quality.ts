@@ -44,7 +44,7 @@ export const JA_GLOSSARY_RULES: GlossaryRule[] = [
   // "geonicdb" without suffix is prose violation; compound names ("geonicdb-docs"),
   // URLs ("geonicdb.geolonia.com", "geolonia/geonicdb/compare"), IAM keys ("geonicdb:purpose"),
   // metrics ("geonicdb_uptime"), and inline code ("`npx geonicdb`") are excluded.
-  { forbidden: 'geonicdb', correct: 'GeonicDB', negLookaheads: ['-', '.', '/', ':', '_', '`'] },
+  { forbidden: 'geonicdb', correct: 'GeonicDB', negLookaheads: ['-', '.', '/', ':', '_', '`', ')', ']', '>'] },
   { forbidden: 'リアクティブコア', correct: 'ReactiveCore' },
   { forbidden: 'マップリブレ', correct: 'MapLibre' },
   { forbidden: 'ファイウェア', correct: 'FIWARE' },
