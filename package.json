@@ -22,7 +22,7 @@
   "license": "MIT",
   "packageManager": "pnpm@10.29.2",
   "devDependencies": {
-    "@geolonia/yuuhitsu": "0.1.14",
+    "@geolonia/yuuhitsu": "file:/home/hal/workspace/yuuhitsu/geolonia-yuuhitsu-0.2.3.tgz",
     "@playwright/test": "^1.58.2",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.3.5",
