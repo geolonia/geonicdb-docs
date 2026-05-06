@@ -10,7 +10,7 @@ outline: deep
 このフォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
 このプロジェクトは [Semantic Versioning](https://semver.org/lang/ja/) に準拠しています。
 
-## [Unreleased]
+## [未リリース]## [0.8.0] — 2026-05-05
 
 ### 2026-05-05
 - **修正**: SDK の `db.request()` が空ボディ + JSON Content-Type のレスポンスで `SyntaxError: Unexpected end of JSON input` を投げて落ちる問題 (issue #1145) (#1146)
@@ -49,8 +49,7 @@ outline: deep
 - 🚨 **破壊的変更 (軽微)**: SDK の URL クエリ文字列のエンコーディングが微妙に変わる (#1149)
   - 旧: `encodeURIComponent` でフィールドごとに直列化
   - 新: `URLSearchParams` ベースに refactor (DRY 化のため)
-  - 影響を受ける文字: 半角スペース `%20` → `+` / `'` 素通し → `%27` / `!` `*` `(` `)` `~` 素通し → `%21` `%2A` `%28` `%29` `%7E`
-  - サーバ側 (GeonicDB 本体) は両形式を解釈するので **通常は実害なし**。プロキシ / WAF が strict matching している環境では影響しうる
+  - 影響を受ける文字: 半角スペース `%20` → `+` / `'` 素通し → `%27` / `!` `*` `(` `)` `~` 素通し → `%21` `%2A` `%28` `%29` `%7E`  - サーバ側 (GeonicDB 本体) は両形式を解釈するので **通常は実害なし**。プロキシ / WAF が strict matching している環境では影響しうる
   - 公開メソッドのシグネチャは追加のみで完全後方互換 (新パラメータはすべて optional)
 - **改善**: SDK のクエリパラメータ表面を NGSI-LD §5.7.2 (Query Entities) に揃えて拡充 (issue #1132) (#1149)
   - 背景: `db.getEntities()` 等は `type / limit / offset / q` の 4 パラメータしか URL に乗せておらず、サーバが実装している `scopeQ` / `georel` / `geometry` / `coordinates` / `attrs` / `pick` / `omit` / `lang` / `orderBy` / `count` 等を SDK 経由で使えなかった。実アプリで scope に基づくフィルタが必要になり (geonicdb-gis 関連)、SDK を諦めて `db.request()` で素のパスを組み立てる回避が必要だった
@@ -60,7 +59,7 @@ outline: deep
     - **`src/sdk/websocket.ts`**: `subscribe(options)` が `scopeQ` を受け、サブスクリプションメッセージに添える (サーバ側未対応バージョンでは無視される)
     - **`src/sdk/README.md`**: `getEntities()` の例にコメント形式で全パラメータを列挙
   - 後方互換: 既存呼び出し (`{ type, limit, offset, q }` のみ) は完全に動作。新パラメータは optional 追加
-  - 追加: `tests/unit/sdk/index.test.ts` に regression テスト 3 件
+  - 追加: __INLINE
 
 ## [0.7.1] — 2026-05-02
 
@@ -84,7 +83,7 @@ outline: deep
   - `handlers/rules/processor.ts` で `AbortController` を作成し、SLO 超過で `controller.abort()` を呼ぶ。span 上は abort されたかを区別して ERROR を記録 (`aborted` フラグを log に出す)
   - 既存の `entity.service` / `temporal.service` の各メソッドへの signal threading は影響範囲が広いため別 issue に切り出し、本対応では「ループ境界で次の処理を始めない」までを保証する。in-flight の DB 操作は完走させる
   - 関連: `src/core/rules/rule-engine.service.ts`、`src/handlers/rules/processor.ts`、`tests/unit/core/rules/rule-engine.service.test.ts` (signal 経由の協調キャンセル 4 ケース追加)、`tests/unit/handlers/rules/processor.test.ts` (signal 経由の abort/log/span 検証 2 ケース追加)
-- **修正**: SDK 公開 d.ts (`@geolonia/geonicdb-sdk` の `geonicdb.d.ts`) からエラークラスが silently 落ちていた問題 (issue #1118) (#1124)
+- **修正**: SDK 公開 d.ts (`@geolonia/geonicdb-sdk` の `geonicdb.d.ts`) からエラークラスが暗黙的に脱落していた問題 (issue #1118) (#1124)
   - 原因: `scripts/build-sdk.ts` が `geonicdb.d.ts` を hardcoded な export 列挙で書き出しており、`src/sdk/index.ts` で `errors.ts` から再エクスポートしている `GeonicDBError` / `AuthenticationError` / `AuthorizationError` / `NotFoundError` / `ConflictError` / `ValidationError` / `RateLimitError` / `NetworkError` が含まれていなかった。runtime バンドル (cjs / mjs) では正しく export されていたが、TypeScript からは `import { AuthorizationError } from '@geolonia/geonicdb-sdk'` でモジュール解決エラーになっていた
   - 修正: `scripts/build-sdk.ts` の d.ts 生成を `export * from './index'; export { default } from './index';` に変更し、`src/sdk/index.ts` の named export を全て自動転送する。今後 index に export を追加してもこのスクリプトの修正は不要
   - 回帰防止: `tests/unit/sdk/build-artifacts.test.ts` を新設。`geonicdb.d.ts` が wildcard 形式であること、`index.d.ts` でエラークラスが `errors.ts` から re-export 形で公開されていること、runtime CJS / ESM 両バンドルでエラークラスが constructor として呼び出せ Error サブクラスかつ `GeonicDBError` を共通基底とすることを検証 (ESM は子プロセス経由で評価)
@@ -108,11 +107,7 @@ outline: deep
     - `tests/e2e/features/auth/rules-auto-fire.feature` で「entity 作成 API のみで Rule action が自動実行される」シナリオを 2 つ追加 (`triggerRuleExecution` を介さない再現テスト)
     - `tests/unit/infrastructure/sam-template.test.ts` で `infrastructure/template.yaml` の最小構造を検証 (RuleProcessorFunction / SubscriptionMatcherFunction / WsBroadcastFunction が EventBridgeRule で 3 種の detail-type を listen していることを機械的に確認)
     - `tests/unit/handlers/rules/processor.test.ts` で新規 handler 単体の挙動 (3 種イベント委譲・secondary region スキップ・エラー握り潰し・タイムアウト) を検証
-  - 関連: `src/handlers/rules/processor.ts` (新規)、`src/handlers/streams/change-stream.ts` (rule engine 呼び出しを除去)、`infrastructure/template.yaml` (`RuleProcessorFunction` 追加)、`tests/e2e/support/hooks.ts` / `tests/e2e/features/auth/rules-auto-fire.feature` / `tests/unit/infrastructure/sam-template.test.ts` / `tests/unit/handlers/rules/processor.test.ts`
-
-## [0.6.0] — 2026-05-01
-
-### 2026-05-01
+  - 関連: `src/handlers/rules/processor.ts` (新規)、`src/handlers/streams/change-stream.ts` (rule engine 呼び出しを除去)、`infrastructure/template.yaml` (`RuleProcessorFunction` 追加)、`tests/e2e/support/hooks.ts` / `tests/e2e/features/auth/rules-auto-fire.feature` / `tests/unit/infrastructure/sam-template.test.ts` / `tests/unit/handlers/rules/processor.test.ts`## [0.6.0] — 2026-05-01### 2026-05-01
 - **認可**: WebSocket 配信時の XACML AuthzRequest に `entityOwner` / `entityId` を inject (issue #1107) (#1116)
   - `src/handlers/websocket/broadcaster.ts` の `filterByAuthz` と `src/core/streaming/local-ws-server.ts` の `broadcastEventAsync` を改修。各コネクションに対する `authorizeWs()` 呼び出しに、配信対象 entity の `entityOwner` (createdBy) / `entityId` / `entityType` を渡す。これまで `entityType` のみだったため、「**自分が所有する entity の更新だけ受信する**」per-user 通知フィルタが XACML カスタムポリシーで書けなかった
   - これに伴い `EntityChangeEvent.entity` に optional な `owner?: string` を追加。`entity.service.ts` の publish 経路 (CREATE/UPDATE/DELETE 各種) で entity の `createdBy` を transparent に伝播する。`InternalEntity.createdBy` も追加 (内部用; NGSI トランスフォーマでは出力されない)
@@ -221,8 +216,8 @@ outline: deep
 
 ### 2026-04-28
 - **CORS 修正**: `Access-Control-Allow-Headers` に `If-None-Match` / `If-Modified-Since` を追加 (#1065)
-  - 旧設定では cross-origin リクエストにこれら 2 ヘッダーが allow されていなかったため、ブラウザの HTTP cache 自動再検証と SDK の `_cachedRequest` が CORS preflight (OPTIONS) で reject され、INM 付き GET を送ることができなかった (#1065)
-  - 結果として PR #1060 (SDK invalidation 削除) / #1062 (CORS expose ETag) / #1063 (Cache-Control: no-cache strip) という 3 段の修正が揃っていても、INM そのものがブラウザから出ないため 304 経路全体が機能していなかった (incident 2026-04-28: pulse で SDK キャッシュが効かない現象の最終真因) (#1065)
+  - 旧設定では cross-origin リクエストにこれら 2 ヘッダーが allow されていなかったため、ブラウザの HTTP cache auto-revalidation と SDK の `_cachedRequest` が CORS preflight (OPTIONS) で reject され、INM 付き GET を送ることができなかった (#1065)
+  - 結果として PR #1060 (SDK invalidation 削除) / #1062 (CORS expose ETag) / #1063 (Cache-Control: no-cache strip) という 3 段の修正が揃っていても、INM そのものがブラウザから出ないため 304 経路全体が機能していなかった (incident 2026-04-28: pulse で SDK cache が効かない現象の最終真因) (#1065)
   - 修正: `src/config/defaults.ts` に `CORS_ALLOW_HEADERS` 定数を新設し `If-None-Match` / `If-Modified-Since` を含めた完全な allow-list を集約。`cors.middleware.ts` と `infrastructure/template.yaml` (Cors.AllowHeaders / GatewayResponses) は同定数に同期 (#1065)
   - 検証方法: `curl -X OPTIONS -H 'Access-Control-Request-Headers: if-none-match' <endpoint>/ngsi-ld/v1/entities` で `If-None-Match` が allow-headers に含まれることを確認 (#1065)
   - テスト: cors.middleware.test に `If-None-Match` / `If-Modified-Since` の allow ケースを追加。cors-comprehensive.feature に `@issue-1065` シナリオ 2 件追加 (#1065)
@@ -230,43 +225,43 @@ outline: deep
 - **デプロイ可視化**: `/version` エンドポイントの `git_hash` フィールドにコミット SHA を埋め込み (#1064)
   - `infrastructure/template.yaml` に `GitHash` パラメータを追加し、Lambda 環境変数 `GIT_HASH` として注入 (#1064)
   - `deploy-env.yml` で `GitHash=${{ github.sha }}` を SAM パラメータに渡す (staging / prod 両経路対応) (#1064)
-  - 用途: staging / prod でデプロイ済みのコミットを `curl /version` で即時確認できるようにする。デプロイ問題の切り分けが従来 CloudFormation イベントログまで遡らないと判明しなかったが、これで一発で分かる (#1064)
+  - 用途: staging / prod でデプロイ済みのコミットを `curl /version` で即時確認できるようにする。デプロイ問題の切り分けが従来 CloudFormation event log まで遡らないと判明しなかったが、これで一発で分かる (#1064)
 
 - **条件付きリクエスト修正**: `Cache-Control: no-cache` リクエストヘッダーを INM 評価から除外 (#1063)
   - 旧挙動: `fresh` パッケージが RFC 2616 §14.9.4 に従いリクエストの `Cache-Control: no-cache` を "force reload" として扱い、`If-None-Match` 一致でも 304 を返さず常に 200 + body を返却していた (#1063)
-  - ブラウザは特定のコンテキスト (ハードリロード後の継続フェッチ等) で `Cache-Control: no-cache` を fetch に自動付与するため、SDK が明示的に `If-None-Match` を送っていてもサーバが 304 を返さなくなり、SDK の帯域節約が常に機能しない問題が発生 (incident 2026-04-28: pulse で SDK キャッシュが効いているように見えて毎回 200 が返る現象の真因) (#1063)
+  - ブラウザは特定の context (ハードリロード後の継続フェッチ等) で `Cache-Control: no-cache` を fetch に自動付与するため、SDK が明示的に `If-None-Match` を送っていてもサーバが 304 を返さなくなり、SDK の帯域節約が常に死ぬ問題が発生 (incident 2026-04-28: pulse で SDK キャッシュが効いているように見えて毎回 200 が返る現象の真因) (#1063)
   - 修正: `evaluateConditionalRequest` の `normalizeRequestHeaders` でリクエストヘッダーから `cache-control` を除外。SDK の明示的な `If-None-Match` 送信 = 「同じなら 304 で OK」という意思表示なので、ブラウザ自動付与の `Cache-Control: no-cache` で 304 を抑制しないのが正しい (#1063)
-  - `Cache-Control: no-store` (CDN バイパス意図) は引き続き `honorClientNoStore` で適切に扱う (本修正は INM 評価のみ影響) (#1063)
-  - テスト: `evaluateConditionalRequest` ユニットテストに Cache-Control: no-cache + INM / + IMS の 2 ケース追加。`http-cache-control.feature` に NGSIv2 単一エンティティ / NGSI-LD リストの 2 シナリオ追加 (#1063)
+  - `Cache-Control: no-store` (CDN bypass 意図) は引き続き `honorClientNoStore` で適切に扱う (本修正は INM 評価のみ影響) (#1063)
+  - テスト: `evaluateConditionalRequest` unit test に Cache-Control: no-cache + INM / + IMS の 2 ケース追加。`http-cache-control.feature` に NGSIv2 単一 entity / NGSI-LD list の 2 シナリオ追加 (#1063)
 
 - **CORS 修正**: `Access-Control-Expose-Headers` に複数のレスポンスヘッダーを追加 (#1062)
-  - **ETag / Vary**: 旧設定では `ETag` が CORS で隠され、ブラウザ JavaScript から `res.headers.get('etag')` が `null` を返していたため、SDK がキャッシュエントリを作れず `If-None-Match` も送れず、304 帯域節約パスが完全に機能していなかった (incident 2026-04-28: pulse で SDK キャッシュが一切効かなかった真因) (#1062)
-  - **Content-Crs**: NGSI-LD / NGSIv2 の geo レスポンスで CRS を通知するヘッダー。ブラウザクライアントが座標系を判別するために必要 (#1062)
+  - **ETag / Vary**: 旧設定では `ETag` が CORS で隠され、ブラウザ JS から `res.headers.get('etag')` が `null` を返していたため、SDK がキャッシュエントリを作れず `If-None-Match` も送れず、304 帯域節約パスが完全に機能していなかった (incident 2026-04-28: pulse で SDK キャッシュが一切効かなかった真因) (#1062)
+  - **Content-Crs**: NGSI-LD / NGSIv2 の geo response で CRS を通知するヘッダー。ブラウザクライアントが座標系を判別するために必要 (#1062)
   - **Fiware-Next-Token**: NGSIv2 ページネーション継続トークン。クライアントが次ページをリクエストするために必要 (#1062)
-  - **NGSILD-Warning**: NGSI-LD federation 警告。クライアントに警告を通知するために必要 (#1062)
-  - **Retry-After**: 429 rate limit / 503 retry-after 案内。クライアントがリトライ戦略を決めるために必要 (#1062)
+  - **NGSILD-Warning**: NGSI-LD federation warning。クライアントに警告を通知するために必要 (#1062)
+  - **Retry-After**: 429 rate limit / 503 retry-after 案内。クライアントが retry 戦略を決めるために必要 (#1062)
   - `Cache-Control` / `Last-Modified` / `Content-Type` 等は CORS-safelisted なので expose 不要 (#1062)
-  - 漏れ検出: 全エンドポイントのレスポンスヘッダーを grep して CORS expose リストと突合し、不足している 4 件 (Content-Crs / Fiware-Next-Token / NGSILD-Warning / Retry-After) を発見・追加 (#1062)
+  - 漏れ検出: 全エンドポイント response header を grep して CORS expose リストと突合し、missing 4 件 (Content-Crs / Fiware-Next-Token / NGSILD-Warning / Retry-After) を発見・追加 (#1062)
   - 設定値は `src/config/defaults.ts` の `CORS_EXPOSE_HEADERS` (`as const` 配列) に集約 (#1062)
 
 - **セキュリティ**: Dependabot アラート 13 件を一括解消 (#1061)
-  - 直接依存 (overrides 経由): `hono` ^4.12.14, `@hono/node-server` ^1.19.13 — JSX SSR HTML インジェクション / cookie 名検証 / IPv4-mapped IPv6 / serveStatic / toSSG パストラバーサルを解消 (#1061)
-  - 間接依存 (overrides 追加): `protobufjs@<8` ^7.5.5 (任意コード実行), `basic-ftp` ^5.3.1 (CRLF インジェクション / DoS), `follow-redirects` ^1.16.0 (Authorization ヘッダーリーク), `uuid` ^14.0.0 (バッファ境界) (#1061)
+  - 直接依存 (overrides 経由): `hono` ^4.12.14, `@hono/node-server` ^1.19.13 — JSX SSR HTML injection / cookie name 検証 / IPv4-mapped IPv6 / serveStatic / toSSG path traversal を解消 (#1061)
+  - 間接依存 (overrides 追加): `protobufjs@<8` ^7.5.5 (任意コード実行), `basic-ftp` ^5.3.1 (CRLF injection / DoS), `follow-redirects` ^1.16.0 (Authorization ヘッダーリーク), `uuid` ^14.0.0 (バッファ境界) (#1061)
   - `npm audit` で 0 vulnerabilities を確認 (#1061)
 
-- **SDK パフォーマンス修正**: WebSocket エンティティイベントでの自動キャッシュ無効化を削除 (#1060)
-  - 旧実装: `entityCreated` / `entityUpdated` / `entityDeleted` 受信時に SDK が `_invalidateCacheForEntityEvent()` で全エンティティキャッシュエントリを `deleteWhere` で削除していた (#1060)
-  - 削除すると ETag も失われ、次回読み取りで `If-None-Match` が送られず、サーバは毎回 full `200` body を返却 → 304 帯域節約パスが完全に機能していなかった (#1060)
-  - data エンドポイントは `Cache-Control: private, no-cache` で毎回再検証されるため、キャッシュを残しても安全 (サーバ側 ETag マッチで 304 / 200 が自動的に振り分けられる) (#1060)
-  - 結果: pulse 等のリアルタイム監視アプリで WebSocket 受信中にキャッシュが効くようになり、未変更データの再取得が 304 で済むようになる (#1060)
+- **SDK パフォーマンス修正**: WebSocket entity events での自動キャッシュ無効化を削除 (#1060)
+  - 旧実装: `entityCreated` / `entityUpdated` / `entityDeleted` 受信時に SDK が `_invalidateCacheForEntityEvent()` で全 entities cache エントリを `deleteWhere` で削除していた (#1060)
+  - 削除すると ETag も失われ、次回読み取りで `If-None-Match` が送られず、サーバは毎回 full `200` body を返却 → 304 帯域節約パスが完全に死んでいた (#1060)
+  - data エンドポイントは `Cache-Control: private, no-cache` で毎回 revalidation されるため、cache を残しても安全 (server 側 ETag マッチで 304 / 200 が自動的に振り分けられる) (#1060)
+  - 結果: pulse 等のリアルタイム監視アプリで WebSocket 受信中にキャッシュが効くようになり、unchanged data の再取得が 304 で済むようになる (#1060)
   - 明示的に全クリアしたい場合は `clearCache()` を呼ぶ (公開 API なので未変更)。`clearCache()` で `cacheInvalidated` イベントが発火するように修正 — WebSocket 経路を削除した結果、このイベントが発火しなくなる退行を回避 (#1060)
 
 - **セキュリティ強化**: Security Audit Group 3 — 公開 vs 認証境界の網羅検証 (#1057)
   - **#1053: 公開メタエンドポイントに STATIC ポリシーを適用** — `/llms.txt`, `/api.json`, `/openapi.json`, `/tools.json`, `/.well-known/ai-plugin.json`, `/.well-known/agent-card.json` の 6 エンドポイントが `Cache-Control` を返していなかった (CDN がキャッシュ判断できず、コスト・レイテンシが悪化)。`applyCachePolicy('static')` を適用して `Cache-Control: public, max-age=3600` を返すよう修正。ただし `/openapi.json` は tenant 依存の `CustomDataModel_*` を埋め込むケースがあるため、注入された場合のみ `meta` ポリシーへフォールバック (#1057)
   - **#1053: STATIC ポリシーの Vary を最小化** — STATIC は cross-tenant で共有可能なため、`Vary` を `Accept` のみに制限。`Fiware-Service` / `Authorization` / `X-Api-Key` を含めると CDN がテナント / ユーザ毎にキャッシュ分離してしまい、STATIC の意義 (CDN 広域共有) が損なわれる (#1057)
-  - **#1053: lint テスト追加** — `meta.controller.test.ts` に「Cache-Control policy assignment lint」を新設。各公開エンドポイントが `public, max-age=3600` を返し、`private` / `no-cache` を含まないこと、`Vary` がテナント / 認証次元を含まないこと、`/openapi.json` の tenant スキーマありケースで `meta` フォールバックが効くことを 12 ケースで検証 (#1057)
-  - **#1048: Vary 網羅性 audit + 文書化** — 現状の `Vary` (`Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept`) が網羅的であることを確認。`DPoP` (リクエスト毎)、`Accept-Language` (NGSI で使われない)、`Origin`、`X-Forwarded-For` (認証段階で評価) を意図的に除外することを `docs/SECURITY.md` に明記 (#1057)
-  - **#1052: DPoP / DPoP-Nonce × cache 検証 + 文書化** — `DPoP-Nonce` が 304 パススルーホワイトリストに既に含まれていることをユニットテストで固定。DPoP 認証失敗が `evaluateConditionalRequest` より前に評価される invariant を `docs/AUTH.md` / `docs/SECURITY.md` に明記 (#1057)
+  - **#1053: lint test 追加** — `meta.controller.test.ts` に「Cache-Control policy assignment lint」を新設。各公開エンドポイントが `public, max-age=3600` を返し、`private` / `no-cache` を含まないこと、`Vary` がテナント / 認証次元を含まないこと、`/openapi.json` の tenant スキーマありケースで `meta` フォールバックが効くことを 12 ケースで検証 (#1057)
+  - **#1048: Vary 網羅性 audit + 文書化** — 現状の `Vary` (`Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept`) が網羅的であることを確認。`DPoP` (per-request)、`Accept-Language` (NGSI で使われない)、`Origin`、`X-Forwarded-For` (auth 段階で評価) を意図的に除外することを `docs/SECURITY.md` に明記 (#1057)
+  - **#1052: DPoP / DPoP-Nonce × cache 検証 + 文書化** — `DPoP-Nonce` が 304 passthrough whitelist に既に含まれていることを unit test で固定。DPoP 認証失敗が `evaluateConditionalRequest` より前に評価される invariant を `docs/AUTH.md` / `docs/SECURITY.md` に明記 (#1057)
   - **ドキュメント**: `docs/SECURITY.md` に「Vary Header Coverage Audit」「DPoP / DPoP-Nonce & Cache Integrity」「Public vs Authenticated Endpoint Cache Policy Matrix」3 セクション追加。`docs/AUTH.md` に「DPoP & HTTP Cache Interaction」サブセクション追加 (#1057)
 
 ### 2026-04-28
@@ -331,52 +326,52 @@ outline: deep
 - **Feature**: HTTP キャッシュコントロール Phase 1 — GET エンドポイントに `ETag` / `Last-Modified` を導入し、`If-None-Match` / `If-Modified-Since` による条件付きリクエスト (304 Not Modified) をサポート (#1026)
   - 対象: `/v2/entities`, `/v2/subscriptions`, `/v2/registrations`, `/ngsi-ld/v1/entities`, `/ngsi-ld/v1/subscriptions`, `/ngsi-ld/v1/csourceRegistrations`, `/ngsi-ld/v1/csourceSubscriptions` の一覧 / 単一取得 (#1026)
   - リスト用 ETag は各要素の `id + modifiedAt` のストリーミングハッシュ + 総件数のダイジェスト (RFC 7232 §2.3.2 weak validator として正確)、単一用 ETag は `modifiedAt` のハッシュ (#1026)
-  - `fresh` モジュールで RFC 7232 準拠の評価 (弱い ETag、ワイルドカード、HTTP-date) (#1026)
+  - `fresh` モジュールで RFC 7232 準拠の評価(弱い ETag、ワイルドカード、HTTP-date)(#1026)
   - 304 レスポンスは ETag / Last-Modified / Cache-Control / Vary / CORS / 相関 ID / トレースを保持 (#1026)
 - **Feature**: A2A (Agent-to-Agent) プロトコル Phase 1 対応 (#1025)
-  - `GET /.well-known/agent-card.json` — Agent Card 配信 (5 スキル: entities, batch, temporal, config, admin) (#1025)
+  - `GET /.well-known/agent-card.json` — Agent Card 配信(5 スキル: entities, batch, temporal, config, admin)(#1025)
   - `POST /a2a` — JSON-RPC 2.0 エンドポイント。`message/send`, `tasks/get`, `tasks/list`, `tasks/cancel` メソッドに対応 (#1025)
-  - MongoDB `a2aTasks` コレクションによる Task 状態管理 (ライフサイクル: submitted → working → completed/failed/canceled、TTL 30 日) (#1025)
+  - MongoDB `a2aTasks` コレクションによる Task 状態管理(ライフサイクル: submitted → working → completed/failed/canceled、TTL 30 日)(#1025)
   - 既存 MCP ツール 5 つを A2A スキルにマッピング。サービス層を直接呼び出し (#1025)
-  - `@a2a-js/sdk` v0.3.13 を活用 (`JsonRpcTransportHandler` + `DefaultRequestHandler`) (#1025)
+  - `@a2a-js/sdk` v0.3.13 を活用(`JsonRpcTransportHandler` + `DefaultRequestHandler`)(#1025)
 
 ## [0.3.0] — 2026-04-24
 
 ### 2026-04-24
-- **Feature**: カスタムデータモデルに `additionalProperties` フィールドを追加。`false` 指定でモデル未定義の属性を拒否する厳格モードを有効化。デフォルトは `true` (NGSI-LD の自然な挙動を維持) (#1007)
+- **Feature**: カスタムデータモデルに `additionalProperties` フィールドを追加。`false` 指定でモデル未定義の属性を拒否する厳格モードを有効化。デフォルトは `true`(NGSI-LD の自然な挙動を維持)(#1007)
 - **Feature**: SDK に型付きエラークラスを導入。`GeonicDBError` 基底クラスと `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ConflictError`, `ValidationError`, `RateLimitError`, `NetworkError` を追加。`instanceof` でエラー種別を判定可能に (#1008)
-- **Feature**: SDK WebSocket イベント (`entityCreated`/`entityUpdated`/`entityDeleted`) に `entity` フィールドを追加。`id` + `type` + `data` から構築した完全な NGSI-LD エンティティオブジェクトを直接取得可能に (#1009)
+- **Feature**: SDK WebSocket イベント(`entityCreated`/`entityUpdated`/`entityDeleted`)に `entity` フィールドを追加。`id` + `type` + `data` から構築した完全な NGSI-LD エンティティオブジェクトを直接取得可能に (#1009)
 - **Feature**: SDK に `debug` オプションを追加。有効時に HTTP リクエスト/レスポンス、WebSocket 接続・イベント、トークンリフレッシュをコンソールにログ出力 (#1010)
 
 ### 2026-04-23
-- **Feature**: ReactiveCore Rules のクロスプロトコル エンティティ生成 (#1004)
+- **機能**: ReactiveCore ルールのクロスプロトコル エンティティ生成 (#1004)
   - `createEntity` / `updateAttribute` / `deleteAttribute` アクションに `protocol` フィールドを追加（NGSIv2 ↔ NGSI-LD の壁を越えた操作が可能に）
   - `createEntity` に `servicePath` / `scope` フィールドを追加（ターゲットの階層パスを制御）
   - servicePath ↔ scope の自動マッピング（NGSIv2 `/sensors` → NGSI-LD `["/sensors"]`）
   - `${trigger.protocol}`、`${trigger.servicePath}`、`${trigger.scope}`、`${trigger.service}` テンプレート変数を追加
   - Change Stream ハンドラが EntityDocument の `protocol` / `scope` をルールエンジンに伝播するよう修正
-- **Improve**: WAF カスタムルール（RateLimitPerIP、SizeRestrictionBody10MB）にカスタムレスポンスを追加。アプリケーション互換の JSON エラーボディと適切な HTTP ステータスコード（429/413）を返すように改善 (#986)
-- **Feature**: WAF ロギング設定を追加。BLOCK/COUNT アクションのみ記録し、マネージドルールのブロック原因をトレース可能に (#986)
+- **改善**: WAF カスタムルール（RateLimitPerIP、SizeRestrictionBody10MB）にカスタムレスポンスを追加。アプリケーション互換の JSON エラーボディと適切な HTTP ステータスコード（429/413）を返すように改善 (#986)
+- **機能**: WAF ロギング設定を追加。BLOCK/COUNT アクションのみ記録し、マネージドルールのブロック原因をトレース可能に (#986)
 
 ### 2026-04-21
-- **Fix**: WAF `SizeRestrictionBody10MB` ルールの `OversizeHandling: MATCH` により 8 KB 超のリクエストが全て 403 Forbidden になる問題を修正 (#983)
+- **修正**: WAF `SizeRestrictionBody10MB` ルールの `OversizeHandling: MATCH` により 8KB 超のリクエストが全て 403 Forbidden になる問題を修正 (#983)
 
 ### 2026-04-18
-- **Breaking**: NGSIv2 と NGSI-LD のエンティティ分離・仕様準拠 (#966)
+- **破壊的変更**: NGSIv2 と NGSI-LD のエンティティ分離・仕様準拠 (#966)
   - **プロトコルベースのエンティティ分離**: NGSIv2 で作成したエンティティは NGSIv2 からのみ、NGSI-LD で作成したエンティティは NGSI-LD からのみアクセス可能に
   - NGSI-LD API で `Fiware-ServicePath` ヘッダーを無視するよう修正（ETSI GS CIM 009 仕様準拠）
   - servicePath と scope を独立した概念として維持
-  - NGSIv2 `servicePath` built-in attribute を追加（`?attrs=servicePath` で取得可能）
+  - NGSIv2 `servicePath` built-in 属性を追加（`?attrs=servicePath` で取得可能）
   - 既存エンティティ（`protocol` フィールドなし）は NGSI-LD 扱い
 
 ### 2026-04-14
-- **Release**: SDK v0.2.0 — `count()` と `requestRaw()` メソッドを追加 (#928)
-- **Change**: SDK ライセンスを AGPL-3.0 から MIT に変更（本体は AGPL-3.0 のまま） (#942)
-- **Remove**: 内蔵 SDK 配信エンドポイント（`/sdk/v1/geonicdb.js`、`/sdk/v1/geonicdb.d.ts`）を削除。npm / unpkg CDN から取得する方式に統一 (#942)
+- **リリース**: SDK v0.2.0 — `count()` と `requestRaw()` メソッドを追加 (#928)
+- **変更**: SDK ライセンスを AGPL-3.0 から MIT に変更（本体は AGPL-3.0 のまま） (#942)
+- **削除**: 内蔵 SDK 配信エンドポイント（`/sdk/v1/geonicdb.js`、`/sdk/v1/geonicdb.d.ts`）を削除。npm / unpkg CDN から取得する方式に統一 (#942)
 
 ### 2026-04-10
-- **Fix**: ユニークインデックスをテナントスコープ化 — policies、policySets、apiKeys、oauthClients、rules の ID がテナント内で一意に変更。異なるテナント間で同一 ID を使用可能に (#896)
-- **Feature**: MCP ツールの NGSI-LD クエリパラメータを大幅拡張 (#898)
+- **修正**: ユニークインデックスをテナントスコープ化 — policies、policySets、apiKeys、oauthClients、rules の ID がテナント内で一意に変更。異なるテナント間で同一 ID を使用可能に (#896)
+- **機能**: MCP ツールの NGSI-LD クエリパラメータを大幅拡張 (#898)
   - `entities` ツール: `idList`、`idPattern`、`orderBy`、`orderDirection`、`sysAttrs`、`pick`、`omit`、`scopeQ`、`lang`、`geoproperty`、`spatialId`、`spatialIdDepth` を追加
   - `batch` ツールの `query` アクション: `orderBy`、`orderDirection`、`sysAttrs` を追加
   - `entityToKeyValues` に `sysAttrs`（`createdAt`/`modifiedAt` 出力）と `distance` 出力を追加
@@ -387,20 +382,20 @@ outline: deep
 
 ### 2026-04-09
 - SDK を TypeScript で書き直し、npm パッケージ `@geolonia/geonicdb-sdk` として公開可能に
-- Types/Attributes Discovery、Temporal API、Batch Operations の convenience methods を追加 (#832)
+- Types/Attributes Discovery、Temporal API、Batch Operations の convenience メソッドを追加 (#832)
 - `setCredentials()` の `expiresIn: 0` が無視されるバグを修正 (#876)
 
 ### 2026-04-08
-- **Feature**: カスタムデータモデルの JSON-LD `@context` URI 改善 (#858)
-  - `propertyDetails` に `@context` フィールドを追加（既存語彙 URL の指定が可能に）
-  - 自動生成 URI を URN → URL に移行（`https://geonicdb.geolonia.com/vocab/{tenantId}/{propertyName}`）
+- **機能**: カスタムデータモデルの JSON-LD `@context` URI 改善 (#858)
+  - `propertyDetails` に `@context` フィールドを追加(既存語彙 URL の指定が可能に)
+  - 自動生成 URI を URN → URL に移行(`https://geonicdb.geolonia.com/vocab/{tenantId}/{propertyName}`)
   - 属性 URI をエンティティタイプから独立させ、テナント内で再利用可能に
   - MCP ツール / llms.txt / openapi.json に schema.org 語彙サジェスト指示を追加
 
 ### 2026-04-07
-- **Fix**: 不正な GeoJSON データが存在する場合のインデックス初期化失敗を自動回復 — 問題のあるエンティティを隔離して `2dsphere` インデックスを再構築 (#857)
-- **Fix**: WAF `EC2MetaDataSSRF_BODY` ルールが `allowedOrigins` 内の `localhost` URL を SSRF として誤検知しブロックする問題を修正 (#848)
-- **Fix**: WAF `CrossSiteScripting_BODY` ルールが `allowedOrigins` 内の URL を XSS と誤検知し API キー作成が 403 になる問題を修正 (#846)
+- **修正**: 不正な GeoJSON データが存在する場合のインデックス初期化失敗を自動回復 — 問題のあるエンティティを隔離して `2dsphere` インデックスを再構築 (#857)
+- **修正**: WAF `EC2MetaDataSSRF_BODY` ルールが `allowedOrigins` 内の `localhost` URL を SSRF として誤検知しブロックする問題を修正 (#848)
+- **修正**: WAF `CrossSiteScripting_BODY` ルールが `allowedOrigins` 内の URL を XSS と誤検知し API キー作成が 403 になる問題を修正 (#846)
 
 ### 2026-04-05
 - **Breaking**: `onTokenRefresh(callback)` を廃止し `on('tokenRefresh', cb)` イベントに統一 (#831)
@@ -415,7 +410,7 @@ outline: deep
   - `request(method, path, body)`: 認証付き汎用 API リクエスト (#830)
   - `reconnect()`: WebSocket 強制再接続 (#830)
   - `isConnected()`: WebSocket 接続状態の確認 (#830)
-  - WebSocket ライフサイクルイベント追加: `connected`, `disconnected`, `reconnecting` (#830)
+  - WebSocket ライフサイクルイベント追加: `connected`、`disconnected`、`reconnecting` (#830)
   - SDK ファイル冒頭に JSDoc 型定義を埋め込み — AI コーディングアシスタントが自動的に全 API を把握可能 (#830)
 
 ### 2026-04-01
@@ -543,17 +538,17 @@ outline: deep
   - `UserService` に `TenantService` を注入しバリデーション層で整合性を担保
 
 ### 2026-03-12
-- **Fix**: ログイン時のテナントヘッダー（`NGSILD-Tenant` / `Fiware-Service`）フォーマット検証を追加 (issue #708) (#711)
+- **修正**: ログイン時のテナントヘッダー（`NGSILD-Tenant` / `Fiware-Service`）フォーマット検証を追加 (issue #708) (#711)
   - 不正な形式のヘッダー値で 400 エラーを返す
-- **Fix**: テナント名フォーマットバリデーションを Zod スキーマに追加 (issue #709) (#711)
+- **修正**: テナント名フォーマットバリデーションを Zod スキーマに追加 (issue #709) (#711)
   - `POST /admin/tenants` および `PATCH /admin/tenants/{tenantId}` で `^[a-z0-9_]+$` を強制
   - 大文字・ハイフン・スペース等を含む名前は 400 エラー
-- **Feat**: ログイン時の `NGSILD-Tenant` / `Fiware-Service` ヘッダーによるテナント指定をサポート (issue #710) (#711)
+- **機能追加**: ログイン時の `NGSILD-Tenant` / `Fiware-Service` ヘッダーによるテナント指定をサポート (issue #710) (#711)
   - 優先順位: `body.tenantId` > `NGSILD-Tenant` ヘッダー > プライマリテナント
   - ヘッダー値からテナント名でテナントを解決（存在しない場合は 400 エラー）
 
 ### 2026-03-10
-- **Feat**: DPoP (Demonstration of Proof-of-Possession) トークンバインド (#707)
+- **機能追加**: DPoP (Demonstration of Proof-of-Possession) トークンバインド (#707)
   - RFC 9449 準拠: ECDSA P-256 鍵ペアによるトークン所有証明
   - `/oauth/token` で DPoP proof 付きトークン交換 → `token_type: "DPoP"` + JWT `cnf.jkt` バインド
   - API リクエストごとに DPoP proof を検証（`htm`/`htu`/`ath` チェック）
@@ -565,37 +560,35 @@ outline: deep
   - Bearer フォールバック: DPoP 非対応クライアントは従来通り Bearer トークンで動作
 
 ### 2026-03-09
-- **Fix**: `POST /admin/api-keys` で `tenantId` を必須バリデーションに変更 (#704)
+- **修正**: `POST /admin/api-keys` で `tenantId` を必須バリデーションに変更 (#704)
   - super_admin が `tenantId` なしでキーを作成すると 400 エラーを返す
   - スキーマレベルで `null` / 空文字を拒否（`tenant_admin` は省略可、セッションから自動設定）
   - サービス層で super_admin の `tenantId` 必須チェックを追加
 
 ### 2026-03-08
-- **Feat**: JS SDK + API キートークン交換エンドポイント (#689)
+- **機能追加**: JS SDK + API キートークン交換エンドポイント (#689)
   - `POST /auth/nonce`: Nonce + Proof of Work チャレンジ発行（API キー + Origin バインド）
   - `POST /oauth/token` (`grant_type=api_key`): API キー → セッション JWT 交換
   - `GET /sdk/v1/geonicdb.js`: ブラウザ用 JavaScript SDK 配信
-  - セキュリティ多層構造: Origin 検証 → HMAC Nonce → PoW → 短命 JWT（1h）
-- **Fix**: `allowedOrigins: []`（空配列）で作成された API キーが一切使用不能になるバグを修正 (issue #678) (#687)
+  - セキュリティ多層構造: Origin 検証 → HMAC Nonce → PoW → 短命 JWT（1 時間）
+- **修正**: `allowedOrigins: []`（空配列）で作成された API キーが一切使用不能になるバグを修正 (issue #678) (#687)
   - Create/Update 両スキーマに `.min(1)` バリデーションを追加
   - 全オリジン許可には `["*"]` を使用
-- **Feat**: API キーの `allowedEntityTypes` ランタイムエンフォースメント (#688)
+- **機能追加**: API キーの `allowedEntityTypes` ランタイムエンフォースメント (#688)
   - エンティティ作成・取得・更新・削除時に API キーの許可タイプを検証
   - 一覧取得時に `type` フィルタを自動注入
   - バッチ操作で全エンティティタイプを一括検証
   - NGSIv2・NGSI-LD 両 API に対応
 
 ### 2026-03-07
-- **BREAKING**: `super_admin` ロールの権限をプラットフォーム管理操作（`/admin/*`, `/auth/*`）のみに制限 (#674)
-  - データ API（`/v2/*`, `/ngsi-ld/*`, `/catalog*`, `/rules*`）へのアクセスは 403 Forbidden
+- **破壊的変更**: `super_admin` ロールの権限をプラットフォーム管理操作（`/admin/*`、`/auth/*`）のみに制限 (#674)
+  - データ API（`/v2/*`、`/ngsi-ld/*`、`/catalog*`、`/rules*`）へのアクセスは 403 Forbidden
   - MCP ツールのデータ操作も同様に拒否
   - `AUTH_ENABLED=false` 時の匿名 super_admin は従来通りアクセス可能（後方互換）
-- **Feat**: API キー認証基盤の追加 (`/admin/api-keys`, `/me/api-keys`) (#676)
-- **Feat**: テナント単位フィーチャーフラグ (`features.apiKeysEnabled`, `features.oauthClientsEnabled`) の追加 (#676)
-- **Feat**: X-Api-Key ヘッダーによる認証のサポート (#676)
-- **BREAKING**: `OAUTH_ENABLED` 環境変数の廃止（OAuth は `AUTH_ENABLED=true` なら常に有効） (#676)
-
-### 2026-03-06
+- **機能追加**: API キー認証基盤の追加 (`/admin/api-keys`、`/me/api-keys`) (#676)
+- **機能追加**: テナント単位フィーチャーフラグ (`features.apiKeysEnabled`、`features.oauthClientsEnabled`) の追加 (#676)
+- **機能追加**: X-Api-Key ヘッダーによる認証のサポート (#676)
+- **破壊的変更**: `OAUTH_ENABLED` 環境変数の廃止（OAuth は `AUTH_ENABLED=true` なら常に有効） (#676)# 2026年3月6日
 - **Fix**: 認証無効時に `/me` エンドポイントが匿名ユーザー情報を返すように修正 (#663)
 - **Feat**: `limit=0` と `count` の組み合わせによるカウントのみクエリをサポート (#664)
 - **Feat**: XACML AuthzRequest に entityType 自動抽出を追加 (#665)
@@ -611,7 +604,7 @@ outline: deep
   - `requireEntityAuthz` ヘルパー関数追加 (エンティティレベル PEP)
   - 後方互換性: 全フィールド optional、既存ポリシー・既存エンティティへの影響なし
 
-### 2026-03-05
+# 2026年3月5日
 - **Feat**: ユーザー自身による OAuth Client Credentials セルフサービス (#642)
   - `POST /me/oauth-clients` — 自分用の OAuth クライアントを作成 (シークレットは作成時のみ返却)
   - `GET /me/oauth-clients` — 自分が作成したクライアント一覧を取得
@@ -620,13 +613,13 @@ outline: deep
   - ユーザーあたり最大 5 クライアント、ロールベースのスコープ制限 (user ロールは resource スコープのみ)
   - `OAuthClient` に `createdBy` フィールドを追加 (所有者追跡)
 
-### 2026-03-03
+# 2026年3月3日
 - **Docs**: CLI リファレンス (`docs/CLI.md`) を追加 (#632)
   - `@geolonia/geonicdb-cli` (`geonic` コマンド) の全コマンドリファレンス
   - インストール、認証、設定・プロファイル管理、入出力フォーマット
   - entities、batch、subscriptions、registrations、temporal、snapshots、rules、admin 等の全コマンド
 
-### 2026-03-02
+# 2026年3月2日
 - **Fix**: Custom Data Model バリデーションの複数の不具合を修正 (#597)
   - `validateValueType()` の case mismatch を修正 (PascalCase `"String"` 等が lowercase `'string'` と不一致で型チェックが無効化されていた)
   - `batchCreateEntities` / `batchUpsertEntities` にカスタムデータモデルバリデーションを追加 (type 別キャッシュ付き)
@@ -642,10 +635,10 @@ outline: deep
   - テナント論理削除 (`status: 'deleted'`) とクエリからの自動除外
 - **Infra**: 単一リージョン Staging デプロイ対応 (#571)
   - `HasSecondaryRegion` 条件追加: `SecondaryRegion=""` 時に `AWS::DynamoDB::Table` を使用
-  - 3 テーブル (DeploymentsTable, TokenInvalidationTable, UsageStatisticsTable) の単一リージョン版を追加
+  - 3 テーブル (DeploymentsTable、TokenInvalidationTable、UsageStatisticsTable) の単一リージョン版を追加
   - 環境変数・IAM ポリシー参照をネスト `!If` で切り替え
 - **Infra**: Staging パラメータファイル追加 (#572)
-  - `infrastructure/parameters/staging.json` を新規作成 (`Environment: staging`, `LogLevel: INFO`)
+  - `infrastructure/parameters/staging.json` を新規作成 (`Environment: staging`、`LogLevel: INFO`)
 - **CI**: `ci.yml` に `workflow_call` トリガー追加 (#573)
   - CD ワークフロー (`deploy.yml`) から CI パイプラインを再利用可能に
 - **CI**: CD パイプライン `deploy.yml` 新規作成 (#574, #575)
@@ -657,7 +650,7 @@ outline: deep
 - **Perf**: KMS Decrypt DEK キャッシュと並列数制限の導入 (#578)
   - 復号済み DEK をキャッシュし、同一エンベロープの繰り返し KMS DecryptCommand 呼び出しを排除
   - `ConcurrencyLimiter` により KMS API 並列呼び出しを制限 (デフォルト: 10)
-  - `entity.repository.ts`, `temporal.repository.ts`, `snapshot.repository.ts` のバッチ復号に適用
+  - `entity.repository.ts`、`temporal.repository.ts`、`snapshot.repository.ts` のバッチ復号に適用
 - **Feat**: 暗号化テナントでの時系列集計リクエストにランタイムチェックを追加 (#579)
   - `aggrMethod` パラメータ指定時に暗号化テナントを検出して 400 Bad Request を返却
   - 代替手段: `temporalValues` エンドポイントで復号後データを取得し、アプリケーション層で集計
@@ -756,18 +749,18 @@ outline: deep
 
 ### 2026-02-18
 - **Fix**: E2E テストで見逃された仕様準拠バグ 10 件を修正 (#520)
-  - **[BREAKING]** NGSIv2 `Fiware-Total-Count` ヘッダーが `options=count` 指定時のみ返されるよう修正(仕様: NGSIv2 spec "Pagination" section)(#520)
-  - **[BREAKING]** NGSI-LD `NGSILD-Results-Count` ヘッダーが `count=true` 指定時のみ返されるよう修正(仕様: ETSI GS CIM 009)(#520)
-  - NGSIv2 `POST /v2/op/query` に `options=values`/`options=unique` サポートを追加(仕様: NGSIv2 spec "Representation Formats")(#520)
-  - NGSIv2 `POST /v2/op/query` に `orderBy` サポートを追加(仕様: NGSIv2 spec "Ordering Results")(#520)
-  - NGSIv2 `POST /v2/op/query` に `expression.mq` サポートを追加(仕様: NGSIv2 spec "Batch Operations")(#520)
-  - NGSIv2 `POST /v2/op/notify` を Zod スキーマバリデーションに移行(`Ngsiv2NotifySchema` 適用)(#520)
-  - NGSIv2 `GET /v2/types?options=values` がタイプ名文字列配列を返すよう修正(仕様: NGSIv2 spec "Entity Types")(#520)
-  - NGSI-LD temporal controller の `AlreadyExistsError` → `AlreadyExistsLdError` に修正(仕様: ETSI GS CIM 009 §5.5.1)(#520)
-  - NGSI-LD コントローラーのエラータイプを ETSI 仕様に準拠: JSON パースエラーは `InvalidRequest`、データバリデーションエラーは `BadRequestData`(仕様: ETSI GS CIM 009 §5.5.1, Orion-LD/Stellio 互換)(#520)
-  - NGSI-LD batch 207 レスポンスの Content-Type を `application/json` に修正(仕様: ETSI GS CIM 009 §5.6.7/5.6.8)(#520)
+  - **[BREAKING]** NGSIv2 `Fiware-Total-Count` ヘッダーが `options=count` 指定時のみ返されるよう修正(仕様: NGSIv2 spec "Pagination" section) (#520)
+  - **[BREAKING]** NGSI-LD `NGSILD-Results-Count` ヘッダーが `count=true` 指定時のみ返されるよう修正(仕様: ETSI GS CIM 009) (#520)
+  - NGSIv2 `POST /v2/op/query` に `options=values`/`options=unique` サポートを追加(仕様: NGSIv2 spec "Representation Formats") (#520)
+  - NGSIv2 `POST /v2/op/query` に `orderBy` サポートを追加(仕様: NGSIv2 spec "Ordering Results") (#520)
+  - NGSIv2 `POST /v2/op/query` に `expression.mq` サポートを追加(仕様: NGSIv2 spec "Batch Operations") (#520)
+  - NGSIv2 `POST /v2/op/notify` を Zod スキーマバリデーションに移行(`Ngsiv2NotifySchema` 適用) (#520)
+  - NGSIv2 `GET /v2/types?options=values` がタイプ名文字列配列を返すよう修正(仕様: NGSIv2 spec "Entity Types") (#520)
+  - NGSI-LD temporal controller の `AlreadyExistsError` → `AlreadyExistsLdError` に修正(仕様: ETSI GS CIM 009 §5.5.1) (#520)
+  - NGSI-LD コントローラーのエラータイプを ETSI 仕様に準拠: JSON パースエラーは `InvalidRequest`、データバリデーションエラーは `BadRequestData`(仕様: ETSI GS CIM 009 §5.5.1, Orion-LD/Stellio 互換) (#520)
+  - NGSI-LD batch 207 レスポンスの Content-Type を `application/json` に修正(仕様: ETSI GS CIM 009 §5.6.7/5.6.8) (#520)
 
-- **Fix**: ReactiveCore Rules の条件評価でエンティティレベルフィールド(`id`, `type`)を `attributeName` に指定できるよう修正(Issue #513)(#516)
+- **Fix**: ReactiveCore Rules の条件評価でエンティティレベルフィールド(`id`, `type`)を `attributeName` に指定できるよう修正(Issue #513) (#516)
   - `value` 条件と `pattern` 条件で `attributeName: "id"` / `"type"` をサポート (#516)
   - PATCH 後にルールアクションが実行されない問題を解消 (#516)
 - **Security**: OWASP API Security 一括修正 — 8 件のセキュリティ指摘対応 (#515)
@@ -780,20 +773,20 @@ outline: deep
   - クエリパラメータにリソース制限追加 — ID リスト 100 件、ポリゴン頂点 1000、クエリ条件 50 上限 (#515)
   - Temporal/Federation の正規表現パターンに ReDoS 対策(`validateRegexPattern`)追加 (#515)
 - **Security**: OWASP API Security M-3〜M-7 — リソース枯渇・レート制限バイパス防止 (#495)
-  - Pagination offset 上限追加(MAX_OFFSET: 10000、API4 対策)(M-3)
-  - Temporal API `timerel=between` の時間範囲上限追加(366 日、API4 対策)(M-4)
-  - OAuth scope ミドルウェアのセキュリティ設計を明確化(JWT RBAC/OAuth scope 分離、API5 対策)(M-5)
-  - Subscription throttling 最小値チェック追加(MIN_THROTTLING_SECONDS: 1、API6 対策)(M-6)
-  - 通知の並行送信をチャンク化(MAX_CONCURRENT: 10、API4/API6 対策)(M-7)
+  - Pagination offset 上限追加(MAX_OFFSET: 10000、API4 対策) (M-3)
+  - Temporal API `timerel=between` の時間範囲上限追加(366 日、API4 対策) (M-4)
+  - OAuth scope ミドルウェアのセキュリティ設計を明確化(JWT RBAC/OAuth scope 分離、API5 対策) (M-5)
+  - Subscription throttling 最小値チェック追加(MIN_THROTTLING_SECONDS: 1、API6 対策) (M-6)
+  - 通知の並行送信をチャンク化(MAX_CONCURRENT: 10、API4/API6 対策) (M-7)
 - **Security**: SSRF 脆弱性一括修正 — IPv4-mapped IPv6 バイパス、DNS Rebinding、通知/コンテキスト URL 検証 (#490, #493, #495)
-  - IPv4-mapped/compatible IPv6 アドレスによる SSRF バイパスを防止(`[::ffff:127.0.0.1]` 等)(#490)
+  - IPv4-mapped/compatible IPv6 アドレスによる SSRF バイパスを防止(`[::ffff:127.0.0.1]` 等) (#490)
   - IPv6 ULA(fc00::/7)アドレスをブロック対象に追加 (#490)
   - `validateResolvedDns()` による DNS Rebinding 攻撃対策を追加 (#493)
   - フェデレーション(Context Provider)の fetch 前に DNS 解決結果を検証 (#493)
   - 通知送信(notifier)に SSRF バリデーションを追加、プライベート IP への送信を阻止 (#495 M-1)
   - NGSI-LD `@context` URL に defense-in-depth バリデーションを追加 (#495 M-2)
-- **Tests**: SSRF 防御のユニットテスト追加(IPv4-mapped IPv6、DNS Rebinding、通知 SSRF)(#490, #493, #495)
-- **Tests**: E2E シナリオ追加(IPv4-mapped IPv6 / ULA でのサブスクリプション・レジストレーション拒否)(#490)
+- **Tests**: SSRF 防御のユニットテスト追加(IPv4-mapped IPv6、DNS Rebinding、通知 SSRF) (#490, #493, #495)
+- **Tests**: E2E シナリオ追加(IPv4-mapped IPv6 / ULA でのサブスクリプション・レジストレーション拒否) (#490)
 
 ### 2026-02-17
 - **Security**: `validateExternalUrl` の SSRF バイパス脆弱性を修正 (#490)
@@ -808,15 +801,15 @@ outline: deep
 - **Security**: 本番環境でのスタックトレース漏洩防止 (#494)
   - `NODE_ENV=production` 時はエラーログからスタックトレースを除外
   - クライアントレスポンスには内部情報を含めない（既存動作を維持）
-- **Security**: OWASP API Security Top 10:2023 監査指摘 MEDIUM 7 件を修正 (#475, #476, #477, #478, #479, #481, #482)
-  - Policy/PolicySet のテナントスコープチェック追加（BOLA 対策, #475）
-  - ストレージクォータを作成時に強制（エンティティ/サブスクリプション/レジストレーション, #476）
+- **Security**: OWASP API Security Top 10:2023 監査指摘 MEDIUM 7件を修正 (#475, #476, #477, #478, #479, #481, #482)
+  - Policy/PolicySet のテナントスコープチェック追加（BOLA 対策、#475）
+  - ストレージクォータを作成時に強制（エンティティ/サブスクリプション/レジストレーション、#476）
   - リクエストボディサイズのプラン別制限を強制（#477）
-  - `/admin/oauth-clients` に `requireScope('admin:oauth-clients')` を適用（BFLA 対策, #478）
+  - `/admin/oauth-clients` に `requireScope('admin:oauth-clients')` を適用（BFLA 対策、#478）
   - Webhook URL テンプレート置換後の SSRF 検証を追加（#479）
-  - `/statistics`, `/cache/statistics`, `/metrics` エンドポイントを認証必須化（#481）
+  - `/statistics`、`/cache/statistics`、`/metrics` エンドポイントを認証必須化（#481）
   - `/oauth/token` を API Gateway Event に登録（#482）
-- **Security**: OWASP API Security Top 10:2023 監査指摘の MEDIUM 4 件を修正 (#474)
+- **Security**: OWASP API Security Top 10:2023 監査指摘の MEDIUM 4件を修正 (#474)
   - JWT 署名検証に `timingSafeEqual` を使用（タイミング攻撃防止）
   - スーパー管理者パスワード比較に `timingSafeEqual` を使用（タイミング攻撃防止）
   - XACML ポリシーの `string-regexp` マッチに ReDoS 検証を追加
@@ -873,14 +866,14 @@ outline: deep
   - `admin:tenants` スコープでテナント管理 API (`/admin/tenants`) にアクセス可能
   - `admin:policies` スコープでポリシー管理 API (`/admin/policies`) にアクセス可能
   - OAuth トークンはスコープベース、通常 JWT はロールベースで後方互換性を維持
-- **Tests**: Admin routes スコープ強制ユニットテスト 23 件追加、E2E の `@wip` タグ 2 件を解除 (#457)
+- **Tests**: Admin routes スコープ強制ユニットテスト 23 件追加、E2E の`@wip`タグ 2 件を解除 (#457)
 - **Feature**: GeonicDB を npm パッケージとして利用可能に (#453)
   - `createServer()` プログラマティック API でサーバーをプログラムから起動・停止
   - `npx geonicdb` CLI コマンドでスタンドアロン起動
   - `--proxy` オプションで非マッチ URL をアプリ側 dev server に透過転送（URL 重複時は GeonicDB 優先）
   - `--silent` オプションでコンソール出力抑制
 - **Build**: `tsc-alias` 導入でビルド時にパスエイリアスを相対パスに解決 (#453)
-- **Package**: `bin`、`types`、`files`、`peerDependencies` 設定で npm パッケージに対応 (#453)
+- **Package**: `bin`、`types`、`files`、`peerDependencies` 設定で npm パッケージ対応 (#453)
 
 ### 2026-02-15
 - **Documentation**: `docs/INSTRUCTION.md` のカスタムデータモデルセクション（14.9）を大幅に拡充 (#445)
@@ -962,9 +955,9 @@ outline: deep
 - **Branding**: プロダクト名を VelaOS から GeonicDB に変更 (#436)
   - ソースコード、ドキュメント、テスト全体のリネーム
   - Prometheus メトリクスプレフィックス: `vela_` → `geonicdb_`  - DynamoDB テーブル名デフォルト: `vela-rate-limits` → `geonicdb-rate-limits`  - GitHub リポジトリ URL: `geolonia/vela` → `geolonia/geonicdb`- **依存関係**: AWS SDK グループを 3.985.0 → 3.990.0 に更新 (#435)
-  - `@aws-sdk/client-apigatewaymanagementapi`, `client-dynamodb`, `client-eventbridge`, `client-sqs`, `lib-dynamodb`- **依存関係**: OpenTelemetry グループを更新 (#435)
-  - `sdk-node` 0.211.0 → 0.212.0, `exporter-trace-otlp-http` 0.211.0 → 0.212.0
-  - `sdk-trace-base`, `resources`, `context-async-hooks` 2.5.0 → 2.5.1
+  - `@aws-sdk/client-apigatewaymanagementapi`、`client-dynamodb`、`client-eventbridge`、`client-sqs`、`lib-dynamodb`- **依存関係**: OpenTelemetry グループを更新 (#435)
+  - `sdk-node` 0.211.0 → 0.212.0、`exporter-trace-otlp-http` 0.211.0 → 0.212.0
+  - `sdk-trace-base`、`resources`、`context-async-hooks` 2.5.0 → 2.5.1
 - **依存関係**: `typescript-eslint` グループを 8.54.0 → 8.55.0 に更新 (#435)
 - **依存関係**: `@types/node` を 25.2.2 → 24.10.13 にダウングレード（Node 24 ランタイムに合わせて v24 系に変更）(#435)
 - **Changed**: プロジェクトライセンスを GPL-3.0 から AGPL-3.0 に変更 (#424)
@@ -979,7 +972,7 @@ outline: deep
   - デフォルトポート（3000）が使用中の場合、自動的に空きポートを選択（最大 10 ポート探索）
   - ポートフォールバック時にコンソールへ警告メッセージを表示
   - git worktree との併用で複数インスタンスの同時起動が可能に
-- **Added**: CEL 式でカスタム関数 `distance()`, `within()`, `now()`, `dayOfWeek()` を利用可能に (#422)
+- **Added**: CEL 式でカスタム関数 `distance()`、`within()`、`now()`、`dayOfWeek()` を利用可能に (#422)
   - `distance(location1, location2)` — Haversine formula による 2 点間距離計算（メートル）
   - `within(location, polygon)` — Ray casting による Point-in-Polygon 判定
   - `now()` — 現在 UTC 時刻（ISO 8601 文字列）
@@ -994,45 +987,45 @@ outline: deep
   - 既存の認証ミドルウェアをテナント対応に更新
 - **Added**: ReactiveCore Rules に CEL (Common Expression Language) 式条件タイプを追加 (#387)
   - `celExpression` 条件タイプ: 複雑な計算、文字列操作、複数属性評価が可能
-  - CEL コンテキスト変数: `entity.id`, `entity.type`, `attribute.<name>.value`, `attribute.<name>.type`  - 式の最大長制限 (1000 文字)、構文バリデーション、非 boolean 結果のハンドリング
+  - CEL コンテキスト変数: `entity.id`、`entity.type`、`attribute.<name>.value`、`attribute.<name>.type`  - 式の最大長制限（1000 文字）、構文バリデーション、非 boolean 結果のハンドリング
   - `@marcbachmann/cel-js` ライブラリ使用（ゼロ依存、TypeScript 対応）
 - **OpenAPI**: `CelExpressionCondition` スキーマを `/openapi.json` に追加 (#387)
 - **Documentation**: `docs/REACTIVCORE_RULES.md` に CEL 式条件の仕様・使用例を追加 (#387)
 
 ### 2026-02-13
-- **Documentation**: ReactiveCore Rules に不快指数（DI）による熱中症アラート通知の使用例を追加しました (#419)
-  - `docs/REACTIVCORE_RULES.md` — 例6: CEL 式による不快指数計算、sendNotification/Webhook アクション
-  - `docs/INSTRUCTION.md` — セクション13.7 例4: ステップバイステップの導入手順
-- **Testing**: 不快指数アラートの E2E テストシナリオを 7 件追加しました（`@rules-discomfort-index` タグ）(#419)
+- **ドキュメント**: ReactiveCore Rules に不快指数（DI）による熱中症アラート通知の使用例を追加 (#419)
+  - `docs/REACTIVCORE_RULES.md` — 例 6: CEL 式による不快指数計算、sendNotification/Webhook アクション
+  - `docs/INSTRUCTION.md` — セクション 13.7 例 4: ステップバイステップの導入手順
+- **テスト**: 不快指数アラートの E2E テストシナリオを 7 件追加（`@rules-discomfort-index` タグ）(#419)
   - WARNING（DI > 75）/DANGER（DI > 80）レベルのルール実行テスト
   - 閾値以下でのルール非トリガー確認
   - 優先度制御と範囲条件（75 < DI <= 80）の動作確認
   - sendNotification/webhook アクションの構成検証
-- **Added**: CADDE コネクタ v4 API エンドポイントを追加しました (#409)
+- **追加**: CADDE コネクタ v4 API エンドポイントを追加 (#409)
   - `GET /cadde/api/v4/catalog` — カタログ検索（横断検索/詳細検索）
   - `GET /cadde/api/v4/entities` — NGSI データ交換（NGSIv2/NGSI-LD 形式対応）
-- **Added**: カタログ横断検索（`x-cadde-search: meta`）— キーワードフィルタ付き CKAN 形式レスポンス (#409)
-- **Added**: カタログ詳細検索（`x-cadde-search: detail`）— データセット個別取得 (#409)
-- **Added**: CADDE 固有メタデータフィールド（`caddec_dataset_id_for_detail`、`caddec_provider_id`、`caddec_resource_type`）を追加しました (#409)
-- **Added**: `x-cadde-resource-url` からクエリパラメータ解析によるエンティティ取得機能を追加しました (#409)
-- **Added**: `x-cadde-resource-api-type` による NGSIv2/NGSI-LD レスポンス形式切替機能を追加しました (#409)
-- **Added**: CADDE v4 エンドポイントの来歴ヘッダー（provenance headers）付与機能を追加しました (#409)
-- **Added**: CADDE エラーレスポンス形式（`{ detail, status }`）を追加しました (#409)
-- **Added**: `x-cadde-search` ヘッダー定数を `CADDE_HEADERS` に追加しました (#409)
-- **Infrastructure**: SAM テンプレートに CADDE v4 API ルートを追加しました (#409)
-- **OpenAPI**: `/openapi.json` に Rule Engine の詳細スキーマを追加しました (#410)
+- **追加**: カタログ横断検索（`x-cadde-search: meta`）— キーワードフィルタ付き CKAN 形式レスポンス (#409)
+- **追加**: カタログ詳細検索（`x-cadde-search: detail`）— データセット個別取得 (#409)
+- **追加**: CADDE 固有メタデータフィールド（`caddec_dataset_id_for_detail`、`caddec_provider_id`、`caddec_resource_type`）(#409)
+- **追加**: `x-cadde-resource-url` からクエリパラメータ解析によるエンティティ取得 (#409)
+- **追加**: `x-cadde-resource-api-type` による NGSIv2/NGSI-LD レスポンス形式切替 (#409)
+- **追加**: CADDE v4 エンドポイントの来歴ヘッダー（provenance headers）付与 (#409)
+- **追加**: CADDE エラーレスポンス形式（`{ detail, status }`）(#409)
+- **追加**: `x-cadde-search` ヘッダー定数を `CADDE_HEADERS` に追加 (#409)
+- **インフラストラクチャ**: SAM テンプレートに CADDE v4 API ルートを追加 (#409)
+- **OpenAPI**: `/openapi.json` に Rule Engine の詳細スキーマを追加 (#410)
   - `RulePublic`、`CreateRuleInput`、`UpdateRuleInput` スキーマを追加
   - `RuleCondition`（8 種類の条件型）、`RuleAction`（5 種類のアクション型）スキーマを追加
   - `/rules` 系エンドポイントの定義を `$ref` によるスキーマ参照に更新
-- **BREAKING CHANGE**: カスタムデータモデル管理エンドポイントを `/admin/data-models` から `/custom-data-models` に変更しました (#376)
+- **破壊的変更**: カスタムデータモデル管理エンドポイントを `/admin/data-models` から `/custom-data-models` に変更 (#376)
   - テナント固有のリソースのため Admin API から独立した API として再編成
-  - ルートパスの変更に伴い、エンドポイントは `/custom-data-models` および `/custom-data-models/:type` になりました
-- **BREAKING CHANGE**: Phase 2 の自動生成機能（`POST /admin/data-models/generate`）を削除しました (#376)
-  - AI ツールを使った生成機能は Phase 3 で再設計予定です
-- **Changed**: 認証・認可の変更 (#376)
+  - ルートパスの変更に伴い、エンドポイントは `/custom-data-models` および `/custom-data-models/:type` に
+- **破壊的変更**: Phase 2 の自動生成機能（`POST /admin/data-models/generate`）を削除 (#376)
+  - AI ツールを使った生成機能は Phase 3 で再設計予定
+- **変更**: 認証・認可の変更 (#376)
   - `requireAdminAuth()` から `requireAuth()` + XACML ポリシーベース認可に変更
   - `tenant_admin` および `user` ロールもテナント内のカスタムデータモデルを管理可能（ポリシー設定による）
-- **Added**: カスタムデータモデル管理機能 Phase 1 を追加しました (#376)
+- **追加**: カスタムデータモデル管理機能 Phase 1 (#376)
   - `GET /custom-data-models` - データモデル一覧取得
   - `POST /custom-data-models` - データモデル作成
   - `GET /custom-data-models/:type` - データモデル取得
@@ -1041,30 +1034,29 @@ outline: deep
   - テナントごとに独自のデータモデルを定義可能
   - Version 管理機能（作成時 = 1、更新時に自動インクリメント）
   - 19 種類の既存 Smart Data Models に加えて、カスタムデータモデルをサポート
-- **Added**: ExtendedPropertyDetail 型定義を追加しました - PropertyDetail を拡張し defaultValue、validation、indexed をサポート (#376)
-- **Added**: MCP ツールに custom data models 統合機能を追加しました (#376)
+- **追加**: ExtendedPropertyDetail 型定義 - PropertyDetail を拡張し defaultValue、validation、indexed をサポート (#376)
+- **追加**: MCP ツールに custom data models 統合 (#376)
   - `config` ツールの `data_models` リソースに新アクション追加
   - list、get、create、update、delete（認証必須）
   - Smart Data Models（カタログ）とカスタムデータモデル（テナント固有）を統合検索
-- **Added**: Phase 3 - エンティティバリデーション・@context 解決拡張・JSON Schema 生成機能を追加しました (#376)
+- **追加**: Phase 3 - エンティティバリデーション・@context 解決拡張・JSON Schema 生成 (#376)
   - カスタムデータモデルに基づくエンティティの自動バリデーション（作成・更新時）
   - 型チェック（string、number、integer、boolean、array、object、GeoJSON）
 - バリデーションルール: minLength、maxLength、minimum、maximum、pattern、enum
-- 必須フィールド (`required`) チェック
-- NGSI-LD @context 解決をカスタムデータモデルの `contextUrl` に拡張
-- カスタムデータモデルから JSON Schema (Draft 2020-12) を自動生成
-- `jsonSchema` フィールドをカスタムデータモデルレスポンスに追加
+  - 必須フィールド（`required`）チェック
+  - NGSI-LD @context 解決をカスタムデータモデルの `contextUrl` に拡張
+  - カスタムデータモデルから JSON Schema (Draft 2020-12) を自動生成
+  - `jsonSchema` フィールドをカスタムデータモデルレスポンスに追加
 - **Added**: Phase 4 - エンティティテンプレート生成・OpenAPI 動的統合 (#376)
   - MCP `config` ツールに `generate_template` アクション追加 - カスタムデータモデルからエンティティテンプレートを自動生成
   - テンプレートは `defaultValue`、`example`、`valueType` に基づきプレースホルダ値を含む NGSI-LD 形式で生成
   - `contextUrl` が定義されている場合は `@context` も自動付与
   - OpenAPI 仕様 (`/openapi.json`) にカスタムデータモデルの JSON Schema を動的統合
   - 認証済みユーザーのテナントに紐づくアクティブなカスタムデータモデルが `components/schemas` に自動追加
-- **Tests**: E2E テスト 7 シナリオ追加 (CRUD、ページネーション、権限、テナント分離、バリデーション、フィルタリング、バージョニング) (#376)
+- **Tests**: E2E テスト 7 シナリオ追加（CRUD、ページネーション、権限、テナント分離、バリデーション、フィルタリング、バージョニング）(#376)
 
 ### 2026-02-11
-
-- **Documentation**: ドキュメントを 30 ファイルから 17 ファイルに統合 (43% 削減) (#405)
+- **Documentation**: ドキュメントを 30 ファイルから 17 ファイルに統合（43%削減）(#405)
   - PAGINATION.md、STATUS_CODES.md、DEPLOYMENT.md を DEVELOPMENT.md に統合
   - WEBAPP_INTEGRATION.md を EVENT_STREAMING.md に統合
   - CATALOG.md、TELEMETRY.md を INTEGRATIONS.md に統合
@@ -1073,35 +1065,29 @@ outline: deep
   - RULES.md を REACTIVCORE_RULES.md にリネーム
   - SUBSCRIPTIONS.md を新規作成 - HTTP/MQTT 通知の実践例を含む包括的ガイド
 - **BREAKING**: `AUTHZ_ENABLED` 環境変数を削除。XACML ポリシー評価は `AUTH_ENABLED=true` の場合に自動的に有効化されるよう変更 (#403)
-- **Changed**: `/rules` エンドポイントは `AUTH_ENABLED` 設定に関わらずアクセス可能に (`/v2/*` および `/ngsi-ld/*` エンドポイントと同様) (#403)
+- **Changed**: `/rules` エンドポイントは `AUTH_ENABLED` 設定に関わらずアクセス可能に（`/v2/*` および `/ngsi-ld/*` エンドポイントと同様）(#403)
 
 ### 2026-02-10
-
 - **MCP**: MCP ツール構造を再編成 - 8 ツールから 5 ツールに統合して保守性を向上 (#402)
-- `rules` と `contexts` (JSON-LD コンテキストと Smart Data Models) を新しい `config` ツールに移動 (#402)
+- `rules` と `contexts`（JSON-LD コンテキストと Smart Data Models）を新しい `config` ツールに移動 (#402)
 - `admin` ツールはユーザー、テナント、ポリシーの管理のみに集中 (#402)
 
 ### 2026-02-08
-
 - **BREAKING**: Rules API を `/admin/rules` から `/rules` に移動し、XACML ベースの認可を導入 (#401)
 - Rules エンドポイントはロールベース認証ではなく XACML ポリシーで保護されるようになり、きめ細かなアクセス制御が可能に (#401)
 
 ### 2026-02-07
-
-- **Documentation**: GeonicDB 取扱説明書 (docs/INSTRUCTION.md) を追加 (#400)
-- PDF 生成スクリプトを追加 (`npm run docs:pdf`) (#400)
-- INSTRUCTION.md の全サンプルを検証する E2E テスト (tests/e2e/features/common/instruction.feature) を追加 (#400)
+- **Documentation**: GeonicDB 取扱説明書（docs/INSTRUCTION.md）を追加 (#400)
+- PDF 生成スクリプトを追加（`npm run docs:pdf`）(#400)
+- INSTRUCTION.md の全サンプルを検証する E2E テスト（tests/e2e/features/common/instruction.feature）を追加 (#400)
 
 ### 2026-02-05
-
 - **Fixed**: ローカルサーバーの MongoDB シャットダウン時のエラーメッセージを抑制 (#394)
 
 ### 2026-02-04
-
 - **Changed**: バージョン番号を集約し、package.json からインポートするよう変更 (#393)
 
 ### 2026-02-03
-
 - **Added**: MCP (Model Context Protocol) サーバー統合 (#392)
   - AI 駆動型エンティティ管理のための 5 つの統合ツール
   - エンティティ CRUD 操作
@@ -1141,7 +1127,7 @@ outline: deep
 - **Fixed**: NGSI-LD スキーマ検証を強化 (#370)
 
 ### 2026-01-22
-- **Security**: エンティティ ID(256文字)、タイプ(256文字)、属性名(256文字)の長さ制限を追加 (#369)
+- **Security**: エンティティ ID（256 文字）、タイプ（256 文字）、属性名（256 文字）の長さ制限を追加 (#369)
 
 ### 2026-01-20
 - **Fixed**: NGSI-LD URI パターンの不整合を解決 (#364)
@@ -1154,8 +1140,8 @@ outline: deep
 
 ### 2026-01-16
 - **Added**: SaaS ローンチ向けの包括的なクォータシステム (#356)
-  - リクエストクォータ(レート制限、日次/月次制限)
-  - ストレージクォータ(エンティティ/属性数)
+  - リクエストクォータ（レート制限、日次/月次制限)
+  - ストレージクォータ（エンティティ/属性数)
   - DynamoDB によるリアルタイム監視
   - テナント固有のクォータ設定
   - レート制限レスポンスの Retry-After ヘッダー
