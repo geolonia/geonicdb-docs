@@ -9,7 +9,7 @@ outline: deep
 
 ## 目次
 
-- [概要](#概要)
+- [概要](#overview)
 - [認証とマルチテナンシー](#認証とマルチテナンシー)
 - [ページネーション](#ページネーション)
 - [認証 API](#認証-api)
@@ -17,13 +17,13 @@ outline: deep
 - [NGSIv2 API](#ngsiv2-api) (→ [API_NGSIV2.md](./ngsiv2.md))
 - [NGSI-LD API](#ngsi-ld-api) (→ [API_NGSILD.md](./ngsild.md))
 - [クエリ言語](#クエリ言語)
-- [ジオクエリ](#ジオクエリ)
-- [空間 ID 検索](#空間-id-検索)
+- [地理クエリ](#geo-queries)
+- [空間 ID 検索](#spatial-id-search)
 - [GeoJSON 出力](#geojson-出力)
-- [ベクタータイル](#ベクタータイル)
+- [ベクトルタイル](#vector-tiles)
 - [座標参照系 (CRS)](#座標参照系-crs)
-- [データカタログ API](#データカタログ-api)
-- [CADDE 統合](#cadde-統合)
+- [データカタログ API](#data-catalog-api)
+- [CADDE 連携](#cadde-integration)
 - [イベントストリーミング](#イベントストリーミング)
 - [エラーレスポンス](#エラーレスポンス)
 - [実装状況](#実装状況)
@@ -35,7 +35,7 @@ outline: deep
 この Context Broker は、FIWARE NGSI (Next Generation Service Interface) 仕様に準拠した RESTful API を提供します。
 
 **関連ドキュメント:**
-- [NGSIv2 / NGSI-LD 互換性ガイド](../core-concepts/ngsiv2-vs-ngsild.md) - 両 API 間の互換性、型マッピング、ベストプラクティス
+- [NGSIv2 / NGSI-LD 相互運用ガイド](../core-concepts/ngsiv2-vs-ngsild.md) - 両 API 間の相互運用性、型マッピング、ベストプラクティス
 - [WebSocket イベントストリーミング](../features/subscriptions.md) - リアルタイムイベントサブスクリプション、実装例、ベストプラクティス
 
 ### ベース URL
@@ -53,7 +53,7 @@ https://{api-gateway-url}/{stage}
 
 ### OPTIONS メソッド
 
-`OPTIONS` メソッドはすべてのエンドポイントでサポートされています。CORS プリフライトリクエストに対して、許可されたメソッドとヘッダーに関する情報を返します。
+`OPTIONS` メソッドは全てのエンドポイントでサポートされています。CORS プリフライトリクエストに応答して、許可されているメソッドとヘッダーに関する情報を返します。
 
 #### レスポンス形式
 
@@ -70,7 +70,7 @@ Access-Control-Allow-Headers: Content-Type, Fiware-Service, Fiware-ServicePath, 
 Access-Control-Max-Age: 86400
 ```
 
-NGSI-LD エンドポイントの場合、追加の `Accept-Patch` ヘッダーも返されます:
+NGSI-LD エンドポイントの場合、追加で `Accept-Patch` ヘッダーも返されます:
 
 ```http
 OPTIONS /ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1
@@ -84,21 +84,21 @@ Access-Control-Allow-Headers: Content-Type, NGSILD-Tenant, Fiware-Service, Link,
 Access-Control-Max-Age: 86400
 ```
 
-> **注意**: `If-None-Match` / `If-Modified-Since` は `Access-Control-Allow-Headers` に明示的にリストされているため、ブラウザの HTTP キャッシュ自動再検証や SDK の条件付きリクエストがプリフライト拒否なしにクロスオリジンで発行できます (#1065)。
+> **注意**: `If-None-Match` / `If-Modified-Since` は `Access-Control-Allow-Headers` に明示的にリストされているため、ブラウザの HTTP キャッシュ自動再検証や SDK の条件付きリクエストをプリフライト拒否なしにクロスオリジンで発行できます (#1065)。
 
 ### エンティティ ID の一意性 (GeonicDB 拡張)
 
-> **GeonicDB 拡張**: この動作は、同じ ID で異なる型を持つエンティティの共存を許可する標準 NGSIv2 仕様とは異なります。
+> **GeonicDB 拡張**: この動作は標準 NGSIv2 仕様とは異なります。標準仕様では、同じ ID で異なる型を持つエンティティが共存できます。
 
-GeonicDB では、エンティティ ID は **テナント** (`Fiware-Service`) と **ServicePath** (`Fiware-ServicePath`) のスコープ内で一意です。エンティティの `type` は一意性制約の一部では **ありません**。
+GeonicDB では、エンティティ ID は**テナント** (`Fiware-Service`) と**ServicePath** (`Fiware-ServicePath`) のスコープ内で一意です。エンティティの `type` は一意性制約の一部では**ありません**。
 
-**主な動作:**
+**主要な動作:**
 
-- 既存のエンティティと同じ ID でエンティティを作成すると (異なる `type` であっても)、`409 AlreadyExists` が返されます
-- バッチ upsert 操作は `entityId` のみでエンティティをマッチングします (型は上書き可能)
-- 同一 ID のエンティティ間で型を区別するための NGSIv2 `?type=` クエリパラメータは適用されなくなりました
+- 既存のエンティティと同じ ID を持つエンティティを作成する場合(異なる `type` であっても) `409 AlreadyExists` を返します
+- バッチアップサート操作は `entityId` のみでエンティティをマッチングします(型は上書き可能)
+- 同一 ID エンティティ間の型の曖昧さを解消するための NGSIv2 `?type=` クエリパラメータは適用されなくなりました
 
-この設計は NGSI-LD 仕様に準拠しており、エンティティ ID は URI であり、本質的に一意です。エンティティ ID は、テナント、servicePath、プロトコルごとに一意です。NGSIv2 と NGSI-LD のエンティティは完全に分離されており、同じエンティティ ID が各プロトコルで独立して存在できます。
+この設計は NGSI-LD 仕様と整合しており、エンティティ ID は URI であり本質的に一意です。エンティティ ID は、テナント、servicePath、プロトコルごとに一意です。NGSIv2 と NGSI-LD のエンティティは完全に分離されており、同じエンティティ ID が各プロトコルで独立して存在できます。
 
 ---
 
@@ -106,12 +106,12 @@ GeonicDB では、エンティティ ID は **テナント** (`Fiware-Service`) 
 
 ### 必須ヘッダー
 
-すべてのリクエストには、以下のヘッダーを含めることを推奨します:
+すべてのリクエストには、以下のヘッダーを含めることが推奨されます。
 
 | ヘッダー | 必須 | 説明 | デフォルト |
 |--------|------|------|---------|
 | `Fiware-Service` / `NGSILD-Tenant` | 推奨 | テナント名 (英数字とアンダースコアのみ) | `default` |
-| `Fiware-ServicePath` | NGSIv2 のみ | テナント内の階層パス (`/` で開始)。**NGSI-LD API では無視されます** — 代わりに `scope` プロパティと `scopeQ` パラメータを使用してください | `/` (クエリ時は `/#` と同等) |
+| `Fiware-ServicePath` | NGSIv2 のみ | テナント内の階層パス (`/` で始まる)。**NGSI-LD API では無視されます** — 代わりに `scope` プロパティと `scopeQ` パラメータを使用してください | `/` (クエリの場合は `/#` と同等) |
 | `Fiware-Correlator` | オプション | リクエストトレーシング用の相関 ID | 自動生成 |
 
 ### 使用例
@@ -122,7 +122,7 @@ curl -X GET "https://api.example.com/v2/entities" \
   -H "Fiware-ServicePath: /buildings/floor1"
 ```
 
-### テナントの分離
+### テナント分離
 
 - 異なる `Fiware-Service` 値のデータは完全に分離されます
 - 同じテナント内では、`Fiware-ServicePath` を使用してデータを階層的に整理できます
@@ -130,13 +130,13 @@ curl -X GET "https://api.example.com/v2/entities" \
 
 ### ServicePathの仕様
 
-[FIWARE Orion 仕様](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html) に準拠しています。
+[FIWARE Orion の仕様](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html) に準拠しています。
 
 #### 基本形式
 
-- `/` で始まる絶対パスのみ許可されます
-- 英数字とアンダースコアのみ許可されます
-- 最大 10 階層、各レベル最大 50 文字
+- `/` で始まる絶対パスのみが許可されます
+- 英数字とアンダースコアのみが許可されます
+- 最大 10 階層、各階層は最大 50 文字まで
 
 ```bash
 # Retrieve entities at a specific path
@@ -172,10 +172,10 @@ curl "http://localhost:3000/v2/entities" \
 
 | 操作 | ヘッダー省略時 | 説明 |
 |------|--------------|------|
-| クエリ (GET) | `/` | ルートパスのみ検索 |
-| 書き込み (POST/PUT/PATCH/DELETE) | `/` | ルートパスで作成/更新 |
+| クエリ (GET) | `/` | ルートパスのみを検索 |
+| 書き込み (POST/PUT/PATCH/DELETE) | `/` | ルートパスに作成/更新 |
 
-**注意**: 書き込み操作では、単一の非階層パスのみ使用できます。`/#` や複数パスを指定するとエラーになります。
+**注意**: 書き込み操作では、階層化されていない単一のパスのみを使用できます。`/#` や複数のパスを指定するとエラーになります。
 
 ---
 
@@ -192,7 +192,7 @@ curl "http://localhost:3000/v2/entities" \
 
 ### レスポンスヘッダー
 
-各 API タイプごとに、合計数を示すヘッダーが返されます:
+各 API タイプに対して、総件数を示すヘッダーが返されます:
 
 | API | ヘッダー名 | 条件 |
 |-----|-------------|-----------|
@@ -209,7 +209,7 @@ curl "http://localhost:3000/v2/entities" \
 Link: <https://api.example.com/v2/entities?limit=10&offset=20>; rel="next", <https://api.example.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
 
-### 検証
+### バリデーション
 
 無効なページネーションパラメータは `400 Bad Request` を返します:
 
@@ -219,7 +219,7 @@ Link: <https://api.example.com/v2/entities?limit=10&offset=20>; rel="next", <htt
 | 負の offset | `Invalid offset: must not be negative` |
 | limit=0 | `Invalid limit: must be greater than 0` |
 | 最大値を超過 | `Invalid limit: must not exceed 1000` |
-| 数値以外 | `Invalid limit: must be a valid integer` |
+| 非数値 | `Invalid limit: must be a valid integer` |
 
 ### 使用例
 
@@ -235,42 +235,42 @@ curl "http://localhost:3000/v2/entities?limit=10&options=count" \
 
 ### 注意事項
 
-- `offset` が合計数を超える場合、空の配列が返されます (エラーではありません)
-- FIWARE Orion の仕様に準拠しています
+- `offset` が総件数を超える場合、空の配列が返されます (エラーではありません)
+- FIWARE Orion 仕様に準拠しています
 
 ---
 
-## HTTP キャッシュコントロール (ETag / 条件付きリクエスト)
+## HTTP キャッシュ制御 (ETag / 条件付きリクエスト)
 
-GET エンドポイントはエンドポイントクラスに基づいてキャッシュ関連ヘッダーを返します。クライアントはこれらを使用して、変更されていないレスポンスボディの転送をスキップでき、[RFC 7232](https://datatracker.ietf.org/doc/html/rfc7232) および [RFC 7234](https://datatracker.ietf.org/doc/html/rfc7234) に準拠しています。
+GET エンドポイントは、エンドポイントクラスに基づいてキャッシュ関連のヘッダーを返します。クライアントはこれらを使用して、変更されていないレスポンスボディの転送をスキップでき、[RFC 7232](https://datatracker.ietf.org/doc/html/rfc7232) および [RFC 7234](https://datatracker.ietf.org/doc/html/rfc7234) に準拠します。
 
 ### エンドポイントクラス
 
-| クラス | エンドポイント | バリデータ (ETag/Last-Modified) | 条件付きリクエスト | Cache-Control |
+| クラス | エンドポイント | バリデーター (ETag/Last-Modified) | 条件付きリクエスト | Cache-Control |
 |-------|-----------|-------------------------------|----------------------|---------------|
 | **Data** | `/v2/entities` (リスト、単一、attrs、attrs/{name}、attrs/{name}/value)、`/v2/subscriptions`、`/v2/registrations`、`/ngsi-ld/v1/entities` (リスト、単一、attrs、attrs/{name})、`/ngsi-ld/v1/subscriptions`、`/ngsi-ld/v1/csourceRegistrations`、`/ngsi-ld/v1/csourceSubscriptions` | ✓ | ✓ (`If-None-Match` / `If-Modified-Since` → `304`) | `private, no-cache` |
-| **Temporal** | `/ngsi-ld/v1/temporal/entities` (リストと単一、集約を含む) | ✗ (ETag なし — 時系列集約には安価な単調バリデータがない) | ✗ | `private, no-cache` |
-| **Meta** | `/v2/types`、`/ngsi-ld/v1/types`、`/ngsi-ld/v1/attributes` (リストと単一) | ✗ (ETag なし、Last-Modified なし) | ✗ (`304` サポートなし) | `max-age=60, stale-while-revalidate=120` |
+| **Temporal** | `/ngsi-ld/v1/temporal/entities` (リストおよび単一、集約を含む) | ✗ (ETag なし — 時系列集約には安価な単調バリデーターが欠けている) | ✗ | `private, no-cache` |
+| **Meta** | `/v2/types`、`/ngsi-ld/v1/types`、`/ngsi-ld/v1/attributes` (リストおよび単一) | ✗ (ETag なし、Last-Modified なし) | ✗ (`304` サポートなし) | `max-age=60, stale-while-revalidate=120` |
 
-すべてのキャッシュ制御されたレスポンスは同じ `Vary` ヘッダーを共有します: `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` (テナント + 認証 + コンテンツネゴシエーション分離、CloudFront のような共有キャッシュに必要)。
+すべてのキャッシュ制御されたレスポンスは、同じ `Vary` ヘッダーを共有します: `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` (テナント + 認証 + コンテンツネゴシエーション分離、CloudFront などの共有キャッシュに必須)。
 
 ### レスポンスヘッダー (Data エンドポイント)
 
 | ヘッダー | 説明 |
 |--------|-------------|
-| `ETag` | 弱いエンティティタグ (`W/"..."`、RFC 7232 §2.3.2 弱いバリデータ)。生成は常に **リソーススコープ** (`path + Accept + tenant + Fiware-ServicePath`) をシードに混ぜ込むため、異なるエンドポイント、Accept フォーマット、**テナント**、または **ServicePath** は、基礎となる状態が同一であっても異なる ETag を生成します。`tenant` スロットは最初に `NGSILD-Tenant` を読み取り、`Fiware-Service` にフォールバックし、`extractTenantContext` の優先順位と一致します。テナント / ServicePathシードは、中間キャッシュが `Vary` を誤って処理した場合でも、テナント間の ETag 衝突を防ぎます。<br>• **リスト**: 各要素の `id + modifiedAt` のストリーミングダイジェスト、合計カウントとリソーススコープと組み合わせ。<br>• **単一リソース**: `modifiedAt` のハッシュとリソーススコープの組み合わせ。|
-| `Last-Modified` | 結果セット内の最新の `modifiedAt` の RFC 1123 HTTP 日付。|
-| `Cache-Control` | `private, no-cache` — `private` は共有 / 中間キャッシュ (CloudFront、ISP プロキシ、企業プロキシ) への保存を禁止します。`no-cache` はプライベートキャッシュからの再利用前に再検証を強制します。|
+| `ETag` | 弱いエンティティタグ (`W/"..."`、RFC 7232 §2.3.2 弱いバリデーター)。生成時には常に **リソーススコープ** (`path + Accept + tenant + Fiware-ServicePath`) をシードに混合するため、基礎となる状態が同一であっても、異なるエンドポイント、Accept フォーマット、**テナント**、または **ServicePath** では異なる ETag が生成されます。`tenant` スロットは最初に `NGSILD-Tenant` を読み取り、`Fiware-Service` にフォールバックし、`extractTenantContext` の優先順位と一致します。テナント / ServicePathのシードは、中間キャッシュで `Vary` が誤処理された場合でも、クロステナント ETag 衝突を防ぎます。<br>• **リスト**: 各要素の `id + modifiedAt` のストリーミングダイジェストを、総数とリソーススコープと組み合わせます。<br>• **単一リソース**: `modifiedAt` のハッシュをリソーススコープと組み合わせます。|
+| `Last-Modified` | 結果セット内の最新の `modifiedAt` の RFC 1123 HTTP-date。|
+| `Cache-Control` | `private, no-cache` — `private` は共有 / 中間キャッシュ (CloudFront、ISP プロキシ、企業プロキシ) での保存を禁止します。`no-cache` はプライベートキャッシュから再利用する前に再検証を強制します。|
 | `Vary` | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept`。|
 
 ### レスポンスヘッダー (Meta エンドポイント)
 
 | ヘッダー | 説明 |
 |--------|-------------|
-| `Cache-Control` | `max-age=60, stale-while-revalidate=120` — バックグラウンド再検証による短期キャッシング。|
+| `Cache-Control` | `max-age=60, stale-while-revalidate=120` — バックグラウンド再検証を伴う短期キャッシング。|
 | `Vary` | Data エンドポイントと同じ。|
 
-Meta エンドポイントは意図的に `ETag` / `Last-Modified` を省略します。これは、そのコンテンツが安価な単調バリデータを持たない集約クエリから派生しているためです。クライアントは条件付きリクエストではなく `max-age` に依存する必要があります。
+Meta エンドポイントは意図的に `ETag` / `Last-Modified` を省略しています。これらのコンテンツは、安価な単調バリデーターを持たない集約クエリから派生しているためです。クライアントは条件付きリクエストではなく `max-age` に依存すべきです。
 
 ### 条件付きリクエスト (Data エンドポイントのみ)
 
@@ -278,7 +278,7 @@ Meta エンドポイントは意図的に `ETag` / `Last-Modified` を省略し�
 
 | リクエストヘッダー | 動作 |
 |----------------|----------|
-| `If-None-Match: <ETag>` | サーバーは現在の `ETag` と比較します。一致する場合、`304` を返します。ワイルドカード `*` は常に一致します。|
+| `If-None-Match: <ETag>` | サーバーは現在の `ETag` と比較します。一致した場合、`304` を返します。ワイルドカード `*` は常に一致します。|
 | `If-Modified-Since: <HTTP-date>` | サーバーは現在の `Last-Modified` と比較します。変更されていない場合、`304` を返します。|
 
 両方のヘッダーが存在する場合、RFC 7232 §6 に従い `If-None-Match` が優先されます。
@@ -304,22 +304,22 @@ curl -i "http://localhost:3000/v2/entities" \
 
 ### 注記
 
-- ETag は弱い (`W/`) です — これらはバイト単位の同一性ではなく、意味的な等価性を伝えます。同じデータを持つが属性の順序が異なる 2 つのレスポンスは、同じ ETag を共有します。
-- ETag 生成はリソースパスと `Accept` ヘッダーをシードに含めます。異なるエンドポイントと異なるコンテンツネゴシエーションは、基礎となる状態 (例: 空のリスト) が同一であっても、常に異なる ETag を生成し、エンドポイント間または Accept 間のキャッシュポイズニングを防ぎます。
+- ETag は弱い (`W/`) — バイト単位の同一性ではなく、意味的な等価性を伝えます。同じデータだが属性の順序が異なる 2 つのレスポンスは、同じ ETag を共有します。
+- ETag 生成には、リソースパスと `Accept` ヘッダーがシードに含まれます。基礎となる状態 (例: 空のリスト) が同一であっても、異なるエンドポイントと異なるコンテンツネゴシエーションでは常に異なる ETag が生成され、クロスエンドポイントまたはクロス Accept キャッシュポイズニングを防ぎます。
 - `304` レスポンスは `ETag`、`Last-Modified`、`Cache-Control`、`Vary`、および CORS ヘッダーを保持します。
-- 条件評価は、ステータス `200` の `GET` および `HEAD` リクエストに適用されます。`HEAD` は空のボディで `GET` と同じヘッダーを返し (RFC 7231 §4.3.2)、`200` でもボディを転送せずに軽量な再検証を可能にします。
-- キャッシュコントロールは以下に適用されます:
-  - **NGSIv2**: `/v2/entities` (リスト / 単一 / attrs / attrs+name / attrs+name+value)、`/v2/subscriptions`、`/v2/registrations`、`/v2/types`  - **NGSI-LD Data**: `/ngsi-ld/v1/entities` (リスト / 単一 / attrs / attrs+name)、`/ngsi-ld/v1/subscriptions`、`/ngsi-ld/v1/csourceRegistrations`、`/ngsi-ld/v1/csourceSubscriptions`  - **NGSI-LD Meta**: `/ngsi-ld/v1/types`、`/ngsi-ld/v1/attributes`  - **NGSI-LD Temporal**: `/ngsi-ld/v1/temporal/entities` (リストと単一、`Cache-Control` のみ — `ETag` / `Last-Modified` なし)
+- 条件付き評価は、ステータス `200` の `GET` および `HEAD` リクエストに適用されます。`HEAD` は空のボディで `GET` と同じヘッダーを返し (RFC 7231 §4.3.2)、`200` でもボディを転送せずに軽量な再検証を可能にします。
+- キャッシュ制御が適用される対象:
+  - **NGSIv2**: `/v2/entities` (リスト / 単一 / attrs / attrs+name / attrs+name+value)、`/v2/subscriptions`、`/v2/registrations`、`/v2/types`  - **NGSI-LD Data**: `/ngsi-ld/v1/entities` (リスト / 単一 / attrs / attrs+name)、`/ngsi-ld/v1/subscriptions`、`/ngsi-ld/v1/csourceRegistrations`、`/ngsi-ld/v1/csourceSubscriptions`  - **NGSI-LD Meta**: `/ngsi-ld/v1/types`、`/ngsi-ld/v1/attributes`  - **NGSI-LD Temporal**: `/ngsi-ld/v1/temporal/entities` (リストおよび単一、`Cache-Control` のみ — `ETag` / `Last-Modified` なし)
 
-### クライアント主導のキャッシュコントロール
+### クライアント主導のキャッシュ制御
 
 クライアントは `Cache-Control` リクエストヘッダーを送信して、キャッシング動作に影響を与えることができます:
 
 | リクエストヘッダー | サーバーの動作 |
 |----------------|-----------------|
-| `Cache-Control: no-store` | サーバーはレスポンス `Cache-Control` を `no-store` にオーバーライドします (CDN / 中間キャッシュ抑制ヒント)。|
-| `Cache-Control: no-cache` | サーバーは特別なオーバーライドを行いません; エンドポイントのデフォルトポリシーが引き続き適用されます (data → 再検証; meta → `max-age=60` など)。|
-| `Cache-Control: max-age=N` | エッジキャッシュレイヤー用に予約済み (Phase 3 / CloudFront)。Lambda サーバー自体はステートレスであり、このディレクティブを解釈しません。|
+| `Cache-Control: no-store` | サーバーはレスポンス `Cache-Control` を `no-store` にオーバーライドします (CDN/中間キャッシュ抑制ヒント)。|
+| `Cache-Control: no-cache` | サーバーは特別なオーバーライドを行いません。エンドポイントのデフォルトポリシーが引き続き適用されます (data → 再検証; meta → `max-age=60` など)。|
+| `Cache-Control: max-age=N` | エッジキャッシュレイヤー (Phase 3 / CloudFront) 用に予約されています。Lambda サーバー自体はステートレスであり、このディレクティブを解釈しません。|
 
 ---
 
@@ -331,9 +331,9 @@ curl -i "http://localhost:3000/v2/entities" \
 
 認証はデフォルトで無効になっています。以下の環境変数で有効化できます。
 
-**注意**: `AUTH_ENABLED=false` の場合、認証関連のエンドポイント (`/auth/*`、`/me`、`/me/*`、`/admin/*`) は 404 を返します。
+**注意**: `AUTH_ENABLED=false` の場合、認証関連のエンドポイント (`/auth/*`, `/me`, `/me/*`, `/admin/*`) は 404 を返します。
 
-**重要**: `AUTH_ENABLED=true` の場合、NGSI API エンドポイント (`/v2/*`、`/ngsi-ld/*`、`/catalog/*`) へのアクセスには認証が必要です。認証なしでアクセスすると `401 Unauthorized` エラーが返されます。
+**重要**: `AUTH_ENABLED=true` の場合、NGSI API エンドポイント (`/v2/*`, `/ngsi-ld/*`, `/catalog/*`) へのアクセスには認証が必要です。認証なしでアクセスすると `401 Unauthorized` エラーが返されます。
 
 | 環境変数 | デフォルト | 説明 |
 |---------|-----------|------|
@@ -341,17 +341,17 @@ curl -i "http://localhost:3000/v2/entities" \
 | `JWT_SECRET` | - | JWT トークン署名用のシークレット (32 文字以上推奨) |
 | `JWT_EXPIRES_IN` | `1h` | アクセストークンの有効期限 |
 | `JWT_REFRESH_EXPIRES_IN` | `7d` | リフレッシュトークンの有効期限 |
-| `SUPER_ADMIN_EMAIL` | - | 環境変数で設定されるスーパー管理者のメールアドレス |
-| `SUPER_ADMIN_PASSWORD` | - | 環境変数で設定されるスーパー管理者のパスワード |
+| `SUPER_ADMIN_EMAIL` | - | 環境変数で設定するスーパー管理者のメールアドレス |
+| `SUPER_ADMIN_PASSWORD` | - | 環境変数で設定するスーパー管理者のパスワード |
 | `ADMIN_ALLOWED_IPS` | - | Admin API へのアクセスを許可する IP/CIDR (カンマ区切り) |
 
 ### ロールと権限
 
 | ロール | 説明 | 権限 |
-|-------|------|------|
-| `super_admin` | スーパー管理者 | `/admin/*`、`/auth/*`、`/me/*`、監視エンドポイントのみ。データ API (`/v2/*`、`/ngsi-ld/*`、`/catalog*`、`/rules*`) にはアクセス**できません** — 403 を返します |
-| `tenant_admin` | テナント管理者 | 自分のテナント内のユーザーを管理 |
-| `user` | 一般ユーザー | 自分のプロフィール表示とパスワード変更のみ |
+|--------|------|------|
+| `super_admin` | スーパー管理者 | `/admin/*`, `/auth/*`, `/me/*`, 監視エンドポイントのみ。データ API (`/v2/*`, `/ngsi-ld/*`, `/catalog*`, `/rules*`) へのアクセスは**不可** — 403 を返します |
+| `tenant_admin` | テナント管理者 | 自身のテナント内のユーザーを管理 |
+| `user` | 一般ユーザー | 自身のプロフィールの閲覧とパスワード変更のみ |
 
 ### ログイン
 
@@ -375,13 +375,13 @@ Content-Type: application/json
 ```
 
 | パラメータ | 型 | 必須 | 説明 |
-|-----------|------|------|------|
-| `email` | string | はい | メールアドレス |
-| `password` | string | はい | パスワード |
-| `tenantId` | string | いいえ | 指定された場合、そのテナントにスコープされた JWT を発行します。省略時はプライマリテナントがデフォルト |
-| `resourceScopes` | ResourceScope[] | いいえ | エンティティレベルのアクセス制御スコープ。省略時は完全アクセス。詳細は AUTH.md を参照 |
+|-----------|-----|------|------|
+| `email` | string | Yes | メールアドレス |
+| `password` | string | Yes | パスワード |
+| `tenantId` | string | No | 指定した場合、そのテナントにスコープされた JWT を発行。省略時はプライマリテナントがデフォルト |
+| `resourceScopes` | ResourceScope[] | No | エンティティレベルのアクセス制御スコープ。省略時は完全アクセス。詳細は AUTH.md を参照 |
 
-**テナントヘッダーのサポート**: ボディ内の `tenantId` の代わりに、`NGSILD-Tenant` または `Fiware-Service` ヘッダー経由でテナントを指定できます (テナント名で解決)。優先順位: `body.tenantId` > ヘッダー > プライマリテナント。ヘッダー値は `^[a-z0-9_]+$` と一致する必要があります。
+**テナントヘッダーのサポート**: ボディ内の `tenantId` の代わりに、`NGSILD-Tenant` または `Fiware-Service` ヘッダーでテナントを指定できます (テナント名で解決)。優先順位: `body.tenantId` > ヘッダー > プライマリテナント。ヘッダーの値は `^[a-z0-9_]+$` と一致する必要があります。
 
 **レスポンス例**
 
@@ -417,7 +417,7 @@ Content-Type: application/json
 
 **レスポンス**: ログインと同じ形式
 
-### 現在のユーザー情報取得
+### 現在のユーザー情報を取得
 
 ```http
 GET /me
@@ -453,7 +453,7 @@ Content-Type: application/json
 }
 ```
 
-**レスポンス**: `204 No Content`**注意**: パスワード変更後、既存のすべてのアクセストークンとリフレッシュトークンが無効化されます。新しいトークンを取得するため、再度ログインしてください。
+**レスポンス**: `204 No Content`**注意**: パスワード変更後、既存のすべてのアクセストークンとリフレッシュトークンは無効化されます。新しいトークンを取得するには、再度ログインしてください。
 
 ### ログアウト
 
@@ -462,10 +462,10 @@ POST /auth/logout
 Authorization: Bearer <accessToken>
 ```
 
-すべてのセッションを無効化します。このユーザーに対して発行されたすべてのアクセストークンとリフレッシュトークンが即座に無効化されます。
+すべてのセッションを無効化します。このユーザーに発行されたすべてのアクセストークンとリフレッシュトークンは即座に無効化されます。
 
 **レスポンス**: `204 No Content`
-### API キー トークン交換
+### API Key Token Exchange
 
 #### Nonce の取得
 
@@ -477,9 +477,7 @@ Origin: https://example.com
 {"api_key": "gdb_your_api_key_here"}
 ```
 
-**レスポンス**: `200 OK`
-
-```json
+**レスポンス**: `200 OK````json
 {
   "nonce": "base64url_timestamp.hmac_signature",
   "challenge": "sha256_challenge_string",
@@ -487,7 +485,7 @@ Origin: https://example.com
 }
 ```
 
-#### トークンの交換
+#### Token の交換
 
 ```http
 POST /oauth/token
@@ -502,9 +500,7 @@ Origin: https://example.com
 }
 ```
 
-**レスポンス**: `200 OK`
-
-```json
+**レスポンス**: `200 OK````json
 {
   "access_token": "<session_jwt>",
   "token_type": "Bearer",
@@ -513,13 +509,13 @@ Origin: https://example.com
 }
 ```
 
-**DPoP トークン バインディング**(オプション): [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449) に従って ECDSA P-256 証明 JWT を含む `DPoP` ヘッダーを含めます。存在する場合、レスポンスの `token_type` は `"DPoP"` になり、JWT には証明キーにバインドする `cnf.jkt` クレームが含まれます。サーバーは DPoP-Nonce (RFC 9449 §8) を必要とします — 最初のリクエストは `DPoP-Nonce` ヘッダーと共に `400 use_dpop_nonce` を返します。証明の `nonce` クレームに nonce を含めて再試行してください。詳細は AUTH.md を参照してください。
+**DPoP token binding** (オプション): [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449) に従って、ECDSA P-256 証明 JWT を含む `DPoP` ヘッダーを含めます。存在する場合、レスポンスの `token_type` は `"DPoP"` になり、JWT には証明キーにバインドする `cnf.jkt` クレームが含まれます。サーバーは DPoP-Nonce (RFC 9449 §8) を要求します — 最初のリクエストは `DPoP-Nonce` ヘッダーと共に `400 use_dpop_nonce` を返します; 証明の `nonce` クレームに nonce を含めて再試行してください。詳細は AUTH.md を参照してください。
 
-### 管理 API
+### Admin API
 
-管理 API は `super_admin` または `tenant_admin` ロールを持つユーザーのみがアクセス可能です。
+Admin API は `super_admin` または `tenant_admin` ロールを持つユーザーのみがアクセスできます。
 
-#### ユーザー一覧
+#### ユーザー一覧の取得
 
 ```http
 GET /admin/users
@@ -530,12 +526,12 @@ Authorization: Bearer <accessToken>
 
 | パラメータ | 説明 |
 |-----------|-------------|
-| `tenantId` | テナント ID でフィルター (super_admin のみ) |
-| `role` | ロールでフィルター |
+| `tenantId` | テナント ID でフィルタリング (super_admin のみ) |
+| `role` | ロールでフィルタリング |
 | `limit` | 取得する結果の数 |
 | `offset` | オフセット |
 
-#### ユーザー作成
+#### ユーザーの作成
 
 ```http
 POST /admin/users
@@ -554,14 +550,14 @@ Content-Type: application/json
 }
 ```
 
-#### ユーザー取得
+#### ユーザーの取得
 
 ```http
 GET /admin/users/{userId}
 Authorization: Bearer <accessToken>
 ```
 
-#### ユーザー更新
+#### ユーザーの更新
 
 ```http
 PATCH /admin/users/{userId}
@@ -578,7 +574,7 @@ Content-Type: application/json
 }
 ```
 
-#### ユーザー削除
+#### ユーザーの削除
 
 ```http
 DELETE /admin/users/{userId}
@@ -616,14 +612,14 @@ Authorization: Bearer <accessToken>
 
 ### テナント管理 (super_admin のみ)
 
-#### テナント一覧
+#### テナント一覧の取得
 
 ```http
 GET /admin/tenants
 Authorization: Bearer <accessToken>
 ```
 
-#### テナント作成
+#### テナントの作成
 
 ```http
 POST /admin/tenants
@@ -643,16 +639,16 @@ Content-Type: application/json
 }
 ```
 
-> **注意**: テナント名には小文字の英数字とアンダースコアのみを含める必要があります (`^[a-z0-9_]+$`)。
+> **注意**: テナント名には小文字の英数字とアンダースコアのみを使用できます (`^[a-z0-9_]+$`)。
 
-#### テナント取得
+#### テナントの取得
 
 ```http
 GET /admin/tenants/{tenantId}
 Authorization: Bearer <accessToken>
 ```
 
-#### テナント更新
+#### テナントの更新
 
 ```http
 PATCH /admin/tenants/{tenantId}
@@ -660,7 +656,7 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-#### テナント削除
+#### テナントの削除
 
 ```http
 DELETE /admin/tenants/{tenantId}
@@ -679,11 +675,13 @@ Authorization: Bearer <accessToken>
 
 ### カスタムデータモデル管理
 
-> **注意**: カスタムデータモデル API は `/custom-data-models` に移動しました。詳細については [カスタムデータモデル API](#カスタムデータモデル-api) セクションを参照してください。
+> **注意**: カスタムデータモデル API は `/custom-data-models` に移動しました。詳細は [カスタムデータモデル API](#カスタムデータモデル-api) セクションを参照してください。
 
 ### IP 制限
 
-`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API (`/admin/*`) へのアクセスを特定の IP アドレスに制限できます。
+**SaaS 利用者の方へ**: これは tenant 設定 API 経由で設定されます。詳細は Geolonia サポートにお問い合わせください。
+
+`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API (`/admin/*`) へのアクセスを特定の IP アドレスに制限できます:
 
 ```bash
 # Single IP
@@ -696,11 +694,11 @@ ADMIN_ALLOWED_IPS=192.168.1.100,10.0.0.50
 ADMIN_ALLOWED_IPS=192.168.1.0/24,10.0.0.0/8
 ```
 
-許可されていない IP からのアクセスは `403 Forbidden` エラーとなります。
+許可されていない IP からのアクセスは `403 Forbidden` エラーになります。
 
-#### テナント毎の IP 制限
+#### テナントごとの IP 制限
 
-テナント毎に個別の IP 制限を設定できます。テナントレベルの設定が存在する場合は、グローバル設定 (`ADMIN_ALLOWED_IPS`) よりも優先されます。
+テナントごとに個別の IP 制限を設定できます。テナントレベルの設定が存在する場合は、グローバル設定 (`ADMIN_ALLOWED_IPS`) よりも優先されます。
 
 ```http
 GET /admin/tenants/{tenantId}/ip-restrictions
@@ -709,15 +707,15 @@ DELETE /admin/tenants/{tenantId}/ip-restrictions
 Authorization: Bearer <accessToken>
 ```
 
-スコープは `admin` (Admin API のみ) または `all` (すべての API) のいずれかを指定できます。詳細は AUTH.md を参照してください。
+スコープは `admin` (Admin API のみ) または `all` (すべての API) のいずれかです。詳細は AUTH.md を参照してください。
 
-### ルールエンジン管理（tenant_admin）
+### ルールエンジン管理 (tenant_admin)
 
 エンティティの変更を自動的に処理するルールを管理します。`tenant_admin` ロールが必要です。`AUTH_ENABLED=true` の場合、`super_admin` は `/rules*` エンドポイントにアクセスできません。
 
-- **REACTIVCORE_RULES.md** - ユーザーガイド(使用例、管理 API など)
+- **REACTIVCORE_RULES.md** - ユーザーガイド (使用例、Admin API など)
 
-#### ルール一覧の取得
+#### ルール一覧
 
 ```http
 GET /rules
@@ -727,13 +725,13 @@ Authorization: Bearer <accessToken>
 **クエリパラメータ**
 
 | パラメータ | 説明 |
-|-----------|-------------|
-| `limit` | 結果の件数(デフォルト: 20、最大: 100) |
-| `offset` | オフセット(デフォルト: 0) |
+|-----------|------|
+| `limit` | 結果の件数 (デフォルト: 20、最大: 100) |
+| `offset` | オフセット (デフォルト: 0) |
 | `servicePath` | ServicePathでフィルタ |
-| `isActive` | アクティブ/非アクティブでフィルタ(`true` / `false`) |
+| `isActive` | アクティブ/非アクティブでフィルタ (`true` / `false`) |
 
-#### ルールの作成
+#### ルール作成
 
 ```http
 POST /rules
@@ -772,14 +770,14 @@ Content-Type: application/json
 }
 ```
 
-#### ルールの取得
+#### ルール取得
 
 ```http
 GET /rules/{ruleId}
 Authorization: Bearer <accessToken>
 ```
 
-#### ルールの更新
+#### ルール更新
 
 ```http
 PATCH /rules/{ruleId}
@@ -787,7 +785,7 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
-レスポンス: `204 No Content`#### ルールの削除
+レスポンス: `204 No Content`#### ルール削除
 
 ```http
 DELETE /rules/{ruleId}
@@ -804,15 +802,15 @@ Authorization: Bearer <accessToken>
 
 #### クロスプロトコルアクション
 
-ルールアクション(`createEntity`、`updateAttribute`、`deleteAttribute`)は、プロトコル境界を越えて動作するためのオプションフィールド `protocol` をサポートしています。`createEntity` アクションは、階層制御のための `servicePath` および `scope` フィールドもサポートしています。
+ルールアクション (`createEntity`、`updateAttribute`、`deleteAttribute`) は、プロトコル境界をまたいで操作するためのオプションの `protocol` フィールドをサポートしています。`createEntity` アクションは、階層制御のために `servicePath` と `scope` フィールドもサポートしています。
 
 | フィールド | アクション | 型 | 説明 |
 |---|---|---|---|
-| `protocol` | createEntity、updateAttribute、deleteAttribute | `'ngsiv2' \| 'ngsild'` | ターゲットプロトコル(デフォルト: トリガーから継承) |
+| `protocol` | createEntity, updateAttribute, deleteAttribute | `'ngsiv2' \| 'ngsild'` | ターゲットプロトコル (デフォルト: トリガーから継承) |
 | `servicePath` | createEntity | `string` | NGSIv2 のターゲット servicePath (テンプレート変数をサポート) |
-| `scope` | createEntity | `string[]` | NGSI-LD のターゲットスコープ(テンプレート変数をサポート) |
+| `scope` | createEntity | `string[]` | NGSI-LD のターゲット scope (テンプレート変数をサポート) |
 
-プロトコルを越える場合、servicePath ↔ scope は自動的にマッピングされます。テンプレート変数 `${trigger.protocol}`、`${trigger.servicePath}`、`${trigger.scope}`、`${trigger.service}` は、トリガーエンティティのコンテキストを参照します。
+プロトコルをまたぐ場合、servicePath ↔ scope は自動的にマッピングされます。テンプレート変数 `${trigger.protocol}`、`${trigger.servicePath}`、`${trigger.scope}`、`${trigger.service}` は、トリガーエンティティのコンテキストを参照します。
 
 詳細な例とマッピングルールについては、**REACTIVCORE_RULES.md** を参照してください。
 
@@ -823,83 +821,83 @@ Authorization: Bearer <accessToken>
 OAuth 2.0 Client Credentials Grant フローを使用した Machine-to-Machine (M2M) 認証がサポートされています。
 
 **主要なエンドポイント:**
-- `POST /oauth/token` - トークン取得 (Basic 認証)
-- `POST /admin/oauth-clients` - クライアント作成 (管理者)
-- `GET /admin/oauth-clients` - クライアント一覧 (管理者)
-- `POST /admin/oauth-clients/{clientId}/regenerate-secret` - シークレット再生成 (管理者)
-- `POST /me/oauth-clients` - 自分のクライアント作成 (セルフサービス)
-- `GET /me/oauth-clients` - 自分のクライアント一覧 (セルフサービス)
-- `DELETE /me/oauth-clients/{clientId}` - 自分のクライアント削除 (セルフサービス)
-- `POST /me/oauth-clients/{clientId}/regenerate-secret` - 自分のシークレット再生成 (セルフサービス)
+- `POST /oauth/token` - トークン取得(Basic 認証)
+- `POST /admin/oauth-clients` - クライアント作成(管理者)
+- `GET /admin/oauth-clients` - クライアント一覧(管理者)
+- `POST /admin/oauth-clients/{clientId}/regenerate-secret` - シークレット再生成(管理者)
+- `POST /me/oauth-clients` - 自分のクライアント作成(セルフサービス)
+- `GET /me/oauth-clients` - 自分のクライアント一覧(セルフサービス)
+- `DELETE /me/oauth-clients/{clientId}` - 自分のクライアント削除(セルフサービス)
+- `POST /me/oauth-clients/{clientId}/regenerate-secret` - 自分のシークレット再生成(セルフサービス)
 
-**有効化:** `AUTH_ENABLED=true` の場合、OAuth 2.0 は常に有効になります。`OAUTH_ENABLED` 環境変数は非推奨であり、無視されます。
+**有効化:** OAuth 2.0 は `AUTH_ENABLED=true` の場合、常に有効です。`OAUTH_ENABLED` 環境変数は非推奨であり、無視されます。
 
 **利用可能なスコープ:**
 
 | スコープ | 説明 | `user` | `tenant_admin` | `super_admin` |
 |-------|-------------|:------:|:---------------:|:--------------:|
 | `read:entities` | エンティティの読み取り | ✅ | ✅ | ✅ |
-| `write:entities` | エンティティの書き込み (作成/更新/削除のみ) | ✅ | ✅ | ✅ |
+| `write:entities` | エンティティの書き込み(作成/更新/削除のみ) | ✅ | ✅ | ✅ |
 | `read:subscriptions` | サブスクリプションの読み取り | ✅ | ✅ | ✅ |
-| `write:subscriptions` | サブスクリプションの書き込み (作成/更新/削除のみ) | ✅ | ✅ | ✅ |
+| `write:subscriptions` | サブスクリプションの書き込み(作成/更新/削除のみ) | ✅ | ✅ | ✅ |
 | `read:registrations` | 登録の読み取り | ✅ | ✅ | ✅ |
-| `write:registrations` | 登録の書き込み (作成/更新/削除のみ) | ✅ | ✅ | ✅ |
+| `write:registrations` | 登録の書き込み(作成/更新/削除のみ) | ✅ | ✅ | ✅ |
 | `read:rules` | ルールの読み取り | ✅ | ✅ | ✅ |
-| `write:rules` | ルールの書き込み (作成/更新/削除のみ) | ✅ | ✅ | ✅ |
+| `write:rules` | ルールの書き込み(作成/更新/削除のみ) | ✅ | ✅ | ✅ |
 | `read:custom-data-models` | カスタムデータモデルの読み取り | ✅ | ✅ | ✅ |
-| `write:custom-data-models` | カスタムデータモデルの書き込み (作成/更新/削除のみ) | ✅ | ✅ | ✅ |
+| `write:custom-data-models` | カスタムデータモデルの書き込み(作成/更新/削除のみ) | ✅ | ✅ | ✅ |
 | `admin:users` | ユーザー管理 API | ❌ | ✅ | ✅ |
 | `admin:policies` | ポリシー管理 API | ❌ | ✅ | ✅ |
 | `admin:oauth-clients` | OAuth クライアント管理 API | ❌ | ✅ | ✅ |
 | `admin:metrics` | メトリクス API | ❌ | ✅ | ✅ |
 | `admin:tenants` | テナント管理 API | ❌ | ❌ | ✅ |
 | `permanent` | トークンが期限切れにならない | — | — | — |
-| `jwt` | JWT 形式のトークン | — | — | — |
+| `jwt` | JWT フォーマットのトークン | — | — | — |
 
-> ロール列は、セルフサービス (`/me/oauth-clients`) 経由でリクエスト可能なスコープを示します。管理者が作成したクライアント (`/admin/oauth-clients`) には、これらの制限は適用されません。
+> ロール列は、セルフサービス(`/me/oauth-clients`)でリクエスト可能なスコープを示しています。管理者が作成したクライアント(`/admin/oauth-clients`)には、これらの制限は適用されません。
 
-**リソーススコープ:** `POST /oauth/token` で `resource_scopes` パラメータ (JSON 文字列) を指定すると、エンティティレベルのアクセス制御を持つトークンが発行されます。詳細は AUTH.md を参照してください。
+**リソーススコープ:** `POST /oauth/token` で `resource_scopes` パラメータ(JSON 文字列)を指定すると、エンティティレベルのアクセス制御を持つトークンが発行されます。詳細は AUTH.md を参照してください。
 
 **詳細:** AUTH.md の OAuth 2.0 セクションを参照してください。
 
 ---
 
-## API キートークン交換 (ブラウザ SDK)
+## API キートークン交換(ブラウザ SDK)
 
-ブラウザベースのアプリケーションは、Nonce + Proof of Work を介して API キーを短時間有効なセッション JWT に交換できます。
+ブラウザベースのアプリケーションは、Nonce + Proof of Work を介して API キーを短期間有効なセッション JWT と交換できます。
 
 **主要なエンドポイント:**
-- `POST /auth/nonce` - Nonce + PoW チャレンジのリクエスト (API キー + Origin ヘッダーが必要)
-- `POST /oauth/token` (`grant_type=api_key`) - API キー + nonce + PoW 証明をセッション JWT に交換
+- `POST /auth/nonce` - Nonce + PoW チャレンジのリクエスト(API キー + Origin ヘッダーが必要)
+- `POST /oauth/token` (`grant_type=api_key`) - API キー + nonce + PoW 証明をセッション JWT と交換
 
 **JavaScript SDK:** `npm install @geolonia/geonicdb-sdk` — トークン交換、DPoP、WebSocket、再接続を自動的に処理します。
 
-**セキュリティレイヤー:** Origin 検証 → HMAC Nonce (60 秒 TTL) → Proof of Work → 短時間有効な JWT (1 時間)
+**セキュリティレイヤー:** Origin 検証 → HMAC Nonce (60 秒 TTL) → Proof of Work → 短期間有効な JWT (1 時間)
 
-**詳細:** AUTH.md の API Key Token Exchange セクションおよび SDK ドキュメントで完全な API リファレンスを参照してください。
+**詳細:** AUTH.md の API キートークン交換セクションと SDK ドキュメントの完全な API リファレンスを参照してください。
 
 ---
 
 ## メタエンドポイント
 
-メタエンドポイントは認証を必要とせず、システムステータスと API 情報を提供します。
+メタエンドポイントは認証不要で、システムステータスと API 情報を提供します。
 
-### API ドキュメント (llms.txt 形式)
+### API ドキュメント(llms.txt 形式)
 
 ```http
 GET /llms.txt
 ```
 
-AI フレンドリーな [llms.txt](https://llmstxt.org/) 形式で API ドキュメントを返します。AI エージェントや LLM が理解しやすいように構造化された Markdown 形式を使用します。
+AI フレンドリーな [llms.txt](https://llmstxt.org/) 形式で API ドキュメントを返します。AI エージェントと LLM が理解しやすいように構造化された Markdown 形式を使用します。
 
 **レスポンス**
-- Content-Type: `text/markdown; charset=utf-8`### API ドキュメント (JSON 形式)
+- Content-Type: `text/markdown; charset=utf-8`### API ドキュメント(JSON 形式)
 
 ```http
 GET /api.json
 ```
 
-JSON 形式で API エンドポイントの一覧を返します。
+API エンドポイントのリストを JSON 形式で返します。
 
 **レスポンス例**
 
@@ -924,7 +922,7 @@ JSON 形式で API エンドポイントの一覧を返します。
 GET /openapi.json
 ```
 
-OpenAPI 3.0 仕様を JSON 形式で返します。Swagger UI や各種 API クライアント生成ツールで使用できます。
+JSON 形式で OpenAPI 3.0 仕様を返します。Swagger UI や各種 API クライアント生成ツールで使用できます。
 
 **レスポンス**
 - Content-Type: `application/json`- OpenAPI バージョン: 3.0.3
@@ -965,7 +963,7 @@ FIWARE Orion 互換のバージョン情報を返します。
 GET /.well-known/ngsi-ld
 ```
 
-NGSI-LD API サポート情報を返します。
+NGSI-LD API のサポート情報を返します。
 
 **レスポンス例**
 
@@ -979,15 +977,15 @@ NGSI-LD API サポート情報を返します。
 
 ### ヘルスチェック
 
-すべてのヘルスチェックエンドポイントは、マルチリージョン HA サポートのために `region` と `regionRole` を返します。Route 53 フェイルオーバーはこれらのエンドポイントを監視し、プライマリが `503` を返した場合にセカンダリへ切り替えます。
+すべてのヘルスチェックエンドポイントは、マルチリージョン HA サポートのために `region` と `regionRole` を返します。Route 53 フェイルオーバーはこれらのエンドポイントを監視し、プライマリが `503` を返すとセカンダリに切り替えます。
 
-#### 基本ヘルス
+#### 基本ヘルスチェック
 
 ```http
 GET /health
 ```
 
-サービスの基本的な稼働状態を返します。
+サービスの基本的な動作状態を返します。
 
 **レスポンス例**
 
@@ -1006,7 +1004,7 @@ GET /health
 GET /health/live
 ```
 
-Kubernetes / Route 53 の Liveness プローブ用。サービスが実行中かどうかをチェックします。
+Kubernetes / Route 53 Liveness プローブ用。サービスが実行中かどうかを確認します。
 
 **レスポンス例**
 
@@ -1025,17 +1023,17 @@ Kubernetes / Route 53 の Liveness プローブ用。サービスが実行中か
 GET /health/ready
 ```
 
-Kubernetes / Route 53 の Readiness プローブ用。MongoDB への接続をチェックし、オプションで DynamoDB と EventBridge の詳細ヘルスチェックを実行します。
+Kubernetes / Route 53 Readiness プローブ用。MongoDB の接続性を確認し、オプションで DynamoDB と EventBridge のディープヘルスチェックを実行します。
 
-**環境変数による詳細ヘルスチェックの有効化**
+**環境変数によるディープヘルスチェックの有効化**
 
 | 環境変数 | 説明 |
 |---------|------|
-| `HEALTH_CHECK_DYNAMODB=true` | DynamoDB DescribeTable 接続チェックを追加 |
-| `HEALTH_CHECK_EVENTBRIDGE=true` | EventBridge DescribeEventBus 接続チェックを追加 |
+| `HEALTH_CHECK_DYNAMODB=true` | DynamoDB DescribeTable 接続性チェックを追加 |
+| `HEALTH_CHECK_EVENTBRIDGE=true` | EventBridge DescribeEventBus 接続性チェックを追加 |
 
 **レスポンス**
-- 成功: `200 OK` と `status: "healthy"`- 失敗: `503 Service Unavailable` と `status: "unhealthy"`**レスポンス例(詳細ヘルスチェック有効時)**
+- 成功: `200 OK` と `status: "healthy"`- 失敗: `503 Service Unavailable` と `status: "unhealthy"`**レスポンス例(ディープヘルスチェック有効時)**
 
 ```json
 {
@@ -1062,7 +1060,7 @@ GET /statistics
 Authorization: Bearer <token>
 ```
 
-サーバーの運用統計を FIWARE Orion 互換形式で返します。認証が有効な場合 (`AUTH_ENABLED=true`)、認証済みユーザーのみがこのエンドポイントにアクセスできます。
+FIWARE Orion 互換形式でサーバーの動作統計を返します。認証が有効な場合 (`AUTH_ENABLED=true`)、認証されたユーザーのみがこのエンドポイントにアクセスできます。
 
 **レスポンス例**
 
@@ -1102,7 +1100,7 @@ GET /cache/statistics
 Authorization: Bearer <token>
 ```
 
-サブスクリプションと登録のキャッシュ統計を返します。認証が有効な場合 (`AUTH_ENABLED=true`)、認証済みユーザーのみがこのエンドポイントにアクセスできます。
+サブスクリプションと登録のキャッシュ統計を返します。認証が有効な場合 (`AUTH_ENABLED=true`)、認証されたユーザーのみがこのエンドポイントにアクセスできます。
 
 **レスポンス例**
 
@@ -1132,7 +1130,7 @@ GET /metrics
 Authorization: Bearer <token>
 ```
 
-Prometheus エクスポジション形式でメトリクスを返します。認証が有効な場合 (`AUTH_ENABLED=true`)、認証済みユーザーのみがこのエンドポイントにアクセスできます。Kubernetes 環境での監視や Grafana ダッシュボードとの統合に使用できます。
+Prometheus 公開形式でメトリクスを返します。認証が有効な場合 (`AUTH_ENABLED=true`)、認証されたユーザーのみがこのエンドポイントにアクセスできます。Kubernetes 環境での監視や Grafana ダッシュボードとの統合に使用できます。
 
 **レスポンス**
 - Content-Type: `text/plain; version=0.0.4`**レスポンス例**
@@ -1176,7 +1174,7 @@ geonicdb_notifications_failed_total 10
 GET /tools.json
 ```
 
-Claude Tool Use / OpenAI Function Calling と互換性のある JSON 形式でツール定義を返します。これは AI エージェントが API をツールとして使用するためのスキーマです。
+Claude Tool Use / OpenAI Function Calling と互換性のある JSON 形式でツール定義を返します。これは、AI エージェントが API をツールとして使用するためのスキーマです。
 
 **提供されるツール**: `list_entities`、`get_entity`、`search_by_location`、`search_by_attribute`、`create_entity`、`update_entity`、`delete_entity`、`list_entity_types`、`get_temporal_data`、`subscribe`##### AI プラグインマニフェスト
 
@@ -1194,7 +1192,7 @@ Content-Type: application/json
 Accept: application/json, text/event-stream
 ```
 
-MCP Streamable HTTP エンドポイント。MCP 互換の AI クライアント(Claude Desktop など)から直接接続できます。ステートレスモード(JSON レスポンス)で動作し、MCP tools/call 経由で 5 つのツールすべてが利用可能です。
+MCP Streamable HTTP エンドポイント。MCP 互換の AI クライアント(Claude Desktop など)から直接接続できます。ステートレスモード(JSON レスポンス)で動作し、5 つのツールすべてが MCP tools/call 経由で利用可能です。
 
 `AUTH_ENABLED=true` の場合、Bearer トークン(JWT)による認証が必要です。テナントアクセス制御も適用されます。
 
@@ -1217,7 +1215,7 @@ MCP Streamable HTTP エンドポイント。MCP 互換の AI クライアント(
 ```
 注意: `headers` は `AUTH_ENABLED=true` の場合のみ必要です。
 
-詳細は [AI_INTEGRATION.md](../ai-integration/overview.md) を参照してください。
+詳細については、[AI_INTEGRATION.md](../ai-integration/overview.md) を参照してください。
 
 ##### A2A (Agent-to-Agent Protocol)
 
@@ -1225,7 +1223,7 @@ MCP Streamable HTTP エンドポイント。MCP 互換の AI クライアント(
 GET /.well-known/agent-card.json
 ```
 
-A2A Agent Card。このエージェントの機能、スキル、認証について説明します。認証は不要です。
+A2A エージェントカード。このエージェントの機能、スキル、および認証について説明します。認証不要。
 
 ```http
 POST /a2a
@@ -1234,17 +1232,17 @@ Authorization: Bearer <token>
 Fiware-Service: <tenant>  (optional, falls back to default tenant)
 ```
 
-エージェント間通信のための A2A JSON-RPC 2.0 エンドポイント。`AUTH_ENABLED=true` の場合、認証が必要です。サポートされるメソッド:
+エージェント間通信のための A2A JSON-RPC 2.0 エンドポイント。`AUTH_ENABLED=true` の場合は認証が必要です。サポートされるメソッド:
 - `message/send` — メッセージを送信し、同期レスポンスを受信
 - `tasks/get` — タスクの現在の状態を取得
-- `tasks/list` — フィルタリングとページネーション付きでタスクを一覧表示
+- `tasks/list` — フィルタリングとページネーションを使用してタスクを一覧表示
 - `tasks/cancel` — タスクのキャンセルをリクエスト
 
-5 つのスキルが利用可能: entities、batch、temporal、config、admin (MCP ツールと同じ)。
+5 つのスキルが利用可能: entities、batch、temporal、config、admin(MCP ツールと同じ)。
 
-詳細は [AI_INTEGRATION.md](../ai-integration/overview.md) を参照してください。
+詳細については、[AI_INTEGRATION.md](../ai-integration/overview.md) を参照してください。
 
-#### テナント別メトリクス (管理 API)
+#### テナント別メトリクス(管理 API)
 
 ```http
 GET /admin/metrics
@@ -1291,7 +1289,7 @@ NGSI-LD API の詳細については、[API_NGSILD.md](./ngsild.md) を参照し
 
 ## クエリ言語
 
-属性値によるフィルタリングは `q` パラメータを使用して可能です。
+属性値によるフィルタリングは、`q` パラメータを使用して可能です。
 
 ### 基本構文
 
@@ -1323,7 +1321,7 @@ q=temperature>25;humidity<40|status==active
 
 ### 範囲クエリ
 
-`==` 演算子と `..` を組み合わせて範囲フィルタリングを行います (境界値を含む):
+`==` 演算子を `..` と組み合わせて範囲フィルタリングを行います (境界を含む):
 
 ```text
 q=temperature==20..30    # 20 or above and 30 or below
@@ -1348,15 +1346,15 @@ q=name==Room1     # Exact match
 |-----------|-------------|
 | `georel` | 空間関係 (coveredBy、within、intersects、disjoint、equals) |
 | `geometry` | ジオメトリタイプ (point、polygon、line、box) |
-| `coords` | 座標 (NGSIv2: 緯度,経度 形式; NGSI-LD: 経度,緯度 形式; 複数のポイントはセミコロンで区切る) |
+| `coords` | 座標 (NGSIv2: 緯度,経度形式; NGSI-LD: 経度,緯度形式; 複数ポイントはセミコロンで区切る) |
 
-> **注意**: `georel`、`geometry`、`coords` (または NGSI-LD では `coordinates`) はすべて一緒に指定する必要があります。一部のみを指定すると `400 Bad Request` が返されます (ETSI GS CIM 009 V1.9.1 clause 4.10)。
+> **注意**: `georel`、`geometry`、および `coords` (または NGSI-LD では `coordinates`) はすべて一緒に指定する必要があります。一部のみを指定すると `400 Bad Request` が返されます (ETSI GS CIM 009 V1.9.1 clause 4.10)。
 
 ### 座標形式
 
 NGSIv2 では、座標は **緯度,経度** の順序で指定します (NGSIv2 仕様に準拠)。NGSI-LD では、座標は **経度,緯度** の順序です (GeoJSON 標準に準拠)。
 
-> **重要**: NGSIv2 における緯度,経度の順序は GeoJSON 標準 (経度,緯度) からの逸脱です。これは NGSI-LD で修正され、GeoJSON と同じ経度,緯度の順序を使用しています。API を使用する際は、使用している API バージョンに合わせて正しい順序で座標を指定してください。
+> **重要**: NGSIv2 の緯度,経度の順序は GeoJSON 標準 (経度,緯度) からの逸脱です。これは NGSI-LD で修正され、GeoJSON と同じ経度,緯度の順序を使用します。API を使用する際は、使用している API バージョンに応じて正しい順序で座標を指定してください。
 
 ```text
 # NGSIv2 (latitude,longitude)
@@ -1392,7 +1390,7 @@ GET /v2/entities?georel=disjoint&geometry=polygon&coords=34,138;34,141;37,141;37
 ```
 ### 近接検索 (near)
 
-指定された座標から一定の距離内にあるエンティティを検索します。
+指定された座標から一定距離内のエンティティを検索します。
 
 #### パラメータ
 
@@ -1400,7 +1398,7 @@ GET /v2/entities?georel=disjoint&geometry=polygon&coords=34,138;34,141;37,141;37
 |-----------|-------------|
 | `maxDistance` | 最大距離(メートル) |
 | `minDistance` | 最小距離(メートル) |
-| `orderByDistance` | `true` に設定すると、結果を距離順にソートし、各エンティティに距離情報(`@distance`)を付加します |
+| `orderByDistance` | `true` に設定すると、結果を距離でソートし、各エンティティに距離情報 (`@distance`) を付加します |
 
 #### 基本的な使い方 (NGSIv2)
 
@@ -1430,9 +1428,9 @@ GET /ngsi-ld/v1/entities?georel=near;minDistance==100000&geometry=Point&coordina
 GET /ngsi-ld/v1/entities?georel=near;minDistance==500;maxDistance==10000&geometry=Point&coordinates=[139.7671,35.6812]
 ```
 
-#### georel の構文比較
+#### georel 構文の比較
 
-georel パラメータの修飾子構文は NGSIv2 と NGSI-LD で異なります:
+georel パラメータ修飾子の構文は NGSIv2 と NGSI-LD で異なります:
 
 | 機能 | NGSIv2 | NGSI-LD | 説明 |
 |---------|--------|---------|-------------|
@@ -1440,14 +1438,14 @@ georel パラメータの修飾子構文は NGSIv2 と NGSI-LD で異なりま�
 | 最小距離 | `georel=near;minDistance:1000` | `georel=near;minDistance==1000` | `:` と `==` の違い |
 | 距離範囲 | `georel=near;minDistance:500;maxDistance:10000` | `georel=near;minDistance==500;maxDistance==10000` | `:` と `==` の違い |
 
-> **構文が異なる理由**: NGSIv2 では `:` を使用してパラメータ値を指定しますが、NGSI-LD では ETSI 仕様に従って `==` を使用します。API を呼び出す際は、使用する API バージョンに対応した構文を使用してください。
+> **構文の違いの理由**: NGSIv2 は `:` を使用してパラメータ値を指定しますが、NGSI-LD は ETSI 仕様に従って `==` を使用します。API を呼び出す際は、使用する API バージョンに対応した構文を使用してください。
 
-#### 距離のソートと距離情報
+#### 距離ソートと距離情報
 
 `orderByDistance=true` パラメータを指定すると、以下の機能が有効になります:
 
-1. **距離のソート**: 結果が指定された座標からの距離の昇順でソートされます
-2. **距離情報**: 各エンティティに `@distance` 属性が追加され、指定された座標からの距離(メートル単位)が返されます
+1. **距離ソート**: 結果が指定された座標からの距離の昇順でソートされます
+2. **距離情報**: 各エンティティに `@distance` 属性が追加され、指定された座標からの距離(メートル)が返されます
 
 この機能は MongoDB の `$geoNear` 集約パイプラインを使用して実装されています。
 
@@ -1494,7 +1492,7 @@ GET /ngsi-ld/v1/entities?georel=near;maxDistance==5000&geometry=Point&coordinate
 
 ##### 降順ソート
 
-`orderDirection=desc` と組み合わせて使用すると、距離の降順(遠い順)でソートされます:
+`orderDirection=desc` と併用して距離の降順(遠い順)でソートします:
 
 ```http
 GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.7671&orderByDistance=true&orderDirection=desc
@@ -1506,9 +1504,9 @@ GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.
 
 ### エラー処理
 
-geo-query パラメータが無効な場合、`400 Bad Request` が返されます。
+ジオクエリパラメータが無効な場合、`400 Bad Request` が返されます。
 
-| エラー条件 | エラーメッセージ例 |
+| エラー条件 | エラーメッセージの例 |
 |----------------|-----------------------|
 | 無効な `georel` 値 | `Invalid georel: xxx. Supported values: near, coveredBy, within, contains, intersects, disjoint, equals` |
 | 無効な `geometry` 値 | `Unsupported geometry type: xxx. Supported types: point, polygon, linestring, line, box` |
@@ -1524,9 +1522,9 @@ geo-query パラメータが無効な場合、`400 Bad Request` が返されま�
 
 ---
 
-## 空間 ID 検索
+## Spatial ID 検索
 
-日本のデジタル庁 / IPA が定めた 3 次元空間識別規格 (ZFXY 形式) に基づく空間検索をサポートします。
+日本のデジタル庁 / IPA が策定した3次元空間識別標準 (ZFXY 形式) に基づく空間検索をサポートします。
 
 ### ZFXY 形式
 
@@ -1534,8 +1532,8 @@ geo-query パラメータが無効な場合、`400 Bad Request` が返されま�
 |---------|-------------|-------|
 | Z | ズームレベル | 0-28 |
 | F | 垂直方向 (高度レベル) | 整数 |
-| X | 東西方向 (経度タイル) | 0 to 2^z-1 |
-| Y | 南北方向 (緯度タイル) | 0 to 2^z-1 |
+| X | 東西方向 (経度タイル) | 0 から 2^z-1 |
+| Y | 南北方向 (緯度タイル) | 0 から 2^z-1 |
 
 形式: `{z}/{f}/{x}/{y}` (例: `20/0/929593/410773`)
 
@@ -1553,7 +1551,7 @@ GET /ngsi-ld/v1/entities?spatialId=20/0/929593/410773
 
 ### 階層展開 (spatialIdDepth)
 
-`spatialIdDepth` パラメータを指定すると、指定した空間 ID を中心とした周囲のタイルに検索を拡張します。
+`spatialIdDepth` パラメータを指定すると、指定された Spatial ID を中心に周囲のタイルまで検索を拡大します。
 
 ```http
 # depth=1: Expands to a 3x3 tile grid (9 tiles)
@@ -1565,7 +1563,7 @@ GET /v2/entities?spatialId=20/0/929593/410773&spatialIdDepth=2
 
 | spatialIdDepth | 展開範囲 | タイル数 |
 |----------------|-----------------|------------|
-| 0 (デフォルト) | 指定したタイルのみ | 1 |
+| 0 (デフォルト) | 指定されたタイルのみ | 1 |
 | 1 | 3x3 | 9 |
 | 2 | 5x5 | 25 |
 | 3 | 7x7 | 49 |
@@ -1587,7 +1585,7 @@ curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773&spatialIdDe
 
 ## GeoJSON 出力
 
-RFC 7946 準拠の GeoJSON FeatureCollection 形式でエンティティを出力できます。
+エンティティは RFC 7946 準拠の GeoJSON FeatureCollection 形式で出力できます。
 
 ### NGSIv2 での使用方法
 
@@ -1653,7 +1651,7 @@ Accept: application/geo+json
 
 ### NGSI-LD における @context
 
-NGSI-LD で GeoJSON を出力する場合、`@context` が FeatureCollection レベルに含まれます:
+NGSI-LD で GeoJSON を出力する場合、`@context` は FeatureCollection レベルに含まれます:
 
 ```json
 {
@@ -1702,7 +1700,7 @@ curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773&options=geo
 
 ## ベクタータイル
 
-エンティティは XYZ タイル方式に基づいて GeoJSON ベクタータイルとして出力できます。大量のエンティティを地図上に効率的に表示するために最適化されています。
+エンティティは、XYZ タイルスキームに基づいて GeoJSON ベクタータイルとして出力できます。大量のエンティティを地図上に効率的に表示するために最適化されています。
 
 ### エンドポイント
 
@@ -1739,7 +1737,7 @@ curl "http://localhost:3000/v2/tiles" \
 
 ### GeoJSON タイルの取得
 
-XYZ 座標を指定してタイル内のエンティティを GeoJSON 形式で取得します:
+XYZ 座標を指定して、タイル内のエンティティを GeoJSON 形式で取得します:
 
 ```bash
 # Zoom level 14 tile around Tokyo
@@ -1752,7 +1750,7 @@ curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson" \
 | パラメータ | 説明 |
 |-----------|-------------|
 | `type` | エンティティタイプでフィルタリング |
-| `attrs` | 出力する属性をカンマ区切りリストで指定 |
+| `attrs` | カンマ区切りで出力する属性を指定 |
 
 **使用例**
 
@@ -1797,7 +1795,7 @@ curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" 
 
 ### クラスタリング
 
-タイル内のエンティティ数が閾値(デフォルト: 1000)を超えた場合、自動的にクラスタリングされます。クラスタリングされた場合、タイル内のすべてのエンティティの重心座標を持つ単一のクラスター Feature が返されます。
+タイル内のエンティティ数が閾値(デフォルト: 1000)を超えると、自動的にクラスタリングされます。クラスタリングされると、タイル内の全エンティティの重心座標を持つ単一のクラスター Feature が返されます。
 
 **クラスタリング時のレスポンス例**
 
@@ -1836,8 +1834,8 @@ curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" 
 
 | ヘッダー | 説明 |
 |--------|-------------|
-| `X-Tile-Mode` | `individual` (個別のエンティティ) または `clustered` (クラスタリング) |
-| `X-Total-Count` | タイル内のエンティティの総数 |
+| `X-Tile-Mode` | `individual` (個別エンティティ) または `clustered` (クラスタリング) |
+| `X-Total-Count` | タイル内の全エンティティ数 |
 
 ### 設定
 
@@ -1845,11 +1843,11 @@ curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" 
 |----------------------|---------|-------------|
 | `MAX_ENTITIES_PER_REQUEST` | `1000` | クラスタリングの閾値(この値以上でクラスタリングが発生) |
 
-### 参考文献
+### 参考資料
 
 - [TileJSON 3.0 仕様](https://github.com/mapbox/tilejson-spec/tree/master/3.0.0)
 - [RFC 7946 GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946)
-- [XYZ タイル方式](https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
+- [XYZ タイルスキーム](https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
 
 ---
 
@@ -1891,9 +1889,9 @@ GET /ngsi-ld/v1/entities?type=Store&crs=EPSG:6668
 GET /ngsi-ld/v1/entities?type=Store&crs=urn:ogc:def:crs:EPSG::6668
 ```
 
-### レスポンスヘッダー
+### レスポンスヘッダ
 
-CRS を指定したリクエストに対するレスポンスには、`Content-Crs` ヘッダーが含まれます:
+CRS を指定したリクエストに対するレスポンスには `Content-Crs` ヘッダが含まれます:
 
 ```text
 Content-Crs: EPSG:6668
@@ -1907,7 +1905,7 @@ Content-Crs: urn:ogc:def:crs:EPSG::6668
 
 ### 座標の入出力
 
-#### クエリ時(入力)
+#### クエリ時 (入力)
 
 ジオクエリの座標は、指定された CRS で解釈されます:
 
@@ -1938,7 +1936,7 @@ curl -X POST "http://localhost:3000/v2/entities?crs=EPSG:3857" \
   }'
 ```
 
-#### 取得時(出力)
+#### 取得時 (出力)
 
 取得時に `crs` パラメータを指定すると、指定された CRS に変換された座標が返されます:
 
@@ -1953,7 +1951,7 @@ curl "http://localhost:3000/v2/entities/Store1?crs=EPSG:6668" \
 | 変換 | 精度 |
 |------------|----------|
 | WGS84 ↔ JGD2011 | 数 cm から数十 cm |
-| WGS84 ↔ Web メルカトル | 計算精度に依存(緯度 ±85 度以内) |
+| WGS84 ↔ Web メルカトル | 計算精度に依存 (緯度 ±85 度以内) |
 
 ### 使用例
 
@@ -2012,15 +2010,15 @@ curl "http://localhost:3000/ngsi-ld/v1/entities?type=Landmark&crs=EPSG:6668" \
 
 | エラー | HTTP コード | 説明 |
 |-------|-----------|-------------|
-| Unsupported CRS | 400 | 指定された CRS コードはサポートされていません |
-| Invalid CRS format | 400 | 無効な CRS 形式が指定されました |
-| Coordinates out of range | 400 | Web メルカトルで緯度 ±85 度を超える座標 |
+| サポートされていない CRS | 400 | 指定された CRS コードはサポートされていません |
+| 無効な CRS 形式 | 400 | 無効な CRS 形式が指定されました |
+| 座標が範囲外 | 400 | Web メルカトルで緯度 ±85 度を超える座標 |
 
 ### 制限事項
 
-- Web メルカトル (EPSG:3857) は緯度 ±85 度を超える範囲をサポートしていません
+- Web メルカトル (EPSG:3857) は緯度 ±85 度を超える領域をサポートしていません
 - すべての座標は内部的に WGS84 で保存されます
-- 座標変換には [proj4](https://github.com/proj4js/proj4js) ライブラリを使用しています
+- 座標変換には [proj4](https://github.com/proj4js/proj4js) ライブラリが使用されます
 
 ### 参考資料
 
@@ -2030,17 +2028,17 @@ curl "http://localhost:3000/ngsi-ld/v1/entities?type=Landmark&crs=EPSG:6668" \
 
 ---
 
-## データカタログ API
+## Data Catalog API
 
-DCAT-AP 形式でエンティティタイプ情報を出力し、CKAN harvest 互換のエンドポイントを提供します。
+DCAT-AP 形式のエンティティタイプ情報を出力し、CKAN harvest 互換のエンドポイントを提供します。
 
-### DCAT-AP カタログ
+### DCAT-AP Catalog
 
 ```http
 GET /catalog
 ```
 
-カタログ全体を DCAT-AP 形式で JSON-LD として出力します。
+カタログ全体を DCAT-AP 形式の JSON-LD として出力します。
 
 **レスポンス例**
 
@@ -2062,30 +2060,30 @@ GET /catalog
 }
 ```
 
-### データセット一覧
+### Dataset List
 
 ```http
 GET /catalog/datasets
 ```
 
-DCAT 形式でデータセットの一覧を出力します。
+DCAT 形式のデータセットのリストを出力します。
 
 **クエリパラメータ**
 
 | パラメータ | 説明 |
 |-----------|-------------|
-| `limit` | 取得するデータセット数 |
-| `offset` | スキップするデータセット数 |
+| `limit` | 取得するデータセットの数 |
+| `offset` | スキップするデータセットの数 |
 
-### 個別データセット
+### Individual Dataset
 
 ```http
 GET /catalog/datasets/{datasetId}
 ```
 
-個別データセット(エンティティタイプ)の詳細情報を出力します。
+個別のデータセット(エンティティタイプ)の詳細情報を出力します。
 
-### サンプルデータ
+### Sample Data
 
 ```http
 GET /catalog/datasets/{datasetId}/sample
@@ -2097,19 +2095,19 @@ GET /catalog/datasets/{datasetId}/sample
 
 | パラメータ | 説明 | デフォルト |
 |-----------|-------------|---------|
-| `limit` | 取得するサンプル数 | 5 |
+| `limit` | 取得するサンプルの数 | 5 |
 
 ### CKAN 互換 API
 
 CKAN データカタログハーベスターと互換性のある API を提供します。
 
-#### パッケージ一覧
+#### Package List
 
 ```http
 GET /catalog/ckan/package_list
 ```
 
-すべてのパッケージ(データセット)の ID 一覧を取得します。
+すべてのパッケージ(データセット)の ID のリストを取得します。
 
 **レスポンス例**
 
@@ -2120,7 +2118,7 @@ GET /catalog/ckan/package_list
 }
 ```
 
-#### パッケージ詳細
+#### Package Details
 
 ```http
 GET /catalog/ckan/package_show?id={package_id}
@@ -2149,32 +2147,32 @@ GET /catalog/ckan/package_show?id={package_id}
 }
 ```
 
-#### リソース付きパッケージ一覧
+#### Package List with Resources
 
 ```http
 GET /catalog/ckan/current_package_list_with_resources
 ```
 
-リソース情報を含むパッケージの一覧をページネーション形式で取得します。
+リソース情報を含むパッケージのページネーション付きリストを取得します。
 
 **クエリパラメータ**
 
 | パラメータ | 説明 |
 |-----------|-------------|
-| `limit` | 取得するパッケージ数 |
-| `offset` | スキップするパッケージ数 |
+| `limit` | 取得するパッケージの数 |
+| `offset` | スキップするパッケージの数 |
 
-詳細は外部連携ドキュメントを参照してください。
+詳細については、外部統合ドキュメントを参照してください。
 
 ---
 
-## CADDE 連携
+## CADDE 統合
 
-CADDE (Connector Architecture for Decentralized Data Exchange) コネクタとの連携機能を提供します。
+CADDE (Connector Architecture for Decentralized Data Exchange) コネクタとの統合機能を提供します。
 
 ### 概要
 
-CADDE は、異なるセクター間でのデータ共有を可能にする日本のデータ交換アーキテクチャです。この Context Broker は CADDE コネクタからのリクエストを受け付け、来歴情報を含むレスポンスを返します。
+CADDE は、異なるセクター間でのデータ共有を可能にする日本のデータ交換アーキテクチャです。この Context Broker は、CADDE コネクタからのリクエストを受け付け、来歴情報を含むレスポンスを返します。
 
 ### 有効化
 
@@ -2192,52 +2190,52 @@ curl -X PUT "https://api.example.com/admin/cadde" \
   }'
 ```
 
-| 設定項目 | デフォルト値 | 説明 |
+| 設定項目 | デフォルト | 説明 |
 |--------------------|---------|-------------|
 | `enabled` | `false` | CADDE 機能を有効化 |
 | `authEnabled` | `false` | Bearer 認証を有効化 |
 | `defaultProvider` | - | デフォルトのプロバイダ ID |
-| `jwtIssuer` | - | JWT 検証における期待される発行者 (`iss`) クレーム |
-| `jwtAudience` | - | JWT 検証における期待される対象者 (`aud`) クレーム |
-| `jwksUrl` | - | 署名検証用の JWKS エンドポイント URL (HTTPS が必要) |
+| `jwtIssuer` | - | JWT 検証のための期待される発行者 (`iss`) クレーム |
+| `jwtAudience` | - | JWT 検証のための期待される対象者 (`aud`) クレーム |
+| `jwksUrl` | - | 署名検証のための JWKS エンドポイント URL (HTTPS が必須) |
 
-設定は MongoDB に保存されるため、デプロイ後に API 経由で動的に変更できます。
+設定は MongoDB に保存されるため、デプロイ後に API を介して動的に変更できます。
 
-### リクエストヘッダ
+### リクエストヘッダー
 
-CADDE コネクタからのリクエストには以下のヘッダが含まれます:
+CADDE コネクタからのリクエストには、以下のヘッダーが含まれます:
 
-| ヘッダ | 必須 | 説明 |
+| ヘッダー | 必須 | 説明 |
 |--------|----------|-------------|
 | `x-cadde-resource-url` | - | アクセスされるリソースの URL |
 | `x-cadde-resource-api-type` | - | API タイプ (例: `api/ngsi`) |
 | `x-cadde-provider` | - | データプロバイダ ID |
-| `x-cadde-options` | - | 追加オプション (テナントヘッダなど) |
+| `x-cadde-options` | - | 追加オプション (テナントヘッダーなど) |
 
-### x-cadde-options のフォーマット
+### x-cadde-options フォーマット
 
-テナント情報やその他の詳細は `x-cadde-options` ヘッダで指定できます:
+テナント情報やその他の詳細は、`x-cadde-options` ヘッダーで指定できます:
 
 ```text
 x-cadde-options: Fiware-Service:smartcity, Fiware-ServicePath:/sensors
 ```
 
-このヘッダで指定された値は、通常の HTTP ヘッダよりも優先されます。
+このヘッダーで指定された値は、通常の HTTP ヘッダーよりも優先されます。
 
-### プロヴェナンスレスポンスヘッダ
+### プロベナンスレスポンスヘッダー
 
-CADDE リクエストへのレスポンスには以下のプロヴェナンスヘッダが含まれます:
+CADDE リクエストへのレスポンスには、以下のプロベナンスヘッダーが含まれます:
 
-| ヘッダ | 説明 |
+| ヘッダー | 説明 |
 |--------|-------------|
-| `x-cadde-provenance-id` | リクエストの一意識別子 (Fiware-Correlator を使用) |
+| `x-cadde-provenance-id` | リクエストの一意な識別子 (Fiware-Correlator を使用) |
 | `x-cadde-provenance-timestamp` | レスポンス生成時刻 (ISO 8601 形式) |
 | `x-cadde-provenance-provider` | データプロバイダ ID |
 | `x-cadde-provenance-resource-url` | アクセスされたリソースの URL |
 
 ### 認証
 
-`CADDE_AUTH_ENABLED=true` が設定されている場合、CADDE リクエストには Bearer 認証が必要です:
+`CADDE_AUTH_ENABLED=true` の場合、CADDE リクエストには Bearer 認証が必要です:
 
 ```http
 Authorization: Bearer <token>
@@ -2254,8 +2252,8 @@ Authorization: Bearer <token>
 | **署名検証** | RS256 または ES256 アルゴリズムをサポート。JWKS エンドポイントから公開鍵を自動取得 |
 | **有効期限検証** | `exp` (有効期限) クレームを検証し、期限切れトークンを拒否 |
 | **発行時刻検証** | `iat` (発行時刻) クレームを検証し、未来に発行されたトークンを拒否 |
-| **発行者検証** | `iss` クレームが `CADDE_JWT_ISSUER` が設定されている場合に検証 |
-| **対象者検証** | `aud` クレームが `CADDE_JWT_AUDIENCE` が設定されている場合に検証 |
+| **発行者検証** | `iss` が設定されている場合、`CADDE_JWT_ISSUER` クレームを検証 |
+| **対象者検証** | `aud` が設定されている場合、`CADDE_JWT_AUDIENCE` クレームを検証 |
 
 **設定例:**
 
@@ -2286,7 +2284,7 @@ JWT 検証が失敗した場合、詳細なエラーメッセージが返され�
 | `Invalid token audience` | 対象者クレームが一致しない |
 | `Unsupported signing algorithm` | サポートされていないアルゴリズム (RS256/ES256 以外) |
 | `Unable to fetch signing keys` | JWKS エンドポイントへのアクセスに失敗 |
-| `Signing key not found` | 指定された kid を持つ鍵が JWKS に存在しない |
+| `Signing key not found` | 指定された kid のキーが JWKS に存在しない |
 
 **注意:** `jwksUrl` が設定されていない場合、トークンの存在のみがチェックされます (後方互換性のため)。
 
@@ -2309,7 +2307,7 @@ curl "http://localhost:3000/v2/entities" \
 
 ### NGSI-LD API での使用
 
-CADDE ヘッダは NGSI-LD API でも使用できます:
+CADDE ヘッダーは NGSI-LD API でも使用できます:
 
 ```bash
 curl "http://localhost:3000/ngsi-ld/v1/entities" \
@@ -2320,7 +2318,7 @@ curl "http://localhost:3000/ngsi-ld/v1/entities" \
 ```
 ### CADDE Connector v4 API
 
-CADDE コネクタ v4 仕様に準拠した専用エンドポイント (CADDE 設定が有効な場合のみ利用可能、`PUT /admin/cadde` で設定)。
+CADDE コネクタ v4 仕様に準拠した専用エンドポイント(CADDE 設定が有効な場合のみ利用可能、`PUT /admin/cadde` で設定)。
 
 参考: https://github.com/CADDE-sip/connector
 
@@ -2328,7 +2326,7 @@ CADDE コネクタ v4 仕様に準拠した専用エンドポイント (CADDE �
 
 | メソッド | パス | 説明 |
 |--------|------|-------------|
-| GET | `/cadde/api/v4/catalog` | カタログ検索 (横断検索 / 詳細検索) |
+| GET | `/cadde/api/v4/catalog` | カタログ検索(横断検索 / 詳細検索) |
 | GET | `/cadde/api/v4/entities` | NGSI データ交換 |
 
 #### カタログ検索 (`/cadde/api/v4/catalog`
@@ -2338,13 +2336,13 @@ CADDE コネクタ v4 仕様に準拠した専用エンドポイント (CADDE �
 
 | 検索タイプ | ヘッダー値 | 説明 |
 |-------------|--------------|-------------|
-| 横断検索 | `x-cadde-search: meta` | CKAN 形式のデータセット一覧を返却 (`q` パラメータによるキーワードフィルタリング) |
-| 詳細検索 | `x-cadde-search: detail` | 個別データセットの詳細を返却 (`id` または `fq` パラメータで指定) |
+| 横断検索 | `x-cadde-search: meta` | CKAN 形式でデータセット一覧を返却(`q` パラメータによるキーワードフィルタリング) |
+| 詳細検索 | `x-cadde-search: detail` | 個別データセットの詳細を返却(`id` または `fq` パラメータで指定) |
 
-CADDE 固有のフィールドがレスポンスに追加されます:
+レスポンスには CADDE 固有のフィールドが追加されます:
 - `caddec_dataset_id_for_detail`: 詳細検索用のデータセット ID
-- `caddec_provider_id`: プロバイダ ID (`CADDE_DEFAULT_PROVIDER` が設定されている場合)
-- `caddec_resource_type`: リソースタイプ (`api/ngsi`)
+- `caddec_provider_id`: プロバイダ ID(`CADDE_DEFAULT_PROVIDER` が設定されている場合)
+- `caddec_resource_type`: リソースタイプ(`api/ngsi`)
 
 ```bash
 # Cross-domain search
@@ -2367,8 +2365,8 @@ curl "http://localhost:3000/cadde/api/v4/catalog?id=sensor" \
 
 | ヘッダー | 必須 | 説明 |
 |--------|----------|-------------|
-| `x-cadde-resource-url` | Yes | リソース URL (type、id、q、attrs、limit、offset をクエリパラメータとして含む) |
-| `x-cadde-resource-api-type` | - | レスポンス形式: `api/ngsi` (デフォルト) または `api/ngsi-ld` |
+| `x-cadde-resource-url` | はい | リソース URL(type、id、q、attrs、limit、offset をクエリパラメータとして含む) |
+| `x-cadde-resource-api-type` | - | レスポンス形式: `api/ngsi`(デフォルト)または `api/ngsi-ld` |
 | `x-cadde-provider` | - | データプロバイダ ID |
 
 ```bash
@@ -2389,7 +2387,7 @@ curl "http://localhost:3000/cadde/api/v4/entities" \
 
 #### エラーレスポンス形式
 
-CADDE v4 エンドポイントのエラーレスポンスは以下の形式です:
+CADDE v4 エンドポイントのエラーレスポンスは次の形式です:
 
 ```json
 { "detail": "Resource not found", "status": 404 }
@@ -2397,7 +2395,7 @@ CADDE v4 エンドポイントのエラーレスポンスは以下の形式で�
 
 #### 認証
 
-CADDE v4 エンドポイントは GeonicDB 認証 (`requireAuth`) をバイパスします。認証は CADDE JWT 検証 (`processCaddeRequestAsync`) によって処理されます。
+CADDE v4 エンドポイントは GeonicDB 認証(`requireAuth`)をバイパスします。認証は CADDE JWT 検証(`processCaddeRequestAsync`)によって処理されます。
 
 ### 参考資料
 
@@ -2421,8 +2419,8 @@ wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 
 | アクション | 説明 |
 |--------|-------------|
-| `subscribe` | エンティティタイプ / ID パターンでフィルタを設定 |
-| `ping` | キープアライブ (`pong` レスポンス) |
+| `subscribe` | エンティティタイプ / ID パターンによるフィルタを設定 |
+| `ping` | キープアライブ(`pong` レスポンス) |
 
 ### サーバーイベント
 
@@ -2432,13 +2430,13 @@ wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 | `entityUpdated` | エンティティが更新されました |
 | `entityDeleted` | エンティティが削除されました |
 
-詳細は [イベントストリーミングドキュメント](../features/subscriptions.md) を参照してください。
+詳細については、[イベントストリーミングドキュメント](../features/subscriptions.md)を参照してください。
 
 ---
 
 ## エラーレスポンス
 
-### NGSIv2 エラーフォーマット
+### NGSIv2 エラー形式
 
 ```json
 {
@@ -2447,10 +2445,10 @@ wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 }
 ```
 
-### NGSI-LD エラーフォーマット (RFC 7807 ProblemDetails)
+### NGSI-LD エラー形式 (RFC 7807 ProblemDetails)
 
-NGSI-LD API のエラーレスポンスは [RFC 7807](https://tools.ietf.org/html/rfc7807) ProblemDetails フォーマットで返されます。
-Content-Type は `application/json` です (ETSI GS CIM 009 仕様に準拠するため、RFC 7807 の `application/problem+json` ではなく標準の JSON MIME タイプが使用されます)。
+NGSI-LD API のエラーレスポンスは [RFC 7807](https://tools.ietf.org/html/rfc7807) ProblemDetails 形式で返されます。
+Content-Type は `application/json` です (ETSI GS CIM 009 仕様に準拠するため、RFC 7807 の `application/problem+json` ではなく標準の JSON MIME タイプを使用します)。
 
 ```json
 {
@@ -2472,8 +2470,8 @@ Content-Type は `application/json` です (ETSI GS CIM 009 仕様に準拠す�
 | `400` | 不正なリクエスト |
 | `403` | 禁止 (認可エラー) |
 | `404` | リソースが見つかりません |
-| `405` | メソッドが許可されていません (NGSI-LD、`Allow` ヘッダー付き) |
-| `409` | 競合 (既に存在する、など) |
+| `405` | メソッドが許可されていません (NGSI-LD、`Allow` ヘッダーあり) |
+| `409` | 競合 (すでに存在する、など) |
 | `500` | 内部サーバーエラー |
 
 ---
@@ -2493,19 +2491,19 @@ Content-Type は `application/json` です (ETSI GS CIM 009 仕様に準拠す�
 | イベントストリーミング (WebSocket) | Yes | Yes |
 | エンティティタイプ | Yes | - |
 | クエリ言語 (q パラメータ) | Yes | Yes |
-| ソート (orderBy, orderDirection) | Yes | Yes |
+| ソート (orderBy、orderDirection) | Yes | Yes |
 | メタデータ制御 (metadata / sysAttrs) | Yes | Yes |
-| 地理クエリ (coveredBy, within, intersects, disjoint) | Yes | Yes |
-| 空間 ID 検索 (ZFXY フォーマット) | Yes | Yes |
+| ジオクエリ (coveredBy、within、intersects、disjoint) | Yes | Yes |
+| 空間 ID 検索 (ZFXY 形式) | Yes | Yes |
 | GeoJSON 出力 | Yes | Yes |
 | 座標参照系 (CRS) 変換 | Yes | Yes |
 | マルチテナンシー | Yes | Yes |
 | ページネーション | Yes | Yes |
-| keyValues フォーマット | Yes | Yes |
-| レジストレーション | Yes | Yes |
-| コンテキストプロバイダー (フェデレーション/クエリ転送) | Yes | Yes |
-| コンテキストプロバイダー (更新転送) | Yes | Yes |
-| CADDE 連携 | Yes | Yes |
+| keyValues 形式 | Yes | Yes |
+| 登録 | Yes | Yes |
+| コンテキストプロバイダ (フェデレーション/クエリ転送) | Yes | Yes |
+| コンテキストプロバイダ (更新転送) | Yes | Yes |
+| CADDE 統合 | Yes | Yes |
 | 認証 API (JWT ベース) | Yes | Yes |
 | ユーザー/テナント管理 API | Yes | Yes |
 | `/version` エンドポイント | Yes | - |
@@ -2514,9 +2512,9 @@ Content-Type は `application/json` です (ETSI GS CIM 009 仕様に準拠す�
 
 ### 制限事項
 
-| 機能 | ステータス | 備考 |
+| 機能 | 状態 | 備考 |
 |---------|--------|-------|
-| `near` 地理クエリ (近接検索) | サポート済み | ポイントジオメトリのみ。`orderByDistance=true` による距離ソートと距離情報をサポート |
+| `near` ジオクエリ (近接検索) | サポート済み | Point ジオメトリのみ。`orderByDistance=true` で距離ソートと距離情報をサポート |
 | `minDistance` / `maxDistance` | サポート済み | メートル単位で指定 |
 
 ---
@@ -2553,7 +2551,7 @@ curl -X GET "https://api.example.com/v2/entities?type=Room&q=temperature>25" \
   -H "Fiware-Service: smartcity"
 ```
 
-### ジオクエリ(ポリゴンエリア検索)
+### ジオクエリ (ポリゴンエリア検索)
 
 ```bash
 curl -X GET "https://api.example.com/v2/entities?type=Place&georel=coveredBy&geometry=polygon&coords=34,138;34,141;37,141;37,138;34,138" \
@@ -2600,19 +2598,19 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 
 ## エンドポイントリファレンス
 
-このセクションでは、すべての GeonicDB API エンドポイントのページネーション、認証/認可、ステータスコード情報をまとめています。
+このセクションでは、すべての GeonicDB API エンドポイントのページネーション、認証/認可、およびステータスコード情報をまとめています。
 
 ### API カテゴリ
 
 | API カテゴリ | ベースパス | 認証 | Content-Type |
 |--------------|-----------|----------------|--------------|
 | Meta/Health | `/` | 不要*† | `application/json` |
-| Authentication | `/auth` | 不要 | `application/json` |
-| User | `/me` | 必要 | `application/json` |
+| 認証 | `/auth` | 不要 | `application/json` |
+| ユーザー | `/me` | 必要 | `application/json` |
 | NGSIv2 | `/v2` | 必要* | `application/json` |
 | NGSI-LD | `/ngsi-ld/v1` | 必要* | `application/ld+json` |
-| Admin | `/admin` | 必要 (super_admin / tenant_admin) | `application/json` |
-| Catalog | `/catalog` | 必要* | `application/json` |
+| 管理 | `/admin` | 必要 (super_admin / tenant_admin) | `application/json` |
+| カタログ | `/catalog` | 必要* | `application/json` |
 
 \* `AUTH_ENABLED=false` の場合は認証不要
 
@@ -2626,15 +2624,15 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 |----------|--------|-------------|---------|-------|
 | `/llms.txt` | GET | API ドキュメント (llms.txt) | 200 | - |
 | `/version` | GET | FIWARE Orion 互換バージョン情報 | 200 | - |
-| `/health` | GET | 基本ヘルスチェック | 200 | - |
+| `/health` | GET | 基本的なヘルスチェック | 200 | - |
 | `/health/live` | GET | Kubernetes liveness プローブ | 200 | - |
 | `/health/ready` | GET | Kubernetes readiness プローブ | 200 | 503 |
 | `/.well-known/ngsi-ld` | GET | NGSI-LD API ディスカバリー | 200 | - |
 | `/api.json` | GET | API リファレンス (JSON) | 200 | - |
 | `/openapi.json` | GET | OpenAPI 3.0 仕様 | 200 | - |
-| `/statistics` | GET | FIWARE Orion 互換統計情報(認証必要) | 200 | 401 |
-| `/cache/statistics` | GET | キャッシュ統計情報(認証必要) | 200 | 401 |
-| `/metrics` | GET | Prometheus メトリクス(認証必要) | 200 | 401 |
+| `/statistics` | GET | FIWARE Orion 互換統計情報 (認証必要) | 200 | 401 |
+| `/cache/statistics` | GET | キャッシュ統計情報 (認証必要) | 200 | 401 |
+| `/metrics` | GET | Prometheus メトリクス (認証必要) | 200 | 401 |
 | `/tools.json` | GET | AI ツール定義 (Claude Tool Use / OpenAI Function Calling) | 200 | - |
 | `/.well-known/ai-plugin.json` | GET | AI プラグインマニフェスト | 200 | - |
 | `/mcp` | POST | MCP (Model Context Protocol) Streamable HTTP エンドポイント | 200 | 400, 405, 500 |
@@ -2649,23 +2647,23 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 ### 認証エンドポイント
 
 - `/auth/*` は `AUTH_ENABLED=true` の場合のみ利用可能
-- `/oauth/token` は `AUTH_ENABLED=true` の場合に利用可能(常に有効; `OAUTH_ENABLED` は非推奨)
+- `/oauth/token` は `AUTH_ENABLED=true` の場合に利用可能 (常に有効、`OAUTH_ENABLED` は非推奨)
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー |
 |----------|--------|-------------|---------|-------|
 | `/auth/login` | POST | ユーザーログイン (JWT) | 200 | 400, 401 |
 | `/auth/refresh` | POST | トークンリフレッシュ | 200 | 400, 401 |
-| `/auth/logout` | POST | ログアウト(すべてのセッションを無効化、認証必要) | 204 | 401 |
-| `/auth/nonce` | POST | Nonce + PoW チャレンジによる API キートークン交換 | 200 | 400 |
+| `/auth/logout` | POST | ログアウト (すべてのセッションを無効化、認証必要) | 204 | 401 |
+| `/auth/nonce` | POST | API キートークン交換用の Nonce + PoW チャレンジ | 200 | 400 |
 | `/oauth/token` | POST | OAuth トークン取得 (M2M: `grant_type=client_credentials`、Browser SDK: `grant_type=api_key`) | 200 | 400, 401 |
 
 ### SDK
 
-JavaScript SDK は npm パッケージとして提供されています: `npm install @geolonia/geonicdb-sdk`SDK は完全なパブリック API を提供します: `login()`、`setCredentials()`、エンティティ CRUD、`request()`、`connect()`、`reconnect()`、`disconnect()`、`isConnected()`、`subscribe()`、`on()`/`off()` イベントリスナー(`tokenRefresh` イベントを含む)。詳細は SDK ドキュメントを参照してください。
+JavaScript SDK は npm パッケージとして利用可能です: `npm install @geolonia/geonicdb-sdk`SDK は完全なパブリック API を提供します: `login()`、`setCredentials()`、エンティティ CRUD、`request()`、`connect()`、`reconnect()`、`disconnect()`、`isConnected()`、`subscribe()`、`on()`/`off()` イベントリスナー (`tokenRefresh` イベントを含む)。詳細は SDK ドキュメントを参照してください。
 
 ### ユーザーエンドポイント
 
-認証されたユーザーが自分の情報を管理するためのエンドポイントです。
+認証されたユーザーが自身の情報を管理するためのエンドポイントです。
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | 最小ロール |
 |----------|--------|-------------|---------|-------|--------------|
@@ -2674,38 +2672,38 @@ JavaScript SDK は npm パッケージとして提供されています: `npm in
 
 ### NGSIv2 / NGSI-LD エンドポイント
 
-エンドポイントの詳細な仕様については、以下を参照してください:
+詳細なエンドポイント仕様については、以下を参照してください:
 - [NGSIv2 API リファレンス](./ngsiv2.md)
 - [NGSI-LD API リファレンス](./ngsild.md)
 
 ### Admin API
 
-テナントとユーザーを管理するための API です。エンドポイントには `super_admin` または `tenant_admin` ロールが必要です(`tenant_admin` は自テナントスコープのみ)。
+テナントとユーザーを管理するための API です。各エンドポイントには `super_admin` または `tenant_admin` ロールが必要です(`tenant_admin` は自テナントのスコープのみ)。
 
 #### テナント管理
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/admin/tenants` | GET | テナント一覧取得 | 200 | 400, 401, 403 | あり (最大: 100) |
+| `/admin/tenants` | GET | テナント一覧 | 200 | 400, 401, 403 | あり (最大: 100) |
 | `/admin/tenants` | POST | テナント作成 | 201 | 400, 401, 403, 409 | - |
 | `/admin/tenants/{tenantId}` | GET | テナント取得 | 200 | 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}` | PATCH | テナント更新 | 204 | 400, 401, 403, 404, 409 | - |
-| `/admin/tenants/{tenantId}` | DELETE | テナント削除 (`?shred=true` による Crypto-Shredding) | 204 / 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}` | DELETE | テナント削除 (`?shred=true` による暗号化シュレッディング) | 204 / 200 | 400, 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}/deletion-report` | GET | 削除レポート取得 | 200 | 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}/activate` | POST | テナント有効化 | 204 | 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}/deactivate` | POST | テナント無効化 | 204 | 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}/ip-restrictions` | GET | テナント IP 制限取得 | 200 | 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}/ip-restrictions` | PUT | テナント IP 制限更新 | 200 | 400, 401, 403, 404 | - |
 | `/admin/tenants/{tenantId}/ip-restrictions` | DELETE | テナント IP 制限削除 | 204 | 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/users` | GET | テナントメンバー一覧取得 (tenant_admin: 自テナントのみ) | 200 | 401, 403, 404 | あり (最大: 100) |
-| `/admin/tenants/{tenantId}/users/{userId}` | PUT | テナントにユーザーを追加 (tenant_admin: 自テナントのみ) | 200 | 400, 401, 403, 404 | - |
-| `/admin/tenants/{tenantId}/users/{userId}` | DELETE | テナントからユーザーを削除 (tenant_admin: 自テナントのみ) | 204 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/users` | GET | テナントメンバー一覧 (tenant_admin: 自テナントのみ) | 200 | 401, 403, 404 | あり (最大: 100) |
+| `/admin/tenants/{tenantId}/users/{userId}` | PUT | テナントにユーザー追加 (tenant_admin: 自テナントのみ) | 200 | 400, 401, 403, 404 | - |
+| `/admin/tenants/{tenantId}/users/{userId}` | DELETE | テナントからユーザー削除 (tenant_admin: 自テナントのみ) | 204 | 400, 401, 403, 404 | - |
 
 #### ユーザー管理
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/admin/users` | GET | ユーザー一覧取得 | 200 | 400, 401, 403 | あり (最大: 100) |
+| `/admin/users` | GET | ユーザー一覧 | 200 | 400, 401, 403 | あり (最大: 100) |
 | `/admin/users` | POST | ユーザー作成 | 201 | 400, 401, 403, 409 | - |
 | `/admin/users/{userId}` | GET | ユーザー取得 | 200 | 401, 403, 404 | - |
 | `/admin/users/{userId}` | PATCH | ユーザー更新 | 204 | 400, 401, 403, 404, 409 | - |
@@ -2713,13 +2711,13 @@ JavaScript SDK は npm パッケージとして提供されています: `npm in
 | `/admin/users/{userId}/activate` | POST | ユーザー有効化 | 204 | 401, 403, 404 | - |
 | `/admin/users/{userId}/deactivate` | POST | ユーザー無効化 | 204 | 401, 403, 404 | - |
 | `/admin/users/{userId}/unlock` | POST | ログインロック解除 | 200 | 400, 401, 403, 404 | - |
-| `/admin/users/{userId}/tenants` | GET | ユーザーが所属するテナント一覧取得 (自分自身または super_admin) | 200 | 401, 403 | あり (最大: 100) |
+| `/admin/users/{userId}/tenants` | GET | ユーザーが所属するテナント一覧 (自分自身または super_admin) | 200 | 401, 403 | あり (最大: 100) |
 
 #### ポリシー管理 (XACML 3.0 認可、super_admin / tenant_admin)
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/admin/policies` | GET | ポリシー一覧取得 | 200 | 400, 401, 403 | あり (最大: 100) |
+| `/admin/policies` | GET | ポリシー一覧 | 200 | 400, 401, 403 | あり (最大: 100) |
 | `/admin/policies` | POST | ポリシー作成 | 201 | 400, 401, 403, 409 | - |
 | `/admin/policies/{policyId}` | GET | ポリシー取得 | 200 | 401, 403, 404 | - |
 | `/admin/policies/{policyId}` | PATCH | ポリシー部分更新 | 200 | 400, 401, 403, 404 | - |
@@ -2728,7 +2726,7 @@ JavaScript SDK は npm パッケージとして提供されています: `npm in
 | `/admin/policies/{policyId}/activate` | POST | ポリシー有効化 | 200 | 401, 403, 404 | - |
 | `/admin/policies/{policyId}/deactivate` | POST | ポリシー無効化 | 200 | 401, 403, 404 | - |
 
-ポリシー Target `resources` で利用可能な **リソース属性**:
+ポリシー Target `resources` で利用可能な**リソース属性**:
 
 | attributeId | 説明 | ソース |
 |-------------|-------------|--------|
@@ -2740,13 +2738,13 @@ JavaScript SDK は npm パッケージとして提供されています: `npm in
 | `entityType` | 対象エンティティタイプ (例: `Room`) | リクエスト (自動抽出) / エンティティコンテキスト |
 | `entityOwner` | エンティティ作成者の userId (`createdBy` フィールド) | エンティティコンテキスト |
 
-> `entityType` は、HTTP リクエストのパスレベルから自動的に抽出されます。`?type=` クエリパラメータまたはリクエストボディの `type` / `@type` フィールドから取得され、エンティティレベルのチェックなしでエンティティタイプベースのアクセス制御を可能にします。`entityId`、`entityOwner`、`scope` は、エンティティレベルの認可チェック(`requireEntityAuthz` 経由)でのみ利用可能です。`scope` は、NGSI-LD エンティティのスコープ配列をカンマ区切り文字列として結合したもので、柔軟なマッチングには `string-regexp` または `glob` を使用してください。
+> `entityType` はパスレベルの HTTP リクエストから自動抽出されます — `?type=` クエリパラメータまたはリクエストボディの `type` / `@type` フィールドから — エンティティレベルのチェックなしでエンティティタイプベースのアクセス制御を可能にします。`entityId`、`entityOwner`、`scope` はエンティティレベルの認可チェック (`requireEntityAuthz` 経由) でのみ利用可能です。`scope` は NGSI-LD エンティティのスコープ配列をカンマ区切り文字列として結合したものです — 柔軟なマッチングには `string-regexp` または `glob` を使用してください。
 
 #### OAuth クライアント管理
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/admin/oauth-clients` | GET | OAuth クライアント一覧取得 | 200 | 400, 401, 403 | あり (最大: 100) |
+| `/admin/oauth-clients` | GET | OAuth クライアント一覧 | 200 | 400, 401, 403 | あり (最大: 100) |
 | `/admin/oauth-clients` | POST | OAuth クライアント作成 | 201 | 400, 401, 403 | - |
 | `/admin/oauth-clients/{clientId}` | GET | OAuth クライアント取得 | 200 | 401, 403, 404 | - |
 | `/admin/oauth-clients/{clientId}` | PATCH | OAuth クライアント更新 | 200 | 400, 401, 403, 404 | - |
@@ -2754,38 +2752,38 @@ JavaScript SDK は npm パッケージとして提供されています: `npm in
 
 #### セルフサービス OAuth クライアント管理
 
-ユーザーは自分自身の OAuth クライアントを管理できます。ユーザーあたり最大 5 クライアント。オプションの `policyId` により、クライアントを既存の XACML ポリシーにバインドできます。
+ユーザーは自分の OAuth クライアントを管理できます。ユーザーあたり最大 5 クライアント。オプションの `policyId` はクライアントを既存の XACML ポリシーにバインドします。
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/me/oauth-clients` | GET | 自分の OAuth クライアント一覧取得 | 200 | 400, 401 | あり (最大: 100) |
+| `/me/oauth-clients` | GET | 自分の OAuth クライアント一覧 | 200 | 400, 401 | あり (最大: 100) |
 | `/me/oauth-clients` | POST | 自分の OAuth クライアント作成 | 201 | 400, 401, 403 | - |
-| `/me/oauth-clients/{clientId}` | PATCH | 自分の OAuth クライアント更新 (部分更新) | 200 | 400, 401, 403, 404 | - |
+| `/me/oauth-clients/{clientId}` | PATCH | 自分の OAuth クライアント更新 (部分) | 200 | 400, 401, 403, 404 | - |
 | `/me/oauth-clients/{clientId}` | DELETE | 自分の OAuth クライアント削除 | 204 | 400, 401, 403, 404 | - |
 | `/me/oauth-clients/{clientId}/regenerate-secret` | POST | 自分のクライアントシークレット再生成 | 200 | 400, 401, 403, 404 | - |
 
 #### API キー管理
 
-`X-Api-Key` ヘッダーによる認証用の API キーを管理します。新しいキーはプレーン UUID 形式(`randomUUID()`)を使用します。既存の `gdb_` プレフィックス付きキーは引き続き有効です。保存時は SHA-256 でハッシュ化され、平文キーは作成時と更新時のみ返されます。一覧取得/取得レスポンスは `"key": "******"` を返します。オプションの `policyId` フィールドにより、キーを既存の XACML ポリシーにバインドできます(バインドされたポリシーのターゲットは評価時にバイパスされます)。`policyId` がない場合、キーはテナントポリシー + ロールデフォルト(api_key = All Deny)にフォールバックします。
+`X-Api-Key` ヘッダーによる認証用の API キーを管理します。新しいキーはプレーンな UUID 形式 (`randomUUID()`) を使用します。`gdb_` プレフィックス付きの既存キーは有効なままです。保存時は SHA-256 でハッシュ化され、平文のキーは作成時と更新時のみ返されます。一覧 / 取得レスポンスは `"key": "******"` を返します。オプションの `policyId` フィールドはキーを既存の XACML ポリシーにバインドします(バインドされたポリシーのターゲットは評価時にバイパスされます)。`policyId` がない場合、キーはテナントポリシー + ロールデフォルト (api_key = All Deny) にフォールバックします。
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
 | `/admin/api-keys` | POST | API キー作成 | 201 | 400, 401, 403 | - |
-| `/admin/api-keys` | GET | API キー一覧取得 | 200 | 400, 401, 403 | あり (最大: 100) |
+| `/admin/api-keys` | GET | API キー一覧 | 200 | 400, 401, 403 | あり (最大: 100) |
 | `/admin/api-keys/{keyId}` | GET | API キー取得 | 200 | 401, 403, 404 | - |
 | `/admin/api-keys/{keyId}` | PATCH | API キー更新 | 204 | 400, 401, 403, 404 | - |
 | `/admin/api-keys/{keyId}` | DELETE | API キー削除 | 204 | 401, 403, 404 | - |
 | `/admin/api-keys/{keyId}/refresh` | POST | API キー更新 (再生成) | 200 | 401, 403, 404 | - |
 
-#### セルフサービス API キー管理ユーザーは自分の API キーを管理できます。1 ユーザーにつき最大 5 つのキーまで作成可能です。
+#### セルフサービス API キー管理ユーザーは自分自身の API キーを管理できます。1 ユーザーあたり最大 5 つのキーを持つことができます。
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
 | `/me/api-keys` | POST | 自分の API キーを作成 | 201 | 400, 401, 403 | - |
-| `/me/api-keys` | GET | 自分の API キーを一覧表示 | 200 | 400, 401, 403 | Yes (max: 100) |
-| `/me/api-keys/{keyId}` | PATCH | 自分の API キーを更新(部分更新) | 200 | 400, 401, 403, 404 | - |
+| `/me/api-keys` | GET | 自分の API キーを一覧取得 | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/me/api-keys/{keyId}` | PATCH | 自分の API キーを更新 (部分的) | 200 | 400, 401, 403, 404 | - |
 | `/me/api-keys/{keyId}` | DELETE | 自分の API キーを削除 | 204 | 400, 401, 403, 404 | - |
-| `/me/api-keys/{keyId}/refresh` | POST | 自分の API キーをリフレッシュ(再生成) | 200 | 401, 403, 404 | - |
+| `/me/api-keys/{keyId}/refresh` | POST | 自分の API キーを再生成 | 200 | 401, 403, 404 | - |
 
 #### CADDE 設定管理
 
@@ -2794,8 +2792,8 @@ API を介して CADDE (分野間データ連携基盤) の設定を管理しま
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
 | `/admin/cadde` | GET | CADDE 設定を取得 | 200 | 401, 403 | - |
-| `/admin/cadde` | PUT | CADDE 設定を更新(upsert) | 200 | 400, 401, 403 | - |
-| `/admin/cadde` | DELETE | CADDE 設定を削除(無効化) | 204 | 401, 403 | - |
+| `/admin/cadde` | PUT | CADDE 設定を更新 (upsert) | 200 | 400, 401, 403 | - |
+| `/admin/cadde` | DELETE | CADDE 設定を削除 (無効化) | 204 | 401, 403 | - |
 
 **リクエストボディ (PUT)**
 
@@ -2812,18 +2810,18 @@ API を介して CADDE (分野間データ連携基盤) の設定を管理しま
 
 | フィールド | 型 | 必須 | 説明 |
 |-------|------|----------|-------------|
-| `enabled` | boolean | Yes | CADDE 機能を有効/無効化 |
-| `authEnabled` | boolean | Yes | Bearer 認証を有効/無効化 |
+| `enabled` | boolean | Yes | CADDE 機能を有効化/無効化 |
+| `authEnabled` | boolean | Yes | Bearer 認証を有効化/無効化 |
 | `defaultProvider` | string | - | デフォルトのプロバイダー ID |
-| `jwtIssuer` | string | - | JWT の issuer クレーム検証値 |
-| `jwtAudience` | string | - | JWT の audience クレーム検証値 |
+| `jwtIssuer` | string | - | JWT issuer クレーム検証値 |
+| `jwtAudience` | string | - | JWT audience クレーム検証値 |
 | `jwksUrl` | string | - | JWKS 公開鍵エンドポイント URL (HTTPS 必須) |
 
 #### ルールエンジン管理
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/rules` | GET | ルールを一覧表示 | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/rules` | GET | ルールを一覧取得 | 200 | 400, 401, 403 | Yes (max: 100) |
 | `/rules` | POST | ルールを作成 | 201 | 400, 401, 403, 409 | - |
 | `/rules/{ruleId}` | GET | ルールを取得 | 200 | 401, 403, 404 | - |
 | `/rules/{ruleId}` | PATCH | ルールを更新 | 204 | 400, 401, 403, 404 | - |
@@ -2833,13 +2831,13 @@ API を介して CADDE (分野間データ連携基盤) の設定を管理しま
 
 ### カスタムデータモデル API
 
-テナント固有のカスタムデータモデルを管理するための API です。JWT 認証が必要で、XACML ポリシーベースの認可により、`tenant_admin` および `user` ロールがテナント内のカスタムデータモデルを管理できます。
+テナント固有のカスタムデータモデルを管理するための API です。JWT 認証が必要で、XACML ポリシーベースの認可により `tenant_admin` および `user` ロールが自テナント内のカスタムデータモデルを管理できます。
 
 **関連ドキュメント**: [SMART_DATA_MODELS.md](../features/smart-data-models.md)
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
-| `/custom-data-models` | GET | カスタムデータモデルの一覧取得 | 200 | 400, 401, 403 | あり (最大: 100) |
+| `/custom-data-models` | GET | カスタムデータモデル一覧の取得 | 200 | 400, 401, 403 | あり (最大: 100) |
 | `/custom-data-models` | POST | カスタムデータモデルの作成 | 201 | 400, 401, 403, 409 | - |
 | `/custom-data-models/{type}` | GET | カスタムデータモデルの取得 | 200 | 401, 403, 404 | - |
 | `/custom-data-models/{type}` | PATCH | カスタムデータモデルの更新 | 200 | 400, 401, 403, 404 | - |
@@ -2849,19 +2847,19 @@ API を介して CADDE (分野間データ連携基盤) の設定を管理しま
 
 カスタムデータモデルが定義されている場合、エンティティの作成または更新時に自動的に検証が実行されます。検証は `isActive: true` を持つモデルにのみ適用されます。
 
-**検証チェック:**
+**検証チェック項目:**
 
 | チェック | 説明 |
 |-------|-------------|
 | 追加プロパティ | `additionalProperties: false` の場合、`propertyDetails` で定義されていない属性は拒否されます (デフォルト: `true` — 任意の属性を許可) |
 | 必須フィールド | `required: true` を持つ属性が存在するかどうか |
-| 型チェック | `valueType` に基づく型検証 (string, number, integer, boolean, array, object, GeoJSON) |
+| 型チェック | `valueType` に基づく型の検証 (string、number、integer、boolean、array、object、GeoJSON) |
 | minLength / maxLength | 文字列長の制約 |
 | minimum / maximum | 数値範囲の制約 |
 | pattern | 正規表現パターンマッチ |
 | enum | 許可された値のリスト |
 
-検証失敗時は `400 Bad Request` が返されます:
+検証失敗時には `400 Bad Request` が返されます:
 
 ```json
 {
@@ -2872,11 +2870,11 @@ API を介して CADDE (分野間データ連携基盤) の設定を管理しま
 
 #### 自動 JSON Schema 生成
 
-カスタムデータモデルが作成または更新されると、`propertyDetails` から JSON Schema (Draft 2020-12) が自動生成され、レスポンスの `jsonSchema` フィールドに含まれます。また、`jsonSchema` を手動で指定することも可能です。
+カスタムデータモデルが作成または更新されると、`propertyDetails` から JSON Schema (Draft 2020-12) が自動生成され、レスポンスの `jsonSchema` フィールドに含まれます。`jsonSchema` を手動で指定することも可能です。
 
 #### プロパティ @context (JSON-LD 語彙マッピング)
 
-`propertyDetails` の各プロパティには、JSON-LD 語彙マッピング用の HTTP(S) URL を指定できるオプションの `@context` フィールドを含めることができます。これにより、自動生成された URI の代わりに、よく知られた語彙 (例: schema.org) を使用できます。
+`propertyDetails` 内の各プロパティには、JSON-LD 語彙マッピング用の HTTP(S) URL を持つオプションの `@context` フィールドを含めることができます。これにより、自動生成された URI の代わりに、よく知られた語彙 (例: schema.org) を使用できます。
 
 ```json
 {
@@ -2899,18 +2897,18 @@ API を介して CADDE (分野間データ連携基盤) の設定を管理しま
 - `@context` を持つプロパティ → 指定された URL が JSON-LD コンテキストで使用されます
 - `@context` を持たないプロパティ → 自動生成された URL (`https://geonicdb.geolonia.com/vocab/{tenantId}/{propertyName}`)
 - プロパティ URI はエンティティタイプに依存しません (同じプロパティ名はテナント内で同じ URI を共有します)
-- `@context` は HTTP(S) URL である必要があります (URN は受け付けません)
+- `@context` は HTTP(S) URL である必要があります (URN は受け付けられません)
 
 #### @context 解決の拡張
 
-NGSI-LD レスポンスにおいて、カスタムデータモデルに `contextUrl` が設定されている場合、カスタムコンテキストはエンティティの `@context` に自動的に含まれます (コアコンテキストと一緒に配列として返されます)。
+NGSI-LD レスポンスにおいて、カスタムデータモデルに `contextUrl` が設定されている場合、カスタムコンテキストが自動的にエンティティの `@context` に含まれます (コアコンテキストと一緒に配列として返されます)。
 
 ### カタログ API
 
 | エンドポイント | メソッド | 説明 | 成功 | エラー | ページネーション |
 |----------|--------|-------------|---------|-------|------------|
 | `/catalog` | GET | DCAT-AP カタログの取得 | 200 | 401 | - |
-| `/catalog/datasets` | GET | データセットの一覧取得 | 200 | 400, 401 | あり (最大: 1000) |
+| `/catalog/datasets` | GET | データセット一覧の取得 | 200 | 400, 401 | あり (最大: 1000) |
 | `/catalog/datasets/{datasetId}` | GET | データセットの取得 | 200 | 401, 404 | - |
 | `/catalog/datasets/{datasetId}/sample` | GET | サンプルデータの取得 | 200 | 401, 404 | - |
 
@@ -2925,15 +2923,15 @@ NGSI-LD レスポンスにおいて、カスタムデータモデルに `context
 
 ### イベントストリーミング API
 
-WebSocket を使用したリアルタイムエンティティ変更ストリーミング。`EVENT_STREAMING_ENABLED=true` で有効化されます。
+WebSocket を使用したリアルタイムのエンティティ変更ストリーミングです。`EVENT_STREAMING_ENABLED=true` で有効化されます。
 
 | エンドポイント | プロトコル | 説明 |
 |----------|----------|-------------|
-| `wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={name}` | WebSocket | エンティティ変更イベントのストリーム配信 (認証は `Authorization` ヘッダー経由で送信) |
+| `wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={name}` | WebSocket | エンティティ変更イベントのストリーミング (認証は `Authorization` ヘッダー経由で送信) |
 
 詳細については、[イベントストリーミングドキュメント](../features/subscriptions.md) を参照してください。
 
-### アクセス許可の概要
+### アクセス権限の概要
 
 | API カテゴリ | user | tenant_admin | super_admin |
 |--------------|------|--------------|-------------|
@@ -2954,9 +2952,9 @@ WebSocket を使用したリアルタイムエンティティ変更ストリー�
 
 ## 関連リンク
 
-- [FIWARE NGSI v2 仕様](https://fiware.github.io/specifications/ngsiv2/stable/)
-- [ETSI NGSI-LD 仕様](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
-- [FIWARE Orion Context Broker ドキュメント](https://fiware-orion.readthedocs.io/)
+- [FIWARE NGSI v2 Specification](https://fiware.github.io/specifications/ngsiv2/stable/)
+- [ETSI NGSI-LD Specification](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.06.01_60/gs_CIM009v010601p.pdf)
+- [FIWARE Orion Context Broker Documentation](https://fiware-orion.readthedocs.io/)
 - [IPA 空間 ID ガイドライン](https://www.ipa.go.jp/digital/architecture/guidelines/4dspatio-temporal-guideline.html)
 - [デジタル庁 空間 ID](https://www.digital.go.jp/policies/mobility_and_infrastructure/spatial-id)
 - [RFC 7946 GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946)
