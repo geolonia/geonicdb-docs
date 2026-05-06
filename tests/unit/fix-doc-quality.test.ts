@@ -482,6 +482,35 @@ describe('fixGlossaryViolations', () => {
     // コンテキストブローカー (with ー) is preserved
     expect(result).toBe('コンテキストブローカー への接続と、コンテキストブローカー を使用します。')
   })
+
+  it('does not replace geonicdb when followed by ) (Markdown link suffix)', () => {
+    // URL ending: ./introduction/why-geonicdb) — geonicdb is followed by ) → not replaced
+    const content = '詳細は [link](./introduction/why-geonicdb) を参照。'
+    const { content: result } = fixGlossaryViolations(content)
+    // geonicdb) → negLookahead on ) → not replaced
+    expect(result).toBe('詳細は [link](./introduction/why-geonicdb) を参照。')
+  })
+
+  it('does not replace geonicdb when followed by ] (Markdown link text close)', () => {
+    // e.g. [geonicdb] in link text should not be replaced
+    const content = '[geonicdb] の詳細はこちら。'
+    const { content: result } = fixGlossaryViolations(content)
+    expect(result).toBe('[geonicdb] の詳細はこちら。')
+  })
+
+  it('does not replace geonicdb when followed by > (HTML tag or angle bracket)', () => {
+    // e.g. <geonicdb> should not be replaced
+    const content = '<geonicdb> タグの説明。'
+    const { content: result } = fixGlossaryViolations(content)
+    expect(result).toBe('<geonicdb> タグの説明。')
+  })
+
+  it('replaces standalone geonicdb in prose (regression: normal replacement)', () => {
+    const content = 'geonicdb は高性能なコンテキストブローカーです。'
+    const { content: result, count } = fixGlossaryViolations(content)
+    expect(result).toBe('GeonicDB は高性能なコンテキストブローカーです。')
+    expect(count).toBe(1)
+  })
 })
 
 // ---------------------------------------------------------------------------
