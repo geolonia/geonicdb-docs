@@ -245,8 +245,13 @@ function syncChangelogPaged(
     const enBody = makeEnChangelogStub(bucketSections, refDefs)
     const enFileContent = fm + enBody + '\n'
 
-    // For docs/ja/: always use original source content (yuuhitsu will translate in CI)
-    const jaBodyWithRefs = refDefs ? bucketBody + '\n\n' + refDefs : bucketBody
+    // For docs/ja/: always use original source content (yuuhitsu will translate in CI).
+    // Also include generated refs for versions missing from upstream ref-def block.
+    const jaMissingRefs = generateMissingVersionRefs(bucketSections, refDefs)
+    const jaAllRefs = refDefs
+      ? refDefs + (jaMissingRefs ? '\n' + jaMissingRefs : '')
+      : jaMissingRefs
+    const jaBodyWithRefs = jaAllRefs ? bucketBody + '\n\n' + jaAllRefs : bucketBody
     const jaFileContent = fm + jaBodyWithRefs + '\n'
 
     if (!unchanged) {
