@@ -1,5 +1,6 @@
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
-import { join, basename, dirname, relative } from 'node:path'
+import { createHash } from 'node:crypto'
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, unlinkSync } from 'node:fs'
+import { join, dirname, relative } from 'node:path'
 import { checkLanguageDirectory, validateMappingEntry } from './translate-pipeline-validators.js'
 
 // ---------------------------------------------------------------------------
@@ -34,13 +35,309 @@ function makeFrontmatter(title: string, description: string): string {
   ].join('\n')
 }
 
-/** Derive a human-readable title from a kebab-case filename */
-function titleFromFilename(kebab: string): string {
-  return kebab
-    .replace(/\.md$/, '')
-    .split('-')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
+// ---------------------------------------------------------------------------
+// Changelog Paging (cmd_449)
+// ---------------------------------------------------------------------------
+// Splits upstream CHANGELOG.md by ## [version] headings into per-version-bucket
+// files under docs/en/changelog/. Uses SHA-256 hashing to skip unchanged buckets
+// on subsequent syncs (incremental translation support).
+// ---------------------------------------------------------------------------
+
+interface ChangelogSection {
+  heading: string  // e.g. "## [0.7.1] — 2026-05-02"
+  version: string  // e.g. "0.7.1" or "Unreleased"
+  content: string  // includes heading line and all body lines
+}
+
+function parseChangelogSections(raw: string): { preamble: string; sections: ChangelogSection[]; refDefs: string } {
+  const lines = raw.split('\n')
+  const preambleLines: string[] = []
+  const sections: ChangelogSection[] = []
+  let inPreamble = true
+  let currentSection: ChangelogSection | null = null
+  let currentLines: string[] = []
+
+  for (const line of lines) {
+    const match = line.match(/^## \[([^\]]+)\]/)
+    if (match) {
+      if (inPreamble) {
+        inPreamble = false
+      } else if (currentSection) {
+        currentSection.content = currentLines.join('\n').trimEnd()
+        sections.push(currentSection)
+      }
+      currentSection = { heading: line, version: match[1], content: '' }
+      currentLines = [line]
+    } else if (inPreamble) {
+      preambleLines.push(line)
+    } else {
+      currentLines.push(line)
+    }
+  }
+
+  if (currentSection) {
+    currentSection.content = currentLines.join('\n').trimEnd()
+    sections.push(currentSection)
+  }
+
+  // Extract reference-style link definitions (e.g. "[0.8.0]: https://...") from the last
+  // section so every bucket file can include them and comparison links resolve correctly.
+  const refDefPattern = /^\[[^\]]+\]: https?:\/\//
+  const refDefLines: string[] = []
+  if (sections.length > 0) {
+    const last = sections[sections.length - 1]
+    const lastLines = last.content.split('\n')
+    const bodyLines: string[] = []
+    let inRefBlock = false
+    for (const line of lastLines) {
+      if (refDefPattern.test(line) || (inRefBlock && line.trim() === '')) {
+        inRefBlock = true
+        if (line.trim()) refDefLines.push(line)
+      } else {
+        if (inRefBlock) inRefBlock = false
+        bodyLines.push(line)
+      }
+    }
+    last.content = bodyLines.join('\n').trimEnd()
+  }
+
+  return { preamble: preambleLines.join('\n').trimEnd(), sections, refDefs: refDefLines.join('\n') }
+}
+
+function versionToBucket(version: string): string {
+  if (version.toLowerCase() === 'unreleased') return 'unreleased'
+  const parts = version.split('.')
+  return parts.length >= 2 ? `${parts[0]}.${parts[1]}.x` : version
+}
+
+/**
+ * Generate reference link definitions for versions that appear in headings
+ * but lack explicit definitions in the source CHANGELOG.md.
+ */
+function generateMissingVersionRefs(sections: ChangelogSection[], existingRefDefs: string): string {
+  const repoBase = 'https://github.com/geolonia/geonicdb'
+  const definedVersions = new Set<string>()
+  for (const line of (existingRefDefs || '').split('\n')) {
+    const m = line.match(/^\[([^\]]+)\]:/)
+    if (m) definedVersions.add(m[1])
+  }
+  const newRefs: string[] = []
+  for (const section of sections) {
+    const ver = section.version
+    if (ver.toLowerCase() === 'unreleased') continue
+    if (!definedVersions.has(ver)) {
+      newRefs.push(`[${ver}]: ${repoBase}/releases/tag/v${ver}`)
+      definedVersions.add(ver)
+    }
+  }
+  return newRefs.join('\n')
+}
+
+/**
+ * Build an English-only stub page for a changelog bucket whose source is non-English.
+ * Includes version/date headings (all ASCII) and a translation-pending note.
+ * Deduplicates same-date sub-headings to avoid duplicate anchor warnings.
+ */
+function makeEnChangelogStub(
+  sections: ChangelogSection[],
+  refDefs: string,
+): string {
+  const lines: string[] = []
+  for (const section of sections) {
+    lines.push(section.heading)
+    lines.push('')
+    const seenDates = new Set<string>()
+    for (const line of section.content.split('\n')) {
+      if (/^### \d{4}-\d{2}-\d{2}/.test(line)) {
+        if (!seenDates.has(line)) {
+          seenDates.add(line)
+          lines.push(line)
+          lines.push('')
+          lines.push('*Changelog entries are documented in Japanese. English translations will be added in a future update.*')
+          lines.push('')
+        }
+      }
+    }
+  }
+  const missingRefs = generateMissingVersionRefs(sections, refDefs)
+  const allRefs = refDefs
+    ? refDefs + (missingRefs ? '\n' + missingRefs : '')
+    : missingRefs
+  if (allRefs) {
+    lines.push('')
+    lines.push(allRefs)
+  }
+  return lines.join('\n').trimEnd()
+}
+
+function sha256Short(content: string): string {
+  return createHash('sha256').update(content, 'utf-8').digest('hex').slice(0, 16)
+}
+
+function loadChangelogHashes(hashFilePath: string): Record<string, string> {
+  if (!existsSync(hashFilePath)) return {}
+  try {
+    return JSON.parse(readFileSync(hashFilePath, 'utf-8')) as Record<string, string>
+  } catch {
+    return {}
+  }
+}
+
+function syncChangelogPaged(
+  rawContent: string,
+  outputBase: string,
+  repoBase: string,
+): number {
+  const hashFilePath = join(repoBase, '.changelog-hashes.json')
+  const prevHashes = loadChangelogHashes(hashFilePath)
+  const newHashes: Record<string, string> = {}
+  let synced = 0
+
+  const { preamble, sections, refDefs } = parseChangelogSections(rawContent)
+
+  // Group sections by major.minor bucket, preserving order
+  const buckets = new Map<string, ChangelogSection[]>()
+  const bucketOrder: string[] = []
+  for (const section of sections) {
+    const bucket = versionToBucket(section.version)
+    if (!buckets.has(bucket)) {
+      buckets.set(bucket, [])
+      bucketOrder.push(bucket)
+    }
+    buckets.get(bucket)!.push(section)
+  }
+
+  const changelogDir = join(outputBase, 'changelog')
+  mkdirSync(changelogDir, { recursive: true })
+
+  // JA output directory — seeded with original source content (yuuhitsu overwrites in CI).
+  const jaOutputBase = join(outputBase, '..', 'ja')
+  const jaChangelogDir = join(jaOutputBase, 'changelog')
+  mkdirSync(jaChangelogDir, { recursive: true })
+
+  // Write per-bucket version files
+  for (const bucket of bucketOrder) {
+    const bucketSections = buckets.get(bucket)!
+    const bucketBody = bucketSections.map(s => s.content).join('\n\n')
+    // Include refDefs in hash so upstream link-definition changes trigger resync
+    const hash = sha256Short(refDefs ? bucketBody + '\n\n' + refDefs : bucketBody)
+    newHashes[bucket] = hash
+
+    const filename = `${bucket}.md`
+    const destPath = join(changelogDir, filename)
+    const destRelative = `changelog/${filename}`
+
+    const jaDestPath = join(jaChangelogDir, filename)
+    const unchanged = hash === prevHashes[bucket] && existsSync(destPath)
+    const jaMissing = !existsSync(jaDestPath)
+
+    if (unchanged && !jaMissing) {
+      console.log(`  SKIP (unchanged): CHANGELOG[${bucket}] → en/${destRelative}`)
+      continue
+    }
+
+    const label = bucket === 'unreleased' ? 'Unreleased' : `v${bucket}`
+    const fm = makeFrontmatter(label, `GeonicDB ${label} changelog`)
+
+    // For docs/en/: upstream CHANGELOG.md is in Japanese (17-31% non-ASCII —
+    // below the P-A5 default threshold of 40% due to ASCII dates/code/PRs).
+    // Always write English stubs so docs/en/changelog/ stays English-only.
+    const enBody = makeEnChangelogStub(bucketSections, refDefs)
+    const enFileContent = fm + enBody + '\n'
+
+    // For docs/ja/: always use original source content (yuuhitsu will translate in CI).
+    // Also include generated refs for versions missing from upstream ref-def block.
+    const jaMissingRefs = generateMissingVersionRefs(bucketSections, refDefs)
+    const jaAllRefs = refDefs
+      ? refDefs + (jaMissingRefs ? '\n' + jaMissingRefs : '')
+      : jaMissingRefs
+    const jaBodyWithRefs = jaAllRefs ? bucketBody + '\n\n' + jaAllRefs : bucketBody
+    const jaFileContent = fm + jaBodyWithRefs + '\n'
+
+    if (!unchanged) {
+      writeFileSync(destPath, enFileContent)
+      console.log(`  SYNC: CHANGELOG[${bucket}] → en/${destRelative}`)
+      synced++
+    } else {
+      console.log(`  SKIP (unchanged): CHANGELOG[${bucket}] → en/${destRelative}`)
+    }
+    // Seed JA copy if missing (will be overwritten by yuuhitsu in CI)
+    if (jaMissing) {
+      writeFileSync(jaDestPath, jaFileContent)
+      console.log(`  SEED: CHANGELOG[${bucket}] → ja/${destRelative}`)
+    }
+  }
+
+  // Build index.md (navigation hub) — always regenerate when any bucket changed
+  // EN index uses English text. JA seed uses Japanese equivalents (yuuhitsu overwrites in CI).
+  const versionListLines: string[] = []
+  for (const bucket of bucketOrder) {
+    const secs = buckets.get(bucket)!
+    if (bucket === 'unreleased') {
+      versionListLines.push(`- [Unreleased](./unreleased.md)`)
+    } else {
+      const dateMatch = secs[0].heading.match(/[—–-]\s*(.+)$/)
+      const date = dateMatch ? dateMatch[1].trim() : ''
+      const versions = secs.map(s => `v${s.version}`).join(' / ')
+      versionListLines.push(`- [${versions}](./${bucket}.md)${date ? ` — ${date}` : ''}`)
+    }
+  }
+
+  const enIndexLines = [
+    '# Changelog',
+    '',
+    'All notable changes to this project are recorded in this file.',
+    '',
+    'The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),',
+    'and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).',
+    '',
+    '## Versions',
+    '',
+    ...versionListLines,
+  ]
+  const indexContent = makeFrontmatter('Changelog', 'GeonicDB changelog') + enIndexLines.join('\n') + '\n'
+  const indexHash = sha256Short(indexContent)
+  newHashes['_index'] = indexHash
+
+  const indexPath = join(changelogDir, 'index.md')
+  const jaIndexPath = join(jaChangelogDir, 'index.md')
+  const indexUnchanged = indexHash === prevHashes['_index'] && existsSync(indexPath)
+  const jaIndexMissing = !existsSync(jaIndexPath)
+
+  if (!indexUnchanged) {
+    writeFileSync(indexPath, indexContent)
+    console.log('  SYNC: CHANGELOG → en/changelog/index.md')
+    synced++
+  } else {
+    console.log('  SKIP (unchanged): CHANGELOG → en/changelog/index.md')
+  }
+  // Seed JA index if missing (will be overwritten by yuuhitsu in CI).
+  // Use Japanese strings so the JA site is consistent before translation runs.
+  if (jaIndexMissing) {
+    const jaVersionListLines = versionListLines.map(l => l.replace('[Unreleased]', '[未リリース]'))
+    const jaIndexLines = [
+      '# 変更履歴',
+      '',
+      'このプロジェクトのすべての重要な変更は、このファイルに記録されます。',
+      '',
+      'このフォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、',
+      'このプロジェクトは [Semantic Versioning](https://semver.org/lang/ja/) に準拠しています。',
+      '',
+      '## バージョン',
+      '',
+      ...jaVersionListLines,
+    ]
+    const jaIndexContent = makeFrontmatter('変更履歴', 'GeonicDB の変更履歴') + jaIndexLines.join('\n') + '\n'
+    writeFileSync(jaIndexPath, jaIndexContent)
+    console.log('  SEED: CHANGELOG → ja/changelog/index.md')
+  }
+
+  const serializedHashes = JSON.stringify(newHashes, null, 2) + '\n'
+  const existingHashes = existsSync(hashFilePath) ? readFileSync(hashFilePath, 'utf-8') : ''
+  if (serializedHashes !== existingHashes) {
+    writeFileSync(hashFilePath, serializedHashes)
+  }
+  return synced
 }
 
 // ---------------------------------------------------------------------------
@@ -127,8 +424,9 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   'TELEMETRY.md': [
     { dest: 'features/telemetry.md', title: 'Telemetry', description: 'OpenTelemetry support' },
   ],
+  // CHANGELOG.md is handled by syncChangelogPaged() — this entry exists only for LINK_MAP
   'CHANGELOG.md': [
-    { dest: 'changelog.md', title: 'Changelog', description: 'GeonicDB changelog', nonAsciiThreshold: 0.40 },
+    { dest: 'changelog/index.md', title: 'Changelog', description: 'GeonicDB changelog', nonAsciiThreshold: 0.40 },
   ],
   'CLI.md': [
     { dest: 'reference/cli.md', title: 'CLI Reference', description: 'GeonicDB CLI (geonic) command reference' },
@@ -235,6 +533,18 @@ function main() {
 
   console.log(`Found ${sourceFiles.length} source files in ${docsDir}`)
 
+  // Remove legacy flat changelog.md files (replaced by paged changelog/ directory)
+  const legacyChangelog = join(outputBase, 'changelog.md')
+  if (existsSync(legacyChangelog)) {
+    unlinkSync(legacyChangelog)
+    console.log('  CLEANUP: removed legacy docs/en/changelog.md (replaced by docs/en/changelog/)')
+  }
+  const legacyJaChangelog = join(outputBase, '..', 'ja', 'changelog.md')
+  if (existsSync(legacyJaChangelog)) {
+    unlinkSync(legacyJaChangelog)
+    console.log('  CLEANUP: removed legacy docs/ja/changelog.md (replaced by docs/ja/changelog/)')
+  }
+
   let synced = 0
   let skipped = 0
 
@@ -246,13 +556,13 @@ function main() {
       continue
     }
 
-    // CHANGELOG.md is in the repository root, not in docs/
-    // Fallback to docs/ if root version doesn't exist
-    const rootChangelog = join(geonicdbRepoPath, srcFile)
-    const docsChangelog = join(docsDir, srcFile)
-    const srcPath = srcFile === 'CHANGELOG.md' && existsSync(rootChangelog)
-      ? rootChangelog
-      : docsChangelog
+    // CHANGELOG.md uses paged output — handled separately after the main loop
+    if (srcFile === 'CHANGELOG.md') {
+      skipped++
+      continue
+    }
+
+    const srcPath = join(docsDir, srcFile)
     const rawContent = readFileSync(srcPath, 'utf-8')
 
     for (const mapping of mappings) {
@@ -299,7 +609,15 @@ function main() {
     }
   }
 
-  console.log(`\nDone: ${synced} files synced, ${skipped} files skipped (no mapping).`)
+  // Handle CHANGELOG.md with paged output (version-based split + incremental hash)
+  const changelogSrcPath = join(geonicdbRepoPath, 'CHANGELOG.md')
+  if (existsSync(changelogSrcPath)) {
+    const changelogRaw = readFileSync(changelogSrcPath, 'utf-8')
+    const mapping = MAPPING_TABLE['CHANGELOG.md']![0]
+    synced += syncChangelogPaged(changelogRaw, outputBase, process.cwd())
+  }
+
+  console.log(`\nDone: ${synced} files synced, ${skipped} files skipped (no mapping / handled separately).`)
 }
 
 main()

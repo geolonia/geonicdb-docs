@@ -17,7 +17,7 @@ function nav(): DefaultTheme.NavItem[] {
     { text: 'API Reference', link: '/en/api-reference/ngsiv2' },
     { text: 'Features', link: '/en/features/subscriptions' },
     { text: 'AI', link: '/en/ai-integration/overview' },
-    { text: 'Changelog', link: '/en/changelog' },
+    { text: 'Changelog', link: '/en/changelog/' },
   ]
 }
 
@@ -126,7 +126,7 @@ function sidebar(): DefaultTheme.Sidebar {
       {
         text: 'Changelog',
         items: [
-          { text: 'Changelog', link: '/en/changelog' },
+          { text: 'Changelog', link: '/en/changelog/' },
         ],
       },
     ],
