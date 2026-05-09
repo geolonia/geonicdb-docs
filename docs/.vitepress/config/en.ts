@@ -45,6 +45,7 @@ function sidebar(): DefaultTheme.Sidebar {
           { text: 'Console', link: '/en/saas/console' },
           { text: 'Demo App', link: '/en/saas/demo-app' },
           { text: 'First Entity Tutorial', link: '/en/saas/first-entity' },
+          { text: 'Quotas & Plans', link: '/en/saas/quotas' },
         ],
       },
       {
@@ -73,6 +74,8 @@ function sidebar(): DefaultTheme.Sidebar {
         text: 'Features',
         items: [
           { text: 'Subscriptions', link: '/en/features/subscriptions' },
+          { text: 'NGSI Subscriptions', link: '/en/features/ngsi-subscriptions' },
+          { text: 'ReactiveCore Rules', link: '/en/features/reactivcore-rules' },
           { text: 'Federation', link: '/en/features/federation' },
           { text: 'Geo / ZFXY', link: '/en/features/geo-zfxy' },
           { text: 'Vector Tiles', link: '/en/features/vector-tiles' },
@@ -96,6 +99,7 @@ function sidebar(): DefaultTheme.Sidebar {
         text: 'Reference',
         items: [
           { text: 'CLI Reference', link: '/en/reference/cli' },
+          { text: 'Authentication Guide', link: '/en/reference/auth' },
         ],
       },
       {

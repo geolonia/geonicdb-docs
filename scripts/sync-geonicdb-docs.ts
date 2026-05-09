@@ -133,6 +133,18 @@ const MAPPING_TABLE: Record<string, MappingEntry[]> = {
   'CLI.md': [
     { dest: 'reference/cli.md', title: 'CLI Reference', description: 'GeonicDB CLI (geonic) command reference' },
   ],
+  'AUTH.md': [
+    { dest: 'reference/auth.md', title: 'Authentication Guide', description: 'GeonicDB authentication and authorization guide' },
+  ],
+  'QUOTAS.md': [
+    { dest: 'saas/quotas.md', title: 'Quotas & Plans', description: 'GeonicDB quota system and plans' },
+  ],
+  'REACTIVCORE_RULES.md': [
+    { dest: 'features/reactivcore-rules.md', title: 'ReactiveCore Rules', description: 'Reactive automation rules based on entity changes' },
+  ],
+  'SUBSCRIPTIONS.md': [
+    { dest: 'features/ngsi-subscriptions.md', title: 'NGSI Subscriptions', description: 'HTTP Webhook subscriptions for entity change notifications' },
+  ],
 }
 
 // ---------------------------------------------------------------------------

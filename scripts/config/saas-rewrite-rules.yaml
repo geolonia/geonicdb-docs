@@ -117,3 +117,45 @@ rules:
       - pattern: '\| `ADMIN_ALLOWED_IPS` \| - \| 管理 API へのアクセスを許可する IP/CIDR\(カンマ区切り\) \|(?!\r?\n\r?\n> \*\*SaaS 利用者の方へ\*\*)'
         replacement: "| `ADMIN_ALLOWED_IPS` | - | 管理 API へのアクセスを許可する IP/CIDR(カンマ区切り) |\n\n> **SaaS 利用者の方へ**: これらの環境変数は GeonicDB SaaS コンソールで管理されます。直接設定は不要です。"
         scope: ['docs/ja/api-reference/endpoints.md']
+
+  # ---- R-AUTH-SETUP: AUTH.md self-hosted env var setup → SaaS managed auth note ----
+  - id: R-AUTH-SETUP-EN
+    description: "AUTH.md self-hosted env var block → prepend SaaS managed auth note (en)"
+    enabled: true
+    skip_in_code: false
+    skip_in_changelog: true
+    matchers:
+      - pattern: '(?<!GeonicDB SaaS manages authentication automatically\. No environment variable configuration is required\.\n\n)Set the following environment variables to enable authentication\.'
+        replacement: "> **SaaS users**: GeonicDB SaaS manages authentication automatically. No environment variable configuration is required.\n\nSet the following environment variables to enable authentication."
+        scope: ['docs/en/reference/auth.md']
+
+  - id: R-AUTH-SETUP-JA
+    description: "AUTH.md self-hosted env var block → prepend SaaS managed auth note (ja)"
+    enabled: true
+    skip_in_code: false
+    skip_in_changelog: true
+    matchers:
+      - pattern: '(?<!GeonicDB SaaS では認証設定は自動的に管理されます。環境変数の設定は不要です。\n\n)認証を有効にするには、以下の環境変数を設定します。'
+        replacement: "> **SaaS 利用者の方へ**: GeonicDB SaaS では認証設定は自動的に管理されます。環境変数の設定は不要です。\n\n認証を有効にするには、以下の環境変数を設定します。"
+        scope: ['docs/ja/reference/auth.md']
+
+  # ---- R-RULES-ENABLE: REACTIVCORE_RULES.md env var enable → SaaS default-enabled note ----
+  - id: R-RULES-ENABLE-EN
+    description: "REACTIVCORE_RULES.md RULES_ENABLED env var → prepend SaaS default-enabled note (en)"
+    enabled: true
+    skip_in_code: false
+    skip_in_changelog: true
+    matchers:
+      - pattern: '(?<!ReactiveCore Rules is enabled by default in GeonicDB SaaS\.\n\n)Enable ReactiveCore Rules via environment variable \(disabled by default\)\.'
+        replacement: "> **SaaS users**: ReactiveCore Rules is enabled by default in GeonicDB SaaS. No additional configuration is required.\n\nEnable ReactiveCore Rules via environment variable (disabled by default)."
+        scope: ['docs/en/features/reactivcore-rules.md']
+
+  - id: R-RULES-ENABLE-JA
+    description: "REACTIVCORE_RULES.md RULES_ENABLED env var → prepend SaaS default-enabled note (ja)"
+    enabled: true
+    skip_in_code: false
+    skip_in_changelog: true
+    matchers:
+      - pattern: '(?<!GeonicDB SaaS では ReactiveCore Rules はデフォルトで有効です。\n\n)環境変数で ReactiveCore Rules を有効にします（デフォルトは無効）。'
+        replacement: "> **SaaS 利用者の方へ**: GeonicDB SaaS では ReactiveCore Rules はデフォルトで有効です。追加の設定は不要です。\n\n環境変数で ReactiveCore Rules を有効にします（デフォルトは無効）。"
+        scope: ['docs/ja/features/reactivcore-rules.md']

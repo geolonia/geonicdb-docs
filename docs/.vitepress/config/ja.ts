@@ -58,6 +58,7 @@ function sidebar(): DefaultTheme.Sidebar {
           { text: 'コンソール', link: '/ja/saas/console' },
           { text: 'デモアプリ', link: '/ja/saas/demo-app' },
           { text: '最初のエンティティ', link: '/ja/saas/first-entity' },
+          { text: 'クォータ & プラン', link: '/ja/saas/quotas' },
         ],
       },
       {
@@ -86,6 +87,8 @@ function sidebar(): DefaultTheme.Sidebar {
         text: '機能',
         items: [
           { text: 'サブスクリプション', link: '/ja/features/subscriptions' },
+          { text: 'NGSI サブスクリプション', link: '/ja/features/ngsi-subscriptions' },
+          { text: 'ReactiveCore ルール', link: '/ja/features/reactivcore-rules' },
           { text: 'フェデレーション', link: '/ja/features/federation' },
           { text: 'ジオクエリ / ZFXY', link: '/ja/features/geo-zfxy' },
           { text: 'ベクトルタイル', link: '/ja/features/vector-tiles' },
@@ -109,6 +112,7 @@ function sidebar(): DefaultTheme.Sidebar {
         text: 'リファレンス',
         items: [
           { text: 'CLI リファレンス', link: '/ja/reference/cli' },
+          { text: '認証ガイド', link: '/ja/reference/auth' },
         ],
       },
       {
