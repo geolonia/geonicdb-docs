@@ -12,6 +12,8 @@ outline: deep
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-05-05
+
 ### 2026-05-05
 - **修正**: SDK の `db.request()` が空ボディ + JSON Content-Type のレスポンスで `SyntaxError: Unexpected end of JSON input` を投げて落ちる問題 (issue #1145) (#1146)
   - 背景: NGSI-LD `POST /entities` (201) など仕様上ボディが空のレスポンスでも、サーバ実装は `Content-Type: application/ld+json` を付けて返している。SDK 側 `db.request()` は Content-Type が `json` を含むと無条件に `res.json()` を呼ぶため、空ボディで SyntaxError を投げていた (`db.createEntity` 等の専用メソッドは body を読まないので影響なし、`db.request()` 経由で同パスを叩くと壊れる、という非対称が問題)
@@ -50,7 +52,7 @@ outline: deep
   - 旧: `encodeURIComponent` でフィールドごとに直列化
   - 新: `URLSearchParams` ベースに refactor (DRY 化のため)
   - 影響を受ける文字: 半角スペース `%20` → `+` / `'` 素通し → `%27` / `!` `*` `(` `)` `~` 素通し → `%21` `%2A` `%28` `%29` `%7E`
-  - サーバ側 (GeonicDB 本体) は両形式を解釈するので **通常は実害なし**。プロキシ / WAF が strict matching している環境では影響しうる
+  - サーバ側 (geonicdb 本体) は両形式を解釈するので **通常は実害なし**。プロキシ / WAF が strict matching している環境では影響しうる
   - 公開メソッドのシグネチャは追加のみで完全後方互換 (新パラメータはすべて optional)
 - **改善**: SDK のクエリパラメータ表面を NGSI-LD §5.7.2 (Query Entities) に揃えて拡充 (issue #1132) (#1149)
   - 背景: `db.getEntities()` 等は `type / limit / offset / q` の 4 パラメータしか URL に乗せておらず、サーバが実装している `scopeQ` / `georel` / `geometry` / `coordinates` / `attrs` / `pick` / `omit` / `lang` / `orderBy` / `count` 等を SDK 経由で使えなかった。実アプリで scope に基づくフィルタが必要になり (geonicdb-gis 関連)、SDK を諦めて `db.request()` で素のパスを組み立てる回避が必要だった

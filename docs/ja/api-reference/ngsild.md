@@ -171,7 +171,8 @@ Content-Type: application/ld+json
 ```
 
 **レスポンス**
-- ステータス: `201 Created`- ステータス: 同じ ID のエンティティが既に存在する場合は `409 AlreadyExists` (タイプに関係なく)
+- ステータス: `201 Created`
+- ステータス: 同じ ID のエンティティが既に存在する場合は `409 AlreadyExists` (タイプに関係なく)
 - ヘッダー: `Location: /ngsi-ld/v1/entities/urn:ngsi-ld:Room:001`> **注意**: エンティティ ID はテナントとServicePathスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成すると `409 AlreadyExists` が返されます。詳細は [エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
 
 #
@@ -463,7 +464,8 @@ Content-Type: application/ld+json
 ```
 
 **レスポンス**
-- すべて成功: `201 Created`- 部分的に成功: `207 Multi-Status`#
+- すべて成功: `201 Created`
+- 部分的に成功: `207 Multi-Status`#
 
 ### バッチアップサート
 
@@ -488,7 +490,8 @@ POST /ngsi-ld/v1/entityOperations/update
 ```
 
 **レスポンス**
-- すべて成功: `204 No Content`- 部分的に成功: `207 Multi-Status`#
+- すべて成功: `204 No Content`
+- 部分的に成功: `207 Multi-Status`#
 
 ### バッチ削除
 
@@ -507,7 +510,8 @@ Content-Type: application/json
 ```
 
 **レスポンス**
-- すべて成功: `204 No Content`- 部分的に成功: `207 Multi-Status`#
+- すべて成功: `204 No Content`
+- 部分的に成功: `207 Multi-Status`#
 
 ### エンティティパージ
 
@@ -525,7 +529,8 @@ Content-Type: application/json
 | `type` | string | 削除するエンティティタイプ (必須) |
 
 **レスポンス**
-- 成功: `204 No Content`- タイプが指定されていない: `400 Bad Request`#
+- 成功: `204 No Content`
+- タイプが指定されていない: `400 Bad Request`#
 
 ### バッチクエリ
 
@@ -912,7 +917,8 @@ NGSI-LD では、エンドポイント URI に `mqtt://` または `mqtts://` �
 - `watchedAttributes` と `timeInterval` は相互排他的です。両方を同時に指定すると `400 Bad Request` が返されます (ETSI GS CIM 009 V1.9.1 clause 5.8.1)
 
 **レスポンス**
-- ステータス: `201 Created`- ヘッダー: `Location: /ngsi-ld/v1/subscriptions/{subscriptionId}`#
+- ステータス: `201 Created`
+- ヘッダー: `Location: /ngsi-ld/v1/subscriptions/{subscriptionId}`#
 
 ### サブスクリプション一覧
 
@@ -1031,7 +1037,8 @@ Content-Type: application/ld+json
 | `mode` | string | - | モード (`inclusive` / `exclusive` / `redirect` / `auxiliary`) |
 
 **レスポンス**
-- ステータス: `201 Created`- ヘッダー: `Location: /ngsi-ld/v1/csourceRegistrations/{registrationId}`#
+- ステータス: `201 Created`
+- ヘッダー: `Location: /ngsi-ld/v1/csourceRegistrations/{registrationId}`#
 
 ### レジストレーション一覧の取得
 
@@ -1324,7 +1331,8 @@ Content-Type: application/ld+json
 | `isActive` | boolean | - | アクティブ状態 (デフォルト: true) |
 
 **レスポンス**
-- ステータス: `201 Created`- ヘッダー: `Location: /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}`#
+- ステータス: `201 Created`
+- ヘッダー: `Location: /ngsi-ld/v1/csourceSubscriptions/{subscriptionId}`#
 
 ### CSR サブスクリプションリストの取得
 
@@ -1416,7 +1424,8 @@ Content-Type: application/json
 ```
 
 **レスポンス**
-- ステータス: `201 Created`- ヘッダー: `Location: /ngsi-ld/v1/jsonldContexts/{contextId}`#
+- ステータス: `201 Created`
+- ヘッダー: `Location: /ngsi-ld/v1/jsonldContexts/{contextId}`#
 
 ### JSON-LD Context リストの取得
 
@@ -1551,7 +1560,8 @@ ETSI NGSI-LD 互換 Context Broker API。
 
 ### 共通仕様
 
-- **Content-Type**: `application/ld+json` または `application/json`- **認証**: `AUTH_ENABLED=true` の場合は必須
+- **Content-Type**: `application/ld+json` または `application/json`
+- **認証**: `AUTH_ENABLED=true` の場合は必須
 - **テナント分離**: `NGSILD-Tenant` または `Fiware-Service` ヘッダー
 - **ページネーション**: `limit`/`offset` パラメータ、総数は常に `NGSILD-Results-Count` ヘッダーで返されます
 - **OPTIONS メソッド**: すべての NGSI-LD エンドポイントは OPTIONS メソッドをサポートします。`Allow` および `Accept-Patch` ヘッダーと共に 204 レスポンスを返します
