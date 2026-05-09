@@ -49,7 +49,7 @@ interface ChangelogSection {
   content: string  // includes heading line and all body lines
 }
 
-function parseChangelogSections(raw: string): { preamble: string; sections: ChangelogSection[] } {
+function parseChangelogSections(raw: string): { preamble: string; sections: ChangelogSection[]; refDefs: string } {
   const lines = raw.split('\n')
   const preambleLines: string[] = []
   const sections: ChangelogSection[] = []
@@ -80,7 +80,28 @@ function parseChangelogSections(raw: string): { preamble: string; sections: Chan
     sections.push(currentSection)
   }
 
-  return { preamble: preambleLines.join('\n').trimEnd(), sections }
+  // Extract reference-style link definitions (e.g. "[0.8.0]: https://...") from the last
+  // section so every bucket file can include them and comparison links resolve correctly.
+  const refDefPattern = /^\[[^\]]+\]: https?:\/\//
+  const refDefLines: string[] = []
+  if (sections.length > 0) {
+    const last = sections[sections.length - 1]
+    const lastLines = last.content.split('\n')
+    const bodyLines: string[] = []
+    let inRefBlock = false
+    for (const line of lastLines) {
+      if (refDefPattern.test(line) || (inRefBlock && line.trim() === '')) {
+        inRefBlock = true
+        if (line.trim()) refDefLines.push(line)
+      } else {
+        if (inRefBlock) inRefBlock = false
+        bodyLines.push(line)
+      }
+    }
+    last.content = bodyLines.join('\n').trimEnd()
+  }
+
+  return { preamble: preambleLines.join('\n').trimEnd(), sections, refDefs: refDefLines.join('\n') }
 }
 
 function versionToBucket(version: string): string {
@@ -113,7 +134,7 @@ function syncChangelogPaged(
   const newHashes: Record<string, string> = {}
   let synced = 0
 
-  const { preamble, sections } = parseChangelogSections(rawContent)
+  const { preamble, sections, refDefs } = parseChangelogSections(rawContent)
 
   // Group sections by major.minor bucket, preserving order
   const buckets = new Map<string, ChangelogSection[]>()
@@ -142,7 +163,8 @@ function syncChangelogPaged(
   for (const bucket of bucketOrder) {
     const bucketSections = buckets.get(bucket)!
     const bucketBody = bucketSections.map(s => s.content).join('\n\n')
-    const hash = sha256Short(bucketBody)
+    // Include refDefs in hash so upstream link-definition changes trigger resync
+    const hash = sha256Short(refDefs ? bucketBody + '\n\n' + refDefs : bucketBody)
     newHashes[bucket] = hash
 
     const filename = `${bucket}.md`
@@ -167,7 +189,8 @@ function syncChangelogPaged(
 
     const label = bucket === 'unreleased' ? 'Unreleased' : `v${bucket}`
     const fm = makeFrontmatter(label, `GeonicDB ${label} changelog`)
-    const fileContent = fm + bucketBody + '\n'
+    const bodyWithRefs = refDefs ? bucketBody + '\n\n' + refDefs : bucketBody
+    const fileContent = fm + bodyWithRefs + '\n'
 
     if (!unchanged) {
       writeFileSync(destPath, fileContent)
@@ -184,26 +207,33 @@ function syncChangelogPaged(
   }
 
   // Build index.md (navigation hub) — always regenerate when any bucket changed
-  const indexLines: string[] = ['# Changelog', '']
-  // Strip h1 line from preamble, keep the rest as intro text
-  const preambleBody = preamble.replace(/^#[^\n]*\n?/, '').trim()
-  if (preambleBody) {
-    indexLines.push(preambleBody, '')
-  }
-  indexLines.push('## Versions', '')
+  // EN index uses English text. JA seed uses Japanese equivalents (yuuhitsu overwrites in CI).
+  const versionListLines: string[] = []
   for (const bucket of bucketOrder) {
     const secs = buckets.get(bucket)!
     if (bucket === 'unreleased') {
-      indexLines.push(`- [Unreleased](./unreleased.md)`)
+      versionListLines.push(`- [Unreleased](./unreleased.md)`)
     } else {
       const dateMatch = secs[0].heading.match(/[—–-]\s*(.+)$/)
       const date = dateMatch ? dateMatch[1].trim() : ''
       const versions = secs.map(s => `v${s.version}`).join(' / ')
-      indexLines.push(`- [${versions}](./${bucket}.md)${date ? ` — ${date}` : ''}`)
+      versionListLines.push(`- [${versions}](./${bucket}.md)${date ? ` — ${date}` : ''}`)
     }
   }
 
-  const indexContent = makeFrontmatter('Changelog', 'GeonicDB changelog') + indexLines.join('\n') + '\n'
+  const enIndexLines = [
+    '# Changelog',
+    '',
+    'All notable changes to this project are recorded in this file.',
+    '',
+    'The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),',
+    'and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).',
+    '',
+    '## Versions',
+    '',
+    ...versionListLines,
+  ]
+  const indexContent = makeFrontmatter('Changelog', 'GeonicDB changelog') + enIndexLines.join('\n') + '\n'
   const indexHash = sha256Short(indexContent)
   newHashes['_index'] = indexHash
 
@@ -219,13 +249,32 @@ function syncChangelogPaged(
   } else {
     console.log('  SKIP (unchanged): CHANGELOG → en/changelog/index.md')
   }
-  // Seed JA index if missing (will be overwritten by yuuhitsu in CI)
+  // Seed JA index if missing (will be overwritten by yuuhitsu in CI).
+  // Use Japanese strings so the JA site is consistent before translation runs.
   if (jaIndexMissing) {
-    writeFileSync(jaIndexPath, indexContent)
+    const jaVersionListLines = versionListLines.map(l => l.replace('[Unreleased]', '[未リリース]'))
+    const jaIndexLines = [
+      '# 変更履歴',
+      '',
+      'このプロジェクトのすべての重要な変更は、このファイルに記録されます。',
+      '',
+      'このフォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、',
+      'このプロジェクトは [Semantic Versioning](https://semver.org/lang/ja/) に準拠しています。',
+      '',
+      '## バージョン',
+      '',
+      ...jaVersionListLines,
+    ]
+    const jaIndexContent = makeFrontmatter('変更履歴', 'GeonicDB の変更履歴') + jaIndexLines.join('\n') + '\n'
+    writeFileSync(jaIndexPath, jaIndexContent)
     console.log('  SEED: CHANGELOG → ja/changelog/index.md')
   }
 
-  writeFileSync(hashFilePath, JSON.stringify(newHashes, null, 2) + '\n')
+  const serializedHashes = JSON.stringify(newHashes, null, 2) + '\n'
+  const existingHashes = existsSync(hashFilePath) ? readFileSync(hashFilePath, 'utf-8') : ''
+  if (serializedHashes !== existingHashes) {
+    writeFileSync(hashFilePath, serializedHashes)
+  }
   return synced
 }
 

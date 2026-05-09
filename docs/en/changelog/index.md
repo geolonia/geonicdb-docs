@@ -5,10 +5,10 @@ outline: deep
 ---
 # Changelog
 
-このプロジェクトのすべての重要な変更は、このファイルに記録されます。
+All notable changes to this project are recorded in this file.
 
-このフォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づいており、
-このプロジェクトは [Semantic Versioning](https://semver.org/lang/ja/) に準拠しています。
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Versions
 
