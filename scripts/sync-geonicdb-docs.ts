@@ -110,6 +110,66 @@ function versionToBucket(version: string): string {
   return parts.length >= 2 ? `${parts[0]}.${parts[1]}.x` : version
 }
 
+/**
+ * Generate reference link definitions for versions that appear in headings
+ * but lack explicit definitions in the source CHANGELOG.md.
+ */
+function generateMissingVersionRefs(sections: ChangelogSection[], existingRefDefs: string): string {
+  const repoBase = 'https://github.com/geolonia/geonicdb'
+  const definedVersions = new Set<string>()
+  for (const line of (existingRefDefs || '').split('\n')) {
+    const m = line.match(/^\[([^\]]+)\]:/)
+    if (m) definedVersions.add(m[1])
+  }
+  const newRefs: string[] = []
+  for (const section of sections) {
+    const ver = section.version
+    if (ver.toLowerCase() === 'unreleased') continue
+    if (!definedVersions.has(ver)) {
+      newRefs.push(`[${ver}]: ${repoBase}/releases/tag/v${ver}`)
+      definedVersions.add(ver)
+    }
+  }
+  return newRefs.join('\n')
+}
+
+/**
+ * Build an English-only stub page for a changelog bucket whose source is non-English.
+ * Includes version/date headings (all ASCII) and a translation-pending note.
+ * Deduplicates same-date sub-headings to avoid duplicate anchor warnings.
+ */
+function makeEnChangelogStub(
+  sections: ChangelogSection[],
+  refDefs: string,
+): string {
+  const lines: string[] = []
+  for (const section of sections) {
+    lines.push(section.heading)
+    lines.push('')
+    const seenDates = new Set<string>()
+    for (const line of section.content.split('\n')) {
+      if (/^### \d{4}-\d{2}-\d{2}/.test(line)) {
+        if (!seenDates.has(line)) {
+          seenDates.add(line)
+          lines.push(line)
+          lines.push('')
+          lines.push('*Changelog entries are documented in Japanese. English translations will be added in a future update.*')
+          lines.push('')
+        }
+      }
+    }
+  }
+  const missingRefs = generateMissingVersionRefs(sections, refDefs)
+  const allRefs = refDefs
+    ? refDefs + (missingRefs ? '\n' + missingRefs : '')
+    : missingRefs
+  if (allRefs) {
+    lines.push('')
+    lines.push(allRefs)
+  }
+  return lines.join('\n').trimEnd()
+}
+
 function sha256Short(content: string): string {
   return createHash('sha256').update(content, 'utf-8').digest('hex').slice(0, 16)
 }
@@ -127,7 +187,6 @@ function syncChangelogPaged(
   rawContent: string,
   outputBase: string,
   repoBase: string,
-  nonAsciiThreshold: number,
 ): number {
   const hashFilePath = join(repoBase, '.changelog-hashes.json')
   const prevHashes = loadChangelogHashes(hashFilePath)
@@ -151,10 +210,7 @@ function syncChangelogPaged(
   const changelogDir = join(outputBase, 'changelog')
   mkdirSync(changelogDir, { recursive: true })
 
-  // Corresponding JA output directory — created alongside EN so file-parity tests pass.
-  // When the CI translation workflow (yuuhitsu) runs, it will overwrite these with proper
-  // translations. Until then, the EN content (already Japanese from upstream) serves as
-  // a reasonable JA placeholder.
+  // JA output directory — seeded with original source content (yuuhitsu overwrites in CI).
   const jaOutputBase = join(outputBase, '..', 'ja')
   const jaChangelogDir = join(jaOutputBase, 'changelog')
   mkdirSync(jaChangelogDir, { recursive: true })
@@ -180,20 +236,21 @@ function syncChangelogPaged(
       continue
     }
 
-    // P-A5 check
-    const langCheck = checkLanguageDirectory(bucketBody, nonAsciiThreshold)
-    if (!langCheck.ok) {
-      console.error(`  ERROR (P-A5): CHANGELOG[${bucket}] → en/${destRelative}: ${langCheck.reason}`)
-      process.exit(1)
-    }
-
     const label = bucket === 'unreleased' ? 'Unreleased' : `v${bucket}`
     const fm = makeFrontmatter(label, `GeonicDB ${label} changelog`)
-    const bodyWithRefs = refDefs ? bucketBody + '\n\n' + refDefs : bucketBody
-    const fileContent = fm + bodyWithRefs + '\n'
+
+    // For docs/en/: upstream CHANGELOG.md is in Japanese (17-31% non-ASCII —
+    // below the P-A5 default threshold of 40% due to ASCII dates/code/PRs).
+    // Always write English stubs so docs/en/changelog/ stays English-only.
+    const enBody = makeEnChangelogStub(bucketSections, refDefs)
+    const enFileContent = fm + enBody + '\n'
+
+    // For docs/ja/: always use original source content (yuuhitsu will translate in CI)
+    const jaBodyWithRefs = refDefs ? bucketBody + '\n\n' + refDefs : bucketBody
+    const jaFileContent = fm + jaBodyWithRefs + '\n'
 
     if (!unchanged) {
-      writeFileSync(destPath, fileContent)
+      writeFileSync(destPath, enFileContent)
       console.log(`  SYNC: CHANGELOG[${bucket}] → en/${destRelative}`)
       synced++
     } else {
@@ -201,7 +258,7 @@ function syncChangelogPaged(
     }
     // Seed JA copy if missing (will be overwritten by yuuhitsu in CI)
     if (jaMissing) {
-      writeFileSync(jaDestPath, fileContent)
+      writeFileSync(jaDestPath, jaFileContent)
       console.log(`  SEED: CHANGELOG[${bucket}] → ja/${destRelative}`)
     }
   }
@@ -552,7 +609,7 @@ function main() {
   if (existsSync(changelogSrcPath)) {
     const changelogRaw = readFileSync(changelogSrcPath, 'utf-8')
     const mapping = MAPPING_TABLE['CHANGELOG.md']![0]
-    synced += syncChangelogPaged(changelogRaw, outputBase, process.cwd(), mapping.nonAsciiThreshold ?? 0.40)
+    synced += syncChangelogPaged(changelogRaw, outputBase, process.cwd())
   }
 
   console.log(`\nDone: ${synced} files synced, ${skipped} files skipped (no mapping / handled separately).`)
