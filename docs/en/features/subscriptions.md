@@ -49,7 +49,12 @@ EventBridge ─┬─> SubscriptionMatcher -> SQS -> HTTP/MQTT  [existing]
 
 ### Enabling
 
-Event streaming is enabled by default in GeonicDB SaaS. No additional configuration is required.
+Set the `EventStreamingEnabled` parameter to `true` in the SAM template and deploy.
+
+```bash
+sam deploy -t infrastructure/template.yaml \
+  --parameter-overrides EventStreamingEnabled=true
+```
 
 ### Environment Variables
 

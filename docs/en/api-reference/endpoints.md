@@ -145,9 +145,7 @@ curl "http://localhost:3000/v2/entities" \
   -H "Fiware-ServicePath: /Madrid/Gardens"
 ```
 
-#### Hierarchical Search (`/#`
-
-)
+#### Hierarchical Search (`/#`)
 
 Using the `/#` suffix allows searching the specified path and all its child paths (**query operations only**).
 
@@ -348,8 +346,6 @@ Authentication is disabled by default. It can be enabled with the following envi
 | `SUPER_ADMIN_EMAIL` | - | Super admin email address set via environment variable |
 | `SUPER_ADMIN_PASSWORD` | - | Super admin password set via environment variable |
 | `ADMIN_ALLOWED_IPS` | - | IPs/CIDRs allowed to access the Admin API (comma-separated) |
-
-> **SaaS users**: These environment variables are managed via the GeonicDB SaaS console. Direct configuration is not required.
 
 ### Roles and Permissions
 
@@ -691,8 +687,6 @@ Authorization: Bearer <accessToken>
 > **Note**: The custom data model API has moved to `/custom-data-models`. See the [Custom Data Models API](#custom-data-models-api) section for details.
 
 ### IP Restrictions
-
-**SaaS users**: This is configured via the tenant settings API. Contact Geolonia support for details.
 
 By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API (`/admin/*`) to specific IP addresses:
 
@@ -2357,9 +2351,7 @@ Reference: https://github.com/CADDE-sip/connector
 | GET | `/cadde/api/v4/catalog` | Catalog search (cross-domain search / detailed search) |
 | GET | `/cadde/api/v4/entities` | NGSI data exchange |
 
-#### Catalog Search (`/cadde/api/v4/catalog`
-
-)
+#### Catalog Search (`/cadde/api/v4/catalog`)
 
 Specify the search type using the `x-cadde-search` header:
 
@@ -2387,9 +2379,7 @@ curl "http://localhost:3000/cadde/api/v4/catalog?id=sensor" \
   -H "Fiware-Service: smartcity"
 ```
 
-#### NGSI Data Exchange (`/cadde/api/v4/entities`
-
-)
+#### NGSI Data Exchange (`/cadde/api/v4/entities`)
 
 Parses query parameters from the `x-cadde-resource-url` header to retrieve entities.
 

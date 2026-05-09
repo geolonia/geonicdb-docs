@@ -462,7 +462,7 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 
 ## Batch Operations
 
-> **Note**: Batch operations can process up to **`MAX_BATCH_SIZE`** entities per request (default: 100). Requests exceeding this limit will result in a `400 Bad Request` error. 
+> **Note**: Batch operations can process up to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000 via the `MaxBatchSize` SAM parameter). Requests exceeding this limit will result in a `400 Bad Request` error. See DEVELOPMENT.md for configuration details.
 
 ### Batch Update
 
@@ -1169,7 +1169,7 @@ FIWARE NGSIv2-compatible Context Broker API.
 
 ### Batch Operations
 
-> **Note**: Batch operations (excluding query) are limited to **`MAX_BATCH_SIZE`** entities per request (default: 100). Exceeding this limit returns `400 Bad Request`.
+> **Note**: Batch operations (excluding query) are limited to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000). Exceeding this limit returns `400 Bad Request`.
 
 | Endpoint | Method | Description | Success | Error | Pagination |
 |----------|--------|-------------|---------|-------|------------|
