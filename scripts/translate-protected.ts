@@ -181,6 +181,7 @@ function runYuuhitsu(
   tmpOutput: string,
   inputPath: string,
   inputSize: number,
+  extraArgs: string[] = [],
 ): RunResult {
   const yuuhitsuCli = getYuuhitsuCliPath()
 
@@ -197,11 +198,12 @@ function runYuuhitsu(
       '--lang', lang,
       '--output', tmpOutput,
       '--max-chunk-lines', '100',
+      ...extraArgs,
     ]
   } else {
     // Fallback: use npx (may encounter stack overflow on large files)
     cmd = 'npx'
-    args = ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput, '--max-chunk-lines', '100']
+    args = ['yuuhitsu', 'translate', '--input', tmpInput, '--lang', lang, '--output', tmpOutput, '--max-chunk-lines', '100', ...extraArgs]
   }
 
   // Pre-spawn diagnostic log
@@ -274,10 +276,14 @@ function main(): number {
     // Track results across all attempts for final error summary.
     const attemptResults: Array<{ attempt: number; status: number; signal: string | null; stderr: string; elapsed: number }> = []
 
+    // HF3 contextual retry: track fence count diff hint for next attempt
+    let hf3RetryHint: string | undefined
+
     // Attempt translation with retries.
     // Retries address two failure modes:
     //   1. yuuhitsu exits non-zero (transient API error, rate limit, etc.)
     //   2. P-A1 incomplete output (LLM truncated the last chunk; retry produces complete output)
+    //   3. HF3 code fence count mismatch (contextual retry with diff feedback)
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       // Attempt-start diagnostic log
       console.log(
@@ -289,8 +295,14 @@ function main(): number {
         try { if (existsSync(tmpOutput)) rmSync(tmpOutput) } catch { /* ignore */ }
       }
 
+      // Build extra args for contextual retry (HF3 fence count diff feedback)
+      const extraArgs: string[] = []
+      if (hf3RetryHint) {
+        extraArgs.push('--system-prompt-suffix', hf3RetryHint)
+      }
+
       // Run yuuhitsu translate
-      const { status, signal, stderr, elapsed } = runYuuhitsu(tmpInput, lang, tmpOutput, input, inputSize)
+      const { status, signal, stderr, elapsed } = runYuuhitsu(tmpInput, lang, tmpOutput, input, inputSize, extraArgs)
       attemptResults.push({ attempt: attempt + 1, status, signal, stderr, elapsed })
 
       if (status !== 0) {
@@ -375,11 +387,20 @@ function main(): number {
         return 1
       }
 
-      // HF3: validate code block fence count — retry on mismatch, error if all retries exhausted
+      // HF3: validate code block fence count — contextual retry on mismatch, error if all retries exhausted
       const codeBlockCheck = validateCodeBlocks(inputContent, outputContent)
       if (!codeBlockCheck.ok) {
         if (attempt < MAX_RETRIES) {
-          console.warn(`HF3 code fence mismatch on attempt ${attempt + 1}, retrying: ${codeBlockCheck.reason}`)
+          // Extract fence counts from reason string for contextual feedback
+          const fenceMatch = codeBlockCheck.reason.match(/original=(\d+), translated=(\d+)/)
+          if (fenceMatch) {
+            const originalFences = fenceMatch[1]
+            const translatedFences = fenceMatch[2]
+            hf3RetryHint = `FENCE COUNT CORRECTION: The previous translation had ${translatedFences} code fences, but the original has ${originalFences}. You MUST preserve exactly ${originalFences} code fences. Do not add or remove backtick code fence markers (\`\`\`).`
+          } else {
+            hf3RetryHint = `FENCE COUNT CORRECTION: ${codeBlockCheck.reason}. Preserve the original code fence count exactly.`
+          }
+          console.warn(`HF3 code fence mismatch on attempt ${attempt + 1}, retrying with context: ${codeBlockCheck.reason}`)
           continue
         }
         console.error(`::error::HF3 code fence mismatch in ${output}: ${codeBlockCheck.reason}`)
