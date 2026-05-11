@@ -60,7 +60,9 @@ function buildFenceDiffHint(
 
   const transFenceLines: Array<{ lineNum: number; content: string }> = []
   transLines.forEach((line, i) => {
-    if (/^```/.test(line)) transFenceLines.push({ lineNum: i + 1, content: line })
+    const trimmed = line.trimStart()
+    if (/^```/.test(trimmed) || /^>\s*```/.test(trimmed))
+      transFenceLines.push({ lineNum: i + 1, content: line })
   })
 
   const diff = translatedCount - originalCount
