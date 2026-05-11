@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@geolonia/yuuhitsu':
-        specifier: 0.2.4
-        version: 0.2.4(ws@8.19.0)(zod@4.4.2)
+        specifier: ^0.3.1
+        version: 0.3.1(ws@8.19.0)(zod@4.4.2)
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
@@ -490,8 +490,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@geolonia/yuuhitsu@0.2.4':
-    resolution: {integrity: sha512-0KalpMZdKmtQ05tk7rM7CyGN+C5b/sX80YPCQ1wAPvwv5cZ3if9W0VIfD4E318PFv+PNDbPdTsZUeZvRbS4i9w==}
+  '@geolonia/yuuhitsu@0.3.1':
+    resolution: {integrity: sha512-9RaZpxnBW7A7jIDYN4ber1XUwDoS4F3sQZtw5sGMSToenBrdOJiJK1xuMsca94FcAzBGYTXtD6/yjiJ9Iz4l3A==}
     hasBin: true
 
   '@google/genai@0.7.0':
@@ -2505,7 +2505,7 @@ snapshots:
   '@esbuild/win32-x64@0.27.3':
     optional: true
 
-  '@geolonia/yuuhitsu@0.2.4(ws@8.19.0)(zod@4.4.2)':
+  '@geolonia/yuuhitsu@0.3.1(ws@8.19.0)(zod@4.4.2)':
     dependencies:
       '@anthropic-ai/sdk': 0.39.0
       '@google/genai': 0.7.0
