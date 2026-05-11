@@ -393,9 +393,13 @@ function main(): number {
         if (attempt < MAX_RETRIES) {
           // Extract fence counts from reason string for contextual feedback
           const fenceMatch = codeBlockCheck.reason.match(/original=(\d+), translated=(\d+)/)
-          const originalFences = fenceMatch ? fenceMatch[1] : '?'
-          const translatedFences = fenceMatch ? fenceMatch[2] : '?'
-          hf3RetryHint = `FENCE COUNT CORRECTION: The previous translation had ${translatedFences} code fences, but the original has ${originalFences}. You MUST preserve exactly ${originalFences} code fences. Do not add or remove backtick code fence markers (\`\`\`).`
+          if (fenceMatch) {
+            const originalFences = fenceMatch[1]
+            const translatedFences = fenceMatch[2]
+            hf3RetryHint = `FENCE COUNT CORRECTION: The previous translation had ${translatedFences} code fences, but the original has ${originalFences}. You MUST preserve exactly ${originalFences} code fences. Do not add or remove backtick code fence markers (\`\`\`).`
+          } else {
+            hf3RetryHint = `FENCE COUNT CORRECTION: ${codeBlockCheck.reason}. Preserve the original code fence count exactly.`
+          }
           console.warn(`HF3 code fence mismatch on attempt ${attempt + 1}, retrying with context: ${codeBlockCheck.reason}`)
           continue
         }
