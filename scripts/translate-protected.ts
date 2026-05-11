@@ -46,6 +46,44 @@ import { fixEmbeddedFences } from './fix-doc-quality.js'
 /** Maximum number of retry attempts after the first try. */
 const MAX_RETRIES = 2
 
+/**
+ * Build a diff-based HF3 retry hint describing specific extra/missing fence locations.
+ * More targeted than a generic count-only message — tells the LLM exactly where the problem is.
+ */
+function buildFenceDiffHint(
+  originalContent: string,
+  translatedContent: string,
+  originalCount: number,
+  translatedCount: number,
+): string {
+  const transLines = translatedContent.split('\n')
+
+  const transFenceLines: Array<{ lineNum: number; content: string }> = []
+  transLines.forEach((line, i) => {
+    const trimmed = line.trimStart()
+    if (/^```/.test(trimmed) || /^>\s*```/.test(trimmed))
+      transFenceLines.push({ lineNum: i + 1, content: line })
+  })
+
+  const diff = translatedCount - originalCount
+  if (diff > 0) {
+    const extra = transFenceLines.slice(originalCount, originalCount + 5)
+    const fenceList = extra.map(f => `line ${f.lineNum}: \`${f.content}\``).join(', ')
+    return (
+      `FENCE COUNT CORRECTION: Your previous translation added ${diff} unwanted code fence(s) not in the original. ` +
+      `These extra fences appeared at (translated lines): [${fenceList}]. ` +
+      `Remove them and preserve the original ${originalCount} code fence(s) exactly.`
+    )
+  } else {
+    const missing = Math.abs(diff)
+    return (
+      `FENCE COUNT CORRECTION: Your previous translation removed ${missing} code fence(s). ` +
+      `The original has ${originalCount} code fences but your translation only has ${translatedCount}. ` +
+      `Preserve all ${originalCount} code fences exactly.`
+    )
+  }
+}
+
 /** Maximum number of stdout lines to retain in logs (OOM guard for large translated output). */
 const MAX_LOG_LINES = 50
 
@@ -391,12 +429,12 @@ function main(): number {
       const codeBlockCheck = validateCodeBlocks(inputContent, outputContent)
       if (!codeBlockCheck.ok) {
         if (attempt < MAX_RETRIES) {
-          // Extract fence counts from reason string for contextual feedback
-          const fenceMatch = codeBlockCheck.reason.match(/original=(\d+), translated=(\d+)/)
+          // Build diff-based feedback: extract fence counts from reason, then build targeted hint
+          const fenceMatch = codeBlockCheck.reason?.match(/original=(\d+), translated=(\d+)/)
           if (fenceMatch) {
-            const originalFences = fenceMatch[1]
-            const translatedFences = fenceMatch[2]
-            hf3RetryHint = `FENCE COUNT CORRECTION: The previous translation had ${translatedFences} code fences, but the original has ${originalFences}. You MUST preserve exactly ${originalFences} code fences. Do not add or remove backtick code fence markers (\`\`\`).`
+            const originalFences = parseInt(fenceMatch[1], 10)
+            const translatedFences = parseInt(fenceMatch[2], 10)
+            hf3RetryHint = buildFenceDiffHint(inputContent, outputContent, originalFences, translatedFences)
           } else {
             hf3RetryHint = `FENCE COUNT CORRECTION: ${codeBlockCheck.reason}. Preserve the original code fence count exactly.`
           }

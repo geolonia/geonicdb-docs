@@ -410,23 +410,26 @@ describe('validateCodeBlocks (HF3)', () => {
     expect(validateCodeBlocks(original, translated).ok).toBe(true)
   })
 
-  it('fails when translated has fewer code fences than original', () => {
+  it('fails when translated has fewer code blocks than original', () => {
+    // AST-based counting: original has 2 code blocks, translated only has 1
     const original = '```ts\nconst a = 1\n```\n\n```ts\nconst b = 2\n```\n'
-    // Translated missing the closing fence of the second block
-    const translated = '```ts\nconst a = 1\n```\n\n```ts\nconst b = 2\n'
+    const translated = '```ts\nconst a = 1\n```\n\nconst b = 2\n'
     const result = validateCodeBlocks(original, translated)
     expect(result.ok).toBe(false)
     expect(result.reason).toContain('Code fence count mismatch')
-    expect(result.reason).toContain('original=4')
-    expect(result.reason).toContain('translated=3')
+    expect(result.reason).toContain('original=2')
+    expect(result.reason).toContain('translated=1')
   })
 
-  it('fails when translated has more code fences than original', () => {
+  it('fails when translated has more code blocks than original', () => {
+    // AST-based counting: original has 1 code block, translated has 2
     const original = '```ts\nconst a = 1\n```\n'
     const translated = '```ts\nconst a = 1\n```\n\n```\nextra block\n```\n'
     const result = validateCodeBlocks(original, translated)
     expect(result.ok).toBe(false)
     expect(result.reason).toContain('Code fence count mismatch')
+    expect(result.reason).toContain('original=1')
+    expect(result.reason).toContain('translated=2')
   })
 
   it('only counts fences at the start of a line', () => {
