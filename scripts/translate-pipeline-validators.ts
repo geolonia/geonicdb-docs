@@ -9,6 +9,10 @@
 // P-A3: Table structure protection (cell escape + row count validation)
 // ---------------------------------------------------------------------------
 
+import { remark } from 'remark'
+import remarkGfm from 'remark-gfm'
+import { visit } from 'unist-util-visit'
+
 export interface ValidationResult {
   ok: boolean
   reason?: string
@@ -293,15 +297,26 @@ export function validateTableStructure(
 // ---------------------------------------------------------------------------
 
 /**
- * HF3: Validate that the number of code fence markers (```) in translated output
- * matches the original. A mismatch means a chunk boundary broke a code block.
+ * Count code blocks in a markdown string using remark AST ('code' nodes).
+ * More accurate than line-start regex: handles indented/blockquoted fences correctly.
+ */
+function countCodeBlocks(markdown: string): number {
+  const tree = remark().use(remarkGfm).parse(markdown)
+  let count = 0
+  visit(tree, 'code', () => { count++ })
+  return count
+}
+
+/**
+ * HF3: Validate that the number of code blocks in translated output matches the original.
+ * Uses AST-based counting to handle indented/blockquoted code blocks accurately.
  */
 export function validateCodeBlocks(
   originalContent: string,
   translatedContent: string,
 ): ValidationResult {
-  const originalFences = (originalContent.match(/^```/gm) ?? []).length
-  const translatedFences = (translatedContent.match(/^```/gm) ?? []).length
+  const originalFences = countCodeBlocks(originalContent)
+  const translatedFences = countCodeBlocks(translatedContent)
 
   if (originalFences !== translatedFences) {
     return {
