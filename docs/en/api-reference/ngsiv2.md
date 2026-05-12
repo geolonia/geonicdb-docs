@@ -462,7 +462,7 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 
 ## Batch Operations
 
-> **Note**: Batch operations can process up to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000 via the `MaxBatchSize` SAM parameter). Requests exceeding this limit will result in a `400 Bad Request` error. See DEVELOPMENT.md for configuration details.
+> **Note**: Batch operations can process up to **`MAX_BATCH_SIZE`** entities per request (default: 100). Requests exceeding this limit will result in a `400 Bad Request` error. 
 
 ### Batch Update
 
@@ -788,7 +788,7 @@ DELETE /v2/subscriptions/{subscriptionId}
 
 ### Ownership Verification (GeonicDB Extension)
 
-When authentication is enabled (`AUTH_ENABLED=true`), subscription update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See AUTH.md for details.
+When authentication is enabled (`AUTH_ENABLED=true`), subscription update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See [AUTH.md](../reference/auth.md) for details.
 
 ---
 
@@ -903,7 +903,7 @@ DELETE /v2/registrations/{registrationId}
 
 ### Ownership Verification (GeonicDB Extension)
 
-When authentication is enabled (`AUTH_ENABLED=true`), registration update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See AUTH.md for details.
+When authentication is enabled (`AUTH_ENABLED=true`), registration update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See [AUTH.md](../reference/auth.md) for details.
 
 ---
 
@@ -1169,7 +1169,7 @@ FIWARE NGSIv2-compatible Context Broker API.
 
 ### Batch Operations
 
-> **Note**: Batch operations (excluding query) are limited to **`MAX_BATCH_SIZE`** entities per request (default: 100, configurable up to 10,000). Exceeding this limit returns `400 Bad Request`.
+> **Note**: Batch operations (excluding query) are limited to **`MAX_BATCH_SIZE`** entities per request (default: 100). Exceeding this limit returns `400 Bad Request`.
 
 | Endpoint | Method | Description | Success | Error | Pagination |
 |----------|--------|-------------|---------|-------|------------|

@@ -5,58 +5,105 @@ outline: deep
 ---
 # CLI リファレンス
 
-`@geolonia/geonicdb-cli` (`geonic` コマンド) は GeonicDB のためのコマンドラインインターフェースです。NGSI-LD エンティティ、サブスクリプション、登録、時系列データ、バッチ操作、管理機能などへのフルアクセスを提供します。
+`@geolonia/geonicdb-cli` (`geonic` コマンド) は GeonicDB のコマンドラインインターフェースです。NGSI-LD エンティティ、サブスクリプション、レジストレーション、時系列データ、バッチ操作、管理機能などへの完全なアクセスを提供します。
 
-- **リポジトリ**: [geolonia/geonicdb-cli](https://github.com/geolonia/geonicdb-cli)
-- **ランタイム**: Node.js >= 20
-- **パッケージ**: `@geolonia/geonicdb-cli`
+
+* **リポジトリ**: [geolonia/geonicdb-cli](https://github.com/geolonia/geonicdb-cli)
+  
+* **ランタイム**: Node.js >= 20
+  
+* **パッケージ**: `@geolonia/geonicdb-cli`
+
 ## 目次
 
-- [インストール](#インストール)
-- [クイックスタート](#クイックスタート)
-- [グローバルオプション](#グローバルオプション)
-- [設定とプロファイル](#設定とプロファイル)
-  - [設定ファイル](#設定ファイル)
-  - [プロファイル管理](#プロファイル管理)
-  - [環境変数](#環境変数)
-  - [オプション解決順序](#オプション解決順序)
-- [認証](#認証)
-  - [メール / パスワードログイン](#メール--パスワードログイン)
-  - [OAuth 2.0 クライアント認証情報](#oauth-20-クライアント認証情報)
-  - [トークン自動更新](#トークン自動更新)
-  - [ログアウト](#ログアウト)
-- [入力形式](#入力形式)
-- [出力形式](#出力形式)
-- [ドライラン](#ドライラン)
-- [更新通知](#更新通知)
-- [コマンドリファレンス](#コマンドリファレンス)
-  - [entities](#entities)
-  - [entities attrs](#entities-attrs)
-  - [entityOperations (batch)](#entityoperations-batch)
-  - [subscriptions (sub)](#subscriptions-sub)
-  - [registrations (reg)](#registrations-reg)
-  - [types](#types)
-  - [temporal](#temporal)
-  - [snapshots](#snapshots)
-  - [rules](#rules)
-  - [custom-data-models (models)](#custom-data-models-models)
-  - [catalog](#catalog)
-  - [admin](#admin)
-    - [admin tenants](#admin-tenants)
-    - [admin users](#admin-users)
-    - [admin policies](#admin-policies)
-    - [admin oauth-clients](#admin-oauth-clients)
-    - [admin api-keys](#admin-api-keys)
-    - [admin cadde](#admin-cadde)
-  - [health](#health)
-  - [version](#version)
-  - [me](#me)
-    - [me oauth-clients](#me-oauth-clients)
-    - [me api-keys](#me-api-keys)
-  - [help](#help)
-- [シェル補完](#シェル補完)
 
----
+* [インストール](#インストール)
+  
+* [クイックスタート](#クイックスタート)
+  
+* [グローバルオプション](#グローバルオプション)
+  
+* [設定とプロファイル](#設定とプロファイル)
+  
+  * [設定ファイル](#設定ファイル)
+    
+  * [プロファイル管理](#プロファイル管理)
+    
+  * [環境変数](#環境変数)
+    
+  * [オプション解決順序](#オプション解決順序)
+    
+* [認証](#認証)
+  
+  * [メール / パスワードログイン](#email--password-login)
+    
+  * [OAuth 2.0 Client Credentials](#oauth-20-client-credentials)
+    
+  * [トークン自動更新](#トークン自動更新)
+    
+  * [ログアウト](#ログアウト)
+    
+* [入力形式](#入力形式)
+  
+* [出力形式](#出力形式)
+  
+* [ドライラン](#ドライラン)
+  
+* [更新通知](#更新通知)
+  
+* [コマンドリファレンス](#コマンドリファレンス)
+  
+  * [entities](#entities)
+    
+  * [entities attrs](#entities-attrs)
+    
+  * [entityOperations (batch)](#entityoperations-batch)
+    
+  * [subscriptions (sub)](#subscriptions-sub)
+    
+  * [registrations (reg)](#registrations-reg)
+    
+  * [types](#types)
+    
+  * [temporal](#temporal)
+    
+  * [snapshots](#snapshots)
+    
+  * [rules](#rules)
+    
+  * [custom-data-models (models)](#custom-data-models-models)
+    
+  * [catalog](#catalog)
+    
+  * [admin](#admin)
+    
+    * [admin tenants](#admin-tenants)
+      
+    * [admin users](#admin-users)
+      
+    * [admin policies](#admin-policies)
+      
+    * [admin oauth-clients](#admin-oauth-clients)
+      
+    * [admin api-keys](#admin-api-keys)
+      
+    * [admin cadde](#admin-cadde)
+      
+  * [health](#health)
+    
+  * [version](#version)
+    
+  * [me](#me)
+    
+    * [me oauth-clients](#me-oauth-clients)
+      
+    * [me api-keys](#me-api-keys)
+      
+  * [help](#help)
+    
+* [シェル補完](#シェル補完)
+
+***
 
 ## インストール
 
@@ -64,11 +111,12 @@ outline: deep
 npm install -g @geolonia/geonicdb-cli
 ```
 
-または npx で直接実行:
+または npx で直接実行する:
 
 ```bash
 npx @geolonia/geonicdb-cli <command>
 ```
+
 ## クイックスタート
 
 ```bash
@@ -92,31 +140,31 @@ geonic entities list --type Room
 geonic entities get urn:ngsi-ld:Room:001
 ```
 
----
+***
 
 ## グローバルオプション
 
-すべてのコマンドで使用可能です。優先順位のルールについては [オプション解決順序](#オプションの解決順序) を参照してください。
+すべてのコマンドで利用可能です。優先順位ルールについては [Option Resolution Order](#option-resolution-order) を参照してください。
 
-| オプション | 説明 |
-|--------|-------------|
-| `-u, --url <url>` | GeonicDB サーバーのベース URL |
-| `-s, --service <name>` | テナント名 (`NGSILD-Tenant` ヘッダー) |
-| `--token <token>` | 認証トークン |
-| `-p, --profile <name>` | 使用する名前付きプロファイル |
-| `--api-key <key>` | API キー認証 |
-| `-f, --format <fmt>` | 出力形式: `json`、`table`、`geojson` |
-| `--no-color` | 色付き出力を無効化 |
-| `-v, --verbose` | HTTP リクエスト/レスポンスの詳細を stderr に表示 (機密値はマスクされます) |
-| `--dry-run` | リクエストを実行せずに同等の `curl` コマンドを出力 |
+| Option                 | Description                                                                |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `-u, --url <url>`      | GeonicDB server base URL                                                   |
+| `-s, --service <name>` | Tenant name (`NGSILD-Tenant` header)                                       |
+| `--token <token>`      | Authentication token                                                       |
+| `-p, --profile <name>` | Named profile to use                                                       |
+| `--api-key <key>`      | API key authentication                                                     |
+| `-f, --format <fmt>`   | Output format: `json`, `table`, `geojson`                                  |
+| `--no-color`           | Disable colored output                                                     |
+| `-v, --verbose`        | Show HTTP request/response details on stderr (sensitive values are masked) |
+| `--dry-run`            | Print the equivalent `curl` command without executing the request          |
 
----
+***
 
 ## 設定とプロファイル
 
 ### 設定ファイル
 
-CLI は `~/.config/geonic/config.json` に設定を保存します。`GEONIC_CONFIG_DIR` 環境変数でディレクトリを上書きできます。
+CLI は設定を `~/.config/geonic/config.json` に保存します。`GEONIC_CONFIG_DIR` 環境変数でディレクトリを上書きできます。
 
 ```json
 {
@@ -135,91 +183,86 @@ CLI は `~/.config/geonic/config.json` に設定を保存します。`GEONIC_CON
 }
 ```
 
-**設定キー**: `url`, `service`, `token`, `refreshToken`, `format`, `apiKey`, `clientId`, `clientSecret`
-#
+**設定キー**: `url`、`service`、`token`、`refreshToken`、`format`、`apiKey`、`clientId`、`clientSecret`
 
-### `geonic config set <key> <value>`
-設定値を保存します。機密性の高い値(`token`, `refreshToken`, `apiKey`, `clientId`, `clientSecret`)は出力時にマスクされます。
+#### `geonic config set <key> <value>`
 
-#
+設定値を保存します。機密値(`token`、`refreshToken`、`apiKey`、`clientId`、`clientSecret`)は出力時にマスクされます。
 
-### `geonic config get <key>`
+#### `geonic config get <key>`
+
 設定値を取得します。
 
-#
+#### `geonic config list`
 
-### `geonic config list`
 現在のプロファイルのすべての設定値を表示します。
 
-#
+#### `geonic config delete <key>`
 
-### `geonic config delete <key>`
 設定値を削除します。
 
 ### プロファイル管理
 
-複数の接続プロファイル(例:本番環境、ステージング環境、開発環境)を管理します。デフォルトのプロファイルは `default` という名前で、削除できません。
+複数の接続プロファイル(例:本番、ステージング、開発)を管理します。デフォルトのプロファイルは `default` という名前で、削除できません。
 
-#
+#### `geonic profile list`
 
-### `geonic profile list`
-すべてのプロファイルをリスト表示します。アクティブなプロファイルは `*` でマークされます。
+すべてのプロファイルを一覧表示します。アクティブなプロファイルには `*` が付きます。
 
-#
+#### `geonic profile use <name>`
 
-### `geonic profile use <name>`
 アクティブなプロファイルを切り替えます。
 
-#
+#### `geonic profile create <name>`
 
-### `geonic profile create <name>`
 新しい空のプロファイルを作成します。
 
-#
+#### `geonic profile delete <name>`
 
-### `geonic profile delete <name>`
 プロファイルを削除します。`default` プロファイルは削除できません。
 
-#
+#### `geonic profile show [name]`
 
-### `geonic profile show [name]`
-プロファイル設定を表示します。デフォルトではアクティブなプロファイルが対象です。機密性の高い値はマスクされます。
+プロファイルの設定を表示します。デフォルトではアクティブなプロファイルが対象です。機密値はマスクされます。
 
 ### 環境変数
 
-| 変数 | 説明 |
-|----------|-------------|
-| `GDB_EMAIL` | ログイン用メールアドレス |
-| `GDB_PASSWORD` | ログイン用パスワード |
-| `GDB_OAUTH_CLIENT_ID` | OAuth Client Credentials のクライアント ID |
-| `GDB_OAUTH_CLIENT_SECRET` | OAuth Client Credentials のクライアントシークレット |
-| `GDB_API_KEY` | API キー(`--api-key` と同等) |
-| `GEONIC_CONFIG_DIR` | 設定ディレクトリパスを上書き |
-| `NO_UPDATE_NOTIFIER` | 更新通知を無効化 |
+| Variable                  | Description                            |
+| ------------------------- | -------------------------------------- |
+| `GDB_EMAIL`               | Email address for login                |
+| `GDB_PASSWORD`            | Password for login                     |
+| `GDB_OAUTH_CLIENT_ID`     | OAuth Client Credentials client ID     |
+| `GDB_OAUTH_CLIENT_SECRET` | OAuth Client Credentials client secret |
+| `GDB_API_KEY`             | API key (equivalent to `--api-key`)    |
+| `GEONIC_CONFIG_DIR`       | Override config directory path         |
+| `NO_UPDATE_NOTIFIER`      | Disable the update notifier            |
 
-### オプションの解決順序
+### オプション解決順序
 
-値は次の順序で解決されます(優先度の高い順):
+値は以下の順序で解決されます(優先度の高い順):
 
-1. CLI フラグ(`--url`, `--token` など)
+
+1. CLI フラグ(`--url`、`--token` など)
+   
 2. 設定ファイル(プロファイル設定)
+   
 3. デフォルト値
 
----
+***
 
 ## 認証
 
-### メール / パスワード ログイン
+### メールアドレス / パスワードログイン
 
 ```bash
 geonic auth login
 ```
 
-ターミナルで実行する場合、CLI はメールアドレスとパスワードを対話形式で入力するよう促します。非対話環境では、`GDB_EMAIL` と `GDB_PASSWORD` 環境変数を設定してください。
+ターミナルで実行する場合、CLI はメールアドレスとパスワードを対話的に入力するよう求めます。非対話環境では、`GDB_EMAIL` と `GDB_PASSWORD` 環境変数を設定してください。
 
 CLI は `POST /auth/login` を呼び出し、受信した `accessToken` と `refreshToken` を設定ファイルに保存します。
 
-### OAuth 2.0 クライアント認証情報
+### OAuth 2.0 Client Credentials
 
 ```bash
 geonic auth login --client-credentials \
@@ -228,21 +271,21 @@ geonic auth login --client-credentials \
   --scope "read write"
 ```
 
-OAuth 2.0 クライアント認証情報フロー (`POST /oauth/token`) を使用します。クライアント ID とシークレットは、`GDB_OAUTH_CLIENT_ID` と `GDB_OAUTH_CLIENT_SECRET` 環境変数でも設定可能です。
+OAuth 2.0 Client Credentials フロー(`POST /oauth/token`)を使用します。Client ID と secret は `GDB_OAUTH_CLIENT_ID` と `GDB_OAUTH_CLIENT_SECRET` 環境変数でも設定できます。
 
-| オプション | 説明 |
-|--------|-------------|
-| `--client-credentials` | クライアント認証情報フローを使用 |
-| `--client-id <id>` | OAuth クライアント ID |
-| `--client-secret <secret>` | OAuth クライアント シークレット |
-| `--scope <scopes>` | OAuth スコープ (スペース区切り) |
-| `--tenant-id <id>` | スコープ認証用のテナント ID |
+| Option                     | Description                         |
+| -------------------------- | ----------------------------------- |
+| `--client-credentials`     | Use Client Credentials flow         |
+| `--client-id <id>`         | OAuth client ID                     |
+| `--client-secret <secret>` | OAuth client secret                 |
+| `--scope <scopes>`         | OAuth scopes (space-separated)      |
+| `--tenant-id <id>`         | Tenant ID for scoped authentication |
 
-### トークンの自動更新
+### トークン自動更新
 
-リクエストが 401 Unauthorized を返し、`refreshToken` が利用可能な場合、CLI は自動的に `POST /auth/refresh` 経由でトークンを更新し、リクエストを再試行します。
+リクエストが 401 Unauthorized を返し、`refreshToken` が利用可能な場合、CLI は `POST /auth/refresh` 経由でトークンを自動的に更新し、リクエストを再試行します。
 
-設定ファイルに `clientId` と `clientSecret` が保存されている場合 (例: `geonic me oauth-clients create --save` 経由)、CLI はトークンの有効期限が切れたときに自動的にクライアント認証情報フローを使用して再認証します。
+`clientId` と `clientSecret` が設定に保存されている場合(例:`geonic me oauth-clients create --save` 経由)、CLI はトークンの有効期限が切れると Client Credentials フローを使用して自動的に再認証します。
 
 ### ログアウト
 
@@ -250,13 +293,13 @@ OAuth 2.0 クライアント認証情報フロー (`POST /oauth/token`) を使�
 geonic auth logout
 ```
 
-保存されたトークンをクリアし、ベストエフォートでサーバーにログアウト通知を送信します。
+保存されたトークンをクリアし、サーバーにベストエフォートのログアウト通知を送信します。
 
----
+***
 
-## 入力フォーマット
+## 入力形式
 
-`[json]` 引数を受け付けるコマンドは、複数の入力方法をサポートしています。CLI は入力元を自動検出します:
+`[json]` 引数を受け入れるコマンドは、複数の入力方法をサポートしています。CLI は入力元を自動検出します:
 
 ### インライン JSON / JSON5
 
@@ -264,19 +307,19 @@ geonic auth logout
 geonic entities create '{"id": "urn:ngsi-ld:Room:001", "type": "Room"}'
 ```
 
-JSON5 をサポート: クォートなしのキー、シングルクォート、末尾のカンマ、コメントが使用可能です。
+JSON5 がサポートされています:引用符なしのキー、シングルクォート、末尾のカンマ、コメント。
 
 ```bash
 geonic entities create '{id: "urn:ngsi-ld:Room:001", type: "Room",}'
 ```
 
-### ファイル入力 (`@` プレフィックス)
+### ファイル入力(`@` プレフィックス)
 
 ```bash
 geonic entities create @entity.json
 ```
 
-### 標準入力 (パイプ)
+### 標準入力(パイプ)
 
 ```bash
 cat entity.json | geonic entities create
@@ -290,27 +333,27 @@ cat entity.json | geonic entities create -
 
 ### 対話モード
 
-CLI がターミナルに接続されていて、JSON 引数が提供されていない場合、対話形式の `json>` プロンプトが開きます。ブラケットがバランスしたときに入力が自動送信されます。
+CLI がターミナルに接続されており、JSON 引数が提供されていない場合、対話的な `json>` プロンプトが開きます。括弧のバランスが取れると入力は自動的に送信されます。
 
----
+***
 
-## 出力フォーマット
+## 出力形式
 
 `--format` または `geonic config set format <fmt>` で設定します。
 
-| フォーマット | 説明 |
-|--------|-------------|
-| `json` (デフォルト) | 整形された JSON |
-| `table` | ASCII テーブル (配列は列、オブジェクトはキー・バリュー ペアとして表示) |
-| `geojson` | GeoJSON FeatureCollection (`location` 属性をジオメトリに変換) |
+| Format           | Description                                                           |
+| ---------------- | --------------------------------------------------------------------- |
+| `json` (default) | Pretty-printed JSON                                                   |
+| `table`          | ASCII table (arrays as columns, objects as key-value pairs)           |
+| `geojson`        | GeoJSON FeatureCollection (converts `location` attribute to geometry) |
 
-`--count` を使用する場合、`NGSILD-Results-Count` レスポンスヘッダーが `Count: N` として表示されます。
+`--count` を使用すると、`NGSILD-Results-Count` レスポンスヘッダーが `Count: N` として表示されます。
 
----
+***
 
 ## ドライラン
 
-任意のコマンドで `--dry-run` を使用すると、リクエストを実行する代わりに、同等の `curl` コマンドを出力します。出力はコピーしてターミナルで直接実行できます。
+任意のコマンドで `--dry-run` を使用すると、リクエストを実行する代わりに同等の `curl` コマンドが表示されます。出力はコピーしてターミナルで直接実行できます。
 
 ```bash
 $ geonic entities list --type Sensor --dry-run
@@ -333,40 +376,40 @@ curl \
   'http://localhost:3000/ngsi-ld/v1/entities'
 ```
 
----
+***
 
 ## 更新通知
 
-CLI は 24 時間ごとに新しいバージョンをチェックし、アップデートが利用可能な場合に通知ボックスを表示します。チェックは CI 環境および非 TTY ターミナルではスキップされます。`NO_UPDATE_NOTIFIER=1` を設定することで無効化できます。
+CLI は 24 時間ごとに新しいバージョンをチェックし、アップデートが利用可能な場合は通知ボックスを表示します。このチェックは CI 環境および非 TTY ターミナルではスキップされます。`NO_UPDATE_NOTIFIER=1` を設定することで無効化できます。
 
----
+***
 
 ## コマンドリファレンス
 
 ### `entities`
+
 NGSI-LD コンテキストエンティティ (`/ngsi-ld/v1/entities`) を管理します。
 
-#
+#### `geonic entities list`
 
-### `geonic entities list`
-オプションのフィルタを使用してエンティティをリストします。
+オプションのフィルターを使用してエンティティをリストします。
 
-| オプション | 説明 |
-|--------|-------------|
-| `--type <type>` | エンティティタイプでフィルタ |
-| `--id-pattern <pat>` | エンティティ ID パターンでフィルタ (正規表現) |
-| `--query <q>` | NGSI クエリ式 (例: `temperature>30`) |
-| `--attrs <a,b>` | 返す属性のカンマ区切りリスト |
-| `--georel <rel>` | ジオリレーションシップ (例: `near;maxDistance==1000`) |
-| `--geometry <geo>` | ジオメトリタイプ (例: `Point`、`Polygon`) |
-| `--coords <coords>` | ジオクエリの座標 |
-| `--spatial-id <zfxy>` | 空間 ID フィルタ (ZFXY タイル形式、例: `15/0/29101/12903`) |
-| `--limit <n>` | 最大結果数 |
-| `--offset <n>` | スキップする結果数 |
-| `--order-by <field>` | ソートフィールド |
-| `--count` | レスポンスに合計カウントを含める |
-| `--count-only` | エンティティをリストせず合計カウントのみを表示 |
-| `--key-values` | 簡略化されたキー・バリュー形式で返す |
+| Option                | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `--type <type>`       | Filter by entity type                                          |
+| `--id-pattern <pat>`  | Filter by entity ID pattern (regex)                            |
+| `--query <q>`         | NGSI query expression (e.g., `temperature>30`)                 |
+| `--attrs <a,b>`       | Comma-separated list of attributes to return                   |
+| `--georel <rel>`      | Geo-relation (e.g., `near;maxDistance==1000`)                  |
+| `--geometry <geo>`    | Geometry type (e.g., `Point`, `Polygon`)                       |
+| `--coords <coords>`   | Coordinates for geo-query                                      |
+| `--spatial-id <zfxy>` | Spatial ID filter (ZFXY tile format, e.g., `15/0/29101/12903`) |
+| `--limit <n>`         | Maximum number of results                                      |
+| `--offset <n>`        | Number of results to skip                                      |
+| `--order-by <field>`  | Sort field                                                     |
+| `--count`             | Include total count in response                                |
+| `--count-only`        | Only show the total count without listing entities             |
+| `--key-values`        | Return simplified key-value format                             |
 
 ```bash
 # List all Room entities
@@ -382,18 +425,16 @@ geonic entities list --query "temperature>25" --limit 10 --offset 0 --count
 geonic entities list --type Sensor --count-only
 ```
 
-#
+#### `geonic entities get <id>`
 
-### `geonic entities get <id>`
-ID で単一のエンティティを取得します。
+ID により単一のエンティティを取得します。
 
-| オプション | 説明 |
-|--------|-------------|
-| `--key-values` | 簡略化されたキー・バリュー形式で返す |
+| Option         | Description                        |
+| -------------- | ---------------------------------- |
+| `--key-values` | Return simplified key-value format |
 
-#
+#### `geonic entities create [json]`
 
-### `geonic entities create [json]`
 新しいエンティティを作成します。
 
 ```bash
@@ -408,42 +449,39 @@ geonic entities create '{
 }'
 ```
 
-#
+#### `geonic entities update <id> [json]`
 
-### `geonic entities update <id> [json]`
-エンティティ属性を部分的に更新します (`PATCH /entities/{id}/attrs`)。
+エンティティの属性を部分的に更新します (`PATCH /entities/{id}/attrs`)。
 
 ```bash
 geonic entities update urn:ngsi-ld:Room:001 '{"temperature": {"type": "Property", "value": 25.0}}'
 ```
 
-#
+#### `geonic entities replace <id> [json]`
 
-### `geonic entities replace <id> [json]`
-すべてのエンティティ属性を置き換えます (`PUT /entities/{id}/attrs`)。
+エンティティの全ての属性を置き換えます (`PUT /entities/{id}/attrs`)。
 
-#
+#### `geonic entities upsert [json]`
 
-### `geonic entities upsert [json]`
 エンティティを作成または更新します (`POST /entityOperations/upsert`)。
 
-#
+#### `geonic entities delete <id>`
 
-### `geonic entities delete <id>`
 エンティティを削除します。
 
----
+***
 
 ### `entities attrs`
+
 エンティティの個別の属性を管理します。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic entities attrs list <entityId>` | すべての属性をリスト |
-| `geonic entities attrs get <entityId> <attrName>` | 特定の属性を取得 |
-| `geonic entities attrs add <entityId> [json]` | 属性を追加 |
-| `geonic entities attrs update <entityId> <attrName> [json]` | 特定の属性を更新 |
-| `geonic entities attrs delete <entityId> <attrName>` | 特定の属性を削除 |
+| Command                                                     | Description                 |
+| ----------------------------------------------------------- | --------------------------- |
+| `geonic entities attrs list <entityId>`                     | List all attributes         |
+| `geonic entities attrs get <entityId> <attrName>`           | Get a specific attribute    |
+| `geonic entities attrs add <entityId> [json]`               | Add attributes              |
+| `geonic entities attrs update <entityId> <attrName> [json]` | Update a specific attribute |
+| `geonic entities attrs delete <entityId> <attrName>`        | Delete a specific attribute |
 
 ```bash
 # Get the temperature attribute
@@ -453,21 +491,20 @@ geonic entities attrs get urn:ngsi-ld:Room:001 temperature
 geonic entities attrs update urn:ngsi-ld:Room:001 temperature '{"type": "Property", "value": 26.0}'
 ```
 
----
+***
 
-### `entityOperations`
- (バッチ)
+### `entityOperations` (batch)
 
-エンティティのバッチ操作 (`/ngsi-ld/v1/entityOperations`)。エイリアス: `batch`。
+エンティティのバッチ操作 (`/ngsi-ld/v1/entityOperations`)。エイリアス:`batch`。
 
-| コマンド | HTTP | 説明 |
-|---------|------|-------------|
-| `geonic batch create [json]` | POST `/entityOperations/create` | 複数のエンティティを作成 |
-| `geonic batch upsert [json]` | POST `/entityOperations/upsert` | 複数のエンティティを作成または更新 |
-| `geonic batch update [json]` | POST `/entityOperations/update` | 複数のエンティティを更新 |
-| `geonic batch delete [json]` | POST `/entityOperations/delete` | 複数のエンティティを削除 |
-| `geonic batch query [json]` | POST `/entityOperations/query` | POST でエンティティをクエリ |
-| `geonic batch merge [json]` | POST `/entityOperations/merge` | 複数のエンティティをマージ |
+| Command                      | HTTP                            | Description                        |
+| ---------------------------- | ------------------------------- | ---------------------------------- |
+| `geonic batch create [json]` | POST `/entityOperations/create` | Create multiple entities           |
+| `geonic batch upsert [json]` | POST `/entityOperations/upsert` | Create or update multiple entities |
+| `geonic batch update [json]` | POST `/entityOperations/update` | Update multiple entities           |
+| `geonic batch delete [json]` | POST `/entityOperations/delete` | Delete multiple entities           |
+| `geonic batch query [json]`  | POST `/entityOperations/query`  | Query entities by POST             |
+| `geonic batch merge [json]`  | POST `/entityOperations/merge`  | Merge multiple entities            |
 
 ```bash
 # Batch create entities from a file
@@ -477,22 +514,22 @@ geonic batch create @entities.json
 cat entities.json | geonic batch upsert
 ```
 
----
+***
 
-### `subscriptions`
- (sub)
+### `subscriptions` (sub)
 
-コンテキストサブスクリプション (`/ngsi-ld/v1/subscriptions`) を管理します。エイリアス: `sub`。
+コンテキストサブスクリプションを管理 (`/ngsi-ld/v1/subscriptions`)。エイリアス:`sub`。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic sub list` | サブスクリプションの一覧表示 |
-| `geonic sub get <id>` | サブスクリプションの取得 |
-| `geonic sub create [json]` | サブスクリプションの作成 |
-| `geonic sub update <id> [json]` | サブスクリプションの更新 |
-| `geonic sub delete <id>` | サブスクリプションの削除 |
+| Command                         | Description           |
+| ------------------------------- | --------------------- |
+| `geonic sub list`               | List subscriptions    |
+| `geonic sub get <id>`           | Get a subscription    |
+| `geonic sub create [json]`      | Create a subscription |
+| `geonic sub update <id> [json]` | Update a subscription |
+| `geonic sub delete <id>`        | Delete a subscription |
 
-**`sub list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
+**`sub list` オプション**:`--limit <n>`、`--offset <n>`、`--count`
+
 ```bash
 geonic sub create '{
   "type": "Subscription",
@@ -504,57 +541,58 @@ geonic sub create '{
 }'
 ```
 
----
+***
 
-### `registrations`
- (reg)
+### `registrations` (reg)
 
-コンテキストソース登録 (`/ngsi-ld/v1/csourceRegistrations`) を管理します。エイリアス: `reg`。
+コンテキストソース登録を管理 (`/ngsi-ld/v1/csourceRegistrations`)。エイリアス:`reg`。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic reg list` | 登録の一覧表示 |
-| `geonic reg get <id>` | 登録の取得 |
-| `geonic reg create [json]` | 登録の作成 |
-| `geonic reg update <id> [json]` | 登録の更新 |
-| `geonic reg delete <id>` | 登録の削除 |
+| Command                         | Description           |
+| ------------------------------- | --------------------- |
+| `geonic reg list`               | List registrations    |
+| `geonic reg get <id>`           | Get a registration    |
+| `geonic reg create [json]`      | Create a registration |
+| `geonic reg update <id> [json]` | Update a registration |
+| `geonic reg delete <id>`        | Delete a registration |
 
-**`reg list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
----
+**`reg list` オプション**:`--limit <n>`、`--offset <n>`、`--count`
+
+***
 
 ### `types`
-利用可能なエンティティタイプを照会します (`/ngsi-ld/v1/types`)。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic types list` | すべてのエンティティタイプの一覧表示 |
-| `geonic types get <typeName>` | 特定のタイプの詳細を取得 |
+利用可能なエンティティタイプをクエリ (`/ngsi-ld/v1/types`)。
 
----
+| Command                       | Description                     |
+| ----------------------------- | ------------------------------- |
+| `geonic types list`           | List all entity types           |
+| `geonic types get <typeName>` | Get details for a specific type |
+
+***
 
 ### `temporal`
-時系列エンティティデータを管理します (`/ngsi-ld/v1/temporal`)。
 
-#
+時系列(時系列)エンティティデータを管理します(`/ngsi-ld/v1/temporal`)。
 
-### `geonic temporal entities list`
-時系列エンティティの一覧を取得します。
+#### `geonic temporal entities list`
 
-| オプション | 説明 |
-|--------|-------------|
-| `--type <type>` | エンティティタイプでフィルタリング |
-| `--attrs <a,b>` | 返却する属性 |
-| `--query <q>` | NGSI クエリ式 |
-| `--georel <rel>` | 地理的関係 |
-| `--geometry <geo>` | ジオメトリタイプ |
-| `--coords <coords>` | 座標 |
-| `--time-rel <rel>` | 時間的関係: `before`、`after`、`between` |
-| `--time-at <time>` | 開始時刻 (ISO 8601) |
-| `--end-time-at <time>` | 終了時刻 (ISO 8601) |
-| `--last-n <n>` | 最新の N 個の時系列値を返却 |
-| `--limit <n>` | 結果の最大数 |
-| `--offset <n>` | スキップする結果の数 |
-| `--count` | 合計カウントを含める |
+時系列エンティティを一覧表示します。
+
+| Option                 | Description                                     |
+| ---------------------- | ----------------------------------------------- |
+| `--type <type>`        | Filter by entity type                           |
+| `--attrs <a,b>`        | Attributes to return                            |
+| `--query <q>`          | NGSI query expression                           |
+| `--georel <rel>`       | Geo-relation                                    |
+| `--geometry <geo>`     | Geometry type                                   |
+| `--coords <coords>`    | Coordinates                                     |
+| `--time-rel <rel>`     | Temporal relation: `before`, `after`, `between` |
+| `--time-at <time>`     | Start time (ISO 8601)                           |
+| `--end-time-at <time>` | End time (ISO 8601)                             |
+| `--last-n <n>`         | Return last N temporal values                   |
+| `--limit <n>`          | Maximum number of results                       |
+| `--offset <n>`         | Number of results to skip                       |
+| `--count`              | Include total count                             |
 
 ```bash
 # Get temperature history for the last hour
@@ -564,31 +602,28 @@ geonic temporal entities get urn:ngsi-ld:Room:001 \
   --time-at 2026-01-01T00:00:00Z
 ```
 
-#
+#### `geonic temporal entities get <id>`
 
-### `geonic temporal entities get <id>`
 エンティティの時系列表現を取得します。
 
-**オプション**: `--attrs`、`--time-rel`、`--time-at`、`--end-time-at`、`--last-n`
-#
+**オプション**: `--attrs`, `--time-rel`, `--time-at`, `--end-time-at`, `--last-n`
 
-### `geonic temporal entities create [json]`
+#### `geonic temporal entities create [json]`
+
 時系列エンティティを作成します。
 
-#
+#### `geonic temporal entities delete <id>`
 
-### `geonic temporal entities delete <id>`
 時系列エンティティを削除します。
 
-#
+#### `geonic temporal entityOperations query [json]`
 
-### `geonic temporal entityOperations query [json]`
-集約サポート付きで POST による時系列エンティティのクエリを実行します。
+集約サポート付きで POST によって時系列エンティティをクエリします。
 
-| オプション | 説明 |
-|--------|-------------|
-| `--aggr-methods <methods>` | 集約メソッド (例: `totalCount,sum,avg`) |
-| `--aggr-period <period>` | 集約期間 (ISO 8601、例: `PT1H`) |
+| Option                     | Description                                          |
+| -------------------------- | ---------------------------------------------------- |
+| `--aggr-methods <methods>` | Aggregation methods (e.g., `totalCount,sum,avg`)     |
+| `--aggr-period <period>`   | Aggregation period duration (ISO 8601, e.g., `PT1H`) |
 
 ```bash
 # Hourly average temperature
@@ -597,136 +632,135 @@ geonic temporal entityOperations query @query.json \
   --aggr-period PT1H
 ```
 
----
+***
 
 ### `snapshots`
+
 エンティティスナップショットを管理します。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic snapshots list` | スナップショットの一覧を取得 |
-| `geonic snapshots get <id>` | スナップショットを取得 |
-| `geonic snapshots create` | 新しいスナップショットを作成 |
-| `geonic snapshots delete <id>` | スナップショットを削除 |
-| `geonic snapshots clone <id>` | スナップショットをクローン |
+| Command                        | Description           |
+| ------------------------------ | --------------------- |
+| `geonic snapshots list`        | List snapshots        |
+| `geonic snapshots get <id>`    | Get a snapshot        |
+| `geonic snapshots create`      | Create a new snapshot |
+| `geonic snapshots delete <id>` | Delete a snapshot     |
+| `geonic snapshots clone <id>`  | Clone a snapshot      |
 
-**`snapshots list` のオプション**: `--limit <n>`、`--offset <n>`
----
+**`snapshots list` オプション**: `--limit <n>`, `--offset <n>`
+
+***
 
 ### `rules`
-ReactiveCore ルールを管理します。詳細は ReactiveCore Rules を参照してください。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic rules list` | すべてのルールを一覧表示 |
-| `geonic rules get <id>` | ルールを取得 |
-| `geonic rules create [json]` | ルールを作成 |
-| `geonic rules update <id> [json]` | ルールを更新 |
-| `geonic rules delete <id>` | ルールを削除 |
-| `geonic rules activate <id>` | ルールを有効化 |
-| `geonic rules deactivate <id>` | ルールを無効化 |
+ReactiveCore Rules を管理します。詳細については [ReactiveCore Rules](../features/reactivcore-rules.md) を参照してください。
 
----
+| Command                           | Description       |
+| --------------------------------- | ----------------- |
+| `geonic rules list`               | List all rules    |
+| `geonic rules get <id>`           | Get a rule        |
+| `geonic rules create [json]`      | Create a rule     |
+| `geonic rules update <id> [json]` | Update a rule     |
+| `geonic rules delete <id>`        | Delete a rule     |
+| `geonic rules activate <id>`      | Activate a rule   |
+| `geonic rules deactivate <id>`    | Deactivate a rule |
+
+***
 
 ### `custom-data-models` (models)
 
 カスタムデータモデルを管理します。エイリアス: `models`。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic models list` | すべてのデータモデルを一覧表示 |
-| `geonic models get <id>` | データモデルを取得 |
-| `geonic models create [json]` | データモデルを作成 |
-| `geonic models update <id> [json]` | データモデルを更新 |
-| `geonic models delete <id>` | データモデルを削除 |
+| Command                            | Description          |
+| ---------------------------------- | -------------------- |
+| `geonic models list`               | List all data models |
+| `geonic models get <id>`           | Get a data model     |
+| `geonic models create [json]`      | Create a data model  |
+| `geonic models update <id> [json]` | Update a data model  |
+| `geonic models delete <id>`        | Delete a data model  |
 
----
+***
 
-### DCAT-AP
+### `catalog`
 
-DCAT-AP データカタログを参照します。
+DCAT-AP データカタログを閲覧します。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic catalog get` | カタログを取得する |
-| `geonic catalog datasets list` | データセットを一覧表示する |
-| `geonic catalog datasets get <id>` | データセットを取得する |
-| `geonic catalog datasets sample <id>` | データセットからサンプルを取得する |
+| Command                               | Description                 |
+| ------------------------------------- | --------------------------- |
+| `geonic catalog get`                  | Get the catalog             |
+| `geonic catalog datasets list`        | List datasets               |
+| `geonic catalog datasets get <id>`    | Get a dataset               |
+| `geonic catalog datasets sample <id>` | Get a sample from a dataset |
 
----
+***
 
 ### `admin`
-管理操作。`tenant_admin` または `super_admin` ロールが必要です。詳細は認証・認可ガイドを参照してください。
 
-#
+管理操作。`tenant_admin` または `super_admin` ロールが必要です。詳細は [Authentication & Authorization Guide](./auth.md) を参照してください。
 
-### `admin tenants`
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic admin tenants list` | テナント一覧を取得 |
-| `geonic admin tenants get <id>` | テナントを取得 |
-| `geonic admin tenants create [json]` | テナントを作成 |
-| `geonic admin tenants update <id> [json]` | テナントを更新 |
-| `geonic admin tenants delete <id>` | テナントを削除 |
-| `geonic admin tenants activate <id>` | テナントを有効化 |
-| `geonic admin tenants deactivate <id>` | テナントを無効化 |
+#### `admin tenants`
 
-#
+| Command                                   | Description         |
+| ----------------------------------------- | ------------------- |
+| `geonic admin tenants list`               | List tenants        |
+| `geonic admin tenants get <id>`           | Get a tenant        |
+| `geonic admin tenants create [json]`      | Create a tenant     |
+| `geonic admin tenants update <id> [json]` | Update a tenant     |
+| `geonic admin tenants delete <id>`        | Delete a tenant     |
+| `geonic admin tenants activate <id>`      | Activate a tenant   |
+| `geonic admin tenants deactivate <id>`    | Deactivate a tenant |
 
-### `admin users`
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic admin users list` | ユーザー一覧を取得 |
-| `geonic admin users get <id>` | ユーザーを取得 |
-| `geonic admin users create [json]` | ユーザーを作成 |
-| `geonic admin users update <id> [json]` | ユーザーを更新 |
-| `geonic admin users delete <id>` | ユーザーを削除 |
-| `geonic admin users activate <id>` | ユーザーを有効化 |
-| `geonic admin users deactivate <id>` | ユーザーを無効化 |
-| `geonic admin users unlock <id>` | ロックされたユーザーをアンロック |
+#### `admin users`
 
-#
+| Command                                 | Description          |
+| --------------------------------------- | -------------------- |
+| `geonic admin users list`               | List users           |
+| `geonic admin users get <id>`           | Get a user           |
+| `geonic admin users create [json]`      | Create a user        |
+| `geonic admin users update <id> [json]` | Update a user        |
+| `geonic admin users delete <id>`        | Delete a user        |
+| `geonic admin users activate <id>`      | Activate a user      |
+| `geonic admin users deactivate <id>`    | Deactivate a user    |
+| `geonic admin users unlock <id>`        | Unlock a locked user |
 
-### `admin policies`
-XACML ポリシー管理。詳細は XACML ポリシーベース認可を参照してください。
+#### `admin policies`
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic admin policies list` | ポリシー一覧を取得 |
-| `geonic admin policies get <id>` | ポリシーを取得 |
-| `geonic admin policies create [json]` | ポリシーを作成 |
-| `geonic admin policies update <id> [json]` | ポリシーを更新 |
-| `geonic admin policies delete <id>` | ポリシーを削除 |
-| `geonic admin policies activate <id>` | ポリシーを有効化 |
-| `geonic admin policies deactivate <id>` | ポリシーを無効化 |
+XACML ポリシー管理。詳細は [XACML Policy-Based Authorization](./auth.md#xacml-policy-based-authorization) を参照してください。
 
-#
+| Command                                    | Description         |
+| ------------------------------------------ | ------------------- |
+| `geonic admin policies list`               | List policies       |
+| `geonic admin policies get <id>`           | Get a policy        |
+| `geonic admin policies create [json]`      | Create a policy     |
+| `geonic admin policies update <id> [json]` | Update a policy     |
+| `geonic admin policies delete <id>`        | Delete a policy     |
+| `geonic admin policies activate <id>`      | Activate a policy   |
+| `geonic admin policies deactivate <id>`    | Deactivate a policy |
 
-### `admin oauth-clients`
-OAuth 2.0 クライアント管理。詳細は OAuth 2.0 M2M 認証を参照してください。
+#### `admin oauth-clients`
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic admin oauth-clients list` | OAuth クライアント一覧を取得 |
-| `geonic admin oauth-clients get <id>` | OAuth クライアントを取得 |
-| `geonic admin oauth-clients create [json]` | OAuth クライアントを作成 |
-| `geonic admin oauth-clients update <id> [json]` | OAuth クライアントを更新 |
-| `geonic admin oauth-clients delete <id>` | OAuth クライアントを削除 |
+OAuth 2.0 クライアント管理。詳細は [OAuth 2.0 M2M Authentication](./auth.md#oauth-20-m2m-authentication) を参照してください。
 
-#
+| Command                                         | Description            |
+| ----------------------------------------------- | ---------------------- |
+| `geonic admin oauth-clients list`               | List OAuth clients     |
+| `geonic admin oauth-clients get <id>`           | Get an OAuth client    |
+| `geonic admin oauth-clients create [json]`      | Create an OAuth client |
+| `geonic admin oauth-clients update <id> [json]` | Update an OAuth client |
+| `geonic admin oauth-clients delete <id>`        | Delete an OAuth client |
 
-### `admin api-keys`
-API キー管理。`tenant_admin` または `super_admin` ロールが必要です。詳細は API キー認証を参照してください。
+#### `admin api-keys`
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic admin api-keys list` | API キー一覧を取得 |
-| `geonic admin api-keys get <id>` | API キーを取得 |
-| `geonic admin api-keys create [json]` | API キーを作成 |
-| `geonic admin api-keys update <id> [json]` | API キーを更新 |
-| `geonic admin api-keys delete <id>` | API キーを削除 |
+API キー管理。`tenant_admin` または `super_admin` ロールが必要です。詳細は [API Key Authentication](./auth.md#api-key-authentication) を参照してください。
 
-**`admin api-keys list` オプション**: `--limit <n>`、`--offset <n>`、`--count`、`--tenant-id <id>` (super_admin のみ)
+| Command                                    | Description       |
+| ------------------------------------------ | ----------------- |
+| `geonic admin api-keys list`               | List API keys     |
+| `geonic admin api-keys get <id>`           | Get an API key    |
+| `geonic admin api-keys create [json]`      | Create an API key |
+| `geonic admin api-keys update <id> [json]` | Update an API key |
+| `geonic admin api-keys delete <id>`        | Delete an API key |
+
+**`admin api-keys list` オプション**: `--limit <n>`、`--offset <n>`、`--count`、`--tenant-id <id>` (super\_admin のみ)
 
 ```bash
 # Create an API key with policy binding
@@ -745,72 +779,73 @@ geonic admin api-keys list --tenant-id my-tenant
 geonic admin api-keys update gdb_abc123 '{"name": "renamed-key", "isActive": false}'
 ```
 
-**作成スキーマ**:
+**スキーマの作成**:
 
-| フィールド | 型 | 必須 | 説明 |
-|-------|------|----------|-------------|
-| `name` | string | はい | キー名 (1~100 文字) |
-| `tenantId` | string | はい (super_admin) | 対象テナント ID。super_admin には必須。tenant_admin の場合はオプション (省略時は自身のテナント) |
-| `allowedOrigins` | string[] | はい | CORS オリジン (最小 1、最大 20)。すべて許可する場合は `["*"]` を使用 |
-| `policyId` | string | いいえ | 既存の XACML ポリシーにバインド (ターゲットはバイパスされます)。省略した場合、認可はテナントポリシー、次にロールのデフォルトにフォールバック (`api_key` のデフォルトは拒否) |
-| `rateLimit` | object | いいえ | `{ perMinute: number }` (1~1000、デフォルト: 60) |
+| Field            | Type      | Required           | Description                                                                                                                                                 |
+| ---------------- | --------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`           | string    | Yes                | Key name (1–100 chars)                                                                                                                                      |
+| `tenantId`       | string    | Yes (super\_admin) | Target tenant ID. Required for super\_admin. Optional for tenant\_admin (defaults to their own tenant)                                                      |
+| `allowedOrigins` | string\[] | Yes                | CORS origins (min 1, max 20). Use `["*"]` for all                                                                                                           |
+| `policyId`       | string    | No                 | Bind to an existing XACML policy (target bypassed). If omitted, authorization falls back to tenant policies, then role defaults (`api_key` default is Deny) |
+| `rateLimit`      | object    | No                 | `{ perMinute: number }` (1–1000, default: 60)                                                                                                               |
 
-> **注意**: 平文の API キーは作成レスポンスの `key` フィールドで一度だけ返されます。安全に保管してください。
+> **注**: 平文の API キーは作成レスポンスの `key` フィールドで一度だけ返されます。安全に保管してください。
 
-#
+#### `admin cadde`
 
-### `admin cadde`
 CADDE (Connector Architecture for Decentralized Data Exchange) 設定管理。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic admin cadde get` | CADDE 設定を取得 |
-| `geonic admin cadde set [json]` | CADDE 設定を設定 |
-| `geonic admin cadde delete` | CADDE 設定を削除 |
+| Command                         | Description           |
+| ------------------------------- | --------------------- |
+| `geonic admin cadde get`        | Get CADDE settings    |
+| `geonic admin cadde set [json]` | Set CADDE settings    |
+| `geonic admin cadde delete`     | Delete CADDE settings |
 
----
+***
 
 ### `health`
+
 ```bash
 geonic health
 ```
 
-サーバーのヘルス状態を確認します (`GET /health`)。
+サーバーのヘルスステータスを確認します(`GET /health`)。
 
 ### `version`
+
 ```bash
 geonic version
 ```
 
-CLI のバージョンとサーバーのバージョンを表示します (`GET /version`)。
+CLI バージョンとサーバーバージョンを表示します(`GET /version`)。
 
 ### `me`
+
 現在認証されているユーザーを表示し、ユーザーリソースを管理します。
 
 ```bash
 geonic me
 ```
 
-現在のユーザー情報、JWT トークンの有効期限 (期限切れの場合は赤、5 分以内に期限切れの場合は黄色)、およびアクティブなプロファイル名を表示します。
+現在のユーザー情報、JWT トークンの有効期限(期限切れの場合は赤、5 分以内に期限切れの場合は黄色)、およびアクティブなプロファイル名を表示します。
 
-#
+#### `me oauth-clients`
 
-### `me oauth-clients`
-自分の OAuth クライアントを管理します (`/me/oauth-clients`)。`admin oauth-clients` とは異なり、管理者権限は不要で、認証されたユーザーは誰でも自分のクライアントを管理できます。
+自分自身の OAuth クライアント(`/me/oauth-clients`)を管理します。`admin oauth-clients` とは異なり、管理者権限は必要ありません — 認証されたユーザーは誰でも自分自身のクライアントを管理できます。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic me oauth-clients list` | OAuth クライアント一覧を表示 |
-| `geonic me oauth-clients create [json]` | 新しい OAuth クライアントを作成 |
-| `geonic me oauth-clients delete <id>` | OAuth クライアントを削除 |
+| Command                                 | Description               |
+| --------------------------------------- | ------------------------- |
+| `geonic me oauth-clients list`          | List your OAuth clients   |
+| `geonic me oauth-clients create [json]` | Create a new OAuth client |
+| `geonic me oauth-clients delete <id>`   | Delete an OAuth client    |
 
-**`me oauth-clients create` のオプション**:
+**`me oauth-clients create` オプション**:
 
-| オプション | 説明 |
-|--------|-------------|
-| `--name <name>` | クライアント名 |
-| `--policy <policyId>` | 既存の XACML ポリシーにバインド (ターゲットはバイパスされる)。省略した場合、認可はテナントポリシー、次にロールのデフォルト (`user` のデフォルトは GET のみ) にフォールバックされます |
-| `--save` | 認証情報を設定ファイルに保存し、自動再認証を有効化 |
+| Option                | Description                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--name <name>`       | Client name                                                                                                                                                  |
+| `--policy <policyId>` | Bind to an existing XACML policy (target bypassed). If omitted, authorization falls back to tenant policies, then role defaults (`user` default is GET-only) |
+| `--save`              | Save credentials to config for automatic re-authentication                                                                                                   |
 
 ```bash
 # Create an OAuth client with flags
@@ -823,20 +858,20 @@ geonic me oauth-clients create --name my-ci-bot --save
 geonic me oauth-clients create '{"name":"my-bot","policyId":"bot-access"}'
 ```
 
-`--save` が使用された場合、CLI は即座に Client Credentials グラントを実行し、`clientId`、`clientSecret`、および取得した `token` を設定ファイルに保存します。以降のトークン期限切れは自動的に処理されます。
+`--save` を使用すると、CLI は即座に Client Credentials グラントを実行し、`clientId`、`clientSecret`、および結果として得られる `token` を設定ファイルに保存します。その後のトークンの有効期限切れは自動的に処理されます。
 
-#
+#### `me api-keys`
 
-### `me api-keys`
-自分の API キーを管理します (`/me/api-keys`)。`admin api-keys` とは異なり、管理者権限は不要で、認証されたユーザーは誰でも自分のキーを管理できます。1 ユーザーあたり 5 つのキーに制限されています。
+自分自身の API キー(`/me/api-keys`)を管理します。`admin api-keys` とは異なり、管理者権限は必要ありません — 認証されたユーザーは誰でも自分自身のキーを管理できます。ユーザーあたり 5 個のキーに制限されています。
 
-| コマンド | 説明 |
-|---------|-------------|
-| `geonic me api-keys list` | API キー一覧を表示 |
-| `geonic me api-keys create [json]` | 新しい API キーを作成 |
-| `geonic me api-keys delete <key-id>` | API キーを削除 |
+| Command                              | Description          |
+| ------------------------------------ | -------------------- |
+| `geonic me api-keys list`            | List your API keys   |
+| `geonic me api-keys create [json]`   | Create a new API key |
+| `geonic me api-keys delete <key-id>` | Delete an API key    |
 
-**`me api-keys list` のオプション**: `--limit <n>`、`--offset <n>`、`--count`
+**`me api-keys list` オプション**: `--limit <n>`、`--offset <n>`、`--count`
+
 ```bash
 # Create a personal API key
 geonic me api-keys create '{
@@ -852,10 +887,11 @@ geonic me api-keys list
 geonic me api-keys delete gdb_abc123
 ```
 
-> **注意**: 平文の API キーは、作成レスポンスの `key` フィールドで一度だけ返されます。安全に保管してください。
+> **注意**: 平文の API キーは作成レスポンスの `key` フィールドで一度だけ返されます。安全に保管してください。
 
 ### `help`
-WP-CLI スタイルのヘルプで、段階的に詳細を表示します。
+
+段階的に詳細が表示される WP-CLI スタイルのヘルプです。
 
 ```bash
 geonic help                    # All commands overview
@@ -864,9 +900,9 @@ geonic help entities list      # Subcommand details with options and examples
 geonic help admin tenants      # Nested command help
 ```
 
-`--help` フラグは、すべてのコマンドでも使用できます。
+`--help` フラグはすべてのコマンドでも使用できます。
 
----
+***
 
 ## シェル補完
 
@@ -876,7 +912,7 @@ geonic help admin tenants      # Nested command help
 eval "$(geonic cli completions bash)"
 ```
 
-永続化するには `~/.bashrc` に追加してください。
+`~/.bashrc` に追加して永続化します。
 
 ### Zsh
 
@@ -884,11 +920,11 @@ eval "$(geonic cli completions bash)"
 eval "$(geonic cli completions zsh)"
 ```
 
-永続化するには `~/.zshrc` に追加してください。
+`~/.zshrc` に追加して永続化します。
 
-補完機能は、サブコマンド名、オプションフラグ、および `--format` の値候補 (`json`、`table`、`geojson`) をサポートしています。
+補完はサブコマンド名、オプションフラグ、および `--format` の値候補(`json`、`table`、`geojson`)をサポートしています。
 
----
+***
 
 ## コマンドツリー
 

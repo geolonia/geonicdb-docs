@@ -431,7 +431,7 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?georel=near;maxDistance==1000&ge
 | **Total count** | `Fiware-Total-Count` | `NGSILD-Results-Count` | Total number of query results |
 | **Next Link** | `Link` (rel="next") | `Link` (rel="next") | Link to the next page |
 
-For details, see the "API Specification" section in DEVELOPMENT.md.
+For details, see [Pagination](/en/api-reference/pagination).
 
 ### 4. Subscriptions
 

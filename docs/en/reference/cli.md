@@ -603,7 +603,7 @@ Manage entity snapshots.
 
 ### `rules`
 
-Manage ReactiveCore Rules. See ReactiveCore Rules for details.
+Manage ReactiveCore Rules. See [ReactiveCore Rules](../features/reactivcore-rules.md) for details.
 
 | Command | Description |
 |---------|-------------|
@@ -646,7 +646,7 @@ Browse the DCAT-AP data catalog.
 
 ### `admin`
 
-Administrative operations. Requires `tenant_admin` or `super_admin` role. See Authentication & Authorization Guide for details.
+Administrative operations. Requires `tenant_admin` or `super_admin` role. See [Authentication & Authorization Guide](./auth.md) for details.
 
 #### `admin tenants`
 
@@ -675,7 +675,7 @@ Administrative operations. Requires `tenant_admin` or `super_admin` role. See Au
 
 #### `admin policies`
 
-XACML policy management. See XACML Policy-Based Authorization for details.
+XACML policy management. See [XACML Policy-Based Authorization](./auth.md#xacml-policy-based-authorization) for details.
 
 | Command | Description |
 |---------|-------------|
@@ -689,7 +689,7 @@ XACML policy management. See XACML Policy-Based Authorization for details.
 
 #### `admin oauth-clients`
 
-OAuth 2.0 client management. See OAuth 2.0 M2M Authentication for details.
+OAuth 2.0 client management. See [OAuth 2.0 M2M Authentication](./auth.md#oauth-20-m2m-authentication) for details.
 
 | Command | Description |
 |---------|-------------|
@@ -701,7 +701,7 @@ OAuth 2.0 client management. See OAuth 2.0 M2M Authentication for details.
 
 #### `admin api-keys`
 
-API key management. Requires `tenant_admin` or `super_admin` role. See API Key Authentication for details.
+API key management. Requires `tenant_admin` or `super_admin` role. See [API Key Authentication](./auth.md#api-key-authentication) for details.
 
 | Command | Description |
 |---------|-------------|
