@@ -49,12 +49,7 @@ EventBridge ─┬─> SubscriptionMatcher -> SQS -> HTTP/MQTT  [existing]
 
 ### Enabling
 
-Set the `EventStreamingEnabled` parameter to `true` in the SAM template and deploy.
-
-```bash
-sam deploy -t infrastructure/template.yaml \
-  --parameter-overrides EventStreamingEnabled=true
-```
+Event streaming is enabled by default in GeonicDB SaaS. No additional configuration is required.
 
 ### Environment Variables
 
@@ -150,7 +145,7 @@ When `AUTH_ENABLED=true`, an authentication token is required to establish a Web
 
 Required when connecting with a DPoP-bound token (JWT containing `cnf.jkt`). Must be sent within 5 seconds of connection. The server verifies the proof's JWK Thumbprint matches the token's `cnf.jkt` claim and responds with `{"type": "dpop_verified"}`. Until verified, all other messages are rejected with `{"type": "error", "message": "DPoP proof required"}`.
 
-See AUTH.md — DPoP Token Binding for details.
+See [AUTH.md — DPoP Token Binding](../reference/auth.md#dpop-token-binding-rfc-9449) for details.
 
 #### ping (keep-alive)
 
@@ -212,7 +207,7 @@ When the broadcaster authorizes a delivery, it injects these per-entity resource
 | `entityId` | event's entity ID |
 | `entityOwner` | event entity's `createdBy` (the user who originally `POST`ed the entity) |
 
-This lets you write **per-user delivery filters** like "each user only receives events for entities they created" using a single XACML policy with `${subject.userId}` template expansion against `entityOwner`. See `docs/AUTH.md` — Per-entity attributes at broadcast time for a complete policy example.
+This lets you write **per-user delivery filters** like "each user only receives events for entities they created" using a single XACML policy with `${subject.userId}` template expansion against `entityOwner`. See [`docs/AUTH.md` — Per-entity attributes at broadcast time](../reference/auth.md#per-entity-attributes-at-broadcast-time-1107) for a complete policy example.
 
 > Entities written without authentication (or via legacy / batch paths that don't set `createdBy`) emit events with no `owner` attribute — owner-based rules will not match those events, so design your policies with that fallback in mind.
 
@@ -836,5 +831,5 @@ class DebugWebSocket {
 
 - JavaScript SDK - SDK API reference (recommended for browser applications)
 - [API Common Specification](../api-reference/endpoints.md) - REST API documentation
-- Authentication and Authorization - Authentication configuration
+- [Authentication and Authorization](../reference/auth.md) - Authentication configuration
 - Development Guide - Local development and deployment

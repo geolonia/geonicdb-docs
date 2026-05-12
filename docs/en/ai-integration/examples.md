@@ -17,7 +17,9 @@ GeonicDB provides multiple AI-oriented interfaces so that AI agents (Claude, GPT
 | `GET /openapi.json` | JSON | OpenAPI 3.0 specification |
 | `GET /api.json` | JSON | API reference |
 
-## Tool Use Schema (`/tools.json`)
+## Tool Use Schema (`/tools.json`
+
+)
 
 Provides tool definitions compatible with Claude Tool Use and OpenAI Function Calling.
 
@@ -80,7 +82,9 @@ You can also specify the type explicitly:
 }
 ```
 
-## AI Plugin Manifest (`/.well-known/ai-plugin.json`)
+## AI Plugin Manifest (`/.well-known/ai-plugin.json`
+
+)
 
 Provides API discovery information.
 
@@ -318,7 +322,9 @@ entities tool:
   servicePath: "/hello"
 ```
 
-#### Hierarchical Search (`/#`)
+#### Hierarchical Search (`/#`
+
+)
 
 Using the `/#` suffix searches the specified path and all its child paths.
 
