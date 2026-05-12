@@ -31,12 +31,18 @@ export interface GlossaryRule {
    * E.g., negLookaheads=["-", "."] prevents replacing "geonicdb-docs" and "geonicdb.geolonia.com".
    */
   negLookaheads?: string[]
+  /**
+   * Optional strings that, when immediately preceding `forbidden`, indicate
+   * `forbidden` is part of a longer correct term and should NOT be replaced.
+   * E.g., negLookbehind=["コンテキスト"] prevents replacing "コンテキストブローカー".
+   */
+  negLookbehind?: string[]
 }
 
 /**
  * Glossary replacement rules for Japanese docs.
  * Derived from glossary.yaml's do_not_use.ja entries.
- * Excludes ambiguous general words (e.g. "実体", "購読", "ブローカー").
+ * Excludes ambiguous general words (e.g. "実体", "購読").
  */
 export const JA_GLOSSARY_RULES: GlossaryRule[] = [
   // brand
@@ -58,6 +64,9 @@ export const JA_GLOSSARY_RULES: GlossaryRule[] = [
   // "コンテキストブローカ" (without ー) is forbidden; "コンテキストブローカー" is correct.
   // Use negLookahead "ー" to avoid double-replacing "コンテキストブローカー".
   { forbidden: 'コンテキストブローカ', correct: 'コンテキストブローカー', negLookahead: 'ー' },
+  // "ブローカー" standalone → "Context Broker".
+  // negLookbehind: avoid replacing inside "コンテキストブローカー" and "MQTT/Message/Event ブローカー".
+  { forbidden: 'ブローカー', correct: 'Context Broker', negLookbehind: ['コンテキスト', 'MQTT ', 'Message ', 'Event '] },
   { forbidden: 'スキーマー', correct: 'スキーマ' },
   // "サブスク" is forbidden; "サブスクリプション" is correct.
   // negLookahead "リプション" prevents replacing inside "サブスクリプション".
@@ -78,17 +87,19 @@ export const JA_GLOSSARY_RULES: GlossaryRule[] = [
  */
 function buildGlossaryRegex(rule: GlossaryRule): RegExp {
   const escaped = rule.forbidden.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const lbParts = (rule.negLookbehind ?? [])
+    .map(lb => `(?<!${lb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`)
+    .join('')
   const allLookaheads = [
     ...(rule.negLookahead ? [rule.negLookahead] : []),
     ...(rule.negLookaheads ?? []),
   ]
-  if (allLookaheads.length > 0) {
-    const negParts = allLookaheads
-      .map(la => `(?!${la.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`)
-      .join('')
-    return new RegExp(`${escaped}${negParts}`, 'g')
-  }
-  return new RegExp(escaped, 'g')
+  const laParts = allLookaheads.length > 0
+    ? allLookaheads
+        .map(la => `(?!${la.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`)
+        .join('')
+    : ''
+  return new RegExp(`${lbParts}${escaped}${laParts}`, 'g')
 }
 
 /**
