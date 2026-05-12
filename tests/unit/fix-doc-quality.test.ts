@@ -530,6 +530,27 @@ describe('fixGlossaryViolations', () => {
     expect(result).toBe('GeonicDB は高性能なコンテキストブローカーです。')
     expect(count).toBe(1)
   })
+
+  it('replaces standalone ブローカー with Context Broker', () => {
+    const content = 'GeonicDB の ブローカー を参照してください。'
+    const { content: result, count } = fixGlossaryViolations(content)
+    expect(result).toBe('GeonicDB の Context Broker を参照してください。')
+    expect(count).toBe(1)
+  })
+
+  it('does not replace ブローカー preceded by コンテキスト (part of コンテキストブローカー)', () => {
+    const content = 'コンテキストブローカーに接続します。'
+    const { content: result, count } = fixGlossaryViolations(content)
+    expect(result).toBe('コンテキストブローカーに接続します。')
+    expect(count).toBe(0)
+  })
+
+  it('does not replace ブローカー in MQTT ブローカー context', () => {
+    const content = 'MQTT ブローカーへの発行 (QoS 0/1/2)'
+    const { content: result, count } = fixGlossaryViolations(content)
+    expect(result).toBe('MQTT ブローカーへの発行 (QoS 0/1/2)')
+    expect(count).toBe(0)
+  })
 })
 
 // ---------------------------------------------------------------------------
