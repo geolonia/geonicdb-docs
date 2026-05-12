@@ -197,7 +197,7 @@ export function fixEmbeddedFences(content: string): string {
     const fenceMatch = line.match(/^(.*?)(`{3,})([a-z][a-z0-9_+-]*)\s*$/i)
     if (fenceMatch && fenceMatch[1].length > 0) {
       // blockquoted fence (> ``` など) は引用構造のため変更しない
-      if (/^>+\s*$/.test(fenceMatch[1])) {
+      if (/^\s*(>\s*)+$/.test(fenceMatch[1])) {
         result.push(line)
         continue
       }
