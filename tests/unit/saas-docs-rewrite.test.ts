@@ -631,3 +631,57 @@ describe('matchesScope', () => {
     expect(matchesScope('docs/en/api-reference/ngsiv2.txt', 'docs/en/**/*.md')).toBe(false)
   })
 })
+
+// ---------------------------------------------------------------------------
+// 17. R-TEST-LINK: tests/ 参照リンク → plain text 化
+// ---------------------------------------------------------------------------
+describe('processFile — R-TEST-LINK', () => {
+  const rule: Rule = {
+    id: 'R-TEST-LINK',
+    description: 'Remove markdown links pointing to ../tests/ files — replace with plain text',
+    enabled: true,
+    skip_in_code: true,
+    skip_in_changelog: true,
+    matchers: [
+      {
+        pattern: '\\[([^\\]]+)\\]\\((?:\\.\\.?/)*tests/[^)]+\\)',
+        replacement: '$1',
+        scope: ['docs/en/**/*.md', 'docs/ja/**/*.md'],
+      },
+    ],
+  }
+
+  it('removes ../tests/ relative link and keeps text (en)', () => {
+    const content =
+      'See the [test file](../tests/unit/handlers/api/index.test.ts) for examples.'
+    const { content: result, changes } = processFile(
+      content,
+      rule,
+      'docs/en/reference/auth.md'
+    )
+    expect(result).toBe('See the test file for examples.')
+    expect(changes).toBe(1)
+  })
+
+  it('removes ../../tests/ relative link and keeps text (ja)', () => {
+    const content = 'Refer to [unit tests](../../tests/unit/foo.test.ts).'
+    const { content: result, changes } = processFile(
+      content,
+      rule,
+      'docs/ja/reference/auth.md'
+    )
+    expect(result).toBe('Refer to unit tests.')
+    expect(changes).toBe(1)
+  })
+
+  it('does not affect non-tests links', () => {
+    const content = 'See [API reference](../reference/api.md).'
+    const { content: result, changes } = processFile(
+      content,
+      rule,
+      'docs/en/reference/auth.md'
+    )
+    expect(result).toBe('See [API reference](../reference/api.md).')
+    expect(changes).toBe(0)
+  })
+})

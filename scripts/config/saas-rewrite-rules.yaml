@@ -159,3 +159,14 @@ rules:
       - pattern: '(?<!GeonicDB SaaS では ReactiveCore Rules はデフォルトで有効です。\n\n)環境変数で ReactiveCore Rules を有効にします（デフォルトは無効）。'
         replacement: "> **SaaS 利用者の方へ**: GeonicDB SaaS では ReactiveCore Rules はデフォルトで有効です。追加の設定は不要です。\n\n環境変数で ReactiveCore Rules を有効にします（デフォルトは無効）。"
         scope: ['docs/ja/features/reactivcore-rules.md']
+
+  # ---- R-TEST-LINK: tests/ ファイル参照リンク → plain text 化 ----
+  - id: R-TEST-LINK
+    description: "Remove markdown links pointing to ../tests/ files (absent in geonicdb-docs) — replace with plain text"
+    enabled: true
+    skip_in_code: true
+    skip_in_changelog: true
+    matchers:
+      - pattern: '\[([^\]]+)\]\((?:\.\.?/)*tests/[^)]+\)'
+        replacement: '$1'
+        scope: ['docs/en/**/*.md', 'docs/ja/**/*.md']
