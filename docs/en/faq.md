@@ -389,7 +389,7 @@ y: Y tile coordinate
 | `user` | Read/write entities (can be restricted by policy) |
 | `api_key` | Scope-based access via X-Api-Key header (origin/entity-type restrictions) |
 
-See Authentication and Authorization for details.
+See [Authentication and Authorization](./reference/auth.md) for details.
 
 ### Q: Is HTTPS required?
 
@@ -402,4 +402,4 @@ See Authentication and Authorization for details.
 - [API Specification](./api-reference/endpoints.md)
 - [FIWARE Orion Comparison](./migration/compatibility-matrix.md)
 - Development and Deployment Guide
-- Authentication and Authorization
+- [Authentication and Authorization](./reference/auth.md)

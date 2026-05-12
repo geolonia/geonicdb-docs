@@ -5,34 +5,42 @@ outline: deep
 ---
 # WebSocket イベントストリーミング
 
-GeonicDB は WebSocket によるリアルタイムイベントストリーミングをサポートしています。エンティティの変更をリアルタイムで購読し、Web アプリケーションやダッシュボードに即座に反映できます。
+GeonicDB は WebSocket によるリアルタイムイベントストリーミングをサポートしています。エンティティの変更をリアルタイムでサブスクリプションライブし、Web アプリケーションやダッシュボードに即座に反映させることができます。
 
 ## 目次
 
-- [概要](#概要)
-- [アーキテクチャと有効化](#アーキテクチャと有効化)
-- [接続](#接続)
-- [メッセージ形式とフィルタリング](#メッセージ形式とフィルタリング)
-- [クライアント実装](#クライアント実装)
-- [ベストプラクティス](#ベストプラクティス)
-- [トラブルシューティング](#トラブルシューティング)
-- [制約](#制約)
 
----
+* [概要](#概要)
+  
+* [アーキテクチャと有効化](#アーキテクチャと有効化)
+  
+* [接続](#接続)
+  
+* [メッセージ形式とフィルタリング](#message-format-and-filtering)
+  
+* [クライアント実装](#クライアント実装)
+  
+* [ベストプラクティス](#ベストプラクティス)
+  
+* [トラブルシューティング](#トラブルシューティング)
+  
+* [制約事項](#constraints)
+
+***
 
 ## 概要
 
-イベントストリーミングは、既存の MongoDB Change Streams → EventBridge パイプラインに並行パスを追加し、エンティティの変更を WebSocket クライアントにブロードキャストします。
+イベントストリーミングは、既存の MongoDB Change Streams → EventBridge パイプラインに並列パスを追加し、エンティティの変更を WebSocket クライアントにブロードキャストします。
 
 ### 通知チャネルの比較
 
-| チャネル | 方向 | フィルタリング | レイテンシ |
-|---------|-----------|-----------|---------|
-| HTTP Webhook (既存) | Push | サブスクリプション条件 | 約 1 分 |
-| MQTT (既存) | Push | サブスクリプション条件 | 約 1 分 |
-| WebSocket (本機能) | Push | テナント + エンティティタイプ/ID パターン | 約 1 分 |
+| Channel                  | Direction | Filtering                       | Latency |
+| ------------------------ | --------- | ------------------------------- | ------- |
+| HTTP Webhook (existing)  | Push      | Subscription conditions         | \~1 min |
+| MQTT (existing)          | Push      | Subscription conditions         | \~1 min |
+| WebSocket (this feature) | Push      | Tenant + entity type/ID pattern | \~1 min |
 
----
+***
 
 ## アーキテクチャと有効化
 
@@ -43,9 +51,12 @@ EventBridge ─┬─> SubscriptionMatcher -> SQS -> HTTP/MQTT  [existing]
              └─> WsBroadcastFunction -> API GW WebSocket -> client  [new]
 ```
 
-- **接続状態**: DynamoDB (PAY_PER_REQUEST、自動 TTL クリーンアップ)
-- **接続管理**: 3 つの Lambda 関数 (connect、disconnect、default)
-- **ブロードキャスト**: EventBridge から直接トリガーされる Lambda 関数
+
+* **接続状態**: DynamoDB (PAY\_PER\_REQUEST、自動 TTL クリーンアップ)
+  
+* **接続管理**: 3 つの Lambda 関数 (connect、disconnect、default)
+  
+* **ブロードキャスト**: EventBridge から直接トリガーされる Lambda 関数
 
 ### 有効化
 
@@ -53,13 +64,13 @@ GeonicDB SaaS ではイベントストリーミングは既定で有効です。
 
 ### 環境変数
 
-| 変数 | 説明 |
-|----------|-------------|
-| `EVENT_STREAMING_ENABLED` | `true` に設定して有効化 |
-| `WS_CONNECTIONS_TABLE` | DynamoDB 接続テーブル名 (自動設定) |
-| `WS_API_ENDPOINT` | WebSocket API エンドポイント (自動設定) |
+| Variable                  | Description                                       |
+| ------------------------- | ------------------------------------------------- |
+| `EVENT_STREAMING_ENABLED` | Enable by setting to `true`                       |
+| `WS_CONNECTIONS_TABLE`    | DynamoDB connections table name (auto-configured) |
+| `WS_API_ENDPOINT`         | WebSocket API endpoint (auto-configured)          |
 
----
+***
 
 ## 接続
 
@@ -69,7 +80,7 @@ GeonicDB SaaS ではイベントストリーミングは既定で有効です。
 wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 ```
 
-ローカル開発の場合:
+ローカル開発の場合：
 
 ```text
 ws://localhost:3000?tenant={tenantName}
@@ -77,48 +88,59 @@ ws://localhost:3000?tenant={tenantName}
 
 ### クエリパラメータ
 
-| パラメータ | 必須 | 説明 |
-|-----------|------|------|
-| `tenant` | ✅ | テナント名 (`Fiware-Service` ヘッダーと同等) |
+| Parameter | Required | Description                                             |
+| --------- | -------- | ------------------------------------------------------- |
+| `tenant`  | ✅        | Tenant name (equivalent to the `Fiware-Service` header) |
 
 ### 認証
 
-`AUTH_ENABLED=true` の場合、WebSocket 接続を確立するには認証トークンが必要です。トークンは次の優先順位で抽出されます:
+`AUTH_ENABLED=true` の場合、WebSocket 接続を確立するには認証トークンが必要です。トークンは以下の優先順位で抽出されます：
 
-1. **`Authorization` ヘッダー (推奨)**: `Authorization: Bearer <token>` — 最も安全な方法
-2. **`Sec-WebSocket-Protocol` ヘッダー (ブラウザ向け)**: `Sec-WebSocket-Protocol: access_token, <token>` — ブラウザクライアントが `Authorization` ヘッダーを設定できない場合に使用
 
-> **破壊的変更 (#1072)**: `?token=<token>` クエリパラメータは受け付けなくなりました。URL はリバースプロキシ / WAF / ロードバランサーのアクセスログ、ブラウザ履歴、`Referer` ヘッダーに漏洩します。これまで URL 経由でトークンを渡していたクライアントは、上記の 2 つのヘッダー方式のいずれかに切り替える必要があります。
+1. **`Authorization` ヘッダー(推奨)**: `Authorization: Bearer <token>` — 最も安全な方法
+   
+2. **`Sec-WebSocket-Protocol` ヘッダー(ブラウザ用)**: `Sec-WebSocket-Protocol: access_token, <token>` — ブラウザクライアントが `Authorization` ヘッダーを設定できない場合に使用します
 
-- REST API `/auth/login` エンドポイントから取得した `accessToken` をトークンとして直接使用してください。
-- `super_admin` ロールは、WebSocket ストリーミングのために任意のテナントに接続できます。注意: `super_admin` は REST 経由でデータ API (`/v2/*`、`/ngsi-ld/*`) にアクセスできませんが、運用監視目的での WebSocket イベントストリーミングは許可されています。
-- `tenant_admin` / `user` ロールは自分のテナントにのみ接続できます。
+> **破壊的変更(#1072)**: `?token=<token>` クエリパラメータは受け付けられなくなりました。URL はリバースプロキシ / WAF / ロードバランサーのアクセスログ、ブラウザ履歴、`Referer` ヘッダーに漏洩します。以前に URL 経由でトークンを渡していたクライアントは、上記の 2 つのヘッダー方式のいずれかに切り替える必要があります。
 
-| 条件 | 結果 |
-|------|------|
-| `AUTH_ENABLED=false`、トークンなし | ✅ 接続許可 |
-| `AUTH_ENABLED=true`、トークンなし | ❌ 接続拒否 (1008) |
-| `AUTH_ENABLED=true`、無効なトークン | ❌ 接続拒否 (1008) |
-| `AUTH_ENABLED=true`、有効なトークン、自分のテナント | ✅ 接続許可 |
-| `AUTH_ENABLED=true`、有効なトークン、他のテナント | ❌ 接続拒否 (1008) |
-| `AUTH_ENABLED=true`、super_admin、任意のテナント | ✅ 接続許可 |
+
+* REST API の `/auth/login` エンドポイントから取得した `accessToken` をトークンとして直接使用します。
+  
+* `super_admin` ロールは WebSocket ストリーミングのために任意のテナントに接続できます。注意: `super_admin` は REST 経由でデータ API(`/v2/*`、`/ngsi-ld/*`)にアクセスできませんが、WebSocket イベントストリーミングは運用監視目的で許可されています。
+  
+* `tenant_admin` / `user` ロールは自分のテナントにのみ接続できます。
+
+| Condition                                      | Result                       |
+| ---------------------------------------------- | ---------------------------- |
+| `AUTH_ENABLED=false`, no token                 | ✅ Connection allowed         |
+| `AUTH_ENABLED=true`, no token                  | ❌ Connection rejected (1008) |
+| `AUTH_ENABLED=true`, invalid token             | ❌ Connection rejected (1008) |
+| `AUTH_ENABLED=true`, valid token, own tenant   | ✅ Connection allowed         |
+| `AUTH_ENABLED=true`, valid token, other tenant | ❌ Connection rejected (1008) |
+| `AUTH_ENABLED=true`, super\_admin, any tenant  | ✅ Connection allowed         |
 
 ### 接続フロー
 
-1. クライアントが WebSocket URL に接続 (`tenant` クエリパラメータは必須; 認証が有効な場合はトークンも必須)
-2. サーバーがトークンを検証し、テナントアクセス権限を確認 (認証が有効な場合)
-3. トークンに `cnf.jkt` クレーム (DPoP バインドトークン) が含まれている場合、接続は `pending_dpop` 状態になります — クライアントは 5 秒以内に `dpop_bind` メッセージを送信する必要があります (下記の [DPoP バインディング](#dpop-binding-for-websocket) を参照)
-4. サーバーが DynamoDB に接続を記録 (TTL: 2 時間)
-5. オプション: `subscribe` メッセージでフィルター条件を設定
-6. エンティティが変更されると、サーバーがクライアントにイベントをプッシュ
 
----
+1. クライアントが WebSocket URL に接続します(`tenant` クエリパラメータは必須です。認証が有効な場合はトークンも必須です)
+   
+2. サーバーがトークンを検証し、テナントアクセス権限を確認します(認証が有効な場合)
+   
+3. トークンに `cnf.jkt` クレーム(DPoP バインドトークン)が含まれている場合、接続は `pending_dpop` 状態に入ります — クライアントは 5 秒以内に `dpop_bind` メッセージを送信する必要があります(以下の [DPoP Binding](#dpop-binding-for-websocket) を参照)
+   
+4. サーバーが DynamoDB に接続を記録します(TTL: 2 時間)
+   
+5. オプション: `subscribe` メッセージを介してフィルター条件を設定します
+   
+6. エンティティが変更されると、サーバーがクライアントにイベントをプッシュします
+
+***
 
 ## メッセージフォーマットとフィルタリング
 
 ### クライアント → サーバー
 
-#### subscribe (フィルタ設定)
+#### subscribe (フィルター設定)
 
 ```json
 {
@@ -128,13 +150,13 @@ ws://localhost:3000?tenant={tenantName}
 }
 ```
 
-| フィールド | 型 | 説明 |
-|-------|------|-------------|
-| `action` | string | `subscribe` |
-| `entityTypes` | string[] | フィルタリングするエンティティタイプ |
-| `idPattern` | string | エンティティ ID の正規表現パターン |
+| Field         | Type      | Description                               |
+| ------------- | --------- | ----------------------------------------- |
+| `action`      | string    | `subscribe`                               |
+| `entityTypes` | string\[] | Entity types to filter                    |
+| `idPattern`   | string    | Regular expression pattern for entity IDs |
 
-#### dpop_bind (DPoP 証明検証)
+#### dpop\_bind (DPoP proof 検証)
 
 ```json
 {
@@ -143,9 +165,9 @@ ws://localhost:3000?tenant={tenantName}
 }
 ```
 
-DPoP バインドされたトークン (`cnf.jkt` を含む JWT) で接続する場合に必要です。接続後 5 秒以内に送信する必要があります。サーバーは証明の JWK Thumbprint がトークンの `cnf.jkt` クレームと一致することを検証し、`{"type": "dpop_verified"}` で応答します。検証されるまで、他のすべてのメッセージは `{"type": "error", "message": "DPoP proof required"}` で拒否されます。
+DPoP バインドトークン(`cnf.jkt` を含む JWT)で接続する場合に必須。接続から 5 秒以内に送信する必要があります。サーバーは proof の JWK Thumbprint がトークンの `cnf.jkt` クレームと一致することを検証し、`{"type": "dpop_verified"}` で応答します。検証されるまで、他のすべてのメッセージは `{"type": "error", "message": "DPoP proof required"}` で拒否されます。
 
-詳細は AUTH.md — DPoP Token Binding を参照してください。
+詳細は [AUTH.md — DPoP Token Binding](../reference/auth.md#dpop-token-binding-rfc-9449) を参照してください。
 
 #### ping (キープアライブ)
 
@@ -176,48 +198,53 @@ DPoP バインドされたトークン (`cnf.jkt` を含む JWT) で接続する
 }
 ```
 
-| フィールド | 型 | 説明 |
-|-------|------|-------------|
-| `type` | string | `entityCreated`、`entityUpdated`、`entityDeleted` |
-| `tenant` | string | テナント名 |
-| `servicePath` | string | ServicePath |
-| `entityId` | string | エンティティ ID |
-| `entityType` | string | エンティティタイプ |
-| `data` | object | エンティティ属性データ |
-| `changedAttributes` | string[] | 変更された属性の名前 (更新時のみ) |
-| `timestamp` | string | イベントタイムスタンプ (ISO 8601) |
+| Field               | Type      | Description                                       |
+| ------------------- | --------- | ------------------------------------------------- |
+| `type`              | string    | `entityCreated`, `entityUpdated`, `entityDeleted` |
+| `tenant`            | string    | Tenant name                                       |
+| `servicePath`       | string    | Service path                                      |
+| `entityId`          | string    | Entity ID                                         |
+| `entityType`        | string    | Entity type                                       |
+| `data`              | object    | Entity attribute data                             |
+| `changedAttributes` | string\[] | Names of changed attributes (on update only)      |
+| `timestamp`         | string    | Event timestamp (ISO 8601)                        |
 
 ### フィルタリング
 
-フィルタリングは次の順序で 3 つの層で適用されます:
+フィルタリングは次の順序で 3 つのレイヤーで適用されます:
+
 
 1. **テナントフィルタ (必須)** — 接続時に `tenant` クエリパラメータを介して自動的に適用されます。
-2. **接続側の `subscribe` フィルタ (オプション)** — クライアントが受信したい内容を絞り込みます:
-   - `entityTypes`: 受信するエンティティタイプの配列
-   - `idPattern`: `entityId` に対してマッチングされる正規表現
-3. **XACML 認可フィルタ** — 上記を通過した各接続に対して、ブロードキャスターはアクティブな XACML ポリシーを実行します。サブジェクトがイベントに対して `Permit` された接続のみに配信されます。
+   
+2. **接続側の `subscribe` フィルタ (オプション)** — クライアントが受信したいものを絞り込みます:
+   
+   * `entityTypes`: 受信するエンティティタイプの配列
+     
+   * `idPattern`: `entityId` に対してマッチする正規表現
+     
+3. **XACML 認可フィルタ** — 上記を通過した各接続に対して、ブロードキャスターはアクティブな XACML ポリシーを実行します。イベントに対してサブジェクトが `Permit` された接続のみに配信されます。
 
 #### XACML で利用可能なイベントごとのリソース属性 (#1107)
 
-ブロードキャスターが配信を認可する際、以下のエンティティごとのリソース属性を AuthzRequest に注入します:
+ブロードキャスターが配信を認可する際、これらのエンティティごとのリソース属性を AuthzRequest に注入します:
 
-| attributeId | ソース |
-|-------------|--------|
-| `entityType` | イベントのエンティティタイプ |
-| `entityId` | イベントのエンティティ ID |
-| `entityOwner` | イベントエンティティの `createdBy` (元々エンティティを `POST` したユーザー) |
+| attributeId   | Source                                                                   |
+| ------------- | ------------------------------------------------------------------------ |
+| `entityType`  | event's entity type                                                      |
+| `entityId`    | event's entity ID                                                        |
+| `entityOwner` | event entity's `createdBy` (the user who originally `POST`ed the entity) |
 
-これにより、`${subject.userId}` テンプレート展開と `entityOwner` を使用して、単一の XACML ポリシーで「各ユーザーは自分が作成したエンティティのイベントのみを受信する」といった**ユーザーごとの配信フィルタ**を記述できます。完全なポリシー例については `docs/AUTH.md` — ブロードキャスト時のエンティティごとの属性 を参照してください。
+これにより、単一の XACML ポリシーで `${subject.userId}` テンプレート展開を `entityOwner` に対して使用することで、「各ユーザーは自分が作成したエンティティのイベントのみを受信する」といった **ユーザーごとの配信フィルタ** を記述できます。完全なポリシー例については、[`docs/AUTH.md` — ブロードキャスト時のエンティティごとの属性](../reference/auth.md#per-entity-attributes-at-broadcast-time-1107) を参照してください。
 
-> 認証なしで書き込まれたエンティティ (または `createdBy` を設定しないレガシー / バッチパス経由) は、`owner` 属性のないイベントを発行します — 所有者ベースのルールはこれらのイベントにマッチしないため、このフォールバックを考慮してポリシーを設計してください。
+> 認証なしで書き込まれたエンティティ (または `createdBy` を設定しないレガシー / バッチパス経由) は、`owner` 属性を持たないイベントを発行します — 所有者ベースのルールはこれらのイベントにマッチしないため、そのフォールバックを念頭に置いてポリシーを設計してください。
 
----
+***
 
 ## クライアント実装
 
-### JavaScript SDK (推奨)
+### JavaScript SDK(推奨)
 
-GeonicDB JavaScript SDK は、WebSocket イベントストリーミングを使用する最もシンプルな方法を提供します。認証、トークンの更新、DPoP バインディング、再接続を自動的に処理します。
+GeonicDB JavaScript SDK は、WebSocket イベントストリーミングを使用する最も簡単な方法を提供します。認証、トークンの更新、DPoP バインディング、再接続を自動的に処理します。
 
 ```bash
 npm install @geolonia/geonicdb-sdk
@@ -257,7 +284,7 @@ db.on('connected', function() {
 // db.reconnect();
 ```
 
-Bearer JWT 認証の場合(例: ログインフロー後)、`setCredentials()` で認証情報を注入します:
+Bearer JWT 認証の場合(例:ログインフロー後)、`setCredentials()` で認証情報を注入します:
 
 ```javascript
 import GeonicDB from '@geolonia/geonicdb-sdk';
@@ -555,9 +582,9 @@ wscat -c "wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant=smart
 > {"action": "ping"}
 ```
 
----
+***
 
-## WebSocket の DPoP バインディング {#dpop-binding-for-websocket}
+## WebSocket の DPoP バインディング
 
 DPoP バインドトークンを使用する WebSocket 接続には、接続後の証明検証ステップが必要です。WebSocket プロトコルは初期ハンドシェイク後のカスタムヘッダーをサポートしていないため、DPoP 証明は接続確立後にメッセージとして送信されます。
 
@@ -582,22 +609,22 @@ Client                               Server
 
 ### 状態
 
-| 状態 | 説明 | 許可されるメッセージ |
-|-------|-------------|------------------|
-| `pending_dpop` | 接続後に DPoP 証明を待機中 | `dpop_bind` のみ |
-| `verified` | DPoP 証明が正常に検証された | `subscribe`、`ping` など |
+| State          | Description                          | Allowed Messages          |
+| -------------- | ------------------------------------ | ------------------------- |
+| `pending_dpop` | Awaiting DPoP proof after connection | `dpop_bind` only          |
+| `verified`     | DPoP proof verified successfully     | `subscribe`, `ping`, etc. |
 
 `dpop_bind` メッセージが 5 秒以内に受信されない場合、接続は終了されます。
 
----
+***
 
 ## ベストプラクティス
 
-### 1. 再接続ロジック
+### 1. Reconnection Logic
 
-> **注意**: JavaScript SDK を使用している場合、指数バックオフを使用した再接続が組み込まれています。`db.reconnect()` を使用して強制的に再接続するか、`reconnecting` イベントをリッスンして再接続試行を追跡できます。以下の例は、raw WebSocket 実装向けです。
+> **注意**: JavaScript SDK を使用している場合、指数バックオフによる再接続が組み込まれています。`db.reconnect()` を使用して強制的に再接続するか、`reconnecting` イベントをリッスンして再接続の試行を追跡できます。以下の例は、生の WebSocket 実装向けです。
 
-指数バックオフを使用した堅牢な再接続を実装します:
+指数バックオフによる堅牢な再接続を実装します:
 
 ```javascript
 class GeonicDBWebSocket {
@@ -635,7 +662,7 @@ class GeonicDBWebSocket {
 
 ### 2. Keep-Alive
 
-10 分間のアイドルタイムアウトを防ぐために、5 分ごとに ping を送信します:
+10 分のアイドルタイムアウトを防ぐために、5 分ごとに ping を送信します:
 
 ```javascript
 setInterval(() => {
@@ -645,9 +672,9 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 ```
 
-### 3. イベント処理の最適化
+### 3. Optimizing Event Processing
 
-大量のイベントを受信する場合、デバウンシングで UI 更新を最適化します:
+大量のイベントを受信する場合、デバウンスを使用して UI 更新を最適化します:
 
 ```javascript
 import { debounce } from 'lodash';
@@ -662,7 +689,7 @@ ws.onmessage = (event) => {
 };
 ```
 
-### 4. セキュリティ
+### 4. Security
 
 **安全なトークン管理:**
 
@@ -695,7 +722,7 @@ function isTokenExpired(token, bufferSeconds = 60) {
 }
 ```
 
-### 5. メモリ管理
+### 5. Memory Management
 
 メモリリークを防ぐために、イベント履歴に制限を設定します:
 
@@ -712,16 +739,19 @@ onUnmounted(() => {
 });
 ```
 
----
+***
 
 ## トラブルシューティング
 
-### 1. 接続が拒否される (1008 エラー)
+### 1. Connection Rejected (1008 Error)
 
 **原因:**
-- トークンが無効または期限切れ
-- テナントへのアクセス権限がない
-- `AUTH_ENABLED=true` にもかかわらずトークンが提供されていない
+
+* トークンが無効または期限切れ
+  
+* テナントへのアクセス権限がない
+  
+* `AUTH_ENABLED=true` にもかかわらずトークンが提供されていない
 
 **解決方法:**
 
@@ -735,9 +765,9 @@ ws.onclose = (event) => {
 };
 ```
 
-### 2. 10 分後に接続が切断される
+### 2. Connection Drops After 10 Minutes
 
-**原因:** Keep-alive (ping) メッセージが送信されていない。
+**原因:** キープアライブ (ping) メッセージが送信されていない。
 
 **解決方法:**
 
@@ -750,12 +780,15 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 ```
 
-### 3. イベントを受信できない
+### 3. Not Receiving Events
 
 **原因:**
-- フィルタが厳しすぎる
-- テナントが間違っている
-- エンティティの作成/更新が実際に発生していない
+
+* フィルターが厳しすぎる
+  
+* テナントが間違っている
+  
+* エンティティの作成/更新が実際には発生していない
 
 **解決方法:**
 
@@ -774,11 +807,13 @@ ws.send(JSON.stringify({
 }));
 ```
 
-### 4. ローカル開発環境で接続できない
+### 4. Cannot Connect in Local Development
 
 **原因:**
-- ローカルサーバーが起動していない
-- WebSocket URL が間違っている
+
+* ローカルサーバーが起動していない
+  
+* WebSocket URL が正しくない
 
 **解決方法:**
 
@@ -790,9 +825,9 @@ npm start
 const wsUrl = 'ws://localhost:3000?tenant=demo';
 ```
 
-### 5. デバッグ
+### 5. Debugging
 
-ブラウザの開発者ツールの Network タブで、WebSocket 接続と送受信されたメッセージを確認できます。
+ブラウザの開発者ツールの Network タブで、WebSocket 接続と送受信されたメッセージを検査できます。
 
 ```javascript
 class DebugWebSocket {
@@ -812,24 +847,28 @@ class DebugWebSocket {
 }
 ```
 
----
+***
 
 ## 制約
 
-| 項目 | 値 | 説明 |
-|------|-------|-------------|
-| アイドルタイムアウト | 10 分 | クライアントは 5 分ごとに ping を送信する必要があります |
-| 同時接続数 | 500 (デフォルト) | AWS Support 経由で増やすことができます |
-| フレームサイズ | 128KB | 大きなエンティティは切り詰めが必要です |
-| レイテンシ | ~1 分 | MongoDB Change Stream のポーリング間隔に依存します |
-| 接続 TTL | 2 時間 | DynamoDB TTL によって自動的にクリーンアップされます |
-| ローカル開発 | サポート対象 | ローカル WebSocket サーバー経由で利用可能 |
+| Item                   | Value         | Description                                           |
+| ---------------------- | ------------- | ----------------------------------------------------- |
+| Idle timeout           | 10 minutes    | Clients must send a ping every 5 minutes              |
+| Concurrent connections | 500 (default) | Can be increased via AWS Support                      |
+| Frame size             | 128KB         | Large entities require truncation                     |
+| Latency                | \~1 minute    | Depends on the MongoDB Change Stream polling interval |
+| Connection TTL         | 2 hours       | Automatically cleaned up by DynamoDB TTL              |
+| Local development      | Supported     | Available via local WebSocket server                  |
 
----
+***
 
 ## 関連ドキュメント
 
-- JavaScript SDK - SDK API リファレンス (ブラウザアプリケーションに推奨)
-- [API 共通仕様](../api-reference/endpoints.md) - REST API ドキュメント
-- Authentication and Authorization - 認証設定
-- Development Guide - ローカル開発とデプロイ
+
+* JavaScript SDK - SDK API リファレンス(ブラウザアプリケーション推奨)
+  
+* [API Common Specification](../api-reference/endpoints.md) - REST API ドキュメント
+  
+* [Authentication and Authorization](../reference/auth.md) - 認証設定
+  
+* Development Guide - ローカル開発とデプロイ

@@ -145,7 +145,9 @@ curl "http://localhost:3000/v2/entities" \
   -H "Fiware-ServicePath: /Madrid/Gardens"
 ```
 
-#### Hierarchical Search (`/#`)
+#### Hierarchical Search (`/#`
+
+)
 
 Using the `/#` suffix allows searching the specified path and all its child paths (**query operations only**).
 
@@ -347,6 +349,8 @@ Authentication is disabled by default. It can be enabled with the following envi
 | `SUPER_ADMIN_PASSWORD` | - | Super admin password set via environment variable |
 | `ADMIN_ALLOWED_IPS` | - | IPs/CIDRs allowed to access the Admin API (comma-separated) |
 
+> **SaaS users**: These environment variables are managed via the GeonicDB SaaS console. Direct configuration is not required.
+
 ### Roles and Permissions
 
 | Role | Description | Permissions |
@@ -381,7 +385,7 @@ Content-Type: application/json
 | `email` | string | Yes | Email address |
 | `password` | string | Yes | Password |
 | `tenantId` | string | No | If specified, issues a JWT scoped to that tenant. Defaults to primary tenant if omitted |
-| `resourceScopes` | ResourceScope[] | No | Entity-level access control scopes. Full access if omitted. See AUTH.md for details |
+| `resourceScopes` | ResourceScope[] | No | Entity-level access control scopes. Full access if omitted. See [AUTH.md](../reference/auth.md#resource-scopesgeonicdb-extension) for details |
 
 **Tenant Header Support**: Instead of `tenantId` in the body, you can specify a tenant via `NGSILD-Tenant` or `Fiware-Service` header (resolved by tenant name). Priority: `body.tenantId` > header > primary tenant. Header values must match `^[a-z0-9_]+$`.
 
@@ -518,7 +522,7 @@ Origin: https://example.com
 }
 ```
 
-**DPoP token binding** (optional): Include a `DPoP` header with an ECDSA P-256 proof JWT per [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449). When present, the response `token_type` becomes `"DPoP"` and the JWT includes a `cnf.jkt` claim binding it to the proof key. The server requires a DPoP-Nonce (RFC 9449 §8) — the first request returns `400 use_dpop_nonce` with a `DPoP-Nonce` header; retry with the nonce in the proof's `nonce` claim. See AUTH.md for details.
+**DPoP token binding** (optional): Include a `DPoP` header with an ECDSA P-256 proof JWT per [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449). When present, the response `token_type` becomes `"DPoP"` and the JWT includes a `cnf.jkt` claim binding it to the proof key. The server requires a DPoP-Nonce (RFC 9449 §8) — the first request returns `400 use_dpop_nonce` with a `DPoP-Nonce` header; retry with the nonce in the proof's `nonce` claim. See [AUTH.md](../reference/auth.md#dpop-token-binding-rfc-9449) for details.
 
 ### Admin API
 
@@ -688,6 +692,8 @@ Authorization: Bearer <accessToken>
 
 ### IP Restrictions
 
+**SaaS users**: This is configured via the tenant settings API. Contact Geolonia support for details.
+
 By setting the `ADMIN_ALLOWED_IPS` environment variable, you can restrict access to the Admin API (`/admin/*`) to specific IP addresses:
 
 ```bash
@@ -714,13 +720,13 @@ DELETE /admin/tenants/{tenantId}/ip-restrictions
 Authorization: Bearer <accessToken>
 ```
 
-The scope can be either `admin` (Admin API only) or `all` (all APIs). See AUTH.md for details.
+The scope can be either `admin` (Admin API only) or `all` (all APIs). See [AUTH.md](../reference/auth.md#per-tenant-ip-restrictions) for details.
 
 ### Rule Engine Management (tenant_admin)
 
 Manage rules that automatically process entity changes. Requires the `tenant_admin` role; `super_admin` cannot access `/rules*` endpoints when `AUTH_ENABLED=true`.
 
-- **REACTIVCORE_RULES.md** - User guide (usage examples, Admin API, etc.)
+- **[REACTIVCORE_RULES.md](../features/reactivcore-rules.md)** - User guide (usage examples, Admin API, etc.)
 
 #### List Rules
 
@@ -821,7 +827,7 @@ Rule actions (`createEntity`, `updateAttribute`, `deleteAttribute`) support an o
 
 When crossing protocols, servicePath ↔ scope is automatically mapped. Template variables `${trigger.protocol}`, `${trigger.servicePath}`, `${trigger.scope}`, `${trigger.service}` reference the trigger entity's context.
 
-See **REACTIVCORE_RULES.md** for detailed examples and mapping rules.
+See **[REACTIVCORE_RULES.md](../features/reactivcore-rules.md)** for detailed examples and mapping rules.
 
 ---
 
@@ -865,9 +871,9 @@ Machine-to-Machine (M2M) authentication using the OAuth 2.0 Client Credentials G
 
 > Role columns indicate which scopes can be requested via self-service (`/me/oauth-clients`). Admin-created clients (`/admin/oauth-clients`) are not subject to these restrictions.
 
-**Resource Scopes:** Specifying the `resource_scopes` parameter (JSON string) in `POST /oauth/token` issues a token with entity-level access control. See AUTH.md for details.
+**Resource Scopes:** Specifying the `resource_scopes` parameter (JSON string) in `POST /oauth/token` issues a token with entity-level access control. See [AUTH.md](../reference/auth.md#resource-scopesgeonicdb-extension) for details.
 
-**Details:** See the OAuth 2.0 section in AUTH.md.
+**Details:** See the OAuth 2.0 section in [AUTH.md](../reference/auth.md).
 
 ---
 
@@ -883,7 +889,7 @@ Browser-based applications can exchange an API key for a short-lived session JWT
 
 **Security Layers:** Origin validation → HMAC Nonce (60s TTL) → Proof of Work → Short-lived JWT (1h)
 
-**Details:** See the API Key Token Exchange section in AUTH.md and the SDK documentation for the full API reference.
+**Details:** See the [API Key Token Exchange](../reference/auth.md#api-key-token-exchange-browser-sdk) section in AUTH.md and the SDK documentation for the full API reference.
 
 ---
 
@@ -2351,7 +2357,9 @@ Reference: https://github.com/CADDE-sip/connector
 | GET | `/cadde/api/v4/catalog` | Catalog search (cross-domain search / detailed search) |
 | GET | `/cadde/api/v4/entities` | NGSI data exchange |
 
-#### Catalog Search (`/cadde/api/v4/catalog`)
+#### Catalog Search (`/cadde/api/v4/catalog`
+
+)
 
 Specify the search type using the `x-cadde-search` header:
 
@@ -2379,7 +2387,9 @@ curl "http://localhost:3000/cadde/api/v4/catalog?id=sensor" \
   -H "Fiware-Service: smartcity"
 ```
 
-#### NGSI Data Exchange (`/cadde/api/v4/entities`)
+#### NGSI Data Exchange (`/cadde/api/v4/entities`
+
+)
 
 Parses query parameters from the `x-cadde-resource-url` header to retrieve entities.
 
