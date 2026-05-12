@@ -644,7 +644,7 @@ describe('processFile — R-TEST-LINK', () => {
     skip_in_changelog: true,
     matchers: [
       {
-        pattern: '\\[([^\\]]+)\\]\\((?:\\.\\.?/)*tests/[^)]+\\)',
+        pattern: '\\[((?:[^\\]`]|`[^`]*`)+)\\]\\((?:\\.\\.?/)*tests/[^)]+\\)',
         replacement: '$1',
         scope: ['docs/en/**/*.md', 'docs/ja/**/*.md'],
       },
@@ -660,6 +660,20 @@ describe('processFile — R-TEST-LINK', () => {
       'docs/en/reference/auth.md'
     )
     expect(result).toBe('See the test file for examples.')
+    expect(changes).toBe(1)
+  })
+
+  it('removes ../tests/ link when link text contains inline code (cmd_470 regression: auth.md L1430 case)', () => {
+    const content =
+      'locked in by [the unit test in `tests/unit/handlers/api/index.test.ts`](../tests/unit/handlers/api/index.test.ts) under `#1050` regression tests:'
+    const { content: result, changes } = processFile(
+      content,
+      rule,
+      'docs/en/reference/auth.md'
+    )
+    expect(result).toBe(
+      'locked in by the unit test in `tests/unit/handlers/api/index.test.ts` under `#1050` regression tests:'
+    )
     expect(changes).toBe(1)
   })
 
