@@ -345,9 +345,11 @@ function main(): number {
 
       if (status !== 0) {
         if (attempt < MAX_RETRIES) {
+          const backoffMs = Math.pow(2, attempt) * 1000 // 1s, 2s
           console.log(
-            `[attempt ${attempt + 1} failed] status=${status} signal=${signal ?? 'none'} elapsed=${elapsed.toFixed(1)}s — retrying`,
+            `[attempt ${attempt + 1} failed] status=${status} signal=${signal ?? 'none'} elapsed=${elapsed.toFixed(1)}s — retrying in ${backoffMs}ms`,
           )
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, backoffMs)
           continue
         }
         // All retries exhausted — emit full summary

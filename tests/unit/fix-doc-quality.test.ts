@@ -191,6 +191,25 @@ describe('fixEmbeddedFences', () => {
     expect(lines[1]).toBe('')
     expect(lines[2]).toBe('```json')
   })
+
+  it('preserves blockquoted fence unchanged (> ```text — reactivcore-rules.md L548 pattern)', () => {
+    const content = '> ```text\n> some content\n> ```'
+    expect(fixEmbeddedFences(content)).toBe(content)
+  })
+
+  it('preserves multi-level blockquoted fence unchanged (>> ```bash)', () => {
+    const content = '>> ```bash\n>> echo hello\n>> ```'
+    expect(fixEmbeddedFences(content)).toBe(content)
+  })
+
+  it('still splits non-blockquote embedded fence (regression: prose + ```lang must be split)', () => {
+    const broken = 'some prose```json'
+    const result = fixEmbeddedFences(broken)
+    const lines = result.split('\n')
+    expect(lines[0]).toBe('some prose')
+    expect(lines[1]).toBe('')
+    expect(lines[2]).toBe('```json')
+  })
 })
 
 // ---------------------------------------------------------------------------
