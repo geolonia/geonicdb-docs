@@ -161,12 +161,17 @@ rules:
         scope: ['docs/ja/features/reactivcore-rules.md']
 
   # ---- R-TEST-LINK: tests/ ファイル参照リンク → plain text 化 ----
+  # cmd_470: link text に inline code (`...`) を含む場合、applyPattern の inline-code-split
+  # logic で link が分断されて regex が match しなかった (PR#221 cmd_469 で初実装、auth.md
+  # L1430 で match 漏れ → PR#222 internal-links.test FAIL)。pattern 自体に backtick リテラルを
+  # 含めることで applyPattern の `pattern.includes("\`")` 経路 (whole-line apply、inline-code
+  # split しない) に切り替え、link 全体を保護した上で text/code 両方の link text を捕捉する。
   - id: R-TEST-LINK
     description: "Remove markdown links pointing to ../tests/ files (absent in geonicdb-docs) — replace with plain text"
     enabled: true
     skip_in_code: true
     skip_in_changelog: true
     matchers:
-      - pattern: '\[([^\]]+)\]\((?:\.\.?/)*tests/[^)]+\)'
+      - pattern: '\[((?:[^\]`]|`[^`]*`)+)\]\((?:\.\.?/)*tests/[^)]+\)'
         replacement: '$1'
         scope: ['docs/en/**/*.md', 'docs/ja/**/*.md']
