@@ -196,6 +196,11 @@ export function fixEmbeddedFences(content: string): string {
     // Handles both standard 3-backtick (N=3) and 4/5-backtick edge cases from yuuhitsu newline loss.
     const fenceMatch = line.match(/^(.*?)(`{3,})([a-z][a-z0-9_+-]*)\s*$/i)
     if (fenceMatch && fenceMatch[1].length > 0) {
+      // blockquoted fence (> ``` など) は引用構造のため変更しない
+      if (/^\s*(>\s*)+$/.test(fenceMatch[1])) {
+        result.push(line)
+        continue
+      }
       const proseEnd = fenceMatch[1]
       const inlineCloseCount = fenceMatch[2].length - 3
       const lang = fenceMatch[3]
