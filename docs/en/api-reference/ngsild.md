@@ -943,7 +943,7 @@ DELETE /ngsi-ld/v1/subscriptions/{subscriptionId}
 
 #### Ownership Verification (GeonicDB Extension)
 
-When authentication is enabled (`AUTH_ENABLED=true`), subscription update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. Users other than the creator who attempt these operations will receive `403 Forbidden`. The `super_admin` and `tenant_admin` roles can bypass this verification. For details, see AUTH.md.
+When authentication is enabled (`AUTH_ENABLED=true`), subscription update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. Users other than the creator who attempt these operations will receive `403 Forbidden`. The `super_admin` and `tenant_admin` roles can bypass this verification. For details, see [AUTH.md](../reference/auth.md).
 
 ---
 
@@ -1073,7 +1073,7 @@ DELETE /ngsi-ld/v1/csourceRegistrations/{registrationId}
 
 #### Ownership Verification (GeonicDB Extension)
 
-When authentication is enabled (`AUTH_ENABLED=true`), registration update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. Users other than the creator who attempt these operations will receive `403 Forbidden`. The `super_admin` and `tenant_admin` roles can bypass this verification. For details, see AUTH.md.
+When authentication is enabled (`AUTH_ENABLED=true`), registration update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. Users other than the creator who attempt these operations will receive `403 Forbidden`. The `super_admin` and `tenant_admin` roles can bypass this verification. For details, see [AUTH.md](../reference/auth.md).
 
 #### CSR Advanced Fields (ETSI GS CIM 009 V1.9.1)
 
