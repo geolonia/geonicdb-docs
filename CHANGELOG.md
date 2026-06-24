@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- [feat] cmd_576 Phase B' — SDK `./react` and `./ngsi-v2` subpath documentation added (en/ja): `useLdEntities`, `useTemporalData`, `GeonicDbMap`, `NgsiV2Client` API reference. Corresponds to geonicdb#1260 which adds these subpaths to `@geolonia/geonicdb-sdk`. (Closes #228)
 - [feat] cmd_447 Phase 1.1 — MAPPING_TABLE 4 entry 追加 (AUTH/QUOTAS/REACTIVCORE_RULES/SUBSCRIPTIONS) + VitePress sidebar en/ja 更新 + SaaS-rewrite rules 4件追加 (R-AUTH-SETUP/R-RULES-ENABLE)。翻訳は cmd_450 で別途実施 (Closes #213)
 - [chore] cmd_415 — sync-and-translate.yml に `base_branch` 入力追加（任意ブランチへの sync PR 作成対応、dogfood テスト用）(Closes #199)
 - [feat] cmd_387 — vitepress-plugin-mermaid 導入（architecture ページ Mermaid グラフ表示対応）(Closes #179)
