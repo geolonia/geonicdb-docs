@@ -142,7 +142,7 @@ function EntityMap({ client }) {
 
 ## NGSIv2 クライアント (`@geolonia/geonicdb-sdk/ngsi-v2`)
 
-NGSIv2 互換ブローカー向けのクライアントです。
+NGSIv2 互換 Context Broker 向けのクライアントです。
 
 ```typescript
 import { createNgsiV2Client } from '@geolonia/geonicdb-sdk/ngsi-v2';
