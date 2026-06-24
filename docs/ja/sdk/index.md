@@ -118,7 +118,7 @@ function TemporalChart({ client }) {
 
 ### `GeonicDbMap`
 
-[@geolonia/embed](https://geolonia.com/maplibre-gl-js/) を使ってエンティティをマップ上に表示します。
+[@geolonia/embed](https://github.com/geolonia/embed) を使ってエンティティをマップ上に表示します。
 
 ```tsx
 import { GeonicDbMap, useLdEntities } from '@geolonia/geonicdb-sdk/react';

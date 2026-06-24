@@ -122,7 +122,7 @@ function TemporalChart({ client }) {
 
 ### `GeonicDbMap`
 
-Display entities on a map using [@geolonia/embed](https://geolonia.com/maplibre-gl-js/):
+Display entities on a map using [@geolonia/embed](https://github.com/geolonia/embed):
 
 ```tsx
 import { GeonicDbMap } from '@geolonia/geonicdb-sdk/react';
