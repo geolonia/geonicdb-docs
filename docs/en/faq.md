@@ -30,8 +30,12 @@ A collection of frequently asked questions and answers about GeonicDB.
 |------|-----|------|
 | Maximum items per request | 1,000 | `limit` upper bound for pagination (FIWARE Orion compatible) |
 | Admin API maximum items | 100 | Pagination upper bound for admin APIs |
+| Query execution time (read) | 3 seconds | Interactive reads (entity list/query/geo/get). Exceeding it cancels the query and returns `503` |
+| Query execution time (aggregation) | 5 seconds | Aggregations (temporal rollups, `distinct`/`distinctCount`). Exceeding it cancels the query and returns `503` |
 | API Gateway timeout | 29 seconds | AWS-side limit |
 | Lambda timeout | 15 minutes | For Lambda functions such as batch processing |
+
+> **About the `503` on query timeout:** A query that runs longer than the limits above (almost always because it scans too many entities) is cancelled server-side to protect the service, and the API responds with `503 ServiceUnavailable` and a message asking you to narrow the query. Add a `type` or `id` filter, use a smaller `limit`/`lastN`, or restrict the geo area / time range, then retry. See *"Queries Requiring Attention (Potentially Slow)"* below for which patterns tend to be slow.
 
 #### Practical Guidelines for Production
 
@@ -64,7 +68,14 @@ A collection of frequently asked questions and answers about GeonicDB.
 
 ### Q: What should I be aware of with time-series (Temporal) data?
 
-**A:** Time-series data volume grows rapidly with the number of entities x attributes x time intervals.
+**A:** Entity API writes do **not** automatically append historical records to Temporal data. To record history, use one of the following:
+
+1. Write explicitly to the Temporal API (`POST /ngsi-ld/v1/temporal/entities`, temporal batch endpoints). MCP and A2A temporal tools call the same Temporal service.
+2. Configure a ReactiveCore rule with the `appendToTemporal` action so matching entity changes are appended to Temporal history ([REACTIVCORE_RULES.md](./features/reactivcore-rules.md)).
+
+This Entity API / Temporal API separation is intentional (see [#344](https://github.com/geolonia/geonicdb/issues/344)): it avoids implicit side effects, keeps current-state writes and history management as separate responsibilities, and leaves the Entity API's standard behavior unmodified (adding auto-append would change how a standard Entity API write behaves). This is a GeonicDB design decision — ETSI GS CIM 009 does not require brokers to skip auto-recording. As an operational side effect, this also prevents unlimited history growth from every entity update by default.
+
+Time-series data volume still grows rapidly with the number of entities x attributes x time intervals, so plan retention and capacity explicitly.
 
 #### Recommended Configuration
 
@@ -88,7 +99,7 @@ If handling large volumes of time-series data, consider integrating with a dedic
 
 ### Q: What is the compatibility with FIWARE Orion?
 
-**A:** The NGSIv2 API has high compatibility. See the [FIWARE Orion Comparison Document](./migration/compatibility-matrix.md) for details.
+**A:** The NGSIv2 API has high compatibility. The GeonicDB-side coverage is listed below; for what a specific Orion version supports, consult the [official FIWARE Orion documentation](https://fiware-orion.readthedocs.io/).
 
 #### Compatible Features
 
@@ -104,7 +115,6 @@ If handling large volumes of time-series data, consider integrating with a dedic
 - JWT authentication and authorization
 - Multi-tenancy
 - AI tool integration (MCP)
-- Vector tile output
 - Snapshot functionality
 
 ### Q: Can I migrate from Orion?
@@ -173,7 +183,7 @@ curl -X POST "https://api.example.com/v2/op/update" \
 |------|--------|---------|
 | Learning curve | Low | Somewhat high (requires understanding of JSON-LD) |
 | FIWARE ecosystem | Many tools available | Number of compatible tools is growing |
-| Time-series data | Not supported (requires separate implementation) | Standard support via Temporal API |
+| Time-series data | Not supported (requires separate implementation) | Standard support via Temporal API (explicit Temporal writes or `appendToTemporal` rules are required; Entity API writes are not auto-recorded) |
 | Data interoperability | Limited | High via JSON-LD |
 | Recommended use | Integration with existing FIWARE systems | New development, data interoperability focus |
 
@@ -209,7 +219,6 @@ curl -X GET "https://api.example.com/v2/entities" \
 | Feature | Description | Supported APIs |
 |------|------|---------|
 | Geo queries | NGSI standard geospatial search | NGSIv2, NGSI-LD |
-| Vector tiles | GeoJSON tile output for map display | NGSIv2, NGSI-LD |
 | Spatial ID | Japan Digital Agency 3D Spatial ID support | NGSIv2, NGSI-LD |
 
 ### Q: What can Geo queries do?
@@ -245,47 +254,6 @@ curl -X GET "http://localhost:3000/v2/entities?type=Sensor&georel=near;maxDistan
 # Search for entities within a polygon
 curl -X GET "http://localhost:3000/v2/entities?georel=within&geometry=polygon&coords=139.7,35.6,139.8,35.6,139.8,35.7,139.7,35.7,139.7,35.6" \
   -H "Fiware-Service: default"
-```
-
-### Q: What are vector tiles?
-
-**A:** A feature that outputs entity location information in GeoJSON tile format for map applications.
-
-#### Features
-
-- **Tile coordinate system**: Web Mercator (z/x/y format)
-- **Clustering**: Automatically aggregates points based on zoom level
-- **TileJSON support**: Can integrate with map libraries such as MapLibre GL JS
-
-#### Endpoints
-
-```bash
-# Get TileJSON metadata
-curl -X GET "http://localhost:3000/v2/tiles.json" \
-  -H "Fiware-Service: default"
-
-# Get tile (example: z=14, x=14552, y=6451)
-curl -X GET "http://localhost:3000/v2/tiles/14/14552/6451.geojson" \
-  -H "Fiware-Service: default"
-```
-
-#### Usage Example with MapLibre GL JS
-
-```javascript
-map.addSource('entities', {
-  type: 'geojson',
-  data: 'http://localhost:3000/v2/tiles/14/14552/6451.geojson'
-});
-
-map.addLayer({
-  id: 'entity-points',
-  type: 'circle',
-  source: 'entities',
-  paint: {
-    'circle-radius': 6,
-    'circle-color': '#007cbf'
-  }
-});
 ```
 
 ### Q: What is Spatial ID?
@@ -400,6 +368,5 @@ See [Authentication and Authorization](./reference/auth.md) for details.
 ## Related Documentation
 
 - [API Specification](./api-reference/endpoints.md)
-- [FIWARE Orion Comparison](./migration/compatibility-matrix.md)
 - Development and Deployment Guide
 - [Authentication and Authorization](./reference/auth.md)

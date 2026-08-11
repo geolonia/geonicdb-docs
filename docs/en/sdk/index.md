@@ -30,7 +30,9 @@ The SDK is split into three subpaths to keep bundles lean:
 | `@geolonia/geonicdb-sdk/react` | React hooks + GeonicDbMap component | Yes (optional peerDep) |
 | `@geolonia/geonicdb-sdk/ngsi-v2` | NGSIv2 basic client | No |
 
-## Core (`@geolonia/geonicdb-sdk`)
+## Core (`@geolonia/geonicdb-sdk`
+
+)
 
 ```typescript
 import GeonicDB from '@geolonia/geonicdb-sdk';
@@ -57,7 +59,9 @@ await db.createEntity({
 
 See [Authentication Reference](/en/reference/auth) for the full API.
 
-## React Hooks (`@geolonia/geonicdb-sdk/react`)
+## React Hooks (`@geolonia/geonicdb-sdk/react`
+
+)
 
 Import from the `./react` subpath to use hooks without pulling React into non-React consumers.
 
@@ -158,7 +162,9 @@ function EntityMap({ client }) {
 
 > **Note:** `GeonicDbMap` uses `@geolonia/embed` via dynamic import. Add it to your project separately if needed: `npm install @geolonia/embed`.
 
-## NGSIv2 Client (`@geolonia/geonicdb-sdk/ngsi-v2`)
+## NGSIv2 Client (`@geolonia/geonicdb-sdk/ngsi-v2`
+
+)
 
 For NGSIv2-compatible brokers, use the dedicated client:
 

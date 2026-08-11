@@ -175,7 +175,7 @@ GeonicDB converts between NGSIv2 types, internal types, and NGSI-LD types accord
 
 | NGSIv2 Type | Internal Type | NGSI-LD Type | Description |
 |-------------|---------------|--------------|-------------|
-| `geo:json` | `GeoJSON` | `GeoProperty` | GeoJSON (Point, LineString, Polygon) |
+| `geo:json` | `GeoJSON` | `GeoProperty` | GeoJSON (Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon). Multi\* geometries are also accepted in geo-queries (`geometry` parameter) and subscription `geoQ.geometry` with nested coordinates preserved (#1696) |
 | `geo:point` | `GeoJSON` (Point) | `GeoProperty` | Latitude/longitude point |
 
 ### NGSI-LD-Specific Types
@@ -187,7 +187,7 @@ The following NGSI-LD-specific types are preserved internally but are treated as
 | `Relationship` | `Relationship` | `Relationship` (custom type) | Entity reference (includes `object` property) |
 | `LanguageProperty` | `LanguageProperty` | `StructuredValue` | Multilingual string (includes `languageMap` property) |
 | `JsonProperty` | `JsonProperty` | `Object` | JSON data (includes `json` property) |
-| `VocabProperty` | `VocabProperty` | `Object` | Vocabulary data (includes `vocab` or `vocabMap` property) |
+| `VocabProperty` | `VocabProperty` | `Object` | Vocabulary data. `vocab` is defined by ETSI GS CIM 009; `vocabMap` is a **GeonicDB-only extension** (not in NGSI-LD) and is therefore not interoperable with other brokers |
 | `ListProperty` | `ListProperty` | `Array` | Ordered array (includes `valueList` property) |
 | `ListRelationship` | `ListRelationship` | `Array` | Array of entity references (includes `objectList` property) |
 
@@ -299,11 +299,13 @@ curl 'http://localhost:3000/v2/entities?type=Room&options=values&attrs=temperatu
 
 ### NGSI-LD Output Formats
 
+> **Media type vs. representation format.** These are independent axes. The `Accept` header selects the *media type*; `options` / `format` select the *representation format* below. Per ETSI GS CIM 009 clause 6.3.4, an **absent `Accept` header (or `*/*`) resolves to `application/json`**, not `application/ld+json` — send `Accept: application/ld+json` explicitly when you want the `@context` embedded in the response body (#1734). Only `application/json` / `application/ld+json` (plus `application/geo+json` on entity endpoints) are supported; anything else yields `406 Not Acceptable`. See [API_NGSILD.md — Content Negotiation](../api-reference/ngsild.md#content-negotiation-and-context).
+
 | Format | Accept Header | Description |
 |--------|---------------|-------------|
-| **normalized** (default) | `application/ld+json` | Full format including type and metadata |
-| **concise** | `application/ld+json` + `options=concise` | Concise format (abbreviated notation) |
-| **keyValues** | `application/ld+json` + `options=keyValues` | Key-value pairs only |
+| **normalized** (default) | any supported media type (e.g. `application/ld+json`) | Full format including type and metadata |
+| **concise** | any supported media type + `options=concise` | Concise format (abbreviated notation) |
+| **keyValues** | any supported media type + `options=keyValues` | Key-value pairs only |
 
 **Examples:**
 
@@ -375,6 +377,12 @@ curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.unit==Celsius,F
 curl 'http://localhost:3000/v2/entities?type=Room&mq=temperature.accuracy>0.9;temperature.unit==Celsius'
 ```
 
+> **Metadata name charset (#1946):** both the attribute name and the metadata name in an `mq`
+> condition are parsed as `\w+` (Orion-compatible grammar), so metadata names are validated on
+> write against `^[A-Za-z0-9_]+$`. Names containing `.`, `-`, `$` or whitespace are rejected with
+> `400` instead of being stored as data that can never be queried back. See
+> [Entity Field Character Set](#entity-field-character-set-id--type--attribute-name--geonicdb-独自拡張).
+
 #### Scope Query (scopeQ) Details
 
 The NGSI-LD `scopeQ` parameter supports queries against the entity scope hierarchy.
@@ -403,6 +411,136 @@ curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/%23'
 # Entities with multiple scopes (AND condition)
 curl 'http://localhost:3000/ngsi-ld/v1/entities?scopeQ=/Japan/Tokyo;/IoT'
 ```
+
+#### Scope Character Set (GeonicDB 独自拡張)
+
+NGSI-LD specification (ETSI GS CIM 009 clause 4.18 / 5.2.x) restricts scope segment characters to `[A-Za-z0-9_]` (ALPHA / DIGIT / underscore). GeonicDB extends this slightly to the **POSIX Portable Filename Character Set** so that scope is intuitive as a filesystem-style path:
+
+| | NGSI-LD spec (strict) | GeonicDB (POSIX portable) |
+|---|---|---|
+| Allowed segment characters | `[A-Za-z0-9_]` | `[A-Za-z0-9._-]` |
+| Leading `/` required | ✅ | ✅ |
+| Empty segments (`//`) | ❌ | ❌ |
+| Segment may start with `-` | (n/a) | ❌ (POSIX convention to avoid CLI-flag collisions) |
+
+Formal grammar:
+
+```ebnf
+ScopePath  = "/" ScopeLevel ( "/" ScopeLevel )*
+ScopeLevel = ( ALPHA | DIGIT | "." | "_" ) *( ALPHA | DIGIT | "." | "_" | "-" )
+```
+
+Regex per scope string: `^(/[A-Za-z0-9._][A-Za-z0-9._-]*)+$`
+
+**Why POSIX portable?** The pure NGSI-LD spec set (`[A-Za-z0-9_]`) is overly restrictive for real-world use. POSIX portable adds `.` and `-`, enabling natural names like `/com.example.region/tokyo-shibuya` or `/v1.0/sensors`. At the same time, it rejects the `scopeQ` reserved characters (`;` `+` `#`) and half-width space — these would otherwise be **silent footguns**: storage succeeds, but the entity becomes unmatchable via `scopeQ`.
+
+**Examples:**
+
+| Input | Status | Reason |
+|-------|--------|--------|
+| `/Japan/Tokyo` | ✅ accepted | NGSI-LD strict compliant |
+| `/com.example.region/tokyo-shibuya` | ✅ accepted | POSIX portable extension |
+| `/v1.0/sensors` | ✅ accepted | POSIX portable extension |
+| `/Japan/+` | ❌ 400 BadRequestData | `+` is a `scopeQ` wildcard |
+| `/Japan;Tokyo` | ❌ 400 BadRequestData | `;` is a `scopeQ` AND separator |
+| `/Japan/#` | ❌ 400 BadRequestData | `#` is a `scopeQ` wildcard |
+| `/Tokyo Shibuya` | ❌ 400 BadRequestData | Half-width space |
+| `Tokyo` | ❌ 400 BadRequestData | Missing leading `/` |
+| `/Japan//Tokyo` | ❌ 400 BadRequestData | Empty segment |
+| `/-Japan` | ❌ 400 BadRequestData | Segment starts with `-` |
+| `/東京` | ❌ 400 BadRequestData | Non-ASCII |
+
+Validation applies to `POST/PATCH/PUT /entities`, `POST /entityOperations/*`, temporal endpoints, and ReactiveCore rules' `createEntity` action. Existing stored entities with non-conformant scopes (pre-#1189 data) remain readable; only new write requests are rejected.
+
+Clients targeting strict NGSI-LD specification compliance should keep their scopes within `[A-Za-z0-9_]` for portability across implementations.
+
+#### Scope Update Semantics (GeonicDB 独自拡張)
+
+NGSI-LD specification (ETSI GS CIM 009) defines the `scope` field on entities and the `scopeQ` query parameter but does **not** specify how to unset an existing scope through PATCH/PUT/upsert. GeonicDB extends the API as follows:
+
+| Request body for `scope` | Effect | Subsequent GET response |
+|--------------------------|--------|-------------------------|
+| (field omitted) | Existing scope preserved | Whatever was previously stored (key omitted if never set) |
+| `"scope": "/foo"` or `"scope": ["/foo"]` | Replace with the new value | `"scope": ["/foo"]` |
+| `"scope": null` | **Explicit unset** (GeonicDB extension) | `"scope": null` |
+| `"scope": []` | **Explicit unset** — treated as equivalent to `null` (GeonicDB extension) | `"scope": null` |
+
+- Endpoints supporting the unset extension: `PATCH /entities/{id}` (merge-patch), `PUT /entities/{id}` (replace), `POST /entityOperations/upsert` (both merge and replace modes). The attrs-level endpoint `PATCH /entities/{id}/attrs` does not currently honor the `scope` field (sent values are silently ignored). Use the entity-level `PATCH /entities/{id}` instead when you need to update scope.
+- The explicit-unset state (`scope: null`) is preserved in storage rather than removing the field entirely, so the API can distinguish "scope was deliberately cleared" from "scope was never set".
+- `scopeQ` queries do not match entities with `scope: null` (the field has no path components to match against), which is consistent with entities that never had a scope.
+- Clients targeting strict NGSI-LD specification compliance should avoid relying on this extension.
+
+#### Entity Field Character Set (id / type / attribute name) — GeonicDB 独自拡張
+
+NGSIv2 spec の Field syntax restrictions (control chars / whitespace / `&` `?` `/` `#` 以外を許容) と NGSI-LD spec はいずれも実装側が追加制約を加えることを許容している。GeonicDB は #1189 で scope に採用した **POSIX Portable Filename Character Set** を `type` にも展開しつつ、attribute name は実装上の制約から旧来の厳格な charset を維持する (#1209):
+
+| Field | GeonicDB allowed characters | Regex | NGSIv2 spec | NGSI-LD spec |
+|-------|----------------------------|-------|-------------|--------------|
+| `id` | `[A-Za-z0-9._:-]` (`:` for URN form, no leading `-`) | `^[A-Za-z0-9._:][A-Za-z0-9._:-]*$` | ASCII minus `& ? / # whitespace`, ≤256 | URI form |
+| `type` (NGSIv2) | `[A-Za-z0-9._-]` (POSIX portable, no leading `-`) | `^[A-Za-z0-9._][A-Za-z0-9._-]*$` | same as `id` | — |
+| `type` (NGSI-LD, #1211) | POSIX portable **OR** absolute IRI | TYPE_PATTERN **\|** URI_PATTERN | — | URI form |
+| attribute name (NGSIv2) | `[A-Za-z0-9_]` (**MongoDB レイヤー制約のため**) | `^[A-Za-z0-9_]+$` | same as `id` | — |
+| attribute name (NGSI-LD, #1649) | 短縮名 **OR** 絶対 IRI | `^[A-Za-z0-9_]+$` **\|** URI_PATTERN | — | shortname or URI |
+| Max length | 256 chars (all three fields) | — | 256 | — |
+
+ここで `URI_PATTERN` は `/^[A-Za-z][A-Za-z0-9+.-]*:[^\s<>"{}|\\^`]+$/` — RFC 3986 の scheme (ALPHA 開始) + `:` + 非空の opaque 部分 (空白・制御文字および `<>"{}|\^\`` を禁止)。
+
+Notes:
+
+- **`id` / `type` / attribute name すべて先頭の `-` を不可**。`id` の旧 regex (`^[\w:.-]+$`) は先頭 `-` を許容していたため、新 regex への移行で **`-` から始まる id がわずかに厳格化** される (POSIX 慣習に合わせ統一; 実運用で先頭 `-` の id はまず使われないため影響軽微)。
+- `id` accepts `:` because NGSI-LD URN form `urn:ngsi-ld:Type:identifier` is the canonical id format.
+- **NGSI-LD path** accepts absolute IRIs as `type` in addition to POSIX portable short names (#1211). Examples: `https://uri.fiware.org/ns/data-models#WeatherObserved`, `urn:ngsi-ld:Type:Sensor`. **NGSIv2 path** continues to reject URI forms (protocol isolation).
+- **型名 (`type`) は active `@context` で term ⇄ URI 展開される (ETSI GS CIM 009 §5.5.7、#1613)** — #1211 時点の「URI を不透明保存」は #1613 で置換された。書き込み・クエリ時に `@context` で型名を canonical 正規化し (term → FQN、core `@vocab` に落ちる短縮名は決定的に bare 短縮名へ還元して保存)、読み出し時は応答 `@context` で compact する。したがって、ある `@context` が `Vehicle → https://ontology.example/Vehicle` をマップしていれば、term `Vehicle` で投入したエンティティを FQN `https://ontology.example/Vehicle` でクエリしてヒットする (逆も同じ)。逆に、どの `@context` もマップしない短縮名 `Temperature` は core `@vocab` で `.../default-context/Temperature` に展開され、絶対 IRI `https://example.com/Temperature` とは別 URI なので照合しない (opaque 保存ではなく context 依存の展開結果として区別される)。型を伴うクエリ/作成で active `@context` が解決不能なら `504 LdContextNotAvailable` (§5.5.4、fail-closed)。**属性名セレクタ (`attrs` / `pick` / `omit`) を伴うクエリも同様** (#1613) — `Link` ヘッダで解決不能な `@context` を渡した場合、従来は属性名を展開せず `200` を返していたが、クエリの解釈に必要な `@context` が無い以上 fail-closed で `504` を返す (`?type=` と同じ扱い。**意図的な挙動変更**)。`Link` を付けないリクエストは従来どおり `@context` を解決しない。
+- **属性名 (attribute name) の term ⇄ URI 展開は、セレクタ・単一属性パス (#1613) と保存キーの canonical 化 (#1649) の両方が実装済み。**
+
+  **保存 canonical 形の定義**: `compactIri(core @context, expandTerm(リクエスト @context, 名前))`。すなわち
+  - リクエスト `@context` が**マップする** term (`temperature → https://example/ns#Warmth`) → **FQN で保存**
+  - core 語彙 (`location` / `observedAt` / `unitCode` 等) と**どの `@context` もマップしない**短縮名 → **短縮名のまま保存** (保存形不変)
+
+  型名の canonical-bare (`@vocab` 剥がし) を属性名にそのまま使うと、core `@context` が `location` を `@vocab` ではなく `https://uri.etsi.org/ngsi-ld/location` にマップするため **`location` が FQN 化して geo インデックス・`geoproperty` の既定値・NGSIv2 相互運用がまとめて壊れる**。そのため属性名側は core で compact する定義を採る。FQN に含まれる `.` は MongoDB の dot-path と衝突するため保存キーでは percent エスケープする (`%` `.` `$` `\0` の 4 文字のみ、`src/core/entities/attr-key-escape.ts`)。
+
+  したがって **flip の影響範囲は「リクエスト `@context` がマップする属性名」だけ**に閉じる。`@context` を渡さないクライアントの保存形は 1 バイトも変わらない。クエリ/照合側は `@context` で解決するため、**完全修飾 URI で属性を指定できる**: `?attrs=<FQN>` / `pick` / `omit` / `GET /attributes/{FQN}` / `PUT`・`PATCH`・`DELETE /entities/{id}/attrs/{FQN}` / temporal の `attrs` / `POST /entityOperations/query` の `attrs` / purge の `attrs`・`keep`・`drop`。解決はリクエスト `@context` を使った round-trip (FQN → その `@context` が定める term) であり、**書き込みと同じ `@context` を渡すクライアント**に対して機能する。
+  - **`@context` を渡さないと短縮名は引けない (破壊的変更、#1649)**: `@context` がマップする属性を **`@context` 無し**で `GET /entities/{id}/attrs/{短縮名}` すると、その短縮名は `default-context/<名前>` = **別の属性**を指すため `404` になる。旧挙動 (verbatim 保存ゆえに保存名で引けた) は保存形に依存した後方互換の副産物で、clause 5.5.7 とは整合しない。**書き込みと同じ `@context` を渡せば従来どおり短縮名で引ける。**
+  - **移行 (必須)**: flip 前に書かれたエンティティは `attrNameForm` フラグを持たず **legacy 意味論 (verbatim 保存 + 作成時 `contextRef` で復元)** のまま読まれる。挙動は今日と同じなので放置しても壊れないが、`geoproperty` / `orderBy` は単一名しか取れず canonical 側の名前で照合されないため、`@context` がマップする属性名でこれらを使う場合は移行が要る (`q` は候補 union で緩和済み)。一括移行: `npm run migrate:attr-names`(dry-run) → `-- --apply`。**暗号化テナントの既存 doc はスキップされる** (属性名が envelope 内の「値」として入っており KMS 復号+再暗号化が要るため。スキップされた doc は legacy のままで安全)。
+  - **doc 単位で意味論を固定する**: 移行前の bare `temperature` と移行後の canonical-bare `temperature` は**同じ文字列なのに意味が違う**ため、per-key では判別できない。`EntityDocument.attrNameForm === 'canonical'` の有無で doc ごとに決める。legacy doc への部分書き込みは verbatim のまま行い、**同一 doc 内に legacy キーと canonical キーを混在させない** (全置換 = `PUT` / batch replace は置換後に legacy キーが残らないので移行を兼ねる)。
+    - **federation の registration 照合は別で、cross-`@context` に対応済み**。`csourceRegistrations` の `propertyNames` / `relationshipNames` は「verbatim ∪ canonical」の union インデックスで保持される (#1890) ため、ctx-B の `warmth` で登録した registration に ctx-A の `temperature` (同一 URI) で照会しても転送される。回帰ガード: `tests/e2e/features/ngsi-ld/attr-uri-expansion.feature` の `@issue-1613-federation-fqn-drop`。
+  - `q` / `geoproperty` / `orderBy` は**仕様上そもそも短縮名限定**のため対象外 — clause 4.9: "The attribute path is always a composition of short hand names and not a fully qualified ones, because, when the query language is used, an `@context` properly defining all the terms (as per clause 5.5.7) shall be issued."
+- 構文検証は型・属性名とも「短縮名 **または** 絶対 IRI」(型は POSIX portable 短縮名、属性名は `[A-Za-z0-9_]` 短縮名。**属性名の絶対 IRI 受理は NGSI-LD 経路のみ**、#1649。NGSIv2 は短縮名のみ)。`@context` の解決は展開に必要なときのみ行い、Smart Data Models 存在確認は行わない。
+- **属性名の文字種は「短縮名 (`^[A-Za-z0-9_]+$`) ∥ 絶対 IRI」** (#1649、NGSI-LD 経路のみ。NGSIv2 は短縮名のみ)。POSIX portable (`.` `-` を含む) を短縮名として許さない理由は元のまま: 属性名は MongoDB の field key (`attributes.${name}`) に直接埋め込まれるため `.` が dot-path 記法と衝突し (`attributes.sensor.id` が `attributes.sensor` の `id` サブフィールドと解釈される)、`q` パーサが属性名を `([\w.]+)` で切り出すため `-` は silent な footgun になる (保存はできるが `q` で絞れない)。絶対 IRI を許せるようになったのは、canonical 保存 (clause 5.5.7) で保存キーが FQN になる #1649 に合わせて **percent エスケープ層** (`src/core/entities/attr-key-escape.ts`、`%` `.` `$` `\0` の 4 文字のみ) を dot-path 構築の唯一の入口に据えたため。`q` は clause 4.9 が **shorthand 限定**と定めるので、パーサの `[\w.]` 制約はそのままでよい (FQN を `q` に書くことは仕様上ない)。
+- **metadata 名の文字種は protocol で分岐する** (#1946 / #1788 サブ項目 4)。**NGSIv2 の `metadata` キーは短縮名 (`^[A-Za-z0-9_]+$`) のみ**、**NGSI-LD のサブ属性名は短縮名 ∥ 絶対 IRI**。metadata は `attributes.<attr>.metadata.<meta>` として保存され、NGSIv2 の `mq` はこれを dot-path で引く。#1946 以前は文字種検証がまったく無く、(1) `mq` の文法 (`attrName.metaName{op}value`、Orion 互換で `\w` のみ) では書けないうえ意図しないネストパスになるため**保存できるのに二度と引けない**、(2) 作成 (`insertOne`) は通るが更新の `$set` は通らない (`cannot use dotted field name '...' in a sub object`) ため**作れるのに直せない**、という 2 つの silent な壊れ方を作れた。NGSI-LD 側を絶対 IRI まで緩めたのは、clause 5.5.7 の term ⇄ URI 等価変換が**サブ属性名にも掛かる** (短縮名で送っても FQN が保存形になる) ため — 受理しないと自分が書いた保存形を書き戻せない。#1946 が緩和の前提としていた「percent エスケープ層 (`attr-key-escape.ts`) が top-level 属性キー限定」は解消済みで、`escapeAttrsObject` / `unescapeAttrsObject` が `metadata` キーまで再帰的に escape する。NGSIv2 は `@context` が無く FQN 保存も起きないため短縮名のまま (protocol 分離)。**絶対 IRI でない**ドット入りの名前 (`unit.code`) はどちらの protocol でも 400。
+- Error responses include the offending value and the allowed character set, e.g. `Entity type contains invalid characters (allowed: A-Z a-z 0-9 . _ - (must not start with -)); got "Sensor@Type"`.
+
+**Examples:**
+
+| Field | Input | Status |
+|-------|-------|--------|
+| type | `Room` | ✅ accepted (both protocols) |
+| type | `Blesensor.per3600` | ✅ accepted (`.` allowed, both protocols) |
+| type | `Sensor-Type` | ✅ accepted (`-` allowed, both protocols) |
+| type | `Sensor@Type` | ❌ 400 (invalid character) |
+| type | `Sensor Type` | ❌ 400 (whitespace) |
+| type | `-LeadingHyphen` | ❌ 400 (leading `-`) |
+| type | `urn:ngsi-ld:Sensor` | NGSI-LD: ✅ / NGSIv2: ❌ 400 (#1211) |
+| type | `https://uri.fiware.org/ns/data-models#WeatherObserved` | NGSI-LD: ✅ / NGSIv2: ❌ 400 (#1211) |
+| type | `http://example.com/types/Temperature` | NGSI-LD: ✅ / NGSIv2: ❌ 400 (#1211) |
+| type | `1http://example.com/X` | ❌ 400 (scheme must start with ALPHA) |
+| type | `https:` | ❌ 400 (opaque part is empty) |
+| attribute | `waterLevel` / `water_level` | ✅ accepted |
+| attribute | `water-level` | ❌ 400 (`-` not allowed; q-parser limitation) |
+| attribute | `sensor.id` | ❌ 400 (`.` not allowed; MongoDB dot-path conflict) |
+| attribute | `attr name` | ❌ 400 (whitespace) |
+| attribute | `https://uri.fiware.org/ns/dm#temperature` | NGSI-LD: ✅ / NGSIv2: ❌ 400 (#1649) |
+| metadata / sub-attribute | `accuracy` / `unit_code` | ✅ accepted (both protocols) |
+| metadata / sub-attribute | `unit.code` | ❌ 400 (`.` not allowed; MongoDB dot-path conflict, #1946) |
+| metadata / sub-attribute | `unit-code` | ❌ 400 (`-` not allowed; mq-parser limitation, #1946) |
+| metadata / sub-attribute | `$where` | ❌ 400 (`$` not allowed; MongoDB operator, #1946) |
+| metadata / sub-attribute | `https://example.org/ns#accuracy` | ❌ 400 (**both protocols**; escape layer does not cover metadata keys, #1946) |
+| id | `urn:ngsi-ld:Room:1` | ✅ accepted (`:` allowed for id) |
+| id | `-foo` | ❌ 400 (leading `-`; **わずかな厳格化** vs 旧来) |
+
+Validation applies to NGSIv2 `POST/PATCH/PUT /v2/entities` and NGSI-LD `POST/PATCH/PUT /ngsi-ld/v1/entities`, temporal endpoints, and batch operations. Existing stored entities with non-conformant fields (pre-#1209 data) remain readable; only new write requests are rejected.
+
+Clients targeting strict NGSI-LD specification compliance can keep their `type` within `[A-Za-z0-9_]` for portability across implementations.
 
 ### 2. Geo-Queries
 
@@ -448,7 +586,7 @@ For details, see [Pagination](/en/api-reference/pagination).
 | **Registration API** | `/v2/registrations` | `/ngsi-ld/v1/csourceRegistrations` | Remote provider registration |
 | **Parallel queries** | ✅ | ✅ | Simultaneous queries to multiple providers |
 | **Result merging** | ✅ | ✅ | Merge of local and remote results |
-| **Loop detection** | ✅ | ✅ | Loop detection via `Via` header |
+| **Loop detection** | ✅ | ✅ | `Via` header loop detection (RFC 7230 / ETSI 6.3.17-6.3.18, #1664): forwarded requests append `1.1 <BROKER_ID>`; incoming `Via` containing own pseudonym skips forwarding (inclusive → local + `NGSILD-Warning` 199) or returns `508 Loop Detected` (exclusive/redirect) |
 
 ---
 
@@ -883,7 +1021,7 @@ Reason: Geo-queries only support GeoJSON format.
 
 #### 3. Leverage Smart Data Models
 
-GeonicDB automatically completes Smart Data Models `@context`.
+Use Smart Data Models types and pass the model's `@context` explicitly.
 
 **Recommended (NGSI-LD):**
 
@@ -898,7 +1036,7 @@ GeonicDB automatically completes Smart Data Models `@context`.
 }
 ```
 
-Reason: When `type` matches a Smart Data Models model name, the appropriate `@context` is automatically completed.
+Reason: Standard model types keep entities interoperable across brokers. Note that GeonicDB does **not** guess a `@context` from the entity `type` (#1733) — supply the model's `@context` on both writes and reads (JSON-LD `Link` header, or the body for `application/ld+json` writes). Without one, responses use the NGSI-LD core `@context` only and render unmapped terms as fully qualified URIs, per ETSI GS CIM 009 clause 5.5.5 / 5.5.7.
 
 #### 4. Choose Subscriptions Based on Purpose
 
@@ -953,4 +1091,3 @@ GeonicDB provides both NGSIv2 and NGSI-LD APIs with strict protocol isolation. C
 - [NGSIv2 API](../api-reference/ngsiv2.md)
 - [NGSI-LD API](../api-reference/ngsild.md)
 - [Smart Data Models](../features/smart-data-models.md)
-- [FIWARE Orion Comparison](../migration/compatibility-matrix.md)

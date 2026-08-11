@@ -83,7 +83,7 @@ ws://localhost:3000?tenant={tenantName}
 
 ### Authentication
 
-When `AUTH_ENABLED=true`, an authentication token is required to establish a WebSocket connection. The token is extracted in the following order of priority:
+Authentication is enabled by default (it is disabled only by an explicit `AUTH_ENABLED=false`, intended for local development). While enabled, an authentication token is required to establish a WebSocket connection. The token is extracted in the following order of priority:
 
 1. **`Authorization` header (recommended)**: `Authorization: Bearer <token>` — the most secure method
 2. **`Sec-WebSocket-Protocol` header (for browsers)**: `Sec-WebSocket-Protocol: access_token, <token>` — use this when a browser client cannot set the `Authorization` header
@@ -132,7 +132,7 @@ When `AUTH_ENABLED=true`, an authentication token is required to establish a Web
 |-------|------|-------------|
 | `action` | string | `subscribe` |
 | `entityTypes` | string[] | Entity types to filter |
-| `idPattern` | string | Regular expression pattern for entity IDs |
+| `idPattern` | string | Regular expression pattern for entity IDs. Omit the field to leave any existing ID filter untouched; send an **empty string** (`""`) to clear it and receive every entity ID again. Any other value is screened by the same ReDoS validation as every other regex entry point (max 200 chars, must compile, no quantified group containing an alternation or a nested quantifier — see SECURITY.md). Non-strings — including `null` — are rejected, matching how `entityTypes` is validated in the same message. A rejected value returns an error and leaves the existing subscription unchanged; the identical decision is made whether the broker runs on Lambda or standalone (#1931). |
 
 #### dpop_bind (DPoP proof verification)
 
@@ -187,6 +187,15 @@ The server returns `{"type": "pong"}`. Send a ping every 5 minutes to prevent th
 | `changedAttributes` | string[] | Names of changed attributes (on update only) |
 | `timestamp` | string | Event timestamp (ISO 8601) |
 
+> **`entityDeleted` on TTL expiry (#1561)**: entities created with `expiresAt` also fire
+> `entityDeleted` when they expire — a background *expiry sweeper* claims TTL-expired entities
+> (`expiresAt <= now`) at most once per minute and publishes the event, since MongoDB's own TTL
+> monitor deletes documents outside the application layer and would otherwise leave clients
+> unaware. Delivery is best-effort like any other change event: a sweep failure between claiming
+> the entity and publishing means the notification can be lost (the entity itself is still marked
+> deleted and becomes invisible via the API within the same sweep). Expect the event up to ~1
+> minute after `expiresAt` elapses, not instantaneously.
+
 ### Filtering
 
 Filtering is applied in three layers, in this order:
@@ -206,8 +215,9 @@ When the broadcaster authorizes a delivery, it injects these per-entity resource
 | `entityType` | event's entity type |
 | `entityId` | event's entity ID |
 | `entityOwner` | event entity's `createdBy` (the user who originally `POST`ed the entity) |
+| `scope` | event entity's `scope`, comma-joined — same matching semantics as entity-level checks and the list-query row filter (#1369/#1383) |
 
-This lets you write **per-user delivery filters** like "each user only receives events for entities they created" using a single XACML policy with `${subject.userId}` template expansion against `entityOwner`. See [`docs/AUTH.md` — Per-entity attributes at broadcast time](../reference/auth.md#per-entity-attributes-at-broadcast-time-1107) for a complete policy example.
+This lets you write **per-user delivery filters** like "each user only receives events for entities they created" using a single XACML policy with `${subject.userId}` template expansion against `entityOwner`. See [`docs/AUTH.md` — Per-entity attributes at broadcast time](../reference/auth.md#per-entity-attributes-at-broadcast-time-1107--1383) for a complete policy example.
 
 > Entities written without authentication (or via legacy / batch paths that don't set `createdBy`) emit events with no `owner` attribute — owner-based rules will not match those events, so design your policies with that fallback in mind.
 
@@ -721,7 +731,7 @@ onUnmounted(() => {
 **Causes:**
 - Token is invalid or expired
 - No access permission for the tenant
-- Token not provided despite `AUTH_ENABLED=true`
+- Token not provided while authentication is enabled (the default)
 
 **Resolution:**
 
@@ -824,6 +834,17 @@ class DebugWebSocket {
 | Latency | ~1 minute | Depends on the MongoDB Change Stream polling interval |
 | Connection TTL | 2 hours | Automatically cleaned up by DynamoDB TTL |
 | Local development | Supported | Available via local WebSocket server |
+
+### Multi-Deployment Routing (#1304)
+
+ホスト名ルーティングされたデプロイメント（マルチサブドメイン構成）に対応するため、イベントと接続レコードにデプロイメント情報が付与される:
+
+- **イベントスキーマ**: `EntityChangeEvent` / `RuleNotificationEvent` に `deployment?: { hostname: string }` フィールドが追加された（`undefined` = env デフォルト DB）。発行時に発生元デプロイメントが自動付与され、背景ワーカー（購読 matcher / notifier / rules / WS broadcaster）がこのホスト名で正しい DB に対して処理する
+- **WS 接続レコード**: `$connect` 時に `Host` ヘッダーからデプロイメントを解決し、接続レコードに `hostname` を保存する。broadcaster はイベントの発生元デプロイメントと接続の `hostname` が一致する接続にのみ配信する（デフォルト同士も一致扱い — 既存接続と後方互換）。認可（XACML）もそのデプロイメントの DB に対して評価される
+- **未知ホストの WS 接続**: HTTP と異なり 404 にせずデフォルト扱いで受け入れる（現状 WS は raw `execute-api` ドメインが唯一の経路のため）。WS カスタムドメイン提供時に strict 化を再検討する
+- **lookup 一時障害時の WS $connect** (#1306): デプロイメント解決がインフラ障害（`error`）で失敗した場合は fail-closed で **503** を返して接続を拒否する（デフォルト DB へフォールバックして誤った DB のデータを配信しないため）。未登録ホスト（`not_found`）はデフォルト扱いのまま
+- **背景ワーカーの lookup 障害耐性** (#1306): EventBridge 駆動ワーカー（rules / WS broadcaster）と SQS 駆動 notifier は、lookup 一時障害イベントを再試行し、リトライ超過分を `<stack>-worker-dlq`（EventBridge 系）/ 通知 DLQ（SQS 系）に退避する。standalone 経路は有限リトライ後に skip する（再配信機構なし）
+- **制限**: デプロイメント DB への直接 DB 書き込み（API 非経由）は WS 配信されない（change stream バックアップはデフォルト DB のみ）
 
 ---
 

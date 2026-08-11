@@ -35,6 +35,32 @@ Each tool selects its operation via the `action` and `resource` parameters.
 | `config` | rules, jsonld_contexts, data_models, cadde_config | list, get, create, update, delete, activate, deactivate, list_domains, list_models, get_model, generate_template | ReactiveCore Rules, JSON-LD context, Smart Data Models, custom data model management, template generation, and CADDE configuration management (super_admin, get/update/delete) |
 | `admin` | users, tenants, policies | list, get, create, update, delete, activate, deactivate, change_password | User, tenant, and policy management (authentication required) |
 
+### Temporal Representation Parameters (#2032 / #2033)
+
+The `temporal` tool accepts the same representation parameters as the HTTP Temporal API, and its
+responses go through the **same representation layer** as HTTP (#2033):
+
+| Parameter | Description |
+|---|---|
+| `format` | `temporalValues` (simplified temporal representation, ETSI clause 4.5.9) or `aggregatedValues` (clause 4.5.19; requires `aggrMethods`). Takes precedence over `options` (clause 6.3.12). Not supported for `batch_query`. |
+| `options` | Comma-separated: `temporalValues` / `simplified` / `aggregatedValues` / `sysAttrs`. Unknown tokens are rejected. |
+| `aggrMethods` | `totalCount`, `distinctCount`, `sum`, `avg`, `min`, `max`, `stddev`, `sumsq` (comma-separated). Requires `aggrPeriodDuration`. |
+| `aggrPeriodDuration` | ISO 8601 duration for the aggregation period (e.g. `PT1H`). |
+
+Consequences of routing MCP/A2A through the shared representation layer (**breaking for clients
+that relied on the previous raw output**):
+
+- System temporal attributes (`createdAt` / `modifiedAt` / `expiresAt`) are returned **only** when
+  `options=sysAttrs` is requested (clause 6.3.11). They used to be returned unconditionally.
+- The internal `attrNameForm` marker is no longer emitted — it was never part of the API contract.
+- `instanceId` **is** still returned: it is a representation member defined by clause 4.5.7 and is
+  required by the modify/delete instance operations (clause 5.6.14).
+- Attribute and type names go through clause 5.5.7 compaction. MCP/A2A supply no request
+  `@context`, so names stored as absolute IRIs are rendered as fully qualified URIs (the clause
+  5.5.7 fallback), exactly as HTTP does for a core-only request `@context`.
+
+The A2A `temporal` skill returns the same shape for its `get` / `query` / `list` actions.
+
 ### Automatic NGSI-LD Attribute Type Detection
 
 MCP tools automatically infer the NGSI-LD type from attribute values:
@@ -76,7 +102,7 @@ You can also specify the type explicitly:
     "headers": {
       "Fiware-Service": "Tenant name",
       "Fiware-ServicePath": "Hierarchical path (default: /)",
-      "Authorization": "Bearer token (when AUTH_ENABLED=true)"
+      "Authorization": "Bearer token (required unless AUTH_ENABLED=false)"
     }
   }
 }
@@ -95,11 +121,19 @@ Provides API discovery information.
   "name_for_model": "geonicdb",
   "description_for_human": "FIWARE Orion-compatible Context Broker for IoT data",
   "description_for_model": "GeonicDB is a FIWARE Orion-compatible Context Broker...",
-  "auth": { "type": "none" },
+  "auth": {
+    "type": "service_http",
+    "instructions": "Provide a JWT Bearer token in the Authorization header, or an API key in the X-Api-Key header. OAuth 2.0 client credentials flow is also supported via POST /oauth/token.",
+    "authorization_type": "bearer"
+  },
   "api": { "type": "openapi", "url": "/openapi.json" },
-  "tools": { "url": "/tools.json" }
+  "tools": { "url": "/tools.json" },
+  "mcp": { "url": "/mcp", "transport": "streamable-http" },
+  "a2a": { "url": "/a2a", "agentCard": "/.well-known/agent-card.json" }
 }
 ```
+
+**Note on `auth`**: the ai-plugin.json `auth` block can only express a single scheme machine-readably — here Bearer (`authorization_type: "bearer"`). The X-Api-Key and OAuth 2.0 client credentials alternatives are mentioned only in the human-readable `instructions` text. For the complete machine-readable definitions of all supported schemes, use the `securitySchemes` in `/openapi.json` (`BearerAuth`, `ApiKeyAuth`, `DPoPAuth`, `basicAuth`), which is the source of truth for auth definitions.
 
 ## Usage Examples
 
@@ -159,7 +193,7 @@ GeonicDB supports the [Model Context Protocol (MCP)](https://modelcontextprotoco
 - **Transport**: Streamable HTTP (JSON response mode)
 - **Protocol Version**: 2025-03-26
 - **Operation Mode**: Stateless (Lambda-compatible)
-- **Authentication**: When `AUTH_ENABLED=true`, access control and tenant isolation are enforced via JWT Bearer token
+- **Authentication**: While authentication is enabled (the default), access control and tenant isolation are enforced via JWT Bearer token
 
 ### Claude Desktop Configuration
 
@@ -220,7 +254,7 @@ npm install -g @geolonia/geonicdb-cli
 
 ```bash
 # Set the server URL
-geonic config set url https://geonicdb.geolonia.com
+geonic config set url https://geonicdb.example.com
 
 # Log in (interactive prompt)
 geonic auth login
@@ -231,24 +265,18 @@ geonic auth login
 ```bash
 geonic me api-keys create \
   --name "claude-desktop" \
-  --scopes "read:entities,write:entities,read:subscriptions,write:subscriptions,read:registrations,write:registrations" \
   --origins "*" \
-  --service <your-tenant-name> \
   --save
 ```
 
 > **Important**: The API key (`gdb_` prefixed string) is only displayed once at creation time. Store it securely. The `--save` flag stores the key in the CLI config for automatic use.
 
-Available scopes for API keys:
+API keys are all-Deny by default under the XACML authorization model. Grant access in one of two ways:
 
-| Scope | Description |
-|---|---|
-| `read:entities` | Read entities, types, and attributes |
-| `write:entities` | Create, update, and delete entities |
-| `read:subscriptions` | Read subscriptions |
-| `write:subscriptions` | Create, update, and delete subscriptions |
-| `read:registrations` | Read context source registrations |
-| `write:registrations` | Create, update, and delete registrations |
+- Bind a policy at creation with `--policy <policyId>` (a personal policy created via `geonic me policies create`)
+- Have a tenant admin create a tenant policy targeting `role=api_key`
+
+Without either, MCP tool calls are denied.
 
 **Step 4: Configure Claude Desktop**
 
@@ -264,7 +292,7 @@ Edit the Claude Desktop configuration file:
       "command": "npx",
       "args": [
         "mcp-remote",
-        "https://geonicdb.geolonia.com/mcp",
+        "https://geonicdb.example.com/mcp",
         "--header",
         "X-Api-Key:${GEONIC_API_KEY}",
         "--header",
@@ -287,6 +315,27 @@ Edit the Claude Desktop configuration file:
 
 After saving the configuration, fully quit and restart Claude Desktop. The GeonicDB MCP server should appear in the available tools.
 
+#### Claude Code
+
+Claude Code supports Streamable HTTP natively — no `mcp-remote` proxy is needed:
+
+```bash
+# Production (with API key)
+claude mcp add --transport http geonicdb https://geonicdb.example.com/mcp \
+  --header "X-Api-Key: gdb_your_api_key" \
+  --header "NGSILD-Tenant: your-tenant-name"
+
+# Local development (no auth)
+claude mcp add --transport http geonicdb-local http://localhost:3000/mcp
+```
+
+#### Other MCP Clients (Cursor, VS Code, etc.)
+
+Any Streamable HTTP-capable MCP client can connect directly:
+
+- URL: `https://geonicdb.example.com/mcp`
+- Headers: `X-Api-Key: gdb_...` (or `Authorization: Bearer <jwt>`) and `NGSILD-Tenant: <tenant>`
+
 #### Managing API Keys
 
 ```bash
@@ -306,49 +355,19 @@ Each tool has a `tenant` parameter for specifying the target tenant for the oper
 
 ### Service Path Specification
 
-The `entities`, `types`, `attributes`, `batch`, and `temporal` tools have a `servicePath` parameter that allows managing entities within a hierarchical scope.
+**Data tools do not support `servicePath` (#1608).** NGSI-LD has no `Fiware-ServicePath` concept, and the MCP data tools (`entities`, `batch`, `temporal`, including the `types`/`attributes` resources) operate on the NGSI-LD API, so all data is stored under the root path `/` (matching the HTTP NGSI-LD API). The `servicePath` parameter on these tools is deprecated: any non-root value is rejected with an error.
 
-#### Basic Format
-
-- **Format**: A path starting with `/` (e.g., `/hello`, `/city/sensors`)
-- **Default**: If omitted, the root path `/` is used
-- **Use case**: Used to group or isolate entities within the same tenant
+To group or isolate entities hierarchically, use the entity `scope` attribute instead. For searching, the `entities` tool accepts a `scopeQ` query parameter (the `batch` and `temporal` tools do not have a `scopeQ` argument):
 
 ```yaml
-# Get entities under the /hello path
+# Search entities under the /Madrid/Gardens scope and its children
 entities tool:
   action: "list"
   tenant: "my-tenant"
-  servicePath: "/hello"
+  scopeQ: "/Madrid/Gardens/#"
 ```
 
-#### Hierarchical Search (`/#`
-
-)
-
-Using the `/#` suffix searches the specified path and all its child paths.
-
-```yaml
-# Search /Madrid/Gardens and its child paths (e.g., /Madrid/Gardens/ParqueNorte)
-entities tool:
-  action: "list"
-  tenant: "my-tenant"
-  servicePath: "/Madrid/Gardens/#"
-```
-
-#### Multiple Path Specification (Comma-separated)
-
-Multiple paths can be searched simultaneously by separating them with commas (up to 10 paths).
-
-```yaml
-# Search both /park1 and /park2
-entities tool:
-  action: "list"
-  tenant: "my-tenant"
-  servicePath: "/park1, /park2"
-```
-
-**Note**: Write operations (create, update, delete) only support a single, non-hierarchical path.
+**Exception — `config` tool rules operations**: ReactiveCore Rules use `servicePath` as a first-class field, so the `config` tool accepts it for the rules `list` (as an optional filter) and `create` operations (other rules operations ignore it). The value is trimmed, an empty string defaults to `/`, and the result must be a single exact path matching `/^\/[\w/]*$/` (e.g., `/sensors`) — hierarchical `/#` and comma-separated multi-path values are rejected because rules match by exact `servicePath` equality (#1607/#1608).
 
 ### NGSI-LD Query Parameters
 
@@ -358,8 +377,8 @@ The `entities` tool supports the full set of NGSI-LD query parameters:
 |---|---|---|
 | `idList` | Comma-separated entity IDs for bulk retrieval | `"urn:ngsi-ld:Room:001,urn:ngsi-ld:Room:002"` |
 | `idPattern` | Regex pattern to match entity IDs | `"Room.*"` |
-| `orderBy` | Sort by attribute or system field. Prefix with `!` for descending | `"createdAt"`, `"!modifiedAt"` |
-| `orderDirection` | Sort direction (alternative to `!` prefix) | `"asc"`, `"desc"` |
+| `orderBy` | Entity Ordering Language (ETSI GS CIM 009 V1.9.1 §4.23): comma-separated terms with optional `;` direction (`asc`, `desc`, `dist-asc`, `dist-desc`), supports dot/bracket paths and composite sort keys. Legacy `!attr` is still accepted (deprecated). | `"temperature;desc"`, `"type;asc,temperature;desc"` |
+| `orderDirection` | Legacy notation only (`asc`/`desc`), used when `orderBy` does not include `;` directions | `"asc"`, `"desc"` |
 | `sysAttrs` | Include system attributes (`createdAt`, `modifiedAt`) in results | `true` |
 | `pick` | Comma-separated attribute names to include | `"temperature,humidity"` |
 | `omit` | Comma-separated attribute names to exclude | `"status"` |
@@ -374,7 +393,7 @@ The `entities` tool supports the full set of NGSI-LD query parameters:
 entities tool:
   action: "list"
   type: "Sensor"
-  orderBy: "!createdAt"
+  orderBy: "createdAt;desc"
   sysAttrs: true
   limit: 10
 
@@ -419,7 +438,7 @@ curl -X POST http://localhost:3000/mcp \
 
 - **Stateless mode**: Due to Lambda environment constraints, SSE streaming is not available. All requests are returned as JSON responses.
 - **No session management**: Each request is processed independently. `GET /mcp` (SSE) and `DELETE /mcp` (session termination) return 405.
-- **Authentication**: A Bearer token is required when `AUTH_ENABLED=true`. When `AUTH_ENABLED=false`, operation proceeds without authentication.
+- **Authentication**: A Bearer token is required while authentication is enabled (the default). With an explicit `AUTH_ENABLED=false`, operation proceeds without authentication.
 - **OAuth scopes**: When using OAuth tokens, the OAuth scope corresponding to each MCP tool operation is required (e.g., `read:entities` for reading entities, `write:entities` for writing). Scope restrictions do not apply to JWT RBAC tokens.
 - **Rate limiting**: The MCP endpoint is subject to the same rate limits, storage quotas, and request body size limits as the REST API.
 
@@ -428,6 +447,8 @@ curl -X POST http://localhost:3000/mcp \
 Custom data models automatically have a JSON Schema (Draft 2020-12) generated at creation time. This JSON Schema can be leveraged by AI tools for the following purposes.
 
 **`additionalProperties` field**: Controls whether entities can have attributes not defined in `propertyDetails`. Default is `true` (allows any additional attributes, following NGSI-LD semantics). Set to `false` to enforce strict validation — only defined attributes are accepted. AI agents should check this field when creating entities to determine whether extra attributes are permitted.
+
+**`uniqueConstraints` field**: Declares composite-unique attribute combinations (e.g., `[{"name": "no-double-booking", "fields": ["room", "date", "startTime"]}]`) enforced server-side via a database unique index. When an entity create/update would duplicate a constrained combination, the API returns `409 AlreadyExists` with the violated constraint name. AI agents should check `uniqueConstraints` on the data model before creating entities and treat a 409 containing "violates unique constraint" as a data conflict (choose different values), not as an entity-ID collision.
 
 ### Example Use Cases with AI Tools
 
@@ -552,18 +573,22 @@ The generated JSON-LD `@context` will be:
 ```json
 {
   "@context": {
-    "SurveyResponse": "https://geonicdb.geolonia.com/vocab/{tenantId}/SurveyResponse",
+    "SurveyResponse": "https://api.example.com/vocab/{tenantId}/SurveyResponse",
     "email": "https://schema.org/email",
-    "name": "https://geonicdb.geolonia.com/vocab/{tenantId}/name"
+    "name": "https://api.example.com/vocab/{tenantId}/name"
   }
 }
 ```
 
+Auto-generated vocabulary IRIs live on **this broker's own base URL** (#1984) and are dereferenceable via `GET /vocab/{tenantId}/{term}`. The base URL comes from the `API_BASE_URL` environment variable — injected at deploy time from the SAM template parameter **`ApiBaseUrl`** (`infrastructure/template.yaml`) — and falls back to the request `Host` header when it is unset. Set `ApiBaseUrl` so the IRIs stay stable across hostnames; see [API.md → Broker base URL resolution](../api-reference/endpoints.md#broker-base-url-resolution).
+
 Property URIs are entity-type independent — the same property name (e.g., `email`) shares the same URI across different entity types within the same tenant.
 
-### @context Resolution Extension
+### @context Resolution (#1733)
 
-When retrieving entities via the NGSI-LD API, if the custom data model has a `contextUrl` configured, the custom context is automatically included in the response's `@context`. Similar to Smart Data Models contexts, AI agents can use this `@context` to interpret the semantic information of entities.
+The `@context` used to render an NGSI-LD response is **only** the one the request supplied. With none supplied, the NGSI-LD core `@context` alone is used, and terms it cannot compact are rendered as fully qualified URIs (ETSI GS CIM 009 clause 5.5.5 / 5.5.7).
+
+A custom data model's `contextUrl` is not injected automatically. AI agents that want the model's vocabulary should read `contextUrl` from the data model and pass it on the read via the JSON-LD `Link` header — the fully qualified URIs returned without a context are themselves unambiguous semantic identifiers.
 
 ## JavaScript SDK with AI Coding Assistants
 
@@ -631,6 +656,16 @@ A2A uses the same authentication methods as the REST API:
 - **DPoP**: `Authorization: DPoP <token>` + `DPoP` proof header (when enabled)
 
 `Fiware-Service` ヘッダーによるテナント指定を推奨します（未指定時はデフォルトテナントにフォールバック）。
+
+**Authorization (#1651)**: A2A の entities/batch/temporal スキルは、REST / MCP と **同一の entity-level / list-level 認可**を通ります（`checkEntityOwnership` / `requireListReadAuthz` / `requireAuthz` を合成イベントで無改変に呼ぶ実装を共有）。`entityType` / `entityOwner` / `scope` による制約は A2A 経由でも等しく強制され、一覧は読めない行を除外し、by-id 操作は DB の実属性で判定されます。到達には `/a2a` への path-level 許可が必要です — `tenant_admin` は既定ポリシーで許可され（`/mcp` と対称）、`user` / `oauth_client` / `api_key` はテナント管理者がバインドしたポリシーで `/a2a` を明示許可する必要があります（`super_admin` は data tool を使えません）。
+
+**入力検証 (#1944)**: `message.metadata` は dispatch の前に Zod スキーマで検証されます。**構造化フィールド (`entities` / `attributes` / `entityIds`) だけがオブジェクト / 配列を取れ、それ以外のキーはすべてプリミティブ (string / number / boolean / null) のみ**です。`{"type": {"$ne": null}}` のような演算子オブジェクトはクエリ層に届く前に検証エラーとして拒否されます。
+
+allowlist（既知キーの列挙）ではなく**値の形**で制約しているのは、`params.X` の消費点が 40 以上あり列挙漏れ 1 つで穴が空くためです。この設計により、将来ハンドラが新しい `params.X` を読み始めても注入経路は塞がったままになります。検証失敗は JSON-RPC のエラーとして返り、HTTP の 400 と同じ「拒否される」挙動になります。
+
+**管理系スキルのロール要件 (#1651)**: `admin` スキル（users / policies）と `config` スキルの `rules` 操作は `tenant_admin` ロールを要求します（MCP と同じゲート）。`/a2a` を許可された `oauth_client` / `api_key` / `user` は、これらの管理操作ではアクセス拒否になります（entities / batch / temporal のデータ操作は上記の entity-level 認可で判定）。
+
+**管理系スキルのテナントスコープ (#1938)**: ポリシー操作は HTTP の `/admin/policies` と**同一のテナントスコープ・権限昇格チェック**を通ります。対象は、MCP `admin` ツール `resource: policies` の `get` / `update` / `delete` / `activate` / `deactivate` と、A2A `admin` スキル `resource: policies` の `get` です（A2A のポリシー操作は `list` と `get` のみを提供し、それ以外の action は `Unsupported policies action` エラーになります）。`tenant_admin` は自テナントのポリシーのみ対象にでき、他テナントおよびグローバルポリシー（`tenantId: null`）は `super_admin` のみが扱えます。更新時のロール制限（`permit-overrides` は `super_admin` のみ／`priority` はロール別下限以上）は、更新操作を提供する **MCP の `update`** に適用されます。
 
 ### Example: Sending a Message
 

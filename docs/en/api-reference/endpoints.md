@@ -20,7 +20,6 @@ This is the API documentation for the FIWARE Orion-compatible Context Broker run
 - [Geo-Queries](#geo-queries)
 - [Spatial ID Search](#spatial-id-search)
 - [GeoJSON Output](#geojson-output)
-- [Vector Tiles](#vector-tiles)
 - [Coordinate Reference System (CRS)](#coordinate-reference-system-crs)
 - [Data Catalog API](#data-catalog-api)
 - [CADDE Integration](#cadde-integration)
@@ -50,6 +49,12 @@ https://{api-gateway-url}/{stage}
 |-------------|-----------|--------------|
 | NGSIv2 | `/v2` | `application/json` |
 | NGSI-LD | `/ngsi-ld/v1` | `application/ld+json` |
+
+### Trailing Slashes (#1582)
+
+A single trailing slash is normalized away (Orion-LD compatible): `/ngsi-ld/v1/entities/` is treated as `/ngsi-ld/v1/entities`, and operational endpoints such as `/health/` and `/version/` respond the same as their unslashed form. A **trailing double slash** (`//`) on an actual API request is rejected with `400 BadRequest`. The specifications (ETSI GS CIM 009, NGSIv2) do not define trailing-slash paths, but normalizing them improves interoperability with clients/test suites that append a slash and avoids health-check false alarms when a load balancer or monitor is configured with a trailing slash.
+
+> **Note (CORS preflight)**: `OPTIONS` requests for non-API paths (e.g. `/version`, `/health`) are answered directly by the CORS layer with `204` before path normalization, so a trailing-`//` `OPTIONS` preflight to such a path returns `204` rather than `400`. Preflight carries no request body and makes no data/authorization decision, so this is harmless. `OPTIONS` on data paths (`/ngsi-ld/*`, `/v2/*`) is normalized like any other method.
 
 ### OPTIONS Method
 
@@ -189,7 +194,8 @@ Pagination is supported on all list-type API endpoints.
 | Parameter | Description | Default | Maximum |
 |-----------|-------------|---------|---------|
 | `limit` | Maximum number of results to return | 20 | 1000 (Admin API: 100) |
-| `offset` | Number of results to skip | 0 | - |
+| `offset` | Number of results to skip | 0 | 10000 |
+| `pageToken` | Opaque continuation token from the previous response's next-page header (`Fiware-Next-Token` / `NGSILD-Next`). Enables **keyset pagination** on the default sort — see below (#1435) | - | - |
 
 ### Response Headers
 
@@ -197,10 +203,12 @@ A header indicating the total count is returned for each API type:
 
 | API | Header Name | Condition |
 |-----|-------------|-----------|
-| NGSIv2 | `Fiware-Total-Count` | Always returned (all list endpoints) |
-| NGSI-LD | `NGSILD-Results-Count` | Always returned |
+| NGSIv2 | `Fiware-Total-Count` | Only when requested via `options=count` (opt-in per FIWARE NGSIv2 spec) |
+| NGSI-LD | `NGSILD-Results-Count` | Only when requested via `count=true` (opt-in per ETSI GS CIM 009 §5.5.6) |
 | Admin API | `X-Total-Count` | Always returned |
 | Catalog API | `X-Total-Count` | Always returned |
+
+> NGSI entity list endpoints skip the count query entirely when the count is not requested; further pages are indicated via the `Link` (`rel="next"`) / next-page token instead (#1434).
 
 ### Link Header
 
@@ -209,6 +217,33 @@ All list endpoints return a `Link` header conforming to [RFC 8288](https://www.r
 ```http
 Link: <https://api.example.com/v2/entities?limit=10&offset=20>; rel="next", <https://api.example.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
+
+### Keyset Pagination (`pageToken`
+
+, #1435)
+
+Entity list endpoints (NGSIv2 `/v2/entities`, NGSI-LD `/ngsi-ld/v1/entities`) support **keyset (seek) pagination** on the **default sort** (`createdAt` ascending, then `_id`). This avoids the linear `skip` cost of deep offset pages.
+
+- Each response's next-page token (`Fiware-Next-Token` / `NGSILD-Next`) encodes the position of the last returned entity. Treat it as **opaque** — do not decode or construct it yourself.
+- To fetch the next page, send it back via the `pageToken` query parameter. The broker resolves the next page with an index range scan (`O(log n)`), not `skip`.
+- On the keyset path, the `Link` `rel="next"` URL carries `pageToken` instead of `offset` (keyset is forward-only, so no `rel="prev"`).
+
+```bash
+# Page 1 — read the Fiware-Next-Token response header
+curl -i "http://localhost:3000/v2/entities?limit=100" -H "Fiware-Service: smartcity"
+
+# Page 2 — send that token back as pageToken
+curl "http://localhost:3000/v2/entities?limit=100&pageToken=<token-from-page-1>" \
+  -H "Fiware-Service: smartcity"
+```
+
+Notes and constraints:
+
+- `offset`/`limit` remain fully supported and unchanged. `pageToken` is additive; keyset activates only when you send it back.
+- `pageToken` is only valid for the default sort. Combining it with `orderBy` (or a distance-ordered geo-query) returns `400`.
+- `pageToken` and `offset` are mutually exclusive (`400` if both are provided).
+- Changing filter parameters (`q`, `mq`, `type`, …) between pages while reusing a `pageToken` yields undefined results (may skip or repeat rows) — the standard keyset caveat.
+- `options=count` / `count=true` still returns the full total count (independent of the token position).
 
 ### Validation
 
@@ -221,6 +256,9 @@ Invalid pagination parameters return `400 Bad Request`:
 | limit=0 | `Invalid limit: must be greater than 0` |
 | Exceeds maximum | `Invalid limit: must not exceed 1000` |
 | Non-numeric | `Invalid limit: must be a valid integer` |
+| Invalid `pageToken` | `Invalid pageToken` |
+| `pageToken` + `offset` together | `offset and pageToken must not be used together` |
+| keyset `pageToken` + `orderBy` | `pageToken is only valid for default sort (remove orderBy)` |
 
 ### Usage Examples
 
@@ -251,27 +289,27 @@ GET endpoints return cache-related headers based on endpoint class. Clients can 
 |-------|-----------|-------------------------------|----------------------|---------------|
 | **Data** | `/v2/entities` (list, single, attrs, attrs/{name}, attrs/{name}/value), `/v2/subscriptions`, `/v2/registrations`, `/ngsi-ld/v1/entities` (list, single, attrs, attrs/{name}), `/ngsi-ld/v1/subscriptions`, `/ngsi-ld/v1/csourceRegistrations`, `/ngsi-ld/v1/csourceSubscriptions` | ✓ | ✓ (`If-None-Match` / `If-Modified-Since` → `304`) | `private, no-cache` |
 | **Temporal** | `/ngsi-ld/v1/temporal/entities` (list, single, including aggregation) | ✗ (no ETag — time-series aggregation lacks cheap monotonic validator) | ✗ | `private, no-cache` |
-| **Meta** | `/v2/types`, `/ngsi-ld/v1/types`, `/ngsi-ld/v1/attributes` (list and single) | ✗ (no ETag, no Last-Modified) | ✗ (no `304` support) | `max-age=60, stale-while-revalidate=120` |
+| **Meta** | `/v2/types`, `/ngsi-ld/v1/types`, `/ngsi-ld/v1/attributes` (list and single) | ✗ (no ETag, no Last-Modified) | ✗ (no `304` support) | `private, max-age=60, stale-while-revalidate=120` |
 
-All cache-controlled responses share the same `Vary` header: `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` (tenant + auth + content-negotiation isolation, required for shared caches like CloudFront).
+All cache-controlled responses share the same `Vary` header: `NGSILD-Tenant, Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept, x-cadde-options` (tenant + auth + content-negotiation + CADDE options isolation, required for shared caches like CloudFront).
 
 ### Response Headers (Data Endpoints)
 
 | Header | Description |
 |--------|-------------|
-| `ETag` | Weak entity tag (`W/"..."`, RFC 7232 §2.3.2 weak validator). Generation always mixes a **resource scope** (`path + Accept + tenant + Fiware-ServicePath`) into the seed so that different endpoints, Accept formats, **tenants**, or **service paths** produce distinct ETags even when the underlying state is identical. The `tenant` slot reads `NGSILD-Tenant` first and falls back to `Fiware-Service`, matching `extractTenantContext` precedence. The tenant / servicePath seed defends against cross-tenant ETag collision even if `Vary` is mishandled by an intermediate cache. <br>• **Lists**: streaming digest of each element's `id + modifiedAt`, combined with the total count and the resource scope. <br>• **Single resources**: hash of `modifiedAt` combined with the resource scope. |
+| `ETag` | Weak entity tag (`W/"..."`, RFC 7232 §2.3.2 weak validator). Generation always mixes a **resource scope** (`path + Accept + representation + resolved tenant + servicePath`) into the seed so that different endpoints, Accept formats, **tenants**, or **service paths** produce distinct ETags even when the underlying state is identical. The tenant / servicePath slots come from the **resolved `TenantContext`** produced by `extractTenantContext` (CADDE `x-cadde-options` merge included) — raw request headers are not re-read (#1835). The tenant / servicePath seed defends against cross-tenant ETag collision even if `Vary` is mishandled by an intermediate cache. <br>• **NGSI-LD entity list** (`GET /ngsi-ld/v1/entities`, non-federated, non-geoNear, non-materialized): lightweight validator derived from `total count + max(modifiedAt)` with a scope that also includes the full query string, computed **without fetching entity bodies** so `If-None-Match` is evaluated and `304` returned before the heavy query (#1261). Federated / geoNear / join / splitEntities / entityMap paths fall back to the streaming digest below. <br>• **Other lists** (NGSIv2 entities, subscriptions, registrations, csource\*): streaming digest of each element's `id + modifiedAt`, combined with the total count and the resource scope. <br>• **Single resources**: hash of `modifiedAt` combined with the resource scope. |
 | `Last-Modified` | RFC 1123 HTTP-date of the latest `modifiedAt` in the result set. |
 | `Cache-Control` | `private, no-cache` — `private` forbids storage in shared / intermediate caches (CloudFront, ISP proxies, corporate proxies). `no-cache` forces revalidation before reuse from a private cache. |
-| `Vary` | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept`. |
+| `Vary` | `NGSILD-Tenant, Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept, x-cadde-options`. |
 
 ### Response Headers (Meta Endpoints)
 
 | Header | Description |
 |--------|-------------|
-| `Cache-Control` | `max-age=60, stale-while-revalidate=120` — short-term caching with background revalidation. |
+| `Cache-Control` | `private, max-age=60, stale-while-revalidate=120` — shared/intermediate cache storage is forbidden; private cache can reuse briefly with background revalidation. |
 | `Vary` | Same as data endpoints. |
 
-Meta endpoints intentionally omit `ETag` / `Last-Modified` because their content is derived from aggregation queries that do not have a cheap monotonic validator. Clients should rely on `max-age` instead of conditional requests.
+Meta endpoints intentionally omit `ETag` / `Last-Modified` because their content is derived from aggregation queries that do not have a cheap monotonic validator. Clients should rely on the `max-age` window in private caches instead of conditional requests.
 
 ### Conditional Requests (Data Endpoints Only)
 
@@ -325,6 +363,17 @@ Clients can send the `Cache-Control` request header to influence caching behavio
 | `Cache-Control: no-cache` | Server makes no special override; the endpoint's default policy still applies (data → revalidation; meta → `max-age=60` etc). |
 | `Cache-Control: max-age=N` | Reserved for edge-cache layer (Phase 3 / CloudFront). The Lambda server itself is stateless and does not interpret this directive. |
 
+### Error Response Caching (#1821)
+
+RFC 9110 §15.1 defines the heuristically cacheable status codes as 200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414 and 501; the error statuses among them are 404, 405, 410, 414 and 501. Without an explicit `Cache-Control` directive, shared caches (for example CloudFront Error Caching Minimum TTL) may store these responses heuristically. On tenant-scoped entity GET, a cached 404 from another tenant could become an existence oracle (CWE-525 class).
+
+GeonicDB's error handler sets `Cache-Control: no-store` on all heuristically cacheable errors it generates. Most 400-class errors are not heuristically cacheable and receive no override. The error handler adds no `Vary` of its own on these responses (the CORS layer still appends `Vary: Origin`).
+
+| Status | Error-handler `Cache-Control` |
+|--------|------------------------------|
+| 404 / 405 / 410 / 414 / 501 | `no-store` |
+| 400 / 401 / 403 / 409 / … | (no override) |
+
 ---
 
 ## Authentication API
@@ -337,7 +386,7 @@ Authentication is disabled by default. It can be enabled with the following envi
 
 **Note**: When `AUTH_ENABLED=false`, authentication-related endpoints (`/auth/*`, `/me`, `/me/*`, `/admin/*`) return 404.
 
-**Important**: When `AUTH_ENABLED=true`, access to NGSI API endpoints (`/v2/*`, `/ngsi-ld/*`, `/catalog/*`) requires authentication. Accessing without authentication returns a `401 Unauthorized` error.
+**Important**: Authentication is enabled by default (disabled only by an explicit `AUTH_ENABLED=false`, intended for local development). While enabled, access to NGSI API endpoints (`/v2/*`, `/ngsi-ld/*`, `/catalog/*`) requires authentication. Accessing without authentication returns a `401 Unauthorized` error.
 
 | Environment Variable | Default | Description |
 |----------------------|---------|-------------|
@@ -384,10 +433,17 @@ Content-Type: application/json
 |-----------|------|----------|-------------|
 | `email` | string | Yes | Email address |
 | `password` | string | Yes | Password |
-| `tenantId` | string | No | If specified, issues a JWT scoped to that tenant. Defaults to primary tenant if omitted |
+| `tenantId` | string | No | Tenant UUID. Issues a JWT scoped to that tenant. Mutually exclusive with `tenantName` |
+| `tenantName` | string | No | Tenant name (#1223). Resolved server-side to a tenant UUID. Mutually exclusive with `tenantId` |
 | `resourceScopes` | ResourceScope[] | No | Entity-level access control scopes. Full access if omitted. See [AUTH.md](../reference/auth.md#resource-scopesgeonicdb-extension) for details |
 
-**Tenant Header Support**: Instead of `tenantId` in the body, you can specify a tenant via `NGSILD-Tenant` or `Fiware-Service` header (resolved by tenant name). Priority: `body.tenantId` > header > primary tenant. Header values must match `^[a-z0-9_]+$`.
+**Tenant Resolution Priority**:
+1. `body.tenantId` (UUID, highest priority)
+2. `body.tenantName` (resolved to UUID server-side, #1223)
+3. `NGSILD-Tenant` / `Fiware-Service` header (resolved to UUID by name)
+4. Primary tenant (`user.tenantId`) — fallback when nothing is specified
+
+`tenantId` and `tenantName` are **mutually exclusive** — specifying both returns `400 Bad Request`. Header values must match `^[a-z0-9_]+$`. Tenant names are guaranteed unique among active/inactive tenants via a partial unique index on `tenants.name` (soft-deleted tenants are excluded, #1223).
 
 **Response Example**
 
@@ -417,11 +473,19 @@ Content-Type: application/json
 
 ```json
 {
-  "refreshToken": "<refresh_token>"
+  "refreshToken": "<refresh_token>",
+  "tenantId": "<optional_target_tenant_id>"
 }
 ```
 
-**Response**: Same format as login
+- `tenantId` (optional): 別 tenant scope へシームレスに切り替える。ユーザーが対象 tenant に active な membership を持つ必要がある。`super_admin` の場合は無視される。
+- 切替不可 (membership なし / inactive / tenant inactive) → `403 Forbidden`
+- `refreshToken` 自体が無効 / 期限切れ → `401 Unauthorized`
+- `user.isActive=false` (アカウント無効化) → `401 Unauthorized`
+
+**Response**: Same format as login.
+
+`availableTenants` は **ユーザーが 1 つ以上の active membership を持つ場合のみ含まれる** (`super_admin` や membership 0 件のユーザーでは省略される)。クライアントは存在しない可能性を考慮して扱うこと。
 
 ### Get Current User Info
 
@@ -559,9 +623,33 @@ Content-Type: application/json
   "email": "newuser@example.com",
   "password": "SecurePassword123!",
   "role": "user",
-  "tenantId": "tenant-456"
+  "primaryTenantId": "tenant-456"
 }
 ```
+
+**Invite mode (#1532)** — set `passwordResetRequired: true` (and omit `password`) to create the account with a server-generated one-time temporary password and force a password change on first login:
+
+```json
+{
+  "email": "newuser@example.com",
+  "role": "user",
+  "primaryTenantId": "tenant-456",
+  "passwordResetRequired": true
+}
+```
+
+The `201` response then includes `temporaryPassword` and `expiresAt` (default TTL 7 days) and carries `Cache-Control: no-store`. Sending `password` together with `passwordResetRequired: true` is rejected with `400`. See [AUTH.md](../reference/auth.md) for the single-shot first-login flow.
+
+#### Reset User Password
+
+Issue a fresh temporary password for an **existing** user (e.g. forgotten password), forcing a change on next login:
+
+```http
+POST /admin/users/{userId}/reset-password
+Authorization: Bearer <accessToken>
+```
+
+Returns `{ userId, temporaryPassword, expiresAt, passwordResetRequired, message }` with `Cache-Control: no-store`. Authorization: `super_admin` (any user) / `tenant_admin` (users in their own tenant).
 
 #### Get User
 
@@ -586,6 +674,8 @@ Content-Type: application/json
   "role": "tenant_admin"
 }
 ```
+
+Setting `password` here **clears any pending forced password change** (#1566) and **revokes the user's existing password-derived sessions** — the admin-chosen password is immediately usable and the user is not prompted to reset on next login.
 
 #### Delete User
 
@@ -724,7 +814,7 @@ The scope can be either `admin` (Admin API only) or `all` (all APIs). See [AUTH.
 
 ### Rule Engine Management (tenant_admin)
 
-Manage rules that automatically process entity changes. Requires the `tenant_admin` role; `super_admin` cannot access `/rules*` endpoints when `AUTH_ENABLED=true`.
+Manage rules that automatically process entity changes. Requires the `tenant_admin` role; `super_admin` cannot access `/rules*` endpoints while authentication is enabled (the default).
 
 - **[REACTIVCORE_RULES.md](../features/reactivcore-rules.md)** - User guide (usage examples, Admin API, etc.)
 
@@ -845,7 +935,7 @@ Machine-to-Machine (M2M) authentication using the OAuth 2.0 Client Credentials G
 - `DELETE /me/oauth-clients/{clientId}` - Delete own client (Self-service)
 - `POST /me/oauth-clients/{clientId}/regenerate-secret` - Regenerate own secret (Self-service)
 
-**Enabling:** OAuth 2.0 is always enabled when `AUTH_ENABLED=true`. The `OAUTH_ENABLED` environment variable is deprecated and ignored.
+**Enabling:** OAuth 2.0 is always available while authentication is enabled (the default). The `OAUTH_ENABLED` environment variable was removed in #1982 — it had no readers in the codebase.
 
 **Available Scopes:**
 
@@ -954,6 +1044,17 @@ GET /version
 
 Returns FIWARE Orion-compatible version information.
 
+The GeonicDB-specific `extensions.vectorSearch` object reports whether the connected MongoDB deployment supports Atlas Vector Search (`$vectorSearch` / `listSearchIndexes`). Used to gate RAG and embedding features on environment capability.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `extensions.vectorSearch.available` | boolean | `true` when Atlas Vector Search is reachable |
+| `extensions.vectorSearch.serverVersion` | string \| omitted | MongoDB server version (from `buildInfo`); omitted on failure |
+| `extensions.vectorSearch.checkedAt` | string (ISO 8601) | Timestamp the capability was last probed |
+| `extensions.vectorSearch.reason` | string \| omitted | Failure reason when `available=false` (e.g. `CommandNotFound`) |
+
+The capability probe is cached in-memory for 5 minutes, so `/version` itself remains cheap under load.
+
 **Response Example**
 
 ```json
@@ -972,6 +1073,13 @@ Returns FIWARE Orion-compatible version information.
   "vendor": {
     "name": "Geolonia Inc.",
     "url": "https://geolonia.com"
+  },
+  "extensions": {
+    "vectorSearch": {
+      "available": true,
+      "serverVersion": "7.0.5",
+      "checkedAt": "2026-05-19T12:34:56.000Z"
+    }
   }
 }
 ```
@@ -1042,7 +1150,7 @@ For Kubernetes / Route 53 liveness probes. Checks whether the service is running
 GET /health/ready
 ```
 
-For Kubernetes / Route 53 readiness probes. Checks MongoDB connectivity, and optionally performs deep health checks for DynamoDB and EventBridge.
+For Kubernetes / Route 53 readiness probes. Checks MongoDB connectivity, and optionally performs deep health checks for DynamoDB, EventBridge, and the WebSocket delivery path.
 
 **Enabling Deep Health Checks via Environment Variables**
 
@@ -1050,6 +1158,9 @@ For Kubernetes / Route 53 readiness probes. Checks MongoDB connectivity, and opt
 |---------|------|
 | `HEALTH_CHECK_DYNAMODB=true` | Add DynamoDB DescribeTable connectivity check |
 | `HEALTH_CHECK_EVENTBRIDGE=true` | Add EventBridge DescribeEventBus connectivity check |
+| `HEALTH_CHECK_WEBSOCKET=false` | Opt out of the WebSocket `$connect` synthetic probe (enabled by default; see below) |
+
+When EventStreaming is enabled (`WS_API_ENDPOINT` is set), the readiness probe also performs a WebSocket `$connect` synthetic probe automatically: it sends an Upgrade request (no token) through the real WebSocket API and marks the service unhealthy on 5xx. This detects silent WS-path outages that REST checks miss. It normally requires no configuration and is skipped automatically when EventStreaming is disabled or in standalone mode. To temporarily disable the probe (e.g. while investigating a WS incident), set `HEALTH_CHECK_WEBSOCKET=false`.
 
 **Response**
 - Success: `200 OK` with `status: "healthy"`
@@ -1066,7 +1177,8 @@ For Kubernetes / Route 53 readiness probes. Checks MongoDB connectivity, and opt
   "checks": {
     "mongodb": { "status": "healthy", "latencyMs": 12 },
     "dynamodb": { "status": "healthy", "latencyMs": 8 },
-    "eventbridge": { "status": "healthy", "latencyMs": 15 }
+    "eventbridge": { "status": "healthy", "latencyMs": 15 },
+    "websocket": { "status": "healthy", "latencyMs": 42 }
   },
   "totalLatencyMs": 35
 }
@@ -1083,7 +1195,7 @@ GET /statistics
 Authorization: Bearer <token>
 ```
 
-Returns server operational statistics in FIWARE Orion-compatible format. When authentication is enabled (`AUTH_ENABLED=true`), only authenticated users can access this endpoint.
+Returns server operational statistics in FIWARE Orion-compatible format. While authentication is enabled (the default), only authenticated users can access this endpoint.
 
 **Response Example**
 
@@ -1123,7 +1235,7 @@ GET /cache/statistics
 Authorization: Bearer <token>
 ```
 
-Returns cache statistics for subscriptions and registrations. When authentication is enabled (`AUTH_ENABLED=true`), only authenticated users can access this endpoint.
+Returns cache statistics for subscriptions and registrations. While authentication is enabled (the default), only authenticated users can access this endpoint.
 
 **Response Example**
 
@@ -1153,7 +1265,7 @@ GET /metrics
 Authorization: Bearer <token>
 ```
 
-Returns metrics in Prometheus exposition format. When authentication is enabled (`AUTH_ENABLED=true`), only authenticated users can access this endpoint. Can be used for monitoring in Kubernetes environments and integration with Grafana dashboards.
+Returns metrics in Prometheus exposition format. While authentication is enabled (the default), only authenticated users can access this endpoint. Can be used for monitoring in Kubernetes environments and integration with Grafana dashboards.
 
 **Response**
 - Content-Type: `text/plain; version=0.0.4`
@@ -1221,7 +1333,7 @@ Accept: application/json, text/event-stream
 
 MCP Streamable HTTP endpoint. Can be connected directly from MCP-compatible AI clients (such as Claude Desktop). Operates in stateless mode (JSON response), with all 5 tools available via MCP tools/call.
 
-When `AUTH_ENABLED=true`, authentication via Bearer token (JWT) is required. Tenant access control also applies.
+While authentication is enabled (the default), a Bearer token (JWT) is required. Tenant access control also applies.
 
 **Claude Desktop Configuration Example**:
 ```json
@@ -1239,7 +1351,7 @@ When `AUTH_ENABLED=true`, authentication via Bearer token (JWT) is required. Ten
   }
 }
 ```
-Note: `headers` is only required when `AUTH_ENABLED=true`.
+Note: `headers` is required while authentication is enabled (the default).
 
 For details, see [AI_INTEGRATION.md](../ai-integration/overview.md).
 
@@ -1258,7 +1370,7 @@ Authorization: Bearer <token>
 Fiware-Service: <tenant>  (optional, falls back to default tenant)
 ```
 
-A2A JSON-RPC 2.0 endpoint for inter-agent communication. Requires authentication when `AUTH_ENABLED=true`. Supported methods:
+A2A JSON-RPC 2.0 endpoint for inter-agent communication. Requires authentication while it is enabled (the default). Supported methods:
 - `message/send` — Send a message and receive a synchronous response
 - `tasks/get` — Retrieve current state of a task
 - `tasks/list` — List tasks with filtering and pagination
@@ -1372,7 +1484,7 @@ Entities with location information can be queried spatially.
 | Parameter | Description |
 |-----------|-------------|
 | `georel` | Spatial relationship (coveredBy, within, intersects, disjoint, equals) |
-| `geometry` | Geometry type (point, polygon, line, box) |
+| `geometry` | Geometry type. NGSIv2: `point`, `multipoint`, `linestring`, `multilinestring`, `polygon`, `multipolygon`, `line`, `box` (case-insensitive). NGSI-LD: the six GeoJSON names `Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon` (exact case). The `Multi*` variants are accepted since #1696 |
 | `coords` | Coordinates (NGSIv2: latitude,longitude format; NGSI-LD: longitude,latitude format; multiple points separated by semicolons) |
 
 > **Note**: `georel`, `geometry`, and `coords` (or `coordinates` in NGSI-LD) must all be specified together. Specifying only some of them returns `400 Bad Request` (ETSI GS CIM 009 V1.9.1 clause 4.10).
@@ -1391,6 +1503,18 @@ coords=34,138;34,141;37,141;37,138;34,138  # Polygon (semicolon-separated)
 # NGSI-LD (longitude,latitude)
 coordinates=[139.7671,35.6812]       # Single point
 ```
+
+#### Polygon Ring Closure (#1644)
+
+A `Polygon` ring — whether in a stored GeoProperty / `geo:json` attribute value or in a geo-query —
+must be closed: the first and last positions must be **equal in every element**. For 3-element
+positions (`[longitude, latitude, altitude]`, RFC 7946 §3.1.6) this includes the altitude. The
+check is shared between the NGSI-LD and NGSIv2 paths, so both APIs apply the same rule.
+
+> **Note (minor breaking change, #1644)**: NGSIv2 previously compared only longitude/latitude when
+> validating ring closure, silently accepting rings whose first and last positions differed in
+> altitude. Such rings are now rejected with `400 Bad Request` ("must be closed"), matching the
+> NGSI-LD behavior. Clients sending 2-element (2D) coordinates are unaffected.
 
 ### Area Search (coveredBy / within)
 
@@ -1536,7 +1660,7 @@ If geo-query parameters are invalid, `400 Bad Request` is returned.
 | Error Condition | Example Error Message |
 |----------------|-----------------------|
 | Invalid `georel` value | `Invalid georel: xxx. Supported values: near, coveredBy, within, contains, intersects, disjoint, equals` |
-| Invalid `geometry` value | `Unsupported geometry type: xxx. Supported types: point, polygon, linestring, line, box` |
+| Invalid `geometry` value | `Unsupported geometry type: xxx. Supported types: point, multipoint, polygon, multipolygon, linestring, multilinestring, line, box` |
 | Insufficient coordinates (Point) | `Point geometry requires at least 2 coordinates, but got 1` |
 | Insufficient coordinates (Polygon) | `Polygon geometry requires at least 4 coordinate pairs (8 values), but got 6 values` |
 | Insufficient coordinates (LineString) | `LineString geometry requires at least 2 coordinate pairs (4 values), but got 2 values` |
@@ -1640,6 +1764,10 @@ GET /ngsi-ld/v1/entities?type=Store
 Accept: application/geo+json
 ```
 
+`POST /ngsi-ld/v1/entityOperations/query` (batch query) supports the same `format=geojson` / `Accept: application/geo+json` negotiation and returns a FeatureCollection in the same shape as `GET /ngsi-ld/v1/entities` (#1783 — ETSI GS CIM 009 clause 6.3.4 lists "Query Entity", clause 5.7.2, among the GeoJSON-eligible operations). `GET /ngsi-ld/v1/entities/{entityId}` (single retrieval) instead returns a single **Feature**, not a FeatureCollection — see [API_NGSILD.md](./ngsild.md#retrieve-single-entity).
+
+In NGSI-LD, `properties` keys and `properties.type` are compacted against the request `@context` — the same rule that compacts the JSON representation (ETSI GS CIM 009 clause 5.5.7, #1788).
+
 ### Response Format
 
 ```json
@@ -1722,159 +1850,6 @@ curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773&options=geo
 - Entities without a `location` attribute are output as `geometry: null`
 - GeoJSON output can be used together with the `keyValues` option
 - Geometry types including Polygon, LineString, MultiPoint, etc. are supported
-
----
-
-## Vector Tiles
-
-Entities can be output as GeoJSON vector tiles based on the XYZ tile scheme. Optimized for efficiently displaying large numbers of entities on a map.
-
-### Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /v2/tiles` | TileJSON metadata (NGSIv2) |
-| `GET /v2/tiles/{z}/{x}/{y}.geojson` | GeoJSON tile (NGSIv2) |
-| `GET /ngsi-ld/v1/tiles` | TileJSON metadata (NGSI-LD) |
-| `GET /ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GeoJSON tile (NGSI-LD) |
-
-### TileJSON Metadata
-
-Returns metadata conforming to the TileJSON 3.0 specification:
-
-```bash
-curl "http://localhost:3000/v2/tiles" \
-  -H "Fiware-Service: smartcity"
-```
-
-**Response Example**
-
-```json
-{
-  "tilejson": "3.0.0",
-  "tiles": ["http://localhost:3000/v2/tiles/{z}/{x}/{y}.geojson"],
-  "name": "GeonicDB Vector Tiles",
-  "description": "GeoJSON vector tiles for NGSI entities",
-  "minzoom": 0,
-  "maxzoom": 22,
-  "bounds": [-180, -85.051129, 180, 85.051129],
-  "center": [0, 0, 2]
-}
-```
-
-### Retrieve GeoJSON Tile
-
-Retrieve entities within a tile in GeoJSON format by specifying XYZ coordinates:
-
-```bash
-# Zoom level 14 tile around Tokyo
-curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson" \
-  -H "Fiware-Service: smartcity"
-```
-
-**Query Parameters**
-
-| Parameter | Description |
-|-----------|-------------|
-| `type` | Filter by entity type |
-| `attrs` | Specify attributes to output as a comma-separated list |
-
-**Usage Examples**
-
-```bash
-# Retrieve only a specific entity type
-curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?type=Store" \
-  -H "Fiware-Service: smartcity"
-
-# Retrieve only specific attributes
-curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" \
-  -H "Fiware-Service: smartcity"
-```
-
-**Response Example**
-
-```json
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "id": "Store1",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [139.7671, 35.6812]
-      },
-      "properties": {
-        "entityId": "Store1",
-        "entityType": "Store",
-        "name": "Tokyo Station Store"
-      }
-    }
-  ],
-  "totalCount": 1,
-  "tileCoordinates": {
-    "z": 14,
-    "x": 14549,
-    "y": 6451
-  }
-}
-```
-
-### Clustering
-
-When the number of entities in a tile exceeds the threshold (default: 1000), they are automatically clustered. When clustered, a single cluster Feature with the centroid coordinates of all entities in the tile is returned.
-
-**Response Example When Clustered**
-
-```json
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "id": "cluster-14-14549-6451",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [139.7654, 35.6798]
-      },
-      "properties": {
-        "cluster": true,
-        "point_count": 1523,
-        "entityTypes": {
-          "Store": 850,
-          "Restaurant": 673
-        }
-      }
-    }
-  ],
-  "totalCount": 1523,
-  "tileCoordinates": {
-    "z": 14,
-    "x": 14549,
-    "y": 6451
-  },
-  "clustered": true
-}
-```
-
-**Response Headers**
-
-| Header | Description |
-|--------|-------------|
-| `X-Tile-Mode` | `individual` (individual entities) or `clustered` (clustering) |
-| `X-Total-Count` | Total number of entities in the tile |
-
-### Configuration
-
-| Environment Variable | Default | Description |
-|----------------------|---------|-------------|
-| `MAX_ENTITIES_PER_REQUEST` | `1000` | Threshold for clustering (clustering occurs at or above this value) |
-
-### References
-
-- [TileJSON 3.0 Specification](https://github.com/mapbox/tilejson-spec/tree/master/3.0.0)
-- [RFC 7946 GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946)
-- [XYZ Tile Scheme](https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
 
 ---
 
@@ -1979,6 +1954,10 @@ curl "http://localhost:3000/v2/entities/Store1?crs=EPSG:6668" \
 |------------|----------|
 | WGS84 ↔ JGD2011 | Several cm to tens of cm |
 | WGS84 ↔ Web Mercator | Depends on calculation precision (within ±85 degrees latitude) |
+
+### Supported Geometry Types
+
+CRS transformation applies to all GeoJSON geometry types used by GeoProperty / `geo:json` location values: `Point`, `LineString`, `Polygon`, `MultiPoint`, `MultiLineString`, and `MultiPolygon` (#1641). Every position is reprojected element-wise, so altitude pass-through (#1595) applies uniformly to the multi-geometry variants. `GeometryCollection` is not transformable and returns `400 Bad Request` when a non-WGS84 `crs` is specified.
 
 ### Usage Examples
 
@@ -2644,7 +2623,7 @@ This section summarizes pagination, authentication/authorization, and status cod
 
 \* Authentication not required when `AUTH_ENABLED=false`
 
-† `/statistics`, `/cache/statistics`, `/metrics` require authentication when `AUTH_ENABLED=true`
+† `/statistics`, `/cache/statistics`, `/metrics` require authentication while it is enabled (the default)
 
 ### Public Endpoints (Meta/Health)
 
@@ -2668,7 +2647,7 @@ Endpoints accessible without authentication.
 | `/mcp` | POST | MCP (Model Context Protocol) Streamable HTTP endpoint | 200 | 400, 405, 500 |
 | `/.well-known/agent-card.json` | GET | A2A Agent Card | 200 | - |
 
-### AI Agent Endpoints (authentication required when AUTH_ENABLED=true)
+### AI Agent Endpoints (authentication required unless AUTH_ENABLED=false)
 
 | Endpoint | Method | Description | Success | Error |
 |----------|--------|-------------|---------|-------|
@@ -2676,13 +2655,13 @@ Endpoints accessible without authentication.
 
 ### Authentication Endpoints
 
-- `/auth/*` is available only when `AUTH_ENABLED=true`
-- `/oauth/token` is available when `AUTH_ENABLED=true` (always enabled; `OAUTH_ENABLED` is deprecated)
+- `/auth/*` is unavailable only when `AUTH_ENABLED=false`
+- `/oauth/token` is available while authentication is enabled (the default); the `OAUTH_ENABLED` variable was removed in #1982
 
 | Endpoint | Method | Description | Success | Error |
 |----------|--------|-------------|---------|-------|
 | `/auth/login` | POST | User login (JWT) | 200 | 400, 401 |
-| `/auth/refresh` | POST | Token refresh | 200 | 400, 401 |
+| `/auth/refresh` | POST | Token refresh (optional `tenantId` for tenant switching) | 200 | 400, 401, 403 |
 | `/auth/logout` | POST | Logout (invalidate all sessions, authentication required) | 204 | 401 |
 | `/auth/nonce` | POST | Nonce + PoW challenge for API key token exchange | 200 | 400 |
 | `/oauth/token` | POST | OAuth token acquisition (M2M: `grant_type=client_credentials`, Browser SDK: `grant_type=api_key`) | 200 | 400, 401 |
@@ -2744,6 +2723,68 @@ API for managing tenants and users. Endpoints require either `super_admin` or `t
 | `/admin/users/{userId}/deactivate` | POST | Deactivate user | 204 | 401, 403, 404 | - |
 | `/admin/users/{userId}/unlock` | POST | Unlock login | 200 | 400, 401, 403, 404 | - |
 | `/admin/users/{userId}/tenants` | GET | List tenants the user belongs to (self or super_admin) | 200 | 401, 403 | Yes (max: 100) |
+
+#### Deployment Routing Management (super_admin only)
+
+Maps a hostname to a MongoDB cluster/database, so a large tenant can be isolated on a dedicated cluster (#1775 / Epic #1485). See DEDICATED_CLUSTER_ONBOARDING.md for the operational runbook.
+
+| Endpoint | Method | Description | Success | Error | Pagination |
+|----------|--------|-------------|---------|-------|------------|
+| `/admin/deployments` | GET | List deployment routing rows (filter: `enabled=true\|false`; disabled rows included) | 200 | 400, 401, 403 | Yes (max: 100) |
+| `/admin/deployments` | POST | Create a deployment routing row | 201 | 400, 401, 403, 409 | - |
+| `/admin/deployments/{hostname}` | GET | Get a deployment routing row (bypasses the routing cache) | 200 | 400, 401, 403, 404 | - |
+| `/admin/deployments/{hostname}` | PATCH | Update a deployment routing row | 200 | 400, 401, 403, 404, 409 | - |
+| `/admin/deployments/{hostname}` | DELETE | Delete a deployment routing row | 204 | 400, 401, 403, 404, 409 | - |
+
+**Request body (POST)**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `hostname` | Yes | DNS name. Normalised to lowercase to match how the `Host` header is resolved |
+| `databaseName` | Yes | MongoDB database name (alphanumerics, `-`, `_`; max 63) |
+| `defaultQuotaPlan` | Yes | `FREE` \| `STANDARD` \| `PREMIUM` \| `ENTERPRISE` \| `CUSTOM` |
+| `mongodbUriSecretArn` | Either this or `mongodbUri` | Secrets Manager reference. **Use the secret *name*** (e.g. `geonicdb/deployments/<name>`) in multi-region production — a full ARN embeds a region the failover Lambda cannot resolve. Full ARNs are accepted for single-region setups |
+| `mongodbUri` | Either this or `mongodbUriSecretArn` | Plaintext connection string. Rejected with 400 when `MONGODB_ENFORCE_SECRETS=true` |
+| `rateLimitTableName` | No | Per-deployment rate-limit table override |
+| `enabled` | No | Defaults to `true`. Only enabled rows are routed |
+| `metadata` | No | Free-form object (max 4 KB serialized, max 5 levels deep) |
+
+`PATCH` accepts the same fields except `hostname` (immutable — rename by creating a new row and deleting the old one). Send `null` to clear `mongodbUri` / `mongodbUriSecretArn` / `rateLimitTableName` / `metadata`.
+
+**Response**
+
+The plaintext `mongodbUri` is **never returned**. Responses expose `mongodbUriConfigured` (boolean) and `mongodbUriSecretArn` only.
+
+```json
+{
+  "hostname": "ohashi.geonicdb.example.com",
+  "databaseName": "ohashi",
+  "defaultQuotaPlan": "ENTERPRISE",
+  "enabled": true,
+  "mongodbUriSecretArn": "geonicdb/deployments/ohashi",
+  "mongodbUriConfigured": false,
+  "rateLimitTableName": null,
+  "metadata": { "owner": "ops" },
+  "createdAt": 1753000000000,
+  "updatedAt": 1753000000000
+}
+```
+
+**Refusals that prevent unusable rows**
+
+| Status | Condition |
+|--------|-----------|
+| 400 | Reserved subdomain — such a row is never routed even if it exists (#633) |
+| 409 | Hostname listed in `DEFAULT_DEPLOYMENT_HOSTNAMES` — the env list wins and the row would be silently shadowed (#1291) |
+| 400 | Plaintext `mongodbUri` while `MONGODB_ENFORCE_SECRETS=true` (#1086) |
+| 400 | No connection source at all (neither secret reference nor URI) |
+| 409 | Hostname already registered (conditional write; concurrent creates cannot overwrite each other) |
+| 409 | Deleting or disabling the deployment serving the current request — it would make every API on that host, including this admin API, return 404. Perform the operation from another hostname |
+| 409 | `PATCH` optimistic-lock conflict — the row was modified or deleted between read and write. Re-read and retry. Updates are conditional on `updatedAt`, so a concurrent `PATCH` cannot silently overwrite another, and a `PATCH` racing a `DELETE` cannot resurrect the deleted row |
+
+**Listing bounds**: the store is a plain key-value collection with no ordered range query, so listing reads rows up to a repository-level cap (`DEPLOYMENTS.ADMIN.MAX_SCAN_ITEMS`) before sorting and paging. If the cap is hit the response carries `X-Deployment-List-Truncated: true` and the server logs a warning — the listing is never silently incomplete.
+
+**Cache convergence**: routing caches are per-instance. After a write, other warm instances and background workers may keep serving the previous configuration for up to 5 minutes (`DEPLOYMENTS.CACHE_TTL_MS`). Write responses carry a `notice` field stating this; `DELETE` returns it in the `X-Deployment-Cache-Notice` header.
 
 #### Policy Management (XACML 3.0 Authorization, super_admin / tenant_admin)
 
@@ -2902,6 +2943,49 @@ Validation failures return `400 Bad Request`:
 }
 ```
 
+#### Unique Constraints (Composite Unique)
+
+A custom data model can declare `uniqueConstraints` — combinations of attributes whose values must be unique among entities of that type (scoped by tenant and service path). Uniqueness is enforced **server-side at the database level** (MongoDB partial unique index), so it is race-free and independent of client conventions.
+
+```json
+{
+  "type": "RoomReservation",
+  "domain": "SmartBuilding",
+  "description": "Room reservation",
+  "propertyDetails": {
+    "room": { "ngsiType": "Property", "valueType": "string", "example": "R1" },
+    "date": { "ngsiType": "Property", "valueType": "string", "example": "2026-07-15" },
+    "startTime": { "ngsiType": "Property", "valueType": "string", "example": "10:00" }
+  },
+  "uniqueConstraints": [
+    { "name": "no-double-booking", "fields": ["room", "date", "startTime"] }
+  ]
+}
+```
+
+**Rules:**
+
+- `name`: unique within the model; alphanumeric start, then letters, digits, hyphens, underscores (max 64 chars)
+- `fields`: 1–8 attribute names, each declared in `propertyDetails` with a scalar `valueType` (`string`, `number`, `integer`, `boolean`, `uri`, `datetime`). `array` / `object` / `geojson` cannot be used
+- Up to 10 constraints per model
+- Constraints apply only to entities that have **all** the declared fields — entities missing any field are exempt
+- Constraints are enforced regardless of the model's `isActive` flag, and are removed when the model is deleted
+- Updating `uniqueConstraints` replaces the whole list (send `[]` to remove all constraints)
+- Adding a constraint fails with `400` if existing entities already violate it — resolve duplicates first
+
+**Violation response:** creating or updating an entity that would duplicate a constrained combination returns `409 AlreadyExists` with the violated constraint name:
+
+```json
+{
+  "error": "AlreadyExists",
+  "description": "Entity already exists: violates unique constraint 'no-double-booking' on fields [room, date, startTime]"
+}
+```
+
+NGSI-LD requests receive the equivalent Problem Details response (`type: https://uri.etsi.org/ngsi-ld/errors/AlreadyExists`). Batch operations report the violation per entity in the `errors` array.
+
+> **Note**: For tenants with attribute encryption enabled, attribute values are stored as ciphertext, so unique constraints cannot detect duplicate plaintext values.
+
 #### Automatic JSON Schema Generation
 
 When a custom data model is created or updated, a JSON Schema (Draft 2020-12) is automatically generated from `propertyDetails` and included in the `jsonSchema` field of the response. It is also possible to specify `jsonSchema` manually.
@@ -2929,13 +3013,39 @@ Each property in `propertyDetails` can include an optional `@context` field with
 ```
 
 - Properties with `@context` → the specified URL is used in the JSON-LD context
-- Properties without `@context` → auto-generated URL (`https://geonicdb.geolonia.com/vocab/{tenantId}/{propertyName}`)
+- Properties without `@context` → auto-generated URL on **this broker's own base URL** (`{brokerBaseUrl}/vocab/{tenantId}/{propertyName}`, #1984), dereferenceable via [`GET /vocab/{tenantId}/{term}`](#vocabulary-endpoint). See [Broker base URL resolution](#broker-base-url-resolution) for where `{brokerBaseUrl}` comes from
 - Property URIs are entity-type independent (same property name shares the same URI within a tenant)
 - `@context` must be an HTTP(S) URL (URN is not accepted)
 
-#### @context Resolution Extension
+#### @context Resolution (#1733)
 
-In NGSI-LD responses, if a custom data model has a `contextUrl` configured, the custom context is automatically included in the entity's `@context` (returned as an array together with the core context).
+The `@context` used to render an NGSI-LD response is **only** the one the request supplied; with none supplied, the NGSI-LD core `@context` alone is used and terms it cannot compact are rendered as fully qualified URIs (ETSI GS CIM 009 clause 5.5.5 / 5.5.7, <https://cim.etsi.org/NGSI-LD/official/clause-5.html>).
+
+A custom data model's `contextUrl` is therefore **not** added to responses automatically. Pass it on the read (JSON-LD `Link` header) to have the response compacted with that vocabulary.
+
+#### Vocabulary Endpoint
+
+Auto-generated vocabulary IRIs are served by this broker, so they can be dereferenced.
+
+| Endpoint | Method | Description | Auth | Success | Error |
+|----------|--------|-------------|------|---------|-------|
+| `/vocab/{tenantId}/{term}` | GET | JSON-LD (`application/ld+json`) self-description of an auto-generated vocabulary term (`@id`, `rdfs:Class`, `rdfs:label`, `rdfs:isDefinedBy`) | None (public) | 200 | 400 |
+
+The `@id` it reports is built exactly like the IRIs written into the generated `@context`.
+
+##### Broker base URL resolution
+
+Every self-referential URL the broker emits — vocabulary IRIs, a custom data model's `contextUrl`, and the examples in `/llms.txt` and `/openapi.json` — is built from one resolver (`resolveSelfBaseUrl`), in this order:
+
+| Priority | Source | Notes |
+|---|---|---|
+| 1 | **`API_BASE_URL` environment variable** | Injected at deploy time from the SAM template parameter **`ApiBaseUrl`** (`infrastructure/template.yaml` → the Lambda's `API_BASE_URL`), which the deploy workflow populates from SSM. Constant per deployment |
+| 2 | Request **`Host`** header | Used only when `API_BASE_URL` is unset. Scheme comes from `X-Forwarded-Proto` (loopback hosts default to `http`, others to `https`); API Gateway default URLs (`*.execute-api.*`) also get the stage path appended |
+| 3 | `http://{HOST_NAME}:{PORT}` | Local development fallback when there is no request context |
+
+**Set `ApiBaseUrl` on any deployment that mints vocabulary IRIs.** Vocabulary IRIs are persisted identifiers; with priority 2 the value depends on which hostname the request arrived on, so a broker reachable under several hostnames (e.g. wildcard per-tenant subdomains) would mint different IRIs for the same term. A wildcard-only deployment leaves `ApiBaseUrl` unset by default (`.github/workflows/deploy-env.yml`).
+
+Vocabulary IRIs are **identifiers**, so they are never rewritten in place: when a model's `propertyDetails` change and the `@context` is regenerated, the namespace already in use by that model is carried over. Models created before #1984 therefore keep their original (`https://example.com/vocab/...`) IRIs, which remain self-consistent with the entities written under them.
 
 ### Catalog API
 
@@ -2945,15 +3055,6 @@ In NGSI-LD responses, if a custom data model has a `contextUrl` configured, the 
 | `/catalog/datasets` | GET | List datasets | 200 | 400, 401 | Yes (max: 1000) |
 | `/catalog/datasets/{datasetId}` | GET | Get dataset | 200 | 401, 404 | - |
 | `/catalog/datasets/{datasetId}/sample` | GET | Get sample data | 200 | 401, 404 | - |
-
-### Vector Tiles API
-
-| Endpoint | Method | Description | Success | Error |
-|----------|--------|-------------|---------|-------|
-| `/v2/tiles` | GET | Get TileJSON metadata (NGSIv2) | 200 | 401 |
-| `/v2/tiles/{z}/{x}/{y}.geojson` | GET | Get GeoJSON tile (NGSIv2) | 200 | 400, 401 |
-| `/ngsi-ld/v1/tiles` | GET | Get TileJSON metadata (NGSI-LD) | 200 | 401 |
-| `/ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GET | Get GeoJSON tile (NGSI-LD) | 200 | 400, 401 |
 
 ### Event Streaming API
 
