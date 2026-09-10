@@ -730,15 +730,26 @@ export function fixAnchorI18n(content: string, isJaFile: boolean): string {
  */
 export function fixHeadingLinkEscape(content: string): string {
   const result: string[] = []
-  let inFence = false
+  // Track the opening fence marker and length: per CommonMark, a fence only
+  // closes on the same marker character with at least the opening run length
+  // and nothing but whitespace after it. A bare toggle would treat `~~~`
+  // inside a ```md block as a fence boundary.
+  let fence: { marker: string; len: number } | null = null
   for (const line of content.split('\n')) {
     const trimmed = line.trimStart()
-    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
-      inFence = !inFence
+    const fenceMatch = trimmed.match(/^(`{3,}|~{3,})/)
+    if (fenceMatch) {
+      const marker = fenceMatch[1][0]
+      const len = fenceMatch[1].length
+      if (fence === null) {
+        fence = { marker, len }
+      } else if (marker === fence.marker && len >= fence.len && trimmed.slice(len).trim() === '') {
+        fence = null
+      }
       result.push(line)
       continue
     }
-    if (!inFence && /^#{1,6}\s/.test(trimmed)) {
+    if (fence === null && /^#{1,6}\s/.test(trimmed)) {
       result.push(line.replace(/\\([[\]])/g, '$1'))
     } else {
       result.push(line)

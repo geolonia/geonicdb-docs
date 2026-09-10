@@ -849,6 +849,24 @@ describe('fixHeadingLinkEscape', () => {
     const once = fixHeadingLinkEscape('## \\[0.12.0]\n')
     expect(fixHeadingLinkEscape(once)).toBe(once)
   })
+
+  it('does not treat ~~~ inside a ``` fence as a fence boundary', () => {
+    const input = '# Title\n\n```md\n~~~\n## \\[literal]\n```\n\n## \\[0.12.0]\n'
+    const expected = '# Title\n\n```md\n~~~\n## \\[literal]\n```\n\n## [0.12.0]\n'
+    expect(fixHeadingLinkEscape(input)).toBe(expected)
+  })
+
+  it('does not close a fence on a shorter run of the same marker', () => {
+    const input = '````md\n```\n## \\[literal]\n```\n````\n\n## \\[0.12.0]\n'
+    const expected = '````md\n```\n## \\[literal]\n```\n````\n\n## [0.12.0]\n'
+    expect(fixHeadingLinkEscape(input)).toBe(expected)
+  })
+
+  it('closes a fence on a longer run of the same marker', () => {
+    const input = '```md\n## \\[literal]\n`````\n\n## \\[0.12.0]\n'
+    const expected = '```md\n## \\[literal]\n`````\n\n## [0.12.0]\n'
+    expect(fixHeadingLinkEscape(input)).toBe(expected)
+  })
 })
 
 // ---------------------------------------------------------------------------
