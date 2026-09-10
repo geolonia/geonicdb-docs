@@ -713,6 +713,41 @@ export function fixAnchorI18n(content: string, isJaFile: boolean): string {
 }
 
 // ---------------------------------------------------------------------------
+// fixHeadingLinkEscape — unescape \[ \] in headings (translation artifact)
+// ---------------------------------------------------------------------------
+
+/**
+ * Unescape backslash-escaped square brackets in heading lines.
+ *
+ * The translation pipeline sometimes emits `## \[0.12.0]` where the source
+ * heading was `## [0.12.0]` (a shortcut reference link resolved against a
+ * link definition elsewhere in the file). The backslash suppresses link
+ * resolution, so the translated heading loses its link while the source
+ * heading keeps it.
+ *
+ * Only heading lines (outside code fences) are touched; escaped brackets in
+ * body text are preserved as authored.
+ */
+export function fixHeadingLinkEscape(content: string): string {
+  const result: string[] = []
+  let inFence = false
+  for (const line of content.split('\n')) {
+    const trimmed = line.trimStart()
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inFence = !inFence
+      result.push(line)
+      continue
+    }
+    if (!inFence && /^#{1,6}\s/.test(trimmed)) {
+      result.push(line.replace(/\\([[\]])/g, '$1'))
+    } else {
+      result.push(line)
+    }
+  }
+  return result.join('\n')
+}
+
+// ---------------------------------------------------------------------------
 // Quality fix runner (exported for testability)
 // ---------------------------------------------------------------------------
 
@@ -723,6 +758,7 @@ export interface QualityFixResult {
   glossaryFixes: number
   blockMergeFixes: number
   anchorFixes: number
+  headingEscapeFixes: number
 }
 
 function collectMdFiles(dir: string): string[] {
@@ -764,6 +800,7 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
   let glossaryFixes = 0
   let blockMergeFixes = 0
   let anchorFixes = 0
+  let headingEscapeFixes = 0
 
   // (1) Process docs/ja/ files
   // Order: fixEmbeddedFences → fixListMerge → fixHeadingMerge → fixHorizontalRuleMerge
@@ -804,6 +841,14 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
       changed = true
       blockMergeFixes++
       console.log(`  [hr-merge] Fixed: ja/${relPath}`)
+    }
+
+    const afterHeadingEscape = fixHeadingLinkEscape(jaContent)
+    if (afterHeadingEscape !== jaContent) {
+      jaContent = afterHeadingEscape
+      changed = true
+      headingEscapeFixes++
+      console.log(`  [heading-escape] Fixed: ja/${relPath}`)
     }
 
     // Fix bare code blocks (also handles embedded fences internally)
@@ -893,6 +938,14 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
         console.log(`  [hr-merge] Fixed: en/${relPath}`)
       }
 
+      const afterHeadingEscapeEn = fixHeadingLinkEscape(enContent)
+      if (afterHeadingEscapeEn !== enContent) {
+        enContent = afterHeadingEscapeEn
+        changed = true
+        headingEscapeFixes++
+        console.log(`  [heading-escape] Fixed: en/${relPath}`)
+      }
+
       // Fix bare code blocks using ja/ as reference
       const jaContent = existsSync(jaFile) ? readFileSync(jaFile, 'utf-8') : null
       const fixed = fixBareCodeBlocks(enContent, jaContent)
@@ -936,8 +989,8 @@ export function runQualityFixes(baseDir: string = process.cwd()): QualityFixResu
     }
   }
 
-  console.log(`\nDone: ${codeBlockFixes} code-block fixes, ${titleFixes} title fixes, ${parityFixes} parity fixes, ${glossaryFixes} glossary fixes, ${blockMergeFixes} merge fixes, ${anchorFixes} anchor fixes.`)
-  return { codeBlockFixes, titleFixes, parityFixes, glossaryFixes, blockMergeFixes, anchorFixes }
+  console.log(`\nDone: ${codeBlockFixes} code-block fixes, ${titleFixes} title fixes, ${parityFixes} parity fixes, ${glossaryFixes} glossary fixes, ${blockMergeFixes} merge fixes, ${anchorFixes} anchor fixes, ${headingEscapeFixes} heading-escape fixes.`)
+  return { codeBlockFixes, titleFixes, parityFixes, glossaryFixes, blockMergeFixes, anchorFixes, headingEscapeFixes }
 }
 
 // ---------------------------------------------------------------------------
