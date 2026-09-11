@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 language: ja
 tone_instructions: "日本語でレビューしてください"
 reviews:
@@ -6,6 +7,21 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+  # レビュー結果を GitHub の review state に反映する（既定 false = 常に COMMENTED）。
+  #   true  → 指摘がある間は REQUEST_CHANGES、全指摘が resolve され pre-merge
+  #           チェックが緑になったら自動で APPROVE。
+  #   false → APPROVE も REQUEST_CHANGES も出さず、COMMENTED のみ。
+  # main の ruleset（geolonia org 共通の branch-rules）との関係:
+  #   - required_approving_review_count: 1  … CodeRabbit の APPROVE が
+  #     カウントされる（App の承認も承認数に数えられる。geonicdb-console で実測済み）
+  #   - require_last_push_approval: true    … 承認者は最後の push 者以外で
+  #     あればよく、push しない CodeRabbit は抵触しない
+  #   - require_code_owner_review: true     … 本リポジトリには CODEOWNERS が
+  #     存在しない（.github/CODEOWNERS・CODEOWNERS・docs/CODEOWNERS の
+  #     3 箇所とも 404 を実測確認済み・2026-09-11）ため、この要件は実質発生しない
+  #   - required_review_thread_resolution: true … CodeRabbit のスレッドも
+  #     解決が必要
+  request_changes_workflow: true
   path_instructions:
     - path: "docs/**/*.md"
       instructions: |
