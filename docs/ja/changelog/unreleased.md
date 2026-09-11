@@ -3,7 +3,7 @@ title: "Unreleased"
 description: "GeonicDB Unreleased changelog"
 outline: deep
 ---
-## \[未リリース]
+## [未リリース]
 
 ### 2026-05-08
 

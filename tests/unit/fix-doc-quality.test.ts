@@ -14,6 +14,7 @@ import {
   fixHeadingMerge,
   fixHorizontalRuleMerge,
   fixAnchorI18n,
+  fixHeadingLinkEscape,
   runQualityFixes,
 } from '../../scripts/fix-doc-quality.js'
 
@@ -812,6 +813,63 @@ describe('fixAnchorI18n', () => {
 })
 
 // ---------------------------------------------------------------------------
+// fixHeadingLinkEscape
+// ---------------------------------------------------------------------------
+describe('fixHeadingLinkEscape', () => {
+  it('unescapes \\[ in a release heading (PR#226 CodeRabbit finding)', () => {
+    const input = '## \\[0.12.0] — 2026-06-26\n\n[0.12.0]: https://github.com/geolonia/geonicdb/compare/v0.11.0...v0.12.0\n'
+    const expected = '## [0.12.0] — 2026-06-26\n\n[0.12.0]: https://github.com/geolonia/geonicdb/compare/v0.11.0...v0.12.0\n'
+    expect(fixHeadingLinkEscape(input)).toBe(expected)
+  })
+
+  it('unescapes \\[ in a Japanese heading (live case: changelog/unreleased.md)', () => {
+    expect(fixHeadingLinkEscape('## \\[未リリース]\n')).toBe('## [未リリース]\n')
+  })
+
+  it('unescapes both \\[ and \\] in a heading', () => {
+    expect(fixHeadingLinkEscape('### \\[0.8.0\\] — 2026-05-05\n')).toBe('### [0.8.0] — 2026-05-05\n')
+  })
+
+  it('leaves escaped brackets in body text untouched', () => {
+    const input = '# Title\n\nUse \\[optional] syntax in prose.\n'
+    expect(fixHeadingLinkEscape(input)).toBe(input)
+  })
+
+  it('leaves heading-like lines inside code fences untouched', () => {
+    const input = '# Title\n\n```md\n## \\[0.12.0]\n```\n'
+    expect(fixHeadingLinkEscape(input)).toBe(input)
+  })
+
+  it('leaves headings with normal links untouched', () => {
+    const input = '## [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)\n'
+    expect(fixHeadingLinkEscape(input)).toBe(input)
+  })
+
+  it('is idempotent', () => {
+    const once = fixHeadingLinkEscape('## \\[0.12.0]\n')
+    expect(fixHeadingLinkEscape(once)).toBe(once)
+  })
+
+  it('does not treat ~~~ inside a ``` fence as a fence boundary', () => {
+    const input = '# Title\n\n```md\n~~~\n## \\[literal]\n```\n\n## \\[0.12.0]\n'
+    const expected = '# Title\n\n```md\n~~~\n## \\[literal]\n```\n\n## [0.12.0]\n'
+    expect(fixHeadingLinkEscape(input)).toBe(expected)
+  })
+
+  it('does not close a fence on a shorter run of the same marker', () => {
+    const input = '````md\n```\n## \\[literal]\n```\n````\n\n## \\[0.12.0]\n'
+    const expected = '````md\n```\n## \\[literal]\n```\n````\n\n## [0.12.0]\n'
+    expect(fixHeadingLinkEscape(input)).toBe(expected)
+  })
+
+  it('closes a fence on a longer run of the same marker', () => {
+    const input = '```md\n## \\[literal]\n`````\n\n## \\[0.12.0]\n'
+    const expected = '```md\n## \\[literal]\n`````\n\n## [0.12.0]\n'
+    expect(fixHeadingLinkEscape(input)).toBe(expected)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // runQualityFixes — en-side processing (integration tests)
 // ---------------------------------------------------------------------------
 describe('runQualityFixes', () => {
@@ -842,6 +900,19 @@ describe('runQualityFixes', () => {
     const enContent = readFileSync(join(docsDir, 'docs/en/guide.md'), 'utf-8')
     expect(enContent).toContain('```json')
     expect(result.codeBlockFixes).toBe(1)
+  })
+
+  it('unescapes heading link brackets in both ja/ and en/ files', () => {
+    const docsDir = setupDocs({
+      'docs/ja/changelog/unreleased.md': '---\ntitle: "Unreleased"\n---\n## \\[未リリース]\n',
+      'docs/en/changelog/unreleased.md': '---\ntitle: "Unreleased"\n---\n## \\[Unreleased]\n',
+    })
+    const result = runQualityFixes(docsDir)
+    const jaContent = readFileSync(join(docsDir, 'docs/ja/changelog/unreleased.md'), 'utf-8')
+    const enContent = readFileSync(join(docsDir, 'docs/en/changelog/unreleased.md'), 'utf-8')
+    expect(jaContent).toContain('## [未リリース]')
+    expect(enContent).toContain('## [Unreleased]')
+    expect(result.headingEscapeFixes).toBe(2)
   })
 
   it('adds frontmatter title to en/ files without title', () => {
