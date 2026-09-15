@@ -11,8 +11,14 @@ GeonicDB supports data models from the [Smart Data Models](https://smartdatamode
 
 Smart Data Models support includes the following two features:
 
-1. **MCP tool**: Browse the catalog and search for available data models
-2. **@context auto-completion**: Automatically adds the appropriate JSON-LD @context for known Smart Data Model entity types
+1. **A2A `config` skill**: Browse the catalog and search for available data models
+   (send `resource: "data_models"` to `/a2a`). This is **not** an MCP tool and it is **not**
+   reachable through the MCP / Tool Use `config` tool, whose `custom_data_models` resource
+   manages your own models instead (#2209).
+2. **Model catalog**: Entity type → JSON-LD @context URL mapping, for clients to reference
+
+> **Changed in #1733**: GeonicDB no longer injects a Smart Data Models @context into responses based on
+> the entity `type`. See [Response @context](#response-context) below.
 
 ## Supported Domains
 
@@ -37,9 +43,27 @@ Each model contains the following information:
 - Schema URL
 - Sample properties
 
-## MCP Tool: `data_models`
+## A2A `config` skill, `
 
-An MCP tool is available for browsing the Smart Data Models catalog.
+resource: "data_models"`
+
+The Smart Data Models catalog is browsable through the **A2A** `config` skill (`POST /a2a`), by
+sending `resource: "data_models"` with one of the actions below.
+
+> **Not an MCP tool (#2209).** The MCP server registers exactly five tools — `entities`, `batch`,
+> `temporal`, `config`, `admin` (`src/api/mcp/tools/index.ts`) — and its `config` tool accepts only
+> `rules` / `jsonld_contexts` / `custom_data_models`. There is no top-level `data_models` MCP tool,
+> and sending `resource: "data_models"` to the MCP `config` tool is rejected by its `z.enum`.
+
+> **The A2A `config` skill accepts exactly `rules` / `jsonld_contexts` / `data_models` (#2228).**
+> Any other value — including MCP's `custom_data_models` — is rejected with an error naming the
+> supported set. **This applies to an explicitly supplied `resource` only.** When `resource` is
+> omitted, the skill falls back to keyword detection over the free-text message and picks one of the
+> same three values (`rules` when nothing matches), so a free-text request never reaches the
+> rejection path — that fallback is deliberate and unchanged. Before #2228 an unknown `resource` silently fell through to `rules`, so a client
+> asking for custom data models over A2A **operated on reactive rules instead**. The accepted set is
+> also declared machine-readably in the Agent Card (`/.well-known/agent-card.json`) as
+> ``Accepted `resource` values: ...`` on the `config` skill.
 
 ### Actions
 
@@ -146,19 +170,50 @@ Retrieves data model details for the specified entity type.
 - `valueType`: Value type (number, string, GeoJSON structure, Object, etc.)
 - `example`: Sample value for use as a real-world example
 - `required`: Whether the field is required (optional)
-- `@context`: JSON-LD vocabulary URI (optional, HTTP(S) URL only). For custom data models, specify well-known vocabulary (e.g., `https://schema.org/email`) to improve Linked Data interoperability. Properties without `@context` get auto-generated URLs (`https://geonicdb.geolonia.com/vocab/{tenantId}/{propertyName}`).
+- `@context`: JSON-LD vocabulary URI (optional, HTTP(S) URL only). For custom data models, specify well-known vocabulary (e.g., `https://schema.org/email`) to improve Linked Data interoperability. Properties without `@context` get auto-generated URLs on this broker's own base URL (`{brokerBaseUrl}/vocab/{tenantId}/{propertyName}`, #1984) — dereferenceable via `GET /vocab/{tenantId}/{term}`.
 
-## @context Auto-Completion
+## Response @context
 
-When retrieving entities via the NGSI-LD API, GeonicDB automatically adds the appropriate @context for known Smart Data Model types.
+**GeonicDB does not guess an @context from the entity type.** The @context used to render a response
+is exclusively the one the request supplied; if the request supplied none, only the NGSI-LD core
+@context is used.
+
+This follows ETSI GS CIM 009 (see <https://cim.etsi.org/NGSI-LD/official/clause-5.html>):
+
+- clause 5.5.5 — "If the input provided by an API client does not include any @context, then the
+  implementation shall at minimum assign the Core @context to such an input."
+- clause 5.5.7 — "the @context used to perform compaction or expansion of terms shall be the one
+  provided by each API call (or the default @context in its absence), and **not any other @context
+  which might have been supplied previously**" and "At compaction time, in the event that no matching
+  term is found in the current @context, implementations shall render Fully Qualified Names."
 
 ### How It Works
 
-Priority order for @context resolution when retrieving an entity:
+@context resolution when retrieving an entity:
 
-1. **Explicit @context** (specified via Link header or parameter) - always takes priority
-2. **Smart Data Models @context** (when the entity type is a known SDM) - auto-completed
-3. **Default NGSI-LD core @context** - fallback
+1. **Explicit @context** (JSON-LD `Link` header on the read) - used as-is
+2. **Otherwise, the NGSI-LD core @context only**
+
+The @context supplied at creation time is still persisted with the entity (#1620 / #1633), but it is
+used **only** to recover the fully qualified names of the stored attributes — never to decide the
+response vocabulary. Consequently, reading an entity written under a domain context **without**
+supplying that context returns fully qualified URIs for any term the core @context cannot compact:
+
+```bash
+# created with a context that maps name → https://example-vocab/ns#name
+GET /ngsi-ld/v1/entities/urn:ngsi-ld:Building:v1
+→ { "type": "https://example-vocab/ns#Building",
+    "https://example-vocab/ns#name": { "type": "Property", "value": "HQ" } }
+
+# supply the same context and the short terms come back
+GET /ngsi-ld/v1/entities/urn:ngsi-ld:Building:v1
+Link: <https://example.org/building.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
+→ { "type": "Building", "name": { "type": "Property", "value": "HQ" } }
+```
+
+**Migration note**: clients that relied on the broker guessing the Smart Data Models @context must now
+pass the model's @context URL themselves (via the `Link` header, or the body for `application/ld+json`
+writes). The catalog table above and the A2A `config` skill give you the URL to pass.
 
 ### Example: Creating and Retrieving a Smart Data Model Entity
 
@@ -188,18 +243,16 @@ Content-Type: application/ld+json
 }
 ```
 
-**Retrieve entity**:
+**Retrieve entity** (supplying the Smart Data Models @context so the response uses its vocabulary):
 ```bash
 GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
+Link: <https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
 ```
 
-**Response** (@context is added automatically):
+**Response** (the @context is the one the request supplied):
 ```json
 {
-  "@context": [
-    "https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld",
-    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-  ],
+  "@context": "https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld",
   "id": "urn:ngsi-ld:OffStreetParking:downtown",
   "type": "OffStreetParking",
   "name": {
@@ -222,9 +275,9 @@ GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
 
 ### Important Notes
 
-- **@context is not saved to storage**: @context is metadata generated dynamically at API response time
-- **Explicit @context takes priority**: If @context is specified via a Link header, it takes priority over SDM auto-completion
-- **Unknown types use the default @context**: For custom entity types, only the NGSI-LD core @context is returned
+- **The @context specified at creation is persisted** (#1620 / #1633): a URL, an array of URLs, or an inline context object — supplied via the request body for `application/ld+json`, or the Link header for `application/json`. It is used to recover the fully qualified names of the stored attributes, **not** to choose the response @context (#1733)
+- **The read request decides the response vocabulary**: whatever @context the read supplies is what the response is compacted with; with none supplied, the core @context only
+- **Terms the response @context cannot compact are rendered as fully qualified URIs** (ETSI clause 5.5.7)
 
 ### Examples for Different Domains
 
@@ -272,7 +325,8 @@ Using the Smart Data Models @context enables the following:
 
 ### Improved AI Assistant Experience
 
-Through MCP tools, AI assistants (such as Claude) can:
+Through the A2A `config` skill (catalog browsing) and the MCP `entities` tool (entity writes),
+AI assistants (such as Claude) can:
 
 - **Search data models**: Search available data model schemas by domain or keyword
 - **Retrieve property information**: Get detailed information for each property from `propertyDetails`
