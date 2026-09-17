@@ -119,16 +119,16 @@ Contract:
 
 ## External definitions: reference, do not copy
 
-`models.geonicdb.com` is the entry point for customers. It must let them find external models as well as Geolonia's own, and it must host the extended versions. JSON-LD makes the second part cheap: a context document may be an array that mixes URLs and inline term definitions, and a processor fetches the referenced documents at expansion time. A Japanese profile therefore looks like this and copies nothing. The upstream reference is a commit-pinned raw URL (`<commit>` stands for the full upstream commit SHA recorded in `upstream.lock`), which GitHub serves immutably, so the referenced meaning cannot drift even though nothing is copied:
+`models.geonicdb.com` is the entry point for customers. It must let them find external models as well as Geolonia's own, and it must host the extended versions. JSON-LD makes the second part cheap: a context document may be an array that mixes URLs and inline term definitions, and a processor fetches the referenced documents at expansion time. A Japanese profile therefore looks like this and copies nothing. The upstream reference is a commit-pinned raw URL (`<commit>` stands for the full upstream commit SHA recorded in `upstream.lock`), which GitHub serves immutably, so the referenced meaning cannot drift even though nothing is copied. Shared Japanese terms such as `jisMunicipalityCode` come from the `common` subject's context, so they expand to `/ns/common/...` in every model that uses them; only the terms specific to this profile are defined inline:
 
 ```json
 {
   "@context": [
     "https://raw.githubusercontent.com/smart-data-models/dataModel.Building/<commit>/context.jsonld",
+    "https://models.geonicdb.com/context/common/v1.0.0.jsonld",
     {
       "gb": "https://models.geonicdb.com/ns/Building/",
-      "residentialIndication": "gb:residentialIndication",
-      "jisMunicipalityCode": "gb:jisMunicipalityCode"
+      "residentialIndication": "gb:residentialIndication"
     },
     "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
   ]
