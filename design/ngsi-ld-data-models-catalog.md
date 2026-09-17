@@ -59,7 +59,7 @@ Rules:
 
 - Never redefine an upstream attribute with a different meaning or type. Add attributes instead. This is Smart Data Models' own rule and is what keeps interoperability.
 - A Japan-only model that turns out to be generally useful is proposed upstream via the Smart Data Models incubated process. Following their file layout (below) makes this a copy, not a rewrite.
-- Common Japanese building blocks (address, municipality code, era date, JGD2011 location) live once in a shared `jp-common` context and schema and are referenced with `$ref`, mirroring `common-schema.json` upstream.
+- Common Japanese building blocks (address, municipality code, era date, JGD2011 location) live once in `jp-common`. Its `schema.json` is referenced from model schemas with JSON Schema `$ref`, mirroring `common-schema.json` upstream. Its context is composed into model contexts by JSON-LD means only: listing its URL in the `@context` array, or JSON-LD 1.1 `@import`. `$ref` has no meaning in a context document.
 
 ## Conventions borrowed from existing platforms
 
@@ -113,17 +113,18 @@ Contract:
 1. **Immutability.** A published `vX.Y.Z` file never changes. `vX.jsonld` may advance to a new backwards-compatible `vX.Y.Z`. Breaking changes get a new major version and a new file. Nothing is ever deleted; withdrawn models are marked deprecated in the catalog and keep serving.
 2. **Headers.** `.jsonld` is served as `application/ld+json`, `.json` as `application/json` (schemas may use `application/schema+json`), all with `Access-Control-Allow-Origin: *` and `Cache-Control: public, max-age=31536000, immutable` for exact versions. Aliases use a short max-age.
 3. **Term IRIs resolve.** `/ns/jp/Shelter` redirects to the model page. No content negotiation in v1; a JSON-LD term description can be added later with a Worker if needed.
-4. **Upstream IRIs are never re-minted.** Curated global models keep `https://smartdatamodels.org/...` IRIs. How their context files are referenced is decided below.
-5. **CI enforces the contract.** A pull request that modifies or removes a published versioned file fails.
+4. **Term IRIs never change meaning.** A term IRI under `/ns/` denotes one meaning and one value type forever, independent of which context version maps a short name to it. A breaking change (different meaning, different type, different cardinality) mints a new IRI, either a new term name or a new namespace such as `/ns/jp/v2/`, and the new context version maps the short name to the new IRI. The old IRI stays published, its page is marked deprecated and points to the successor. Adding a term or widening documentation is not a breaking change.
+5. **Upstream IRIs are never re-minted.** Curated global models keep `https://smartdatamodels.org/...` IRIs. How their context files are referenced is decided below.
+6. **CI enforces the contract.** A pull request that modifies or removes a published versioned file fails.
 
 ## External definitions: reference, do not copy
 
-`models.geonicdb.com` is the entry point for customers. It must let them find external models as well as Geolonia's own, and it must host the extended versions. JSON-LD makes the second part cheap: a context document may be an array that mixes URLs and inline term definitions, and a processor fetches the referenced documents at expansion time. A Japanese profile therefore looks like this and copies nothing:
+`models.geonicdb.com` is the entry point for customers. It must let them find external models as well as Geolonia's own, and it must host the extended versions. JSON-LD makes the second part cheap: a context document may be an array that mixes URLs and inline term definitions, and a processor fetches the referenced documents at expansion time. A Japanese profile therefore looks like this and copies nothing. The upstream reference is a commit-pinned raw URL (`<commit>` stands for the full upstream commit SHA recorded in `upstream.lock`), which GitHub serves immutably, so the referenced meaning cannot drift even though nothing is copied:
 
 ```json
 {
   "@context": [
-    "https://raw.githubusercontent.com/smart-data-models/dataModel.Building/master/context.jsonld",
+    "https://raw.githubusercontent.com/smart-data-models/dataModel.Building/<commit>/context.jsonld",
     {
       "jp": "https://models.geonicdb.com/ns/jp/",
       "residentialIndication": "jp:residentialIndication",
@@ -139,12 +140,14 @@ Three levels, from lightest to heaviest:
 | Level | What is hosted | When |
 |---|---|---|
 | **Catalog entry only** | A page with description, Japanese notes and a link to the upstream context and schema. No file. | Every curated global model. This is the "find external models" role. |
-| **Reference by URL** | A Geolonia context that imports upstream by URL and adds terms, as above. | Every Japanese profile. Default. |
-| **Pinned mirror** | A byte-identical copy of an upstream context at `/context/mirror/<Subject>/<commit>.jsonld`, with the source commit recorded. | Opt-in, for customers who need a guarantee that the meaning of stored data cannot change. Not needed for phase 1. |
+| **Reference by pinned URL** | A Geolonia context that imports the upstream context at a commit-pinned URL and adds terms, as above. The commit is recorded in `upstream.lock`; moving the pin is a new profile version. | Every Japanese profile. Default. Semantics are immutable; availability depends on `raw.githubusercontent.com`. |
+| **Pinned mirror** | A byte-identical copy of the same commit at `/context/mirror/<Subject>/<commit>.jsonld`, served under the immutability contract. | Opt-in, for customers on brokers without a context cache who cannot accept a GitHub dependency on the request path. Not needed for phase 1. |
 
-Why the mirror exists at all: upstream Smart Data Models contexts live on a mutable `master` branch and are not versioned. In practice terms are added and not removed, so referencing is safe for most customers. Availability of `raw.githubusercontent.com` is the other concern. For GeonicDB tenants it is absorbed by the broker's context cache and by pre-warming (see GeonicDB integration). Customers using other brokers can choose the mirror.
+Why pinning is the default and not `master`: upstream Smart Data Models contexts live on a mutable branch and carry no version. A `master` reference would let the meaning of stored data drift without anyone publishing a new version here, which contradicts the contract above. Commit-pinned raw URLs give immutable semantics with no copying. What they do not give is availability independent of GitHub. For GeonicDB tenants that is absorbed by the broker's context cache and by pre-warming (see GeonicDB integration). Customers on other brokers who need the same independence choose the mirror, which is the identical bytes served from `models.geonicdb.com`.
 
-The site itself lists external models through `catalog.yaml` overlays. It does not need to fetch anything at build time beyond reading upstream `schema.json` to generate attribute tables, and that read is pinned to a commit in `upstream.lock` so the build is reproducible.
+Catalog entries for curated global models link to the upstream `master` URL because that is what upstream documents and what the ecosystem uses. The catalog page states plainly that this URL is mutable and offers the pinned form next to it.
+
+The site itself lists external models through `catalog.yaml` overlays. At build time it reads upstream `schema.json` and `context.jsonld` at the commit recorded in `upstream.lock`, so the build is reproducible and the pin in every profile context is checked against the lock.
 
 ## Repository layout
 
@@ -174,8 +177,9 @@ Per-model metadata for the site lives in `catalog.yaml` with `ja` and `en` keys 
 
 CI on every pull request:
 
-- validate every example against its `schema.json`
-- resolve every `@context` and expand every example with a JSON-LD processor; fail on unmapped terms
+- validate every key-values example (`example.json`) against its `schema.json`; that schema describes the key-values representation only, as upstream
+- validate every normalized example (`example-normalized.json`, `example-normalized.jsonld`) against the NGSI-LD representation rules: every attribute is an object with `type` in Property, Relationship, GeoProperty and the matching `value`, `object` or geometry, and the key-values projection of it validates against `schema.json`
+- expand every JSON-LD example (`example.jsonld`, `example-normalized.jsonld`) with a JSON-LD processor using the example's `@context`; fail on any term that does not expand to an IRI, and fail if the expanded terms differ from the expansion of the matching key-values example
 - check IRI uniqueness across the catalog and immutability of published versions
 - regenerate `model.yaml`, `doc/spec*.md`, `catalog.json` and fail if they are out of date
 - load examples into a GeonicDB instance (CLI) and read them back
@@ -208,8 +212,8 @@ CI on every pull request:
 
 Today `smart-data-models.data.ts` is a static array compiled into the broker. Proposed change:
 
-1. `catalog.json` is published by the site with the same shape as `SmartDataModel` (type, domain, contextUrl, description, schemaUrl, sampleProperties) plus `ja` fields, source kind and version.
-2. GeonicDB fetches `catalog.json` at startup with a bundled fallback snapshot, and caches it. The `data_models` MCP tool, `@context` auto-completion and the `meta` controller read from it. Japanese models appear without a broker release.
+1. `catalog.json` is published by the site as a versioned wire format. Its JSON Schema (`catalog.schema.json`) and a fixture live in the models repository; the generator validates its output against the schema and CI fails otherwise. Top level: `formatVersion` (integer, starts at 1), `generatedAt`, `models[]`. Per model, required: `type`, `typeIri`, `domain`, `source` (one of `global`, `jp-profile`, `jp-only`), `contextUrl` (exact version), `contextAliasUrl`, `schemaUrl`, `version`, `status` (`draft`, `stable`, `deprecated`), `title` and `description` with `ja` and `en`, `sampleProperties[]`. Optional: `upstream` (repository and commit), `mapping` (source dataset), `supersededBy`. Compatibility rule: within a `formatVersion`, fields are only added, never removed or retyped; a removal or retype is a new `formatVersion`, and the site keeps publishing the previous one at `/catalog.v<N>.json` for at least twelve months.
+2. GeonicDB fetches `catalog.json` at startup and caches it. The `data_models` MCP tool, `@context` auto-completion and the `meta` controller read from it. Japanese models appear without a broker release. GeonicDB falls back to its bundled snapshot, and logs a warning with the reason, when the fetch fails or times out, when the document does not validate against the bundled copy of `catalog.schema.json`, or when `formatVersion` is higher than the broker supports. The snapshot is refreshed in each broker release.
 3. GeonicDB pre-warms its context cache with every context URL listed in the catalog, including the upstream URLs referenced from Japanese profiles, so a customer entity referencing a catalog context never triggers a live fetch on the request path.
 4. Console: "Create from data model" when defining an entity type; shows the attribute table and inserts the example.
 5. CLI: `geonicdb models list|show|scaffold <Type>`.
