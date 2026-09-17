@@ -255,14 +255,40 @@ Operational notes:
 
 Phase 1 fixes the URL scheme, which is the only part that cannot change later. Everything else can iterate.
 
+## Repository bootstrap
+
+Decided: one public repository, `geolonia/geonicdb-models`, holding the models, the model website and the CI. It is created with the Backstage `create-repository` scaffolder (template v0.9.0), which wires up AGENTS.md / CLAUDE.md, CODEOWNERS, TechDocs, team-access sync, issue routing, the Security Suite, Dependabot and CodeRabbit.
+
+Scaffolder inputs:
+
+| Parameter | Value | Reason |
+|---|---|---|
+| `name` | `geonicdb-models` | Matches the `geonicdb-*` naming of sibling repositories. |
+| `description` | `Curated bilingual catalog of NGSI-LD data models for GeonicDB, served at models.geonicdb.com. Extends Smart Data Models with Japanese profiles and Japan-only models.` | Shown on GitHub and in the Backstage catalog. |
+| `type` | `website` | The deliverable is a static site plus the files it serves. |
+| `lifecycle` | `experimental` | Nothing is served yet. Switch to `production` when phase 1 goes live and the URL contract starts. |
+| `owner` | `group:geolonia/geonicdb` | Same owner as `geonicdb`, `geonicdb-docs` and `geonicdb-operations`. |
+| `system` | `geolonia/geonicdb` | Same system as the broker. |
+| `repoVisibility` | `public` | Contributions and the CC BY 4.0 content licence assume a public repository. |
+| `coderabbitConfig` | `true` | Org default review settings. |
+| `techDocs` | `true` | Internal developer docs (`mkdocs.yml`, `docs/`) go to Backstage TechDocs. The public model website lives in `site/` and does not collide with it. |
+
+The template has no licence parameter, so licensing is a manual follow-up. After the scaffolder finishes:
+
+1. Add `LICENSE` (Apache-2.0, code) and `LICENSE-CONTENT.md` (CC BY 4.0, model content), and state in `README.md` which applies to which paths.
+2. Extend `.github/CODEOWNERS` with `models/** @geolonia/geonicdb` so model semantics are always reviewed by the team.
+3. Create the Cloudflare Worker (`wrangler.jsonc` with static assets, following `geonicdb-operations/cloudflare/status-probe`) and a deploy workflow on `main`. Store `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository secrets.
+4. Add the `models.geonicdb.com` DNS record in the Cloudflare zone and attach it to the Worker as a custom domain.
+5. Fill `docs/index.md` for TechDocs with the operating notes from this document (URL contract, release procedure), and link back to this design.
+6. Set the Department field for issue routing to the GeonicDB board.
+
 ## Open questions
 
 1. Final domain: `models.geonicdb.com`, or a product-neutral domain for the IRIs only?
 2. Which customer projects supply the first model list?
 3. Namespace for Japanese terms: `/ns/jp/` as proposed, or per-subject namespaces mirroring upstream?
 4. Is the pinned mirror of upstream contexts needed at all, and if so, which customers ask for it?
-5. Repository name and whether the site source lives in the same repository as the models.
-6. Who reviews model semantics for Japanese standards (GIF, 推奨データセット) inside Geolonia?
+5. Who reviews model semantics for Japanese standards (GIF, 推奨データセット) inside Geolonia?
 
 ## References
 
