@@ -1,0 +1,277 @@
+# Design: GeonicDB Data Models Catalog (`models.geonicdb.com`)
+
+| | |
+|---|---|
+| Status | Draft for discussion |
+| Date | 2026-09-17 |
+| Author | Daniel Kastl |
+| Decision needed | Domain name, hosting platform, repository name, licence |
+
+## Summary
+
+Provide a public, versioned, bilingual catalog of NGSI-LD data models for GeonicDB customers, hosted under a Geolonia-controlled domain. The catalog curates and localises [Smart Data Models](https://smartdatamodels.org/) for Japan, adds Japanese profiles where global models fall short, and adds Japan-only models derived from the Digital Agency's GIF and 推奨データセット. Machine-readable files (`@context`, JSON Schema, examples) are served from stable URLs that customers can reference from their entities. The site is generated from an open-source GitHub repository that accepts contributions, and it becomes the single source of truth for the data-model features already built into GeonicDB.
+
+## Problem
+
+- NGSI-LD only pays off when entity types and attributes are shared vocabulary. Customers who invent their own types lose interoperability with FIWARE tooling and with each other.
+- Global Smart Data Models are documented in English, use Western address and identifier conventions, and are hard for Japanese customers to discover. The Japanese `spec_JA.md` files are machine translations without local guidance.
+- Referencing third-party `@context` URLs (today: `raw.githubusercontent.com/smart-data-models/...`) makes customer data depend on infrastructure Geolonia does not control. A moved or edited context silently changes the meaning of stored data.
+- GeonicDB already ships a hard-coded catalog of about 20 Smart Data Models in `src/core/smart-data-models/smart-data-models.data.ts`, used by the `data_models` MCP tool and by `@context` auto-completion. It has no Japanese models and can only change with a release.
+
+## Goals
+
+1. Stable, Geolonia-controlled URLs for `@context` files, JSON Schemas and type IRIs, with a written immutability policy.
+2. A searchable catalog (Japanese first, English second) that helps customers find, understand and adopt a model.
+3. Extend the global ecosystem, never fork it: reuse Smart Data Models IRIs wherever a model fits, and follow their file conventions so models can be contributed upstream.
+4. Japanese coverage: profiles for address, municipality codes and dates, plus models for GIF / 推奨データセット datasets that municipalities already publish.
+5. A machine-readable catalog index that GeonicDB, the console, the CLI and the MCP tool read at runtime.
+6. Open repository with a clear contribution path.
+
+## Non-goals
+
+- Replacing Smart Data Models or running a general-purpose ontology registry.
+- Runtime services (validation API, SPARQL, content negotiation) in the first release. The site is static.
+- Covering every domain. The first release targets models used in real customer projects.
+
+## Decision 1: Domain name
+
+**Recommendation: `models.geonicdb.com`.**
+
+| Option | For | Against |
+|---|---|---|
+| `models.geonicdb.com` | Covers all three artefacts (vocabulary IRIs, contexts, schemas). Matches the "data models" term NGSI-LD users know from Smart Data Models. 「データモデル」 is natural Japanese; 「スキーマ」 is not. | None significant. |
+| `schema.geonicdb.com` | Familiar from schema.org. | Reads as JSON Schema only. Ambiguous with database schema. |
+| Product-neutral domain (e.g. a `geolonia.*` name) | Survives a product rename. | Another domain to operate. Weakens the GeonicDB association that motivates the project. |
+
+Whatever domain is chosen becomes permanent: every IRI a customer stores must resolve for the lifetime of their data. The obligation is accepted knowingly. It is smaller than the risk of pointing customers at third-party URLs Geolonia cannot keep alive.
+
+## Decision 2: Extend, do not duplicate
+
+Three kinds of catalog entries, in decreasing order of preference:
+
+| Kind | Type IRI namespace | Example | What Geolonia adds |
+|---|---|---|---|
+| **Curated global model** | Smart Data Models (`https://smartdatamodels.org/dataModel.X/Type`) | `WeatherObserved`, `OffStreetParking` | Japanese description, realistic Japanese example values, guidance on which optional attributes matter in Japan, GeonicDB-specific notes (geo queries, temporal). |
+| **Japanese profile** of a global model | Smart Data Models for the base type; `https://models.geonicdb.com/ns/jp/...` for added attributes | `Building` with 住居表示 address, JIS X 0402 municipality code | A context that references the upstream context by URL and adds the Japanese attributes. Nothing upstream is copied. Base attributes keep their upstream IRIs. |
+| **Japan-only model** | `https://models.geonicdb.com/ns/jp/Type` | 避難所 (evacuation shelter), AED, 公共施設 from 推奨データセット; GIF 実装データモデル | Full model, plus a documented mapping from the official CSV columns to NGSI-LD attributes. |
+
+Rules:
+
+- Never redefine an upstream attribute with a different meaning or type. Add attributes instead. This is Smart Data Models' own rule and is what keeps interoperability.
+- A Japan-only model that turns out to be generally useful is proposed upstream via the Smart Data Models incubated process. Following their file layout (below) makes this a copy, not a rewrite.
+- Common Japanese building blocks (address, municipality code, era date, JGD2011 location) live once in a shared `jp-common` context and schema and are referenced with `$ref`, mirroring `common-schema.json` upstream.
+
+## Conventions borrowed from existing platforms
+
+Researched on 2026-09-17.
+
+**Smart Data Models** (per model directory, in a `dataModel.<Subject>` repository):
+
+| File | Purpose |
+|---|---|
+| `schema.json` | JSON Schema for the key-values representation. `$ref` to `common-schema.json` for shared attributes. |
+| `model.yaml` | Attribute list with `x-ngsi` block per attribute (`type: Property / Relationship / GeoProperty`, `model`, `units`), plus `x-version`, `x-model-tags`, `x-license-url`, `x-derived-from`. Generated from `schema.json`. |
+| `examples/` | `example.json`, `example-normalized.json`, `example.jsonld`, `example-normalized.jsonld` |
+| `doc/spec.md`, `doc/spec_JA.md`, ... | Generated attribute documentation per language |
+| `notes.yaml` | Free-text notes about the model |
+| `ADOPTERS.yaml` | Organisations using the model |
+| `README.md`, `LICENSE.md` | Licence is CC BY 4.0 |
+| `context.jsonld` | One per subject repository, not per model |
+
+Contribution goes through pull requests to the `incubated` repository, then graduation into a subject repository. `id` and `type` are the only mandatory attributes.
+
+**ETSI NGSI-LD core context**: versioned file names (`ngsi-ld-core-context-v1.8.jsonld`), each version immutable, one unversioned alias. This is the pattern brokers already rely on.
+
+**schema.org**: vocabulary IRIs resolve to a human page for each term. Releases are versioned and archived. The whole site is generated from source files in a public repository.
+
+**Digital Agency GIF** (`github.com/JDA-DM/GIF`, CC0-1.0): core data models, core data parts and 実装データモデル by domain (行政, 金融, 教育, 防災). 推奨データセット項目定義書 is published as XLSX per dataset. Neither is available as JSON Schema or JSON-LD. The IMI 共通語彙基盤 is the Japanese precedent for hosting vocabulary IRIs under a stable namespace.
+
+**What this design adopts**
+
+- The Smart Data Models per-model file set, verbatim, so a model folder can be moved upstream unchanged.
+- ETSI-style versioned, immutable context files with an alias for "latest".
+- schema.org-style dereferenceable type IRIs.
+- GIF and 推奨データセット as the source of truth for Japan-only models. Their CC0 licence allows derivation without attribution constraints.
+
+## URL scheme and hosting contract
+
+```text
+https://models.geonicdb.com/                          catalog (ja default, /en/ English)
+https://models.geonicdb.com/models/<Subject>/<Type>/  model page (ja), /en/models/... (en)
+
+https://models.geonicdb.com/context/jp/v1.jsonld      all Japanese models, versioned
+https://models.geonicdb.com/context/jp/v1.0.0.jsonld  exact version (v1.jsonld = latest v1.x.y)
+https://models.geonicdb.com/context/<Subject>/v1.jsonld
+https://models.geonicdb.com/schema/<Subject>/<Type>/v1.json
+https://models.geonicdb.com/examples/<Subject>/<Type>/example-normalized.jsonld
+https://models.geonicdb.com/ns/jp/<Term>              type / attribute IRI, resolves to the model page
+https://models.geonicdb.com/catalog.json              machine-readable index for GeonicDB
+```
+
+Contract:
+
+1. **Immutability.** A published `vX.Y.Z` file never changes. `vX.jsonld` may advance to a new backwards-compatible `vX.Y.Z`. Breaking changes get a new major version and a new file. Nothing is ever deleted; withdrawn models are marked deprecated in the catalog and keep serving.
+2. **Headers.** `.jsonld` is served as `application/ld+json`, `.json` as `application/json` (schemas may use `application/schema+json`), all with `Access-Control-Allow-Origin: *` and `Cache-Control: public, max-age=31536000, immutable` for exact versions. Aliases use a short max-age.
+3. **Term IRIs resolve.** `/ns/jp/Shelter` redirects to the model page. No content negotiation in v1; a JSON-LD term description can be added later with a Worker if needed.
+4. **Upstream IRIs are never re-minted.** Curated global models keep `https://smartdatamodels.org/...` IRIs. How their context files are referenced is decided below.
+5. **CI enforces the contract.** A pull request that modifies or removes a published versioned file fails.
+
+## External definitions: reference, do not copy
+
+`models.geonicdb.com` is the entry point for customers. It must let them find external models as well as Geolonia's own, and it must host the extended versions. JSON-LD makes the second part cheap: a context document may be an array that mixes URLs and inline term definitions, and a processor fetches the referenced documents at expansion time. A Japanese profile therefore looks like this and copies nothing:
+
+```json
+{
+  "@context": [
+    "https://raw.githubusercontent.com/smart-data-models/dataModel.Building/master/context.jsonld",
+    {
+      "jp": "https://models.geonicdb.com/ns/jp/",
+      "residentialIndication": "jp:residentialIndication",
+      "municipalityCode": "jp:municipalityCode"
+    },
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
+  ]
+}
+```
+
+Three levels, from lightest to heaviest:
+
+| Level | What is hosted | When |
+|---|---|---|
+| **Catalog entry only** | A page with description, Japanese notes and a link to the upstream context and schema. No file. | Every curated global model. This is the "find external models" role. |
+| **Reference by URL** | A Geolonia context that imports upstream by URL and adds terms, as above. | Every Japanese profile. Default. |
+| **Pinned mirror** | A byte-identical copy of an upstream context at `/context/mirror/<Subject>/<commit>.jsonld`, with the source commit recorded. | Opt-in, for customers who need a guarantee that the meaning of stored data cannot change. Not needed for phase 1. |
+
+Why the mirror exists at all: upstream Smart Data Models contexts live on a mutable `master` branch and are not versioned. In practice terms are added and not removed, so referencing is safe for most customers. Availability of `raw.githubusercontent.com` is the other concern. For GeonicDB tenants it is absorbed by the broker's context cache and by pre-warming (see GeonicDB integration). Customers using other brokers can choose the mirror.
+
+The site itself lists external models through `catalog.yaml` overlays. It does not need to fetch anything at build time beyond reading upstream `schema.json` to generate attribute tables, and that read is pinned to a commit in `upstream.lock` so the build is reproducible.
+
+## Repository layout
+
+Repository: `geolonia/geonicdb-models` (public). English README, Japanese and English accepted in issues and pull requests.
+
+```text
+models/
+  jp/                                  Japan-only models and profiles
+    Shelter/
+      schema.json  model.yaml  notes.yaml  ADOPTERS.yaml  README.md  LICENSE.md
+      examples/
+      doc/spec.md  doc/spec_JA.md       generated
+      mapping/suisho-dataset.yaml       CSV column -> attribute mapping (推奨データセット)
+    jp-common/                         address, municipality code, era date, location
+    context.jsonld                     source for /context/jp/vN.jsonld
+  Weather/                             curated global model (thin overlay, upstream pinned)
+    WeatherObserved/
+      catalog.yaml                     ja/en descriptions, tags, GeonicDB notes, upstream ref
+      examples/ja/                     Japanese example values
+    upstream.lock                      upstream repo + commit
+site/                                  VitePress (same toolchain as geonicdb-docs)
+scripts/                               build catalog.json, generate spec docs, validate
+dist/                                  published tree, versioned files copied, never rebuilt in place
+```
+
+Per-model metadata for the site lives in `catalog.yaml` with `ja` and `en` keys for title, summary and attribute descriptions. Attribute tables are generated from `schema.json` plus this overlay, so contributors never write page HTML.
+
+CI on every pull request:
+
+- validate every example against its `schema.json`
+- resolve every `@context` and expand every example with a JSON-LD processor; fail on unmapped terms
+- check IRI uniqueness across the catalog and immutability of published versions
+- regenerate `model.yaml`, `doc/spec*.md`, `catalog.json` and fail if they are out of date
+- load examples into a GeonicDB instance (CLI) and read them back
+
+## Site functionality
+
+**Catalog**
+
+- Browse by domain and by source (global, Japanese profile, Japan-only, 推奨データセット, GIF).
+- Full-text search in Japanese and English over type names, attribute names and descriptions.
+- Filters: maturity (draft, stable, deprecated), has Japanese profile, has CSV mapping.
+
+**Model page**
+
+- Title and summary in both languages, upstream link, licence, version history.
+- Attribute table: name, NGSI-LD type, data type, units, required, description (ja/en).
+- Copyable `@context` URL and a ready `Link` header.
+- Examples: key-values and normalized, JSON-LD, with realistic Japanese values.
+- "Try it" block: `curl` and `geonicdb` CLI commands against a tenant; "Open in Console" link.
+- For 推奨データセット models: the CSV column mapping and a conversion example.
+
+**Guides**
+
+- Getting started: choosing a model, registering the context in GeonicDB, first entity.
+- Extending a model: how to write a customer-specific context that imports a catalog context, how to name your IRIs, when to contribute back.
+- Japanese conventions: address structure, JIS codes, coordinate systems, dates.
+- Contributing: repository layout, checks, review process.
+
+## GeonicDB integration
+
+Today `smart-data-models.data.ts` is a static array compiled into the broker. Proposed change:
+
+1. `catalog.json` is published by the site with the same shape as `SmartDataModel` (type, domain, contextUrl, description, schemaUrl, sampleProperties) plus `ja` fields, source kind and version.
+2. GeonicDB fetches `catalog.json` at startup with a bundled fallback snapshot, and caches it. The `data_models` MCP tool, `@context` auto-completion and the `meta` controller read from it. Japanese models appear without a broker release.
+3. GeonicDB pre-warms its context cache with every context URL listed in the catalog, including the upstream URLs referenced from Japanese profiles, so a customer entity referencing a catalog context never triggers a live fetch on the request path.
+4. Console: "Create from data model" when defining an entity type; shows the attribute table and inserts the example.
+5. CLI: `geonicdb models list|show|scaffold <Type>`.
+6. Later: optional schema validation on write for tenants that opt in, using the catalog's `schema.json`.
+
+## Decision 3: Hosting
+
+**Recommendation: Cloudflare Workers with static assets, deployed from GitHub Actions with `wrangler`.**
+
+| Option | Notes |
+|---|---|
+| Cloudflare Workers, static assets | `geonicdb.com` DNS is already on Cloudflare. `status.geonicdb.com` is already a Worker in `geonicdb-operations`, so the deploy pattern and secrets handling exist. Supports `_headers` and `_redirects` files for content types, CORS, cache headers and IRI redirects. Cloudflare states that new projects should start on Workers and that feature work goes to Workers; Pages receives no new features. |
+| Cloudflare Pages | Same header support, but Cloudflare recommends Workers for new projects. No advantage over Workers here. |
+| GitHub Pages | No custom response headers (no `Cache-Control`, no CORS control beyond defaults), no redirect rules, custom domain requires DNS pointing away from Cloudflare's proxy or a CNAME setup with Cloudflare in front anyway. Fine for a docs site, not for a hosting contract with header guarantees. |
+
+Operational notes:
+
+- Deploy only from `main` after CI passes. Preview deployments per pull request via Workers preview URLs.
+- Uptime is monitored by the existing status probe; add a probe that fetches one exact-version context and checks its content hash.
+- Back up the published `dist/` tree to R2 or S3 on every deploy, so the hosting contract survives a repository accident.
+
+## Contribution and licensing
+
+- Code (site, scripts): Apache-2.0.
+- Model content (schemas, contexts, examples, docs): CC BY 4.0. This is required for anything derived from Smart Data Models (CC BY 4.0) and is compatible with GIF and 推奨データセット (CC0-1.0). Each model folder carries `LICENSE.md` and attribution in `notes.yaml`, matching upstream practice.
+- Pull request template asks for: purpose, source standard, examples, whether the model was proposed upstream.
+- `CODEOWNERS` routes `models/jp/**` to the GeonicDB team. External contributors sign nothing beyond the repository licence.
+- `ADOPTERS.yaml` per model, as upstream, gives customers a reason to be listed and gives Geolonia usage signal.
+
+## Internationalisation
+
+- Japanese is the default site language, English is the second. Both are first-class in `catalog.yaml`; no auto-translation of model semantics, because attribute descriptions are normative.
+- Guides may be written in either language and translated with the yuuhitsu pipeline already used by geonicdb-docs, with the shared `glossary.yaml`.
+- Attribute and type names stay English ASCII camelCase, as Smart Data Models require. Japanese appears in descriptions, labels and examples only.
+
+## Phasing
+
+**Phase 1, hosting and contract.** Repository, URL scheme, `_headers`, CI immutability check, `catalog.json`. Ten to fifteen curated global models taken from current customer projects, as catalog entries with Japanese descriptions and examples, referencing upstream files. `jp-common`. Two or three 推奨データセット models (candidates: 避難所, AED設置箇所, 公共施設). GeonicDB reads `catalog.json` with fallback.
+
+**Phase 2, catalog site.** Search, filters, model pages, getting-started and extension guides in both languages. Console "Create from data model".
+
+**Phase 3, ecosystem.** CSV converters for 推奨データセット, more GIF 実装データモデル, contribution campaign, propose stable Japan-only models upstream, optional write-time validation.
+
+Phase 1 fixes the URL scheme, which is the only part that cannot change later. Everything else can iterate.
+
+## Open questions
+
+1. Final domain: `models.geonicdb.com`, or a product-neutral domain for the IRIs only?
+2. Which customer projects supply the first model list?
+3. Namespace for Japanese terms: `/ns/jp/` as proposed, or per-subject namespaces mirroring upstream?
+4. Is the pinned mirror of upstream contexts needed at all, and if so, which customers ask for it?
+5. Repository name and whether the site source lives in the same repository as the models.
+6. Who reviews model semantics for Japanese standards (GIF, 推奨データセット) inside Geolonia?
+
+## References
+
+- Smart Data Models: https://smartdatamodels.org/ and https://github.com/smart-data-models
+- Smart Data Models incubated repository: https://github.com/smart-data-models/incubated
+- ETSI NGSI-LD core context files: https://uri.etsi.org/ngsi-ld/v1/
+- schema.org developer documentation: https://schema.org/docs/developers.html
+- Digital Agency GIF: https://www.digital.go.jp/policies/data_strategy_government_interoperability_framework and https://github.com/JDA-DM/GIF
+- 推奨データセット: https://www.digital.go.jp/resources/data_dataset/
+- Cloudflare, migrate from Pages to Workers: https://developers.cloudflare.com/workers/static-assets/migration-guides/migrate-from-pages/
+- GeonicDB built-in catalog: `geolonia/geonicdb` `src/core/smart-data-models/`
+- GeonicDB docs, Smart Data Models feature page: `docs/en/features/smart-data-models.md`
