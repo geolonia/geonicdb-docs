@@ -52,14 +52,15 @@ Three kinds of catalog entries, in decreasing order of preference:
 | Kind | Type IRI namespace | Example | What Geolonia adds |
 |---|---|---|---|
 | **Curated global model** | Smart Data Models (`https://smartdatamodels.org/dataModel.X/Type`) | `WeatherObserved`, `OffStreetParking` | Japanese description, realistic Japanese example values, guidance on which optional attributes matter in Japan, GeonicDB-specific notes (geo queries, temporal). |
-| **Japanese profile** of a global model | Smart Data Models for the base type; `https://models.geonicdb.com/ns/jp/...` for added attributes | `Building` with 住居表示 address, JIS X 0402 municipality code | A context that references the upstream context by URL and adds the Japanese attributes. Nothing upstream is copied. Base attributes keep their upstream IRIs. |
-| **Japan-only model** | `https://models.geonicdb.com/ns/jp/Type` | 避難所 (evacuation shelter), AED, 公共施設 from 推奨データセット; GIF 実装データモデル | Full model, plus a documented mapping from the official CSV columns to NGSI-LD attributes. |
+| **Japanese profile** of a global model | Smart Data Models for the base type; `https://models.geonicdb.com/ns/<Subject>/...` for added attributes | `Building` with 住居表示 address, JIS X 0402 municipality code | A context that references the upstream context by URL and adds the Japanese attributes. Nothing upstream is copied. Base attributes keep their upstream IRIs. |
+| **Japan-only model** | `https://models.geonicdb.com/ns/<Subject>/Type` | 避難所 (evacuation shelter), AED, 公共施設 from 推奨データセット; GIF 実装データモデル | Full model, plus a documented mapping from the official CSV columns to NGSI-LD attributes. |
 
 Rules:
 
 - Never redefine an upstream attribute with a different meaning or type. Add attributes instead. This is Smart Data Models' own rule and is what keeps interoperability.
+- Namespaces are organised by subject, as upstream (`dataModel.Weather`), never by region, language, customer or project. There is no `/jp/` segment: everything minted under `/ns/` is Geolonia's by definition, a vocabulary such as disaster response is not inherently Japanese, and a region marker in a permanent identifier would only look parochial once the model is proposed upstream. Where a term really is Japan-specific, its name and definition say so. Whether a model started as a Japanese profile is catalog metadata (`source`), not part of the IRI. Subject names are domain nouns (`disaster`, `address`), not project or customer names.
 - A Japan-only model that turns out to be generally useful is proposed upstream via the Smart Data Models incubated process. Following their file layout (below) makes this a copy, not a rewrite.
-- Common Japanese building blocks (address, municipality code, era date, JGD2011 location) live once in `jp-common`. Its `schema.json` is referenced from model schemas with JSON Schema `$ref`, mirroring `common-schema.json` upstream. Its context is composed into model contexts by JSON-LD means only: listing its URL in the `@context` array, or JSON-LD 1.1 `@import`. `$ref` has no meaning in a context document.
+- Common Japanese building blocks (address, municipality code, era date, JGD2011 location) live once in the `common` subject, with names that say what they are (`jisMunicipalityCode`, not `municipalityCode`). Its `schema.json` is referenced from model schemas with JSON Schema `$ref`, mirroring `common-schema.json` upstream. Its context is composed into model contexts by JSON-LD means only: listing its URL in the `@context` array, or JSON-LD 1.1 `@import`. `$ref` has no meaning in a context document.
 
 ## Conventions borrowed from existing platforms
 
@@ -99,12 +100,11 @@ Contribution goes through pull requests to the `incubated` repository, then grad
 https://models.geonicdb.com/                          catalog (ja default, /en/ English)
 https://models.geonicdb.com/models/<Subject>/<Type>/  model page (ja), /en/models/... (en)
 
-https://models.geonicdb.com/context/jp/v1.jsonld      all Japanese models, versioned
-https://models.geonicdb.com/context/jp/v1.0.0.jsonld  exact version (v1.jsonld = latest v1.x.y)
-https://models.geonicdb.com/context/<Subject>/v1.jsonld
+https://models.geonicdb.com/context/<Subject>/v1.jsonld      one context per subject; alias = latest v1.x.y
+https://models.geonicdb.com/context/<Subject>/v1.0.0.jsonld  exact version, immutable
 https://models.geonicdb.com/schema/<Subject>/<Type>/v1.json
 https://models.geonicdb.com/examples/<Subject>/<Type>/example-normalized.jsonld
-https://models.geonicdb.com/ns/jp/<Term>              type / attribute IRI, resolves to the model page
+https://models.geonicdb.com/ns/<Subject>/<Term>       type / attribute IRI, resolves to the model page
 https://models.geonicdb.com/catalog.json              machine-readable index for GeonicDB
 ```
 
@@ -112,8 +112,8 @@ Contract:
 
 1. **Immutability.** A published `vX.Y.Z` file never changes. `vX.jsonld` may advance to a new backwards-compatible `vX.Y.Z`. Breaking changes get a new major version and a new file. Nothing is ever deleted; withdrawn models are marked deprecated in the catalog and keep serving.
 2. **Headers.** `.jsonld` is served as `application/ld+json`, `.json` as `application/json` (schemas may use `application/schema+json`), all with `Access-Control-Allow-Origin: *` and `Cache-Control: public, max-age=31536000, immutable` for exact versions. Aliases use a short max-age.
-3. **Term IRIs resolve.** `/ns/jp/Shelter` redirects to the model page. No content negotiation in v1; a JSON-LD term description can be added later with a Worker if needed.
-4. **Term IRIs never change meaning.** A term IRI under `/ns/` denotes one meaning and one value type forever, independent of which context version maps a short name to it. A breaking change (different meaning, different type, different cardinality) mints a new IRI, either a new term name or a new namespace such as `/ns/jp/v2/`, and the new context version maps the short name to the new IRI. The old IRI stays published, its page is marked deprecated and points to the successor. Adding a term or widening documentation is not a breaking change.
+3. **Term IRIs resolve.** `/ns/disaster/EvacuationShelter` redirects to the model page. No content negotiation in v1; a JSON-LD term description can be added later with a Worker if needed.
+4. **Term IRIs never change meaning.** A term IRI under `/ns/` denotes one meaning and one value type forever, independent of which context version maps a short name to it. A breaking change (different meaning, different type, different cardinality) mints a new IRI, either a new term name or a new namespace such as `/ns/disaster/v2/`, and the new context version maps the short name to the new IRI. The old IRI stays published, its page is marked deprecated and points to the successor. Adding a term or widening documentation is not a breaking change.
 5. **Upstream IRIs are never re-minted.** Curated global models keep `https://smartdatamodels.org/...` IRIs. How their context files are referenced is decided below.
 6. **CI enforces the contract.** A pull request that modifies or removes a published versioned file fails.
 
@@ -126,9 +126,9 @@ Contract:
   "@context": [
     "https://raw.githubusercontent.com/smart-data-models/dataModel.Building/<commit>/context.jsonld",
     {
-      "jp": "https://models.geonicdb.com/ns/jp/",
-      "residentialIndication": "jp:residentialIndication",
-      "municipalityCode": "jp:municipalityCode"
+      "gb": "https://models.geonicdb.com/ns/Building/",
+      "residentialIndication": "gb:residentialIndication",
+      "jisMunicipalityCode": "gb:jisMunicipalityCode"
     },
     "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.8.jsonld"
   ]
@@ -155,14 +155,16 @@ Repository: `geolonia/geonicdb-models` (public). English README, Japanese and En
 
 ```text
 models/
-  jp/                                  Japan-only models and profiles
-    Shelter/
+  disaster/                            a subject minted here (first use case: Takamatsu disaster response)
+    EvacuationShelter/
       schema.json  model.yaml  notes.yaml  ADOPTERS.yaml  README.md  LICENSE.md
       examples/
       doc/spec.md  doc/spec_JA.md       generated
       mapping/suisho-dataset.yaml       CSV column -> attribute mapping (推奨データセット)
-    jp-common/                         address, municipality code, era date, location
-    context.jsonld                     source for /context/jp/vN.jsonld
+    IncidentReport/  RoadClosure/  ...
+    context.jsonld                     source for /context/disaster/vN.jsonld
+  common/                              shared building blocks: address, jisMunicipalityCode, era date, location
+  Building/                            Japanese profile of an upstream subject: adds terms, imports upstream context
   Weather/                             curated global model (thin overlay, upstream pinned)
     WeatherObserved/
       catalog.yaml                     ja/en descriptions, tags, GeonicDB notes, upstream ref
@@ -240,7 +242,7 @@ Operational notes:
 - Code (site, scripts): Apache-2.0.
 - Model content (schemas, contexts, examples, docs): CC BY 4.0. This is required for anything derived from Smart Data Models (CC BY 4.0) and is compatible with GIF and 推奨データセット (CC0-1.0). Each model folder carries `LICENSE.md` and attribution in `notes.yaml`, matching upstream practice.
 - Pull request template asks for: purpose, source standard, examples, whether the model was proposed upstream.
-- `CODEOWNERS` routes `models/jp/**` to the GeonicDB team. External contributors sign nothing beyond the repository licence.
+- `CODEOWNERS` routes `models/**` to the GeonicDB team. External contributors sign nothing beyond the repository licence.
 - `ADOPTERS.yaml` per model, as upstream, gives customers a reason to be listed and gives Geolonia usage signal.
 
 ## Internationalisation
@@ -251,7 +253,7 @@ Operational notes:
 
 ## Phasing
 
-**Phase 1, hosting and contract.** Repository, URL scheme, `_headers`, CI immutability check, `catalog.json`. Ten to fifteen curated global models taken from current customer projects, as catalog entries with Japanese descriptions and examples, referencing upstream files. `jp-common`. Two or three 推奨データセット models (candidates: 避難所, AED設置箇所, 公共施設). GeonicDB reads `catalog.json` with fallback.
+**Phase 1, hosting and contract.** Repository, URL scheme, `_headers`, CI immutability check, `catalog.json`. Ten to fifteen curated global models taken from current customer projects, as catalog entries with Japanese descriptions and examples, referencing upstream files. The `common` subject. The `disaster` subject seeded from the Takamatsu flood-response models in `geolonia/geonicdb-datamodels` (seven types and a hand-written context already exist there), which is the first real use case and validates the URL contract. Two or three 推奨データセット models (candidates: 避難所, AED設置箇所, 公共施設). GeonicDB reads `catalog.json` with fallback.
 
 **Phase 2, catalog site.** Search, filters, model pages, getting-started and extension guides in both languages. Console "Create from data model".
 
@@ -290,9 +292,8 @@ The template has no licence parameter, so licensing is a manual follow-up. After
 
 1. Final domain: `models.geonicdb.com`, or a product-neutral domain for the IRIs only?
 2. Which customer projects supply the first model list?
-3. Namespace for Japanese terms: `/ns/jp/` as proposed, or per-subject namespaces mirroring upstream?
-4. Is the pinned mirror of upstream contexts needed at all, and if so, which customers ask for it?
-5. Who reviews model semantics for Japanese standards (GIF, 推奨データセット) inside Geolonia?
+3. Is the pinned mirror of upstream contexts needed at all, and if so, which customers ask for it?
+4. Who reviews model semantics for Japanese standards (GIF, 推奨データセット) inside Geolonia?
 
 ## References
 
