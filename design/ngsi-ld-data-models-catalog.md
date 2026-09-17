@@ -257,7 +257,7 @@ Phase 1 fixes the URL scheme, which is the only part that cannot change later. E
 
 ## Repository bootstrap
 
-Decided: one public repository, `geolonia/geonicdb-models`, holding the models, the model website and the CI. It is created with the Backstage `create-repository` scaffolder (template v0.9.0), which wires up AGENTS.md / CLAUDE.md, CODEOWNERS, TechDocs, team-access sync, issue routing, the Security Suite, Dependabot and CodeRabbit.
+Decided: one public repository, `geolonia/geonicdb-models`, holding the models, the model website and the CI. It is created with the Backstage `create-repository` scaffolder (template v0.9.0), which wires up AGENTS.md / CLAUDE.md, CODEOWNERS, team-access sync, issue routing, the Security Suite, Dependabot and CodeRabbit.
 
 Scaffolder inputs:
 
@@ -271,7 +271,7 @@ Scaffolder inputs:
 | `system` | `geolonia/geonicdb` | Same system as the broker. |
 | `repoVisibility` | `public` | Contributions and the CC BY 4.0 content licence assume a public repository. |
 | `coderabbitConfig` | `true` | Org default review settings. |
-| `techDocs` | `true` | Internal developer docs (`mkdocs.yml`, `docs/`) go to Backstage TechDocs. The public model website lives in `site/` and does not collide with it. |
+| `techDocs` | `false` | The documentation of this repository is the public website itself, built with VitePress from `site/`. A second toolchain for Backstage TechDocs adds nothing. Contributor guidance goes in `README.md` and the site's contributing page; operating notes go to the GeonicDB runbooks in `geonicdb-operations`. |
 
 The template has no licence parameter, so licensing is a manual follow-up. After the scaffolder finishes:
 
@@ -279,7 +279,7 @@ The template has no licence parameter, so licensing is a manual follow-up. After
 2. Extend `.github/CODEOWNERS` with `models/** @geolonia/geonicdb` so model semantics are always reviewed by the team.
 3. Create the Cloudflare Worker (`wrangler.jsonc` with static assets, following `geonicdb-operations/cloudflare/status-probe`) and a deploy workflow on `main`. Store `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository secrets.
 4. Add the `models.geonicdb.com` DNS record in the Cloudflare zone and attach it to the Worker as a custom domain.
-5. Fill `docs/index.md` for TechDocs with the operating notes from this document (URL contract, release procedure), and link back to this design.
+5. Add the operating notes from this document (URL contract, release procedure, deploy and rollback) to the GeonicDB runbooks in `geonicdb-operations`, and add a `metadata.links` entry for `https://models.geonicdb.com` in `catalog-info.yaml` so the Backstage entity page points at the site.
 6. Set the Department field for issue routing to the GeonicDB board.
 
 ## Open questions
