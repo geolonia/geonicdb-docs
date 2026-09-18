@@ -9,6 +9,22 @@ outline: deep
 
 ---
 
+## Field Syntax (id / type / attribute name)
+
+GeonicDB enforces the **POSIX Portable Filename Character Set** for entity `type`, the URN-friendly set for entity `id`, and a stricter set for attribute names due to MongoDB / `q` parser constraints (#1209). This is a documented extension of NGSIv2 spec's Field syntax restrictions (which allow any ASCII minus control chars / whitespace / `& ? / #`).
+
+| Field | Allowed characters | Regex | Max length |
+|-------|-------------------|-------|------------|
+| `id` | `A-Z a-z 0-9 . _ - :` (no leading `-`) | `^[A-Za-z0-9._:][A-Za-z0-9._:-]*$` | 256 |
+| `type` | `A-Z a-z 0-9 . _ -` (no leading `-`) | `^[A-Za-z0-9._][A-Za-z0-9._-]*$` | 256 |
+| attribute name | `A-Z a-z 0-9 _` (旧来通り厳格) | `^[A-Za-z0-9_]+$` | 256 |
+
+- The leading character of `id` / `type` cannot be `-` (POSIX convention; prevents collision with CLI flags). The old `id` regex `^[\w:.-]+$` allowed leading `-`; this is **slightly tightened** in #1209 for consistency.
+- `id` accepts `:` for NGSI-LD URN form (`urn:ngsi-ld:Type:identifier`); `type` does not. URI / fully-qualified type names (e.g. `https://uri.fiware.org/ns/data-models#Sensor`) are **not yet supported** as `type` values — see #1211.
+- Attribute names remain restricted to `[A-Za-z0-9_]` (no `.` `-`) because they are embedded directly as MongoDB field keys (`attributes.${name}`), and the existing `q` query parser captures attribute names via `([\w.]+)` which would not match names with `-`. Until both layers are updated, allowing `.` `-` in attribute names would create silent footguns.
+- Violations return `400 BadRequest` with an error message that includes the offending value and the allowed character set, e.g. `Entity type contains invalid characters (allowed: A-Z a-z 0-9 . _ - (must not start with -)); got "Sensor@Type"`.
+- For details and rationale, see [INTEROPERABILITY.md — Entity Field Character Set](../core-concepts/ngsiv2-vs-ngsild.md#entity-field-character-set-id--type--attribute-name--geonicdb-独自拡張).
+
 ## Entity Operations
 
 ### List Entities
@@ -21,14 +37,15 @@ GET /v2/entities
 
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
-| `id` | string | Filter by entity ID (multiple values can be specified as a comma-separated list) | - |
+| `id` | string | Filter by entity ID (multiple values can be specified as a comma-separated list). **Mutually exclusive with `idPattern`** — specifying both returns `400 Bad Request` (NGSIv2 spec: "Both cannot be used at the same time"). An empty string counts as an explicit value for this purpose (#2114) | - |
 | `limit` | integer | Number of results to retrieve (max: 1000) | 20 |
-| `offset` | integer | Offset (for pagination) | 0 |
+| `offset` | integer | Offset (for pagination, max: 10000) | 0 |
+| `pageToken` | string | Keyset continuation token (default sort only). Send back the previous response's `Fiware-Next-Token`. Mutually exclusive with `offset`; invalid with `orderBy`. See [API.md §Keyset Pagination](./endpoints.md#keyset-pagination-pagetoken-1435) (#1435) | - |
 | `orderBy` | string | Sort criteria (`entityId`, `entityType`, `modifiedAt`, or attribute name). FIWARE Orion-compatible `!` prefix for descending order (e.g. `!temperature`) | - |
 | `orderDirection` | string | Sort direction (`asc`, `desc`). **GeonicDB extension** (the official specification only supports the `!` prefix approach) | `asc` |
-| `type` | string | Filter by entity type | - |
-| `typePattern` | string | Regular expression pattern for entity type | - |
-| `idPattern` | string | Regular expression pattern for entity ID | - |
+| `type` | string | Filter by entity type. **Mutually exclusive with `typePattern`** — specifying both returns `400 Bad Request` (NGSIv2 spec: "Both cannot be used at the same time"). An empty string counts as an explicit value for this purpose (#2114) | - |
+| `typePattern` | string | Regular expression pattern for entity type, evaluated **verbatim** (no implicit `*`→`.*` conversion — write a regex like `Room.*` or `.*`, not a glob) (#2114). **Mutually exclusive with `type`** | - |
+| `idPattern` | string | Regular expression pattern for entity ID, evaluated **verbatim** (no implicit `*`→`.*` conversion) (#2114). **Mutually exclusive with `id`** | - |
 | `q` | string | Filter by attribute value (see [Query Language](./endpoints.md#query-language)) | - |
 | `mq` | string | Filter by metadata (see [Query Language](./endpoints.md#query-language)) | - |
 | `attrs` | string | Attribute names to retrieve (comma-separated) | - |
@@ -40,6 +57,8 @@ GET /v2/entities
 | `spatialIdDepth` | integer | Depth of spatial ID hierarchy expansion (0-4) | 0 |
 | `crs` | string | Coordinate reference system (see [Coordinate Reference System (CRS)](./endpoints.md#coordinate-reference-system-crs)) | `EPSG:4326` |
 | `options` | string | `keyValues`, `values`, `count`, `geojson`, `sysAttrs`, `unique` | - |
+
+> **Range queries (#1586)**: the NGSIv2 Simple Query Language range form is `attr==min..max` (e.g. `temperature==20..30`). A bare `:` (e.g. `temperature:20..30`) is **not** a valid NGSIv2 SQL operator and will not be parsed as a range — see [Query Language](./endpoints.md#query-language).
 
 **Built-in Attributes**
 
@@ -174,7 +193,26 @@ If the entity does not exist, it is created (`201 Created`); if it already exist
 - Status: `409 AlreadyExists` if an entity with the same ID already exists (regardless of type)
 - Header: `Location: /v2/entities/Room1?type=Room`
 
+> **Path parameter percent-encoding (#2695, same contract as policies #1628).**
+> `event.path` arrives percent-encoded from API Gateway and the local Express wrapper.
+> Entity `entityId` / `attrName` (and registration `registrationId`) are decoded **exactly once**
+> before lookup. A malformed escape (`/v2/entities/%`, `a%b`) returns `400 BadRequest`
+> (`entityId contains invalid URL encoding`) instead of treating the raw segment as an ID
+> (the previous NGSIv2 production behaviour of `404 NotFound` for `/v2/entities/%`).
+> IDs that literally contain `%` must be addressed with `%25` (e.g. `50%-off` →
+> `/v2/entities/50%25-off`). The `Location` header on create already percent-encodes both
+> the path ID and the `type` query value, so following it verbatim works.
+>
+> **Matching semantics change:** path segments that look like percent-escapes
+> (e.g. an entity whose stored `id` is the literal string `%2F`) are now looked up after
+> one decode (`/` for `%2F`). Clients that previously sent the raw escape as the path
+> segment and relied on exact-string match against the stored id may see a silent
+> no-match (#1800 class). Clients whose HTTP stack auto-encodes path segments are
+> fixed (they used to get `404` for incomplete `%`).
+
 > **GeonicDB Extension — Entity ID Uniqueness**: Entity IDs are unique within a tenant and service path scope. Creating an entity with the same ID but a different type is not allowed and returns `409 AlreadyExists`. This differs from the NGSIv2 specification, which permits same-ID entities with different types. See [Entity ID Uniqueness](./endpoints.md#entity-id-uniqueness-geonicdb-extension) for details.
+
+> **Note (minor breaking change, #1644)**: `Polygon` rings in `geo:json` attribute values must be closed with the first and last positions **equal in every element** — including the altitude when 3-element `[longitude, latitude, altitude]` positions are used. NGSIv2 previously compared only longitude/latitude, silently accepting rings whose first and last positions differed in altitude; such rings are now rejected with `400 Bad Request` ("must be closed"), unifying the rule with NGSI-LD. Clients sending 2-element (2D) coordinates are unaffected. See [Polygon Ring Closure](./endpoints.md#polygon-ring-closure-1644).
 
 ### Get Single Entity
 
@@ -374,6 +412,8 @@ DELETE /v2/entities/{entityId}/attrs/{attrName}
 
 **Response**: `204 No Content`
 
+> **Note (GeonicDB extension)**: If a custom data model is defined for the entity's type and the attribute is marked `required: true`, this returns `400 Bad Request` instead — the attribute cannot be deleted while the model requires it. Attributes with `required: false`, and attributes on models with `isActive: false`, can still be deleted.
+
 ### Get Attribute Value Directly
 
 ```http
@@ -544,6 +584,10 @@ POST /v2/op/query
 }
 ```
 
+> **Mutual exclusivity (#2114)**: within each `entities[]` selector, `id`/`idPattern` are mutually exclusive and `type`/`typePattern` are mutually exclusive — specifying both members of a pair in the same selector returns `400 Bad Request` (NGSIv2 spec: "Both cannot be used at the same time"). `idPattern`/`typePattern` are evaluated as verbatim regular expressions (no implicit `*`→`.*` conversion).
+
+> **`expression` applies to every selector, including direct `id` (#2135)**: `expression` (`q` / `mq` / `georel`+`geometry`+`coords`) filters the result of **all** `entities[]` selectors. An `{"id": ...}` selector whose entity does not satisfy the expression yields no result — the same outcome regardless of the caller's authorization mode (previously, unrestricted principals received the entity with the expression silently ignored).
+
 **Response**: Array of entities
 
 ### Receive Notification
@@ -612,6 +656,8 @@ POST /v2/subscriptions
 }
 ```
 
+> **Note (#1586)**: `condition.expression.q` uses the same Simple Query Language as the `q` query parameter (see [Query Language](./endpoints.md#query-language)). The range form is `attr==min..max` (e.g. `pressure==700..800`); a bare `:` (e.g. `pressure:700..800`) is not a valid operator.
+
 **httpCustom notification example (custom template)**
 
 ```json
@@ -643,11 +689,12 @@ POST /v2/subscriptions
 | `method` | string | - | HTTP method (GET, POST, PUT, PATCH, DELETE). Default: POST |
 | `headers` | object | - | Custom HTTP headers |
 | `qs` | object | - | Query string parameters (supports `${...}` macro substitution) |
-| `payload` | string | - | Request body template (supports `${...}` macro substitution) |
+| `payload` | string | - | Request body template, always stringified (supports `${...}` macro substitution). Mutually exclusive with `json` |
+| `json` | object \| array | - | Type-preserving JSON template (FIWARE Orion parity). Mutually exclusive with `payload` |
 
 **Macro substitution**
 
-You can embed entity data using the `${...}` syntax in `payload` and `qs` values:
+You can embed entity data using the `${...}` syntax in `payload`, `qs`, and `json` values:
 
 | Macro | Replacement value |
 |-------|-------------------|
@@ -656,6 +703,17 @@ You can embed entity data using the `${...}` syntax in `payload` and `qs` values
 | `${attrName}` | Attribute value (extracts `.value` from normalized attribute) |
 
 Non-existent attributes are replaced with the string `null`. Macros are evaluated against the full entity before the attrs/exceptAttrs filter is applied.
+
+**Type-preserving JSON template (`json`)**
+
+`payload` stringifies every substituted value. When you need to preserve attribute types
+(numbers stay numbers, booleans stay booleans), use `json` instead. A **sole-macro value**
+(`"${temperature}"`) keeps the attribute's original JSON type; a **partial-macro value**
+(`"prefix-${id}"`) is stringified. **Keys are never substituted** — a macro in a key is
+rejected with `400`. The template is bounded at creation time (serialized size ≤
+`MAX_PAYLOAD_LENGTH`, nesting depth ≤ `MAX_JSON_DEPTH`; violations → `400`). Notifications
+are sent with `Content-Type: application/json` by default (overridable via `receiverInfo`).
+See [SUBSCRIPTIONS.md](../features/ngsi-subscriptions.md#httpcustomjson-type-preserving-template) for details.
 
 **MQTT notification example**
 
@@ -695,6 +753,45 @@ Non-existent attributes are replaced with the string `null`. Macros are evaluate
 | `user` | string | - | Authentication username |
 | `passwd` | string | - | Authentication password |
 
+**Web Push notification example (#3014)**
+
+`url` is the same value as the browser's `PushSubscription.toJSON().endpoint`.
+See [SUBSCRIPTIONS.md](../features/ngsi-subscriptions.md#web-push-3014) for the full field mapping.
+
+```json
+{
+  "description": "Room temperature Web Push notification",
+  "subject": {
+    "entities": [{ "type": "Room" }],
+    "condition": { "attrs": ["temperature"] }
+  },
+  "notification": {
+    "webpush": {
+      "url": "https://fcm.googleapis.com/fcm/send/....",
+      "keys": {
+        "p256dh": "<87-char base64url P-256 key>",
+        "auth": "<22-char base64url auth secret>"
+      },
+      "ttl": 86400,
+      "urgency": "normal",
+      "topic": "room-temp"
+    },
+    "attrs": ["temperature"]
+  }
+}
+```
+
+**Web Push notification settings**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `url` | string | ✓ | Push Service endpoint URL (`https://`) |
+| `keys.p256dh` | string | ✓ | RFC8291 client public key (base64url, exactly 87 chars) |
+| `keys.auth` | string | ✓ | RFC8291 auth secret (base64url, exactly 22 chars) |
+| `ttl` | integer | - | RFC8030 TTL seconds (default applied at send if omitted) |
+| `urgency` | string | - | `very-low` / `low` / `normal` / `high` |
+| `topic` | string | - | RFC8030 topic (max 32 base64url chars) |
+
 **Request Body**
 
 ```json
@@ -723,12 +820,19 @@ Non-existent attributes are replaced with the string `null`. Macros are evaluate
 }
 ```
 
-**attrsFormat types**
+**attrsFormat types** (#1780: applied to the notification body, and echoed in the
+`Ngsiv2-AttrsFormat` header of NGSIv2 HTTP notifications. `httpCustom` bodies report `custom`;
+NGSI-LD subscriptions do not receive this header at all)
 
-| Format | Description |
-|--------|-------------|
-| `normalized` | Standard NGSIv2 format (default) |
-| `keyValues` | Simplified key-value format |
+| Format | Description | `data[]` element |
+|--------|-------------|------------------|
+| `normalized` | Standard NGSIv2 format (default) | `{"id": ..., "type": ..., "temperature": {"type": "Number", "value": 25}}` |
+| `keyValues` | Simplified key-value format | `{"id": ..., "type": ..., "temperature": 25}` |
+| `values` | Values only | `[25]` — ordered by `attrs` (attribute name order when `attrs` is absent) |
+
+Subscriptions created before the internal `protocol` field existed (#1570) keep the legacy
+normalized body: their API protocol cannot be determined and guessing would rewrite bodies their
+receivers already parse.
 
 **Notification attribute filtering**
 
@@ -756,6 +860,8 @@ GET /v2/subscriptions
 | `offset` | integer | Offset | 0 |
 | `status` | string | Filter by status (`active`, `inactive`) | - |
 
+> **Row-level read authorization (#2140):** for a subject restricted by a row-level read predicate (custom XACML policy), `GET /v2/subscriptions` and `GET /v2/subscriptions/{subscriptionId}` redact unreadable type selectors from `subject.entities`, hide subscriptions that watch only unreadable types (list omission / `404` on by-id reads) and compute `Fiware-Total-Count` after redaction. Subscriptions are stored protocol-shared, so this matches the NGSI-LD behavior (see [AUTH.md](../reference/auth.md) #2140). Unrestricted subjects see no change.
+
 ### Get Subscription
 
 ```http
@@ -778,6 +884,11 @@ PATCH /v2/subscriptions/{subscriptionId}
 
 **Response**: `204 No Content`
 
+> **Auto-pause (#3080):** if delivery failures continue for `NOTIFICATION_AUTO_PAUSE_AFTER_MS`
+> (default 1 hour), the broker sets `status` to `inactive` and records `autoDisabledAt`
+> (GeonicDB extension, ISO 8601). `GET` exposes both fields. Resume with
+> `PATCH { "status": "active" }` (clears `autoDisabledAt` and the failure streak).
+
 ### Delete Subscription
 
 ```http
@@ -788,7 +899,7 @@ DELETE /v2/subscriptions/{subscriptionId}
 
 ### Ownership Verification (GeonicDB Extension)
 
-When authentication is enabled (`AUTH_ENABLED=true`), subscription update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See [AUTH.md](../reference/auth.md) for details.
+While authentication is enabled (the default), subscription update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `404 Not Found` is returned (as is the case when the subscription does not exist at all, so the difference cannot be observed from outside); subscriptions with **no** `createdBy` (created before that field existed) also return `404 Not Found` to non-admins (#2161). The `super_admin` and `tenant_admin` roles can bypass this verification. See [AUTH.md](../reference/auth.md) for details.
 
 ---
 
@@ -852,6 +963,8 @@ GET /v2/registrations
 | `limit` | integer | Number of results to retrieve | 20 |
 | `offset` | integer | Offset | 0 |
 
+> **Row-level read authorization (#2084):** for a subject restricted by a row-level read predicate (custom XACML policy), `GET /v2/registrations` and `GET /v2/registrations/{registrationId}` redact unreadable type selectors from `dataProvided.entities`, hide registrations that declare only unreadable types (list omission / `404` on by-id reads) and compute `Fiware-Total-Count` after redaction. Registrations are visible across protocols, so this matches the NGSI-LD `csourceRegistrations` behavior (see [API_NGSILD.md](./ngsild.md) / [AUTH.md](../reference/auth.md)). Unrestricted subjects see no change.
+
 **Response Example**
 
 ```json
@@ -903,7 +1016,7 @@ DELETE /v2/registrations/{registrationId}
 
 ### Ownership Verification (GeonicDB Extension)
 
-When authentication is enabled (`AUTH_ENABLED=true`), registration update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `403 Forbidden` is returned. The `super_admin` and `tenant_admin` roles can bypass this verification. See [AUTH.md](../reference/auth.md) for details.
+While authentication is enabled (the default), registration update (PATCH) and delete (DELETE) operations perform ownership verification based on the `createdBy` field. If a user other than the creator attempts these operations, `404 Not Found` is returned (as is the case when the registration does not exist at all, so the difference cannot be observed from outside); registrations with **no** `createdBy` (created before that field existed) also return `404 Not Found` to non-admins (#2161). The `super_admin` and `tenant_admin` roles can bypass this verification. See [AUTH.md](../reference/auth.md) for details.
 
 ---
 
@@ -1058,7 +1171,7 @@ GET endpoints return cache-related headers by endpoint class:
 | `ETag` | `W/"..."` | Weak validator. Generation seeds include `path + Accept + Fiware-Service + Fiware-ServicePath` so distinct endpoints / Accept / tenants / service paths always produce distinct ETags. Lists: streaming digest of `id + modifiedAt` mixed with total count and scope. Single: hash of `modifiedAt` mixed with scope. |
 | `Last-Modified` | RFC 1123 HTTP-date | Timestamp of the latest `modifiedAt` in the result set. |
 | `Cache-Control` | `private, no-cache` | `private` blocks shared / intermediate cache storage; `no-cache` forces revalidation from the private cache. |
-| `Vary` | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | Tenant + auth + content-negotiation isolation for shared caches. |
+| `Vary` | `NGSILD-Tenant, Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | Tenant + auth + content-negotiation isolation for shared caches. |
 
 Conditional requests are supported:
 
@@ -1072,8 +1185,8 @@ Conditional requests are supported:
 
 | Header | Value | Purpose |
 |--------|-------|---------|
-| `Cache-Control` | `max-age=60, stale-while-revalidate=120` | Short-term caching with background revalidation. |
-| `Vary` | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | Same tenant/auth isolation as data endpoints. |
+| `Cache-Control` | `private, max-age=60, stale-while-revalidate=120` | Shared/intermediate cache storage is forbidden; private cache can reuse briefly with background revalidation. |
+| `Vary` | `NGSILD-Tenant, Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | Same tenant/auth isolation as data endpoints. |
 
 Meta endpoints do not return `ETag` / `Last-Modified` and do not support `If-None-Match` / `If-Modified-Since` conditional requests. Clients should rely on the `max-age` / `stale-while-revalidate` directives instead.
 
@@ -1093,6 +1206,7 @@ See [API.md §HTTP Cache Control](./endpoints.md#http-cache-control-etag--condit
 | 405 | MethodNotAllowed | HTTP method not allowed |
 | 409 | AlreadyExists | Entity already exists (during POST creation) |
 | 409 | TooManyResults | Multiple entities matched (when type is not specified) |
+| 409 | Conflict | Concurrent modification: a subscription `PATCH` lost the optimistic-concurrency race repeatedly (#1593). Retry the request |
 | 411 | ContentLengthRequired | Content-Length header is required |
 | 413 | RequestEntityTooLarge | Request body is too large |
 | 415 | UnsupportedMediaType | Unsupported Content-Type |
@@ -1118,7 +1232,7 @@ FIWARE NGSIv2-compatible Context Broker API.
 ### Common Specifications
 
 - **Content-Type**: `application/json`
-- **Authentication**: Required when `AUTH_ENABLED=true`
+- **Authentication**: Required unless `AUTH_ENABLED=false`
 - **Tenant isolation**: Tenant isolation via the `Fiware-Service` header
 - **Pagination**: `limit`/`offset` parameters; use `options=count` to get the total count
 
@@ -1136,7 +1250,7 @@ FIWARE NGSIv2-compatible Context Broker API.
 | `/v2/entities/{entityId}/attrs` | PUT | Replace attributes | 204 | 400, 401, 404, 415 | - |
 | `/v2/entities/{entityId}/attrs/{attrName}` | GET | Get attribute | 200 | 401, 404 | - |
 | `/v2/entities/{entityId}/attrs/{attrName}` | PUT | Update attribute | 204 | 400, 401, 404, 415 | - |
-| `/v2/entities/{entityId}/attrs/{attrName}` | DELETE | Delete attribute | 204 | 401, 404 | - |
+| `/v2/entities/{entityId}/attrs/{attrName}` | DELETE | Delete attribute | 204 | 400, 401, 404 | - |
 | `/v2/entities/{entityId}/attrs/{attrName}/value` | GET | Get attribute value | 200 | 401, 404 | - |
 | `/v2/entities/{entityId}/attrs/{attrName}/value` | PUT | Update attribute value | 204 | 400, 401, 404, 415 | - |
 
@@ -1154,7 +1268,7 @@ FIWARE NGSIv2-compatible Context Broker API.
 | `/v2/subscriptions` | GET | List subscriptions | 200 | 400, 401 | ✅ (max: 1000) |
 | `/v2/subscriptions` | POST | Create subscription | 201 | 400, 401, 415 | - |
 | `/v2/subscriptions/{subscriptionId}` | GET | Get subscription | 200 | 401, 404 | - |
-| `/v2/subscriptions/{subscriptionId}` | PATCH | Update subscription | 204 | 400, 401, 404, 415 | - |
+| `/v2/subscriptions/{subscriptionId}` | PATCH | Update subscription | 204 | 400, 401, 404, 409, 415 | - |
 | `/v2/subscriptions/{subscriptionId}` | DELETE | Delete subscription | 204 | 401, 404 | - |
 
 ### Registration Operations (Federation)

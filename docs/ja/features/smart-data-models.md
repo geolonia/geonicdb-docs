@@ -3,42 +3,61 @@ title: "Smart Data Models"
 description: "FIWARE Smart Data Models support"
 outline: deep
 ---
-# スマート データ モデルのサポート
+# Smart Data Models サポート
 
-GeonicDB は [Smart Data Models](https://smartdatamodels.org/) イニシアティブのデータ モデルをサポートしています。Smart Data Models は、FIWARE エコシステムやスマート シティ分野で広く使用されている標準化されたデータ モデルのカタログです。
+GeonicDB は [Smart Data Models](https://smartdatamodels.org/) イニシアチブのデータモデルをサポートしています。Smart Data Models は、FIWARE エコシステムやスマートシティ分野で広く使用されている標準化されたデータモデルのカタログです。
 
 ## 概要
 
-スマート データ モデルのサポートには、次の 2 つの機能が含まれます:
+Smart Data Models サポートには以下の 2 つの機能が含まれます:
 
-1. **MCP ツール**: カタログを閲覧し、利用可能なデータ モデルを検索します
-2. **@context 自動補完**: 既知の Smart Data Model エンティティ タイプに対して、適切な JSON-LD @context を自動的に追加します
+
+1. **A2A `config` スキル**: カタログをブラウズし、利用可能なデータモデルを検索します
+   (`/a2a` に `resource: "data_models"` を送信)。これは MCP ツールでは**なく**、MCP / Tool Use `config` ツールを通じてアクセスすることは**できません**。この `config` ツールの `custom_data_models` リソースは、代わりにあなた自身のモデルを管理します (#2209)。
+   
+2. **モデルカタログ**: クライアントが参照するためのエンティティタイプ → JSON-LD @context URL マッピング
+
+> **#1733 で変更**: GeonicDB はもはやエンティティの `type` に基づいてレスポンスに Smart Data Models @context を注入しません。下記の [Response @context](#response-context) を参照してください。
 
 ## サポートされるドメイン
 
-GeonicDB は、次のドメインから主要な Smart Data Models をサポートしています:
+GeonicDB は以下のドメインから主要な Smart Data Models をサポートしています:
 
-| ドメイン | 含まれるモデルの例 |
-|--------|------------------------|
-| **Parking** | OffStreetParking, OnStreetParking, ParkingSpot |
-| **Weather** | WeatherObserved, WeatherForecast |
-| **Transportation** | Vehicle, TrafficFlowObserved, BikeHireDockingStation |
-| **Environment** | AirQualityObserved, NoiseLevelObserved, WaterQualityObserved |
-| **Building** | Building, BuildingOperation |
-| **Device** | Device, DeviceModel |
-| **WasteManagement** | WasteContainer, WasteContainerIsle |
-| **Energy** | EnergyMonitor, ThreePhaseAcMeasurement |
+| Domain              | Example models included                                      |
+| ------------------- | ------------------------------------------------------------ |
+| **Parking**         | OffStreetParking, OnStreetParking, ParkingSpot               |
+| **Weather**         | WeatherObserved, WeatherForecast                             |
+| **Transportation**  | Vehicle, TrafficFlowObserved, BikeHireDockingStation         |
+| **Environment**     | AirQualityObserved, NoiseLevelObserved, WaterQualityObserved |
+| **Building**        | Building, BuildingOperation                                  |
+| **Device**          | Device, DeviceModel                                          |
+| **WasteManagement** | WasteContainer, WasteContainerIsle                           |
+| **Energy**          | EnergyMonitor, ThreePhaseAcMeasurement                       |
 
-各モデルには次の情報が含まれます:
-- エンティティ タイプ名
-- ドメイン
-- JSON-LD @context URL
-- 説明
-- スキーマ URL
-- サンプル プロパティ
+各モデルには以下の情報が含まれます:
 
-## MCP ツール: `data_models`
-Smart Data Models カタログを参照するための MCP ツールが利用可能です。
+* エンティティタイプ名
+  
+* ドメイン
+  
+* JSON-LD @context URL
+  
+* 説明
+  
+* スキーマ URL
+  
+* サンプルプロパティ
+
+## A2A `config` スキル、`
+
+resource: "data_models"`
+
+Smart Data Models カタログは、**A2A** `config` スキル (`POST /a2a`) を通じてブラウズ可能で、以下のアクションのいずれかと共に `resource: "data_models"` を送信します。
+
+> **MCP ツールではありません (#2209)。** MCP サーバーは正確に 5 つのツール — `entities`、`batch`、`temporal`、`config`、`admin` (`src/api/mcp/tools/index.ts`) — を登録し、その `config` ツールは `rules` / `jsonld_contexts` / `custom_data_models` のみを受け付けます。トップレベルの `data_models` MCP ツールは存在せず、MCP `config` ツールに `resource: "data_models"` を送信すると、その `z.enum` によって拒否されます。
+
+> **A2A `config` スキルは正確に `rules` / `jsonld_contexts` / `data_models` を受け付けます (#2228)。**
+> MCP の `custom_data_models` を含む他の値は、サポートされているセットを示すエラーで拒否されます。**これは明示的に指定された `resource` にのみ適用されます。** `resource` が省略された場合、スキルはフリーテキストメッセージに対するキーワード検出にフォールバックし、同じ 3 つの値のいずれかを選択します(何もマッチしない場合は `rules`)。そのため、フリーテキストリクエストが拒否パスに到達することはありません — このフォールバックは意図的であり変更されていません。#2228 以前は、未知の `resource` は暗黙的に `rules` にフォールスルーしていたため、A2A 経由でカスタムデータモデルを要求するクライアントは**代わりにリアクティブルールで動作していました**。受け付けられるセットは、Agent Card (`/.well-known/agent-card.json`) に ``Accepted `resource` values: ...`` として `config` スキル上で機械可読形式で宣言されています。
 
 ### アクション
 
@@ -49,6 +68,7 @@ Smart Data Models カタログを参照するための MCP ツールが利用可
 **パラメータ**: なし
 
 **レスポンス例**:
+
 ```json
 {
   "domains": [
@@ -67,15 +87,20 @@ Smart Data Models カタログを参照するための MCP ツールが利用可
 
 #### `list_models` - モデルのリストを取得
 
-利用可能なデータモデルのリストを取得します。ドメインまたは検索語句でフィルタリングできます。
+利用可能なデータモデルのリストを取得します。ドメインまたは検索語でフィルタリングできます。
 
 **パラメータ**:
-- `domain` (オプション): ドメインでフィルタリング (例: "Parking")
-- `search` (オプション): タイプまたは説明で検索 (例: "weather")
-- `limit` (オプション): 結果の最大数 (デフォルト: 100)
-- `offset` (オプション): ページネーションのオフセット (デフォルト: 0)
+
+* `domain` (オプション): ドメインでフィルタリング (例:「Parking」)
+  
+* `search` (オプション): タイプまたは説明で検索 (例:「weather」)
+  
+* `limit` (オプション): 最大結果数 (デフォルト: 100)
+  
+* `offset` (オプション): ページネーションオフセット (デフォルト: 0)
 
 **レスポンス例**:
+
 ```json
 {
   "models": [
@@ -97,9 +122,11 @@ Smart Data Models カタログを参照するための MCP ツールが利用可
 指定されたエンティティタイプのデータモデル詳細を取得します。
 
 **パラメータ**:
-- `type` (必須): エンティティタイプ名 (例: "OffStreetParking")
+
+* `type` (必須): エンティティタイプ名 (例:「OffStreetParking」)
 
 **レスポンス例**:
+
 ```json
 {
   "type": "OffStreetParking",
@@ -141,27 +168,57 @@ Smart Data Models カタログを参照するための MCP ツールが利用可
 ```
 
 **注意**: `propertyDetails` フィールドは主要なモデル (WeatherObserved、AirQualityObserved、OffStreetParking、OnStreetParking、TrafficFlowObserved、Vehicle、Device、Building、WasteContainer、EnergyMonitor) で利用可能です。各プロパティには以下の情報が含まれます:
-- `ngsiType`: NGSI-LD プロパティタイプ (Property、GeoProperty、Relationship、LanguageProperty)
-- `valueType`: 値のタイプ (number、string、GeoJSON 構造、Object など)
-- `example`: 実際の例として使用するサンプル値
-- `required`: フィールドが必須かどうか (オプション)
-- `@context`: JSON-LD 語彙 URI (オプション、HTTP(S) URL のみ)。カスタムデータモデルの場合、Linked Data の相互運用性を向上させるために、よく知られた語彙 (例: `https://schema.org/email`) を指定してください。`@context` がないプロパティは自動生成された URL (`https://geonicdb.geolonia.com/vocab/{tenantId}/{propertyName}`) を取得します。
 
-## @context の自動補完
+* `ngsiType`: NGSI-LD プロパティタイプ (Property、GeoProperty、Relationship、LanguageProperty)
+  
+* `valueType`: 値のタイプ (number、string、GeoJSON 構造、Object など)
+  
+* `example`: 実世界の例として使用するサンプル値
+  
+* `required`: フィールドが必須かどうか (オプション)
+  
+* `@context`: JSON-LD ボキャブラリ URI (オプション、HTTP(S) URL のみ)。カスタムデータモデルの場合、Linked Data の相互運用性を向上させるために、よく知られたボキャブラリ (例: `https://schema.org/email`) を指定してください。`@context` を持たないプロパティは、このContext Broker自身のベース URL 上に自動生成された URL を取得します (`{brokerBaseUrl}/vocab/{tenantId}/{propertyName}`、#1984) — `GET /vocab/{tenantId}/{term}` 経由で `rdf:Property` として参照可能です (#3191)。`rdfs:domain` は、正確に 1 つのモデルが属性を宣言している場合にのみ追加されます。`rdfs:range` は、`ngsiType`/`valueType` がデータ型に解決される場合にのみ追加されます (`Relationship` および未解決の値タイプでは省略されます)。複数のモデルが宣言している場合、両方とも省略されます。[API.md → Term kind](../api-reference/endpoints.md#term-kind-type) を参照してください。
 
-NGSI-LD API 経由でエンティティを取得する際、GeonicDB は既知の Smart Data Model タイプに対して適切な @context を自動的に追加します。
+## レスポンス @context
 
-### 動作の仕組み
+**GeonicDB はエンティティタイプから @context を推測しません。** レスポンスのレンダリングに使用される @context は、リクエストが提供したもののみです。リクエストが何も提供しなかった場合、NGSI-LD コア @context のみが使用されます。
 
-エンティティを取得する際の @context 解決の優先順位:
+これは ETSI GS CIM 009 に従います (<https://cim.etsi.org/NGSI-LD/official/clause-5.html> を参照):
 
-1. **明示的な @context** (Link ヘッダーまたはパラメータで指定) - 常に優先されます
-2. **Smart Data Models の @context** (エンティティタイプが既知の SDM の場合) - 自動補完されます
-3. **デフォルトの NGSI-LD コア @context** - フォールバック
 
-### 例: Smart Data Model エンティティの作成と取得
+* clause 5.5.5 — "API クライアントが提供する入力に @context が含まれていない場合、実装は最低限、そのような入力にコア @context を割り当てなければならない。"
+  
+* clause 5.5.7 — "用語のコンパクションまたは展開を実行するために使用される @context は、各 API 呼び出しによって提供されたもの (または、その不在時にはデフォルト @context) であり、**以前に提供された可能性のある他の @context ではない**" および "コンパクション時に、現在の @context で一致する用語が見つからない場合、実装は完全修飾名をレンダリングしなければならない。"
+
+### 仕組み
+
+エンティティを取得する際の @context 解決:
+
+
+1. **明示的な @context** (読み取り時の JSON-LD `Link` ヘッダー) - そのまま使用されます
+   
+2. **それ以外の場合、NGSI-LD コア @context のみ**
+
+作成時に提供された @context は、エンティティと共に永続化されますが (#1620 / #1633)、保存された属性の完全修飾名を復元するため**のみ**に使用されます — レスポンスボキャブラリを決定するためには決して使用されません。その結果、ドメインコンテキストの下で書き込まれたエンティティを、そのコンテキストを提供**せずに**読み取ると、コア @context がコンパクトできない用語については完全修飾 URI が返されます:
+
+```bash
+# created with a context that maps name → https://example-vocab/ns#name
+GET /ngsi-ld/v1/entities/urn:ngsi-ld:Building:v1
+→ { "type": "https://example-vocab/ns#Building",
+    "https://example-vocab/ns#name": { "type": "Property", "value": "HQ" } }
+
+# supply the same context and the short terms come back
+GET /ngsi-ld/v1/entities/urn:ngsi-ld:Building:v1
+Link: <https://example.org/building.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
+→ { "type": "Building", "name": { "type": "Property", "value": "HQ" } }
+```
+
+**移行に関する注意**: Context Brokerが Smart Data Models @context を推測することに依存していたクライアントは、今後、モデルの @context URL を自分で渡す必要があります (`Link` ヘッダー経由、または `application/ld+json` 書き込みの場合は本文経由)。上記のカタログテーブルと A2A `config` スキルが、渡すべき URL を提供します。
+
+### 例:スマートデータモデルエンティティの作成と取得
 
 **エンティティの作成**:
+
 ```bash
 POST /ngsi-ld/v1/entities
 Content-Type: application/ld+json
@@ -187,18 +244,18 @@ Content-Type: application/ld+json
 }
 ```
 
-**エンティティの取得**:
+**エンティティの取得**(スマートデータモデルの @context を提供して、レスポンスがその語彙を使用するようにします):
+
 ```bash
 GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
+Link: <https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
 ```
 
-**レスポンス** (@context が自動的に追加されます):
+**レスポンス**(リクエストが提供した @context が使用されます):
+
 ```json
 {
-  "@context": [
-    "https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld",
-    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-  ],
+  "@context": "https://raw.githubusercontent.com/smart-data-models/dataModel.Parking/master/context.jsonld",
   "id": "urn:ngsi-ld:OffStreetParking:downtown",
   "type": "OffStreetParking",
   "name": {
@@ -221,13 +278,17 @@ GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
 
 ### 重要な注意事項
 
-- **@context はストレージに保存されません**: @context は API レスポンス時に動的に生成されるメタデータです
-- **明示的な @context が優先されます**: Link ヘッダーで @context が指定された場合、SDM 自動補完よりも優先されます
-- **未知のタイプはデフォルトの @context を使用します**: カスタムエンティティタイプの場合、NGSI-LD コアの @context のみが返されます
+
+* **作成時に指定された @context は永続化されます**(#1620 / #1633):URL、URL の配列、またはインラインコンテキストオブジェクト — `application/ld+json` の場合はリクエストボディ経由で、`application/json` の場合は Link ヘッダー経由で提供されます。これは保存された属性の完全修飾名を復元するために使用されますが、レスポンスの @context を選択するためには使用**されません**(#1733)
+  
+* **読み取りリクエストがレスポンスの語彙を決定します**:読み取りが提供する @context がレスポンスの圧縮に使用されます。何も提供されない場合は、コア @context のみが使用されます
+  
+* **レスポンスの @context が圧縮できない用語は完全修飾 URI としてレンダリングされます**(ETSI 条項 5.5.7)
 
 ### 異なるドメインの例
 
 **Weather ドメイン**:
+
 ```json
 {
   "@context": [
@@ -244,6 +305,7 @@ GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
 ```
 
 **Transportation ドメイン**:
+
 ```json
 {
   "@context": [
@@ -258,43 +320,65 @@ GET /ngsi-ld/v1/entities/urn:ngsi-ld:OffStreetParking:downtown
   }
 }
 ```
+
 ## メリット
 
 ### FIWARE エコシステムとの相互運用性
 
-Smart Data Models の @context を使用することで、以下が可能になります。
+Smart Data Models @context を使用することで、以下が可能になります:
 
-- **標準化されたプロパティ名**: 他の FIWARE システムとの互換性
-- **セマンティックな相互運用性**: JSON-LD を使用した意味のあるデータ交換
-- **エコシステム統合**: FIWARE Marketplace や他の FIWARE コンポーネントとの統合
+
+* **標準化されたプロパティ名**: 他の FIWARE システムとの互換性
+  
+* **セマンティック相互運用性**: JSON-LD を使用した意味のあるデータ交換
+  
+* **エコシステム統合**: FIWARE Marketplace や他の FIWARE コンポーネントとの統合
 
 ### AI アシスタント体験の向上
 
-MCP ツールを通じて、AI アシスタント (Claude など) は以下が可能になります。
+A2A `config` スキル(カタログ閲覧)と MCP `entities` ツール(エンティティ書き込み)を通じて、AI アシスタント(Claude など)は以下が可能です:
 
-- **データモデルの検索**: ドメインやキーワードで利用可能なデータモデルスキーマを検索
-- **プロパティ情報の取得**: `propertyDetails` から各プロパティの詳細情報を取得
-  - NGSI-LD プロパティタイプ (Property、GeoProperty、Relationship) の識別
-  - 値のタイプ (number、string、GeoJSON 構造など) の理解
-  - 実世界の例としてのサンプル値の使用
-  - 必須フィールドの識別
-- **正確なエンティティの作成**: 取得した情報に基づいて正しく構造化された NGSI-LD エンティティを生成
-- **ドメイン固有のベストプラクティス**: Smart Data Models 標準に従った実装
+
+* **データモデルの検索**: ドメインまたはキーワードで利用可能なデータモデルスキーマを検索
+  
+* **プロパティ情報の取得**: `propertyDetails` から各プロパティの詳細情報を取得
+  
+  * NGSI-LD プロパティタイプ(Property、GeoProperty、Relationship)の識別
+    
+  * 値の型(number、string、GeoJSON 構造など)の理解
+    
+  * 実世界の例としてサンプル値を使用
+    
+  * 必須フィールドの識別
+    
+* **正確なエンティティの作成**: 取得した情報に基づいて正しく構造化された NGSI-LD エンティティを生成
+  
+* **ドメイン固有のベストプラクティス**: Smart Data Models 標準に従った実装
 
 **推奨ワークフロー**:
+
 1. `list_models` でモデルを検索
+   
 2. `get_model` で選択したモデルの `propertyDetails` を取得
+   
 3. `propertyDetails` 情報に基づいて正しい NGSI-LD 構造でエンティティを作成
 
 ## 参考資料
 
-- [Smart Data Models 公式サイト](https://smartdatamodels.org/)
-- [Smart Data Models GitHub](https://github.com/smart-data-models)
-- [FIWARE Data Models](https://fiware-datamodels.readthedocs.io/)
-- [NGSI-LD 仕様](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/)
+
+* [Smart Data Models 公式サイト](https://smartdatamodels.org/)
+  
+* [Smart Data Models GitHub](https://github.com/smart-data-models)
+  
+* [FIWARE Data Models](https://fiware-datamodels.readthedocs.io/)
+  
+* [NGSI-LD 仕様](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/)
 
 ## 関連ドキュメント
 
-- [MCP.md](../ai-integration/mcp-server.md) - Model Context Protocol サーバー
-- [AI_INTEGRATION.md](../ai-integration/overview.md) - AI ツール統合
-- [API_NGSILD.md](../api-reference/ngsild.md) - NGSI-LD API リファレンス
+
+* [MCP.md](../ai-integration/mcp-server.md) - Model Context Protocol サーバー
+  
+* [AI\_INTEGRATION.md](../ai-integration/overview.md) - AI ツール統合
+  
+* [API\_NGSILD.md](../api-reference/ngsild.md) - NGSI-LD API リファレンス

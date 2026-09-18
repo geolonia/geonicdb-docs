@@ -5,9 +5,30 @@ outline: deep
 ---
 # NGSIv2 API
 
-> このドキュメントは [API.md](./endpoints.md) から分割されました。メインの API 仕様については、[API.md](./endpoints.md) を参照してください。
+> このドキュメントは [API.md](./endpoints.md) から分割されました。メイン API 仕様については、[API.md](./endpoints.md) を参照してください。
 
 ***
+
+## フィールド構文 (id / type / 属性名)
+
+GeonicDB はエンティティ `type` に対して **POSIX Portable Filename Character Set** を、エンティティ `id` に対して URN フレンドリーなセットを、属性名に対しては MongoDB / `q` パーサーの制約 (#1209) によりさらに厳格なセットを適用します。これは NGSIv2 仕様のフィールド構文制限 (ASCII 文字から制御文字 / 空白文字 / `& ? / #` を除いたものを許可) の文書化された拡張です。
+
+| Field          | Allowed characters                     | Regex                              | Max length |
+| -------------- | -------------------------------------- | ---------------------------------- | ---------- |
+| `id`           | `A-Z a-z 0-9 . _ - :` (no leading `-`) | `^[A-Za-z0-9._:][A-Za-z0-9._:-]*$` | 256        |
+| `type`         | `A-Z a-z 0-9 . _ -` (no leading `-`)   | `^[A-Za-z0-9._][A-Za-z0-9._-]*$`   | 256        |
+| attribute name | `A-Z a-z 0-9 _` (旧来通り厳格)               | `^[A-Za-z0-9_]+$`                  | 256        |
+
+
+* `id` / `type` の先頭文字は `-` にできません (POSIX 規約; CLI フラグとの衝突を防ぐため)。古い `id` の正規表現 `^[\w:.-]+$` は先頭の `-` を許可していましたが、これは一貫性のため #1209 で**わずかに厳格化**されました。
+  
+* `id` は NGSI-LD URN 形式 (`urn:ngsi-ld:Type:identifier`) のために `:` を受け入れますが、`type` は受け入れません。URI / 完全修飾型名 (例: `https://uri.fiware.org/ns/data-models#Sensor`) は `type` 値として**まだサポートされていません** — #1211 を参照してください。
+  
+* 属性名は `[A-Za-z0-9_]` に制限されたまま (`.` `-` は不可) です。これは、属性名が MongoDB のフィールドキー (`attributes.${name}`) として直接埋め込まれるためであり、既存の `q` クエリパーサーが `([\w.]+)` で属性名をキャプチャするため `-` を含む名前にはマッチしません。両方のレイヤーが更新されるまで、属性名に `.` `-` を許可すると静かなバグの原因となります。
+  
+* 違反時には `400 BadRequest` が返され、違反値と許可される文字セットを含むエラーメッセージが表示されます。例: `Entity type contains invalid characters (allowed: A-Z a-z 0-9 . _ - (must not start with -)); got "Sensor@Type"`。
+  
+* 詳細と根拠については、[INTEROPERABILITY.md — Entity Field Character Set](../core-concepts/ngsiv2-vs-ngsild.md#entity-field-character-set-id--type--attribute-name--geonicdb-独自拡張) を参照してください。
 
 ## エンティティ操作
 
@@ -19,27 +40,30 @@ GET /v2/entities
 
 **クエリパラメータ**
 
-| Parameter        | Type    | Description                                                                                                                                              | Default     |
-| ---------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `id`             | string  | Filter by entity ID (multiple values can be specified as a comma-separated list)                                                                         | -           |
-| `limit`          | integer | Number of results to retrieve (max: 1000)                                                                                                                | 20          |
-| `offset`         | integer | Offset (for pagination)                                                                                                                                  | 0           |
-| `orderBy`        | string  | Sort criteria (`entityId`, `entityType`, `modifiedAt`, or attribute name). FIWARE Orion-compatible `!` prefix for descending order (e.g. `!temperature`) | -           |
-| `orderDirection` | string  | Sort direction (`asc`, `desc`). **GeonicDB extension** (the official specification only supports the `!` prefix approach)                                | `asc`       |
-| `type`           | string  | Filter by entity type                                                                                                                                    | -           |
-| `typePattern`    | string  | Regular expression pattern for entity type                                                                                                               | -           |
-| `idPattern`      | string  | Regular expression pattern for entity ID                                                                                                                 | -           |
-| `q`              | string  | Filter by attribute value (see [Query Language](./endpoints.md#query-language))                                                                          | -           |
-| `mq`             | string  | Filter by metadata (see [Query Language](./endpoints.md#query-language))                                                                                 | -           |
-| `attrs`          | string  | Attribute names to retrieve (comma-separated)                                                                                                            | -           |
-| `metadata`       | string  | Metadata output control (`on`, `off`). **GeonicDB extension** (the official specification uses a comma-separated name list with `*` wildcards, etc.)     | `on`        |
-| `georel`         | string  | Geo-query operator (see [Geo-queries](./endpoints.md#geo-queries))                                                                                       | -           |
-| `geometry`       | string  | Geometry type                                                                                                                                            | -           |
-| `coords`         | string  | Coordinates (latitude,longitude format, semicolon-separated)                                                                                             | -           |
-| `spatialId`      | string  | Filter by spatial ID (ZFXY format) (see [Spatial ID Search](./endpoints.md#spatial-id-search))                                                           | -           |
-| `spatialIdDepth` | integer | Depth of spatial ID hierarchy expansion (0-4)                                                                                                            | 0           |
-| `crs`            | string  | Coordinate reference system (see [Coordinate Reference System (CRS)](./endpoints.md#coordinate-reference-system-crs))                                    | `EPSG:4326` |
-| `options`        | string  | `keyValues`, `values`, `count`, `geojson`, `sysAttrs`, `unique`                                                                                          | -           |
+| Parameter        | Type    | Description                                                                                                                                                                                                                                                                                       | Default     |
+| ---------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `id`             | string  | Filter by entity ID (multiple values can be specified as a comma-separated list). **Mutually exclusive with `idPattern`** — specifying both returns `400 Bad Request` (NGSIv2 spec: "Both cannot be used at the same time"). An empty string counts as an explicit value for this purpose (#2114) | -           |
+| `limit`          | integer | Number of results to retrieve (max: 1000)                                                                                                                                                                                                                                                         | 20          |
+| `offset`         | integer | Offset (for pagination, max: 10000)                                                                                                                                                                                                                                                               | 0           |
+| `pageToken`      | string  | Keyset continuation token (default sort only). Send back the previous response's `Fiware-Next-Token`. Mutually exclusive with `offset`; invalid with `orderBy`. See [API.md §Keyset Pagination](./endpoints.md#keyset-pagination-pagetoken-1435) (#1435)                                          | -           |
+| `orderBy`        | string  | Sort criteria (`entityId`, `entityType`, `modifiedAt`, or attribute name). FIWARE Orion-compatible `!` prefix for descending order (e.g. `!temperature`)                                                                                                                                          | -           |
+| `orderDirection` | string  | Sort direction (`asc`, `desc`). **GeonicDB extension** (the official specification only supports the `!` prefix approach)                                                                                                                                                                         | `asc`       |
+| `type`           | string  | Filter by entity type. **Mutually exclusive with `typePattern`** — specifying both returns `400 Bad Request` (NGSIv2 spec: "Both cannot be used at the same time"). An empty string counts as an explicit value for this purpose (#2114)                                                          | -           |
+| `typePattern`    | string  | Regular expression pattern for entity type, evaluated **verbatim** (no implicit `*`→`.*` conversion — write a regex like `Room.*` or `.*`, not a glob) (#2114). **Mutually exclusive with `type`**                                                                                                | -           |
+| `idPattern`      | string  | Regular expression pattern for entity ID, evaluated **verbatim** (no implicit `*`→`.*` conversion) (#2114). **Mutually exclusive with `id`**                                                                                                                                                      | -           |
+| `q`              | string  | Filter by attribute value (see [Query Language](./endpoints.md#query-language))                                                                                                                                                                                                                   | -           |
+| `mq`             | string  | Filter by metadata (see [Query Language](./endpoints.md#query-language))                                                                                                                                                                                                                          | -           |
+| `attrs`          | string  | Attribute names to retrieve (comma-separated)                                                                                                                                                                                                                                                     | -           |
+| `metadata`       | string  | Metadata output control (`on`, `off`). **GeonicDB extension** (the official specification uses a comma-separated name list with `*` wildcards, etc.)                                                                                                                                              | `on`        |
+| `georel`         | string  | Geo-query operator (see [Geo-queries](./endpoints.md#geo-queries))                                                                                                                                                                                                                                | -           |
+| `geometry`       | string  | Geometry type                                                                                                                                                                                                                                                                                     | -           |
+| `coords`         | string  | Coordinates (latitude,longitude format, semicolon-separated)                                                                                                                                                                                                                                      | -           |
+| `spatialId`      | string  | Filter by spatial ID (ZFXY format) (see [Spatial ID Search](./endpoints.md#spatial-id-search))                                                                                                                                                                                                    | -           |
+| `spatialIdDepth` | integer | Depth of spatial ID hierarchy expansion (0-4)                                                                                                                                                                                                                                                     | 0           |
+| `crs`            | string  | Coordinate reference system (see [Coordinate Reference System (CRS)](./endpoints.md#coordinate-reference-system-crs))                                                                                                                                                                             | `EPSG:4326` |
+| `options`        | string  | `keyValues`, `values`, `count`, `geojson`, `sysAttrs`, `unique`                                                                                                                                                                                                                                   | -           |
+
+> **範囲クエリ (#1586)**: NGSIv2 Simple Query Language の範囲形式は `attr==min..max` です (例: `temperature==20..30`)。単独のコロン `:` (例: `temperature:20..30`) は **有効な** NGSIv2 SQL 演算子では **なく**、範囲として解析されません。詳細は [Query Language](./endpoints.md#query-language) を参照してください。
 
 **組み込み属性**
 
@@ -173,11 +197,20 @@ POST /v2/entities
 
 * ステータス:`201 Created` (新規作成)、`204 No Content` (upsert による更新)
   
-* ステータス:`409 AlreadyExists` 同じ ID を持つエンティティが既に存在する場合 (タイプに関係なく)
+* ステータス:`409 AlreadyExists` 同じ ID を持つエンティティが既に存在する場合 (型に関係なく)
   
 * ヘッダー:`Location: /v2/entities/Room1?type=Room`
 
-> **GeonicDB 拡張 — エンティティ ID の一意性**:エンティティ ID は、テナントとServicePathのスコープ内で一意です。同じ ID で異なるタイプのエンティティを作成することは許可されておらず、`409 AlreadyExists` が返されます。これは、異なるタイプで同じ ID のエンティティを許可する NGSIv2 仕様とは異なります。詳細については、[エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
+> **パスパラメータのパーセントエンコーディング (#2695、ポリシー #1628 と同じ契約)。**
+> `event.path` は API Gateway とローカルの Express ラッパーからパーセントエンコードされた状態で到着します。
+> エンティティの `entityId` / `attrName` (および登録の `registrationId`) は、ルックアップの前に**正確に 1 回**デコードされます。不正なエスケープ (`/v2/entities/%`、`a%b`) は、生のセグメントを ID として扱う代わりに `400 BadRequest` (`entityId contains invalid URL encoding`) を返します (以前の NGSIv2 本番環境の動作では `/v2/entities/%` に対して `404 NotFound` でした)。
+> 文字通り `%` を含む ID は `%25` でアドレス指定する必要があります (例:`50%-off` → `/v2/entities/50%25-off`)。作成時の `Location` ヘッダーは既にパス ID と `type` クエリ値の両方をパーセントエンコードしているため、それをそのままたどることで機能します。
+>
+> \*\*マッチングセマンティクスの変更:\*\*パーセントエスケープのように見えるパスセグメント (例:保存された `id` が文字通り `%2F` という文字列であるエンティティ) は、1 回のデコード後にルックアップされるようになりました (`%2F` の場合は `/`)。以前は生のエスケープをパスセグメントとして送信し、保存された id との完全一致に依存していたクライアントは、サイレントな不一致を見る可能性があります (#1800 クラス)。HTTP スタックがパスセグメントを自動エンコードするクライアントは修正されました (以前は不完全な `%` に対して `404` を取得していました)。
+
+> **GeonicDB 拡張 — エンティティ ID の一意性**:エンティティ ID はテナントとServicePathのスコープ内で一意です。同じ ID で異なる型のエンティティを作成することは許可されておらず、`409 AlreadyExists` が返されます。これは、異なる型の同じ ID のエンティティを許可する NGSIv2 仕様とは異なります。詳細については、[エンティティ ID の一意性](./endpoints.md#entity-id-uniqueness-geonicdb-extension) を参照してください。
+
+> **注記 (軽微な破壊的変更、#1644)**:`geo:json` 属性値の `Polygon` リングは、最初と最後の位置が**すべての要素で等しく**なるように閉じられている必要があります — 3 要素の `[longitude, latitude, altitude]` 位置が使用されている場合は高度を含みます。NGSIv2 は以前、経度/緯度のみを比較し、最初と最後の位置が高度で異なるリングを黙認していました。そのようなリングは現在 `400 Bad Request` ("must be closed") で拒否され、NGSI-LD とルールが統一されます。2 要素 (2D) 座標を送信するクライアントは影響を受けません。[Polygon リングの閉鎖](./endpoints.md#polygon-ring-closure-1644) を参照してください。
 
 ### 単一エンティティの取得
 
@@ -218,7 +251,7 @@ PATCH /v2/entities/{entityId}/attrs
 }
 ```
 
-**レスポンス**:`204 No Content`
+**レスポンス**: `204 No Content`
 
 ### エンティティの更新 (PUT)
 
@@ -244,7 +277,7 @@ POST /v2/entities/{entityId}/attrs
 
 新しい属性を追加します(既存の属性は上書きされます)。
 
-`options=append` が指定されている場合、既存の属性は上書きされず、新しい属性のみが追加されます(厳密な追加モード)。既に存在する属性名が含まれている場合は、`422 Unprocessable Entity` エラーが返されます。
+`options=append` が指定されている場合、既存の属性は上書きされず、新しい属性のみが追加されます(厳密な追加モード)。既に存在する属性名が含まれている場合、`422 Unprocessable Entity` エラーが返されます。
 
 **クエリパラメータ**
 
@@ -273,7 +306,7 @@ DELETE /v2/entities/{entityId}
 
 ## 属性の操作
 
-### エンティティ属性の取得
+### エンティティの属性を取得
 
 エンティティのすべての属性を取得します(`id` および `type` フィールドは含まれません)。
 
@@ -316,9 +349,9 @@ GET /v2/entities/{entityId}/attrs
 }
 ```
 
-> **注意**: `/v2/entities/{entityId}?attrs=...` とは異なり、このエンドポイントには `id` および `type` フィールドは含まれません。属性のみが必要な場合にこれを使用してください。
+> **注意**: `/v2/entities/{entityId}?attrs=...` とは異なり、このエンドポイントには `id` および `type` フィールドは含まれません。属性のみが必要な場合に使用してください。
 
-### 単一属性の取得
+### 単一の属性を取得
 
 ```http
 GET /v2/entities/{entityId}/attrs/{attrName}
@@ -340,7 +373,7 @@ GET /v2/entities/{entityId}/attrs/{attrName}
 }
 ```
 
-### 単一属性の更新
+### 単一の属性を更新
 
 ```http
 PUT /v2/entities/{entityId}/attrs/{attrName}
@@ -377,6 +410,8 @@ DELETE /v2/entities/{entityId}/attrs/{attrName}
 
 **レスポンス**: `204 No Content`
 
+> **注意 (GeonicDB 拡張)**: エンティティのタイプにカスタムデータモデルが定義されており、属性が `required: true` とマークされている場合、代わりに `400 Bad Request` が返されます — モデルが必要としている間は属性を削除できません。`required: false` の属性、および `isActive: false` のモデル上の属性は、引き続き削除できます。
+
 ### 属性値の直接取得
 
 ```http
@@ -393,7 +428,7 @@ GET /v2/entities/{entityId}/attrs/{attrName}/value
 
 **レスポンス**
 
-値の型に応じて異なる Content-Type で返されます:
+値のタイプに応じて異なる Content-Type で返されます:
 
 | Value type | Content-Type       | Example                         |
 | ---------- | ------------------ | ------------------------------- |
@@ -459,13 +494,13 @@ curl -X PUT "http://localhost:3000/v2/entities/Car1/attrs/location/value" \
 
 **レスポンス**: `204 No Content`
 
-**注意**: この操作は、既存の属性の型またはメタデータを変更しません — それらは保持されます。
+**注意**: この操作は既存の属性の型やメタデータを変更しません — それらは保持されます。
 
 ***
 
 ## バッチ操作
 
-> **注意**: バッチ操作は、1 リクエストあたり最大 **`MAX_BATCH_SIZE`** 個のエンティティを処理できます(デフォルト: 100、`MaxBatchSize` SAM パラメータ経由で最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーとなります。
+> **注意**: バッチ操作は 1 回のリクエストで最大 **`MAX_BATCH_SIZE`** 個のエンティティを処理できます (デフォルト: 100、`MaxBatchSize` SAM パラメータにより最大 10,000 まで設定可能)。この制限を超えるリクエストは `400 Bad Request` エラーになります。
 
 ### バッチ更新
 
@@ -493,7 +528,7 @@ POST /v2/op/update
 }
 ```
 
-**actionType タイプ**
+**actionType の種類**
 
 | Action         | Description                                                                                   |
 | -------------- | --------------------------------------------------------------------------------------------- |
@@ -507,7 +542,7 @@ POST /v2/op/update
 
 * すべて成功: `204 No Content`
   
-* 部分的な成功/エラー: `200 OK` とエラー詳細
+* 部分的成功/エラー: `200 OK` とエラー詳細
 
 ```json
 {
@@ -549,6 +584,10 @@ POST /v2/op/query
 }
 ```
 
+> **相互排他性 (#2114)**: 各 `entities[]` セレクタ内で、`id`/`idPattern` は相互排他的であり、`type`/`typePattern` も相互排他的です — 同じセレクタ内でペアの両方のメンバーを指定すると `400 Bad Request` が返されます (NGSIv2 仕様: "Both cannot be used at the same time")。`idPattern`/`typePattern` は、逐語的な正規表現として評価されます (暗黙の `*`→`.*` 変換はありません)。
+
+> **`expression` はすべてのセレクタに適用され、直接的な `id` も含まれます (#2135)**: `expression` (`q` / `mq` / `georel`+`geometry`+`coords`) は、**すべての** `entities[]` セレクタの結果をフィルタリングします。`{"id": ...}` セレクタのエンティティが expression を満たさない場合、結果は得られません — これは呼び出し元の認可モードに関係なく同じ結果です (以前は、無制限のプリンシパルは expression が黙って無視されたエンティティを受け取っていました)。
+
 **レスポンス**: エンティティの配列
 
 ### 通知を受信
@@ -557,7 +596,7 @@ POST /v2/op/query
 POST /v2/op/notify
 ```
 
-外部の Context Broker から通知を受信し、append でエンティティを処理します(存在しない場合は作成、既に存在する場合は更新)。
+外部 Context Broker から通知を受信し、append でエンティティを処理します(存在しない場合は作成し、既に存在する場合は更新します)。
 
 **リクエストボディ**
 
@@ -619,7 +658,9 @@ POST /v2/subscriptions
 }
 ```
 
-**httpCustom 通知の例(カスタムテンプレート)**
+> **注意 (#1586)**: `condition.expression.q` は `q` クエリパラメータと同じ Simple Query Language を使用します ([Query Language](./endpoints.md#query-language) を参照)。範囲形式は `attr==min..max` です (例: `pressure==700..800`)。単なる `:` (例: `pressure:700..800`) は有効な演算子ではありません。
+
+**httpCustom 通知の例 (カスタムテンプレート)**
 
 ```json
 {
@@ -644,17 +685,18 @@ POST /v2/subscriptions
 
 **httpCustom フィールド**
 
-| Field     | Type   | Required | Description                                                    |
-| --------- | ------ | -------- | -------------------------------------------------------------- |
-| `url`     | string | ✓        | Notification destination URL                                   |
-| `method`  | string | -        | HTTP method (GET, POST, PUT, PATCH, DELETE). Default: POST     |
-| `headers` | object | -        | Custom HTTP headers                                            |
-| `qs`      | object | -        | Query string parameters (supports `${...}` macro substitution) |
-| `payload` | string | -        | Request body template (supports `${...}` macro substitution)   |
+| Field     | Type                  | Required | Description                                                                                                      |
+| --------- | --------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
+| `url`     | string                | ✓        | Notification destination URL                                                                                     |
+| `method`  | string                | -        | HTTP method (GET, POST, PUT, PATCH, DELETE). Default: POST                                                       |
+| `headers` | object                | -        | Custom HTTP headers                                                                                              |
+| `qs`      | object                | -        | Query string parameters (supports `${...}` macro substitution)                                                   |
+| `payload` | string                | -        | Request body template, always stringified (supports `${...}` macro substitution). Mutually exclusive with `json` |
+| `json`    | object \| array | -        | Type-preserving JSON template (FIWARE Orion parity). Mutually exclusive with `payload`                           |
 
 **マクロ置換**
 
-`payload` と `qs` の値で `${...}` 構文を使用してエンティティデータを埋め込むことができます:
+`payload`、`qs`、`json` の値に `${...}` 構文を使用してエンティティデータを埋め込むことができます:
 
 | Macro         | Replacement value                                             |
 | ------------- | ------------------------------------------------------------- |
@@ -662,7 +704,11 @@ POST /v2/subscriptions
 | `${type}`     | Entity type                                                   |
 | `${attrName}` | Attribute value (extracts `.value` from normalized attribute) |
 
-存在しない属性は文字列 `null` に置き換えられます。マクロは attrs/exceptAttrs フィルタが適用される前の完全なエンティティに対して評価されます。
+存在しない属性は文字列 `null` に置き換えられます。マクロは attrs/exceptAttrs フィルタが適用される前のフルエンティティに対して評価されます。
+
+**型保持 JSON テンプレート (`json`)**
+
+`payload` は置換されたすべての値を文字列化します。属性の型を保持する必要がある場合 (数値は数値のまま、真偽値は真偽値のまま)、代わりに `json` を使用してください。**単独マクロ値** (`"${temperature}"`) は属性の元の JSON 型を保持します。**部分マクロ値** (`"prefix-${id}"`) は文字列化されます。**キーは決して置換されません** — キー内のマクロは `400` で拒否されます。テンプレートは作成時に制限されます (シリアライズサイズ ≤ `MAX_PAYLOAD_LENGTH`、ネスト深度 ≤ `MAX_JSON_DEPTH`。違反時 → `400`)。通知はデフォルトで `Content-Type: application/json` で送信されます (`receiverInfo` で上書き可能)。詳細は [SUBSCRIPTIONS.md](../features/ngsi-subscriptions.md#httpcustomjson-type-preserving-template) を参照してください。
 
 **MQTT 通知の例**
 
@@ -702,6 +748,45 @@ POST /v2/subscriptions
 | `user`   | string  | -        | Authentication username                   |
 | `passwd` | string  | -        | Authentication password                   |
 
+**Web Push 通知の例 (#3014)**
+
+`url` はブラウザの `PushSubscription.toJSON().endpoint` と同じ値です。
+フィールドマッピングの詳細については、[SUBSCRIPTIONS.md](../features/ngsi-subscriptions.md#web-push-3014) を参照してください。
+
+```json
+{
+  "description": "Room temperature Web Push notification",
+  "subject": {
+    "entities": [{ "type": "Room" }],
+    "condition": { "attrs": ["temperature"] }
+  },
+  "notification": {
+    "webpush": {
+      "url": "https://fcm.googleapis.com/fcm/send/....",
+      "keys": {
+        "p256dh": "<87-char base64url P-256 key>",
+        "auth": "<22-char base64url auth secret>"
+      },
+      "ttl": 86400,
+      "urgency": "normal",
+      "topic": "room-temp"
+    },
+    "attrs": ["temperature"]
+  }
+}
+```
+
+**Web Push 通知設定**
+
+| Field         | Type    | Required | Description                                              |
+| ------------- | ------- | -------- | -------------------------------------------------------- |
+| `url`         | string  | ✓        | Push Service endpoint URL (`https://`)                   |
+| `keys.p256dh` | string  | ✓        | RFC8291 client public key (base64url, exactly 87 chars)  |
+| `keys.auth`   | string  | ✓        | RFC8291 auth secret (base64url, exactly 22 chars)        |
+| `ttl`         | integer | -        | RFC8030 TTL seconds (default applied at send if omitted) |
+| `urgency`     | string  | -        | `very-low` / `low` / `normal` / `high`                   |
+| `topic`       | string  | -        | RFC8030 topic (max 32 base64url chars)                   |
+
 **リクエストボディ**
 
 ```json
@@ -730,12 +815,15 @@ POST /v2/subscriptions
 }
 ```
 
-**attrsFormat タイプ**
+**attrsFormat タイプ** (#1780: 通知ボディに適用され、NGSIv2 HTTP 通知の `Ngsiv2-AttrsFormat` ヘッダーにエコーされます。`httpCustom` ボディは `custom` を報告します。NGSI-LD サブスクリプションは、このヘッダーを一切受信しません)
 
-| Format       | Description                      |
-| ------------ | -------------------------------- |
-| `normalized` | Standard NGSIv2 format (default) |
-| `keyValues`  | Simplified key-value format      |
+| Format       | Description                      | `data[]` element                                                           |
+| ------------ | -------------------------------- | -------------------------------------------------------------------------- |
+| `normalized` | Standard NGSIv2 format (default) | `{"id": ..., "type": ..., "temperature": {"type": "Number", "value": 25}}` |
+| `keyValues`  | Simplified key-value format      | `{"id": ..., "type": ..., "temperature": 25}`                              |
+| `values`     | Values only                      | `[25]` — ordered by `attrs` (attribute name order when `attrs` is absent)  |
+
+内部 `protocol` フィールドが存在する前に作成されたサブスクリプション (#1570) は、レガシーの正規化されたボディを保持します。これらの API プロトコルは判定できず、推測すると受信者が既にパースしているボディを書き換えることになります。
 
 **通知属性フィルタリング**
 
@@ -747,9 +835,9 @@ POST /v2/subscriptions
 
 **レスポンス**
 
-* ステータス:`201 Created`
+* ステータス: `201 Created`
   
-* ヘッダー:`Location: /v2/subscriptions/{subscriptionId}`
+* ヘッダー: `Location: /v2/subscriptions/{subscriptionId}`
 
 ### サブスクリプション一覧
 
@@ -764,6 +852,8 @@ GET /v2/subscriptions
 | `limit`   | integer | Number of results to retrieve           | 20      |
 | `offset`  | integer | Offset                                  | 0       |
 | `status`  | string  | Filter by status (`active`, `inactive`) | -       |
+
+> **行レベル読み取り認可 (#2140):** 行レベル読み取り述語(カスタム XACML ポリシー)によって制限されたサブジェクトの場合、`GET /v2/subscriptions` と `GET /v2/subscriptions/{subscriptionId}` は `subject.entities` から読み取り不可能な型セレクタを編集し、読み取り不可能な型のみを監視するサブスクリプションを非表示にし(リストからの除外 / ID 指定読み取り時の `404`)、編集後に `Fiware-Total-Count` を計算します。サブスクリプションはプロトコル共有で保存されるため、これは NGSI-LD の動作と一致します([AUTH.md](../reference/auth.md) #2140 を参照)。制限のないサブジェクトには変更はありません。
 
 ### サブスクリプション取得
 
@@ -785,9 +875,11 @@ PATCH /v2/subscriptions/{subscriptionId}
 }
 ```
 
-**レスポンス**:`204 No Content`
+**レスポンス**: `204 No Content`
 
-### サブスクリプションの削除
+> **自動一時停止 (#3080):** 配信失敗が `NOTIFICATION_AUTO_PAUSE_AFTER_MS`(デフォルト 1 時間)の間継続すると、Context Brokerは `status` を `inactive` に設定し、`autoDisabledAt`(GeonicDB 拡張、ISO 8601)を記録します。`GET` は両方のフィールドを公開します。`PATCH { "status": "active" }` で再開します(`autoDisabledAt` と失敗回数をクリアします)。
+
+### サブスクリプション削除
 
 ```http
 DELETE /v2/subscriptions/{subscriptionId}
@@ -795,15 +887,15 @@ DELETE /v2/subscriptions/{subscriptionId}
 
 **レスポンス**: `204 No Content`
 
-### 所有権の検証 (GeonicDB 拡張機能)
+### 所有権検証(GeonicDB 拡張)
 
-認証が有効な場合 (`AUTH_ENABLED=true`)、サブスクリプションの更新 (PATCH) と削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権の検証を実行します。作成者以外のユーザーがこれらの操作を試みると、`403 Forbidden` が返されます。`super_admin` および `tenant_admin` ロールはこの検証をバイパスできます。詳細については [AUTH.md](../reference/auth.md) を参照してください。
+認証が有効な場合(デフォルト)、サブスクリプションの更新(PATCH)および削除(DELETE)操作は `createdBy` フィールドに基づいて所有権検証を実行します。作成者以外のユーザーがこれらの操作を試みると、`404 Not Found` が返されます(サブスクリプションが全く存在しない場合と同様で、外部からは違いを観察できません)。`createdBy` が**ない**サブスクリプション(そのフィールドが存在する前に作成されたもの)も、管理者以外には `404 Not Found` を返します(#2161)。`super_admin` および `tenant_admin` ロールはこの検証をバイパスできます。詳細は [AUTH.md](../reference/auth.md) を参照してください。
 
 ***
 
-## 登録
+## レジストレーション
 
-登録は外部コンテキストプロバイダーを登録し、エンティティ情報のソースを管理します。
+レジストレーションは外部コンテキストプロバイダーを登録し、エンティティ情報のソースを管理します。
 
 ### 登録の作成
 
@@ -850,7 +942,7 @@ POST /v2/registrations
   
 * ヘッダー: `Location: /v2/registrations/{registrationId}`
 
-### 登録の一覧表示
+### 登録の一覧取得
 
 ```http
 GET /v2/registrations
@@ -862,6 +954,8 @@ GET /v2/registrations
 | --------- | ------- | ----------------------------- | ------- |
 | `limit`   | integer | Number of results to retrieve | 20      |
 | `offset`  | integer | Offset                        | 0       |
+
+> **行レベル読み取り認可 (#2084):** 行レベル読み取り述語 (カスタム XACML ポリシー) によって制限されたサブジェクトの場合、`GET /v2/registrations` および `GET /v2/registrations/{registrationId}` は `dataProvided.entities` から読み取り不可能な型セレクタを編集し、読み取り不可能な型のみを宣言する登録を非表示にし (リストの省略 / ID による読み取りでは `404`)、編集後に `Fiware-Total-Count` を計算します。登録はプロトコル間で可視化されるため、これは NGSI-LD の `csourceRegistrations` の動作と一致します ([API\_NGSILD.md](./ngsild.md) / [AUTH.md](../reference/auth.md) を参照)。制限のないサブジェクトには変更はありません。
 
 **レスポンス例**
 
@@ -914,15 +1008,15 @@ DELETE /v2/registrations/{registrationId}
 
 ### 所有権検証 (GeonicDB 拡張)
 
-認証が有効な場合(`AUTH_ENABLED=true`)、登録の更新(PATCH)および削除(DELETE)操作は、`createdBy` フィールドに基づいて所有権検証を実行します。作成者以外のユーザーがこれらの操作を試みると、`403 Forbidden` が返されます。`super_admin` および `tenant_admin` ロールは、この検証をバイパスできます。詳細は [AUTH.md](../reference/auth.md) を参照してください。
+認証が有効な場合 (デフォルト)、登録の更新 (PATCH) および削除 (DELETE) 操作は `createdBy` フィールドに基づいて所有権検証を実行します。作成者以外のユーザーがこれらの操作を試みた場合、`404 Not Found` が返されます (登録が全く存在しない場合と同様であり、外部からはその違いを観察できません)。`createdBy` を**持たない**登録 (そのフィールドが存在する前に作成された) も、管理者以外には `404 Not Found` を返します (#2161)。`super_admin` および `tenant_admin` ロールはこの検証をバイパスできます。詳細は [AUTH.md](../reference/auth.md) を参照してください。
 
 ***
 
-## フェデレーション(クエリ転送 / 更新転送)
+## フェデレーション (クエリ転送 / 更新転送)
 
-登録に基づいて、GeonicDB は外部コンテキストプロバイダーにクエリを転送し、結果を統合し、更新を転送します。
+GeonicDB は、登録情報に基づいて、外部のコンテキストプロバイダーにクエリを転送し、結果を統合し、更新を転送します。
 
-### フェデレーションの動作方法
+### フェデレーションの仕組み
 
 エンティティをクエリする際、一致する登録が存在する場合、そのプロバイダーにも並行してクエリが送信され、結果がマージされて返されます。
 
@@ -966,7 +1060,7 @@ curl -X POST "http://localhost:3000/v2/registrations" \
   }'
 ```
 
-2\. クエリ時に自動的にフェデレーションが発生します:
+2\. クエリ時にフェデレーションが自動的に実行される:
 
 ```bash
 curl "http://localhost:3000/v2/entities?type=WeatherObserved" \
@@ -979,7 +1073,7 @@ curl "http://localhost:3000/v2/entities?type=WeatherObserved" \
 
 エンティティを更新または削除する際、一致する登録が存在する場合、更新もそのプロバイダーに並行して転送されます。
 
-**サポートされる更新操作**
+**サポートされている更新操作**
 
 | Operation                 | Description                             |
 | ------------------------- | --------------------------------------- |
@@ -998,7 +1092,7 @@ curl "http://localhost:3000/v2/entities?type=WeatherObserved" \
 | `redirect`  | Returns a 303 redirect URL (local is not updated) |
 | `auxiliary` | Updates only local (remote is read-only)          |
 
-### エラー処理
+### エラーハンドリング
 
 | Scenario                             | Behavior                                      |
 | ------------------------------------ | --------------------------------------------- |
@@ -1059,18 +1153,18 @@ GET /v2/types/{typeName}
 
 ***
 
-## HTTP キャッシュ制御
+## HTTP キャッシュコントロール
 
-GET エンドポイントは、エンドポイントのクラスごとにキャッシュ関連のヘッダーを返します:
+GET エンドポイントはエンドポイントクラスごとにキャッシュ関連のヘッダーを返します:
 
 ### データエンドポイント(エンティティ、サブスクリプション、レジストレーション)— 完全な RFC 7232 + RFC 7234 サポート
 
-| Header          | Value                                                                  | Purpose                                                                                                                                                                                                                                                                                                              |
-| --------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ETag`          | `W/"..."`                                                              | Weak validator. Generation seeds include `path + Accept + Fiware-Service + Fiware-ServicePath` so distinct endpoints / Accept / tenants / service paths always produce distinct ETags. Lists: streaming digest of `id + modifiedAt` mixed with total count and scope. Single: hash of `modifiedAt` mixed with scope. |
-| `Last-Modified` | RFC 1123 HTTP-date                                                     | Timestamp of the latest `modifiedAt` in the result set.                                                                                                                                                                                                                                                              |
-| `Cache-Control` | `private, no-cache`                                                    | `private` blocks shared / intermediate cache storage; `no-cache` forces revalidation from the private cache.                                                                                                                                                                                                         |
-| `Vary`          | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | Tenant + auth + content-negotiation isolation for shared caches.                                                                                                                                                                                                                                                     |
+| Header          | Value                                                                                 | Purpose                                                                                                                                                                                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ETag`          | `W/"..."`                                                                             | Weak validator. Generation seeds include `path + Accept + Fiware-Service + Fiware-ServicePath` so distinct endpoints / Accept / tenants / service paths always produce distinct ETags. Lists: streaming digest of `id + modifiedAt` mixed with total count and scope. Single: hash of `modifiedAt` mixed with scope. |
+| `Last-Modified` | RFC 1123 HTTP-date                                                                    | Timestamp of the latest `modifiedAt` in the result set.                                                                                                                                                                                                                                                              |
+| `Cache-Control` | `private, no-cache`                                                                   | `private` blocks shared / intermediate cache storage; `no-cache` forces revalidation from the private cache.                                                                                                                                                                                                         |
+| `Vary`          | `NGSILD-Tenant, Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | Tenant + auth + content-negotiation isolation for shared caches.                                                                                                                                                                                                                                                     |
 
 条件付きリクエストがサポートされています:
 
@@ -1082,12 +1176,12 @@ GET エンドポイントは、エンドポイントのクラスごとにキャ�
 
 ### メタエンドポイント(タイプ)— Cache-Control + Vary のみ(ETag なし / 304 なし)
 
-| Header          | Value                                                                  | Purpose                                          |
-| --------------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
-| `Cache-Control` | `max-age=60, stale-while-revalidate=120`                               | Short-term caching with background revalidation. |
-| `Vary`          | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | Same tenant/auth isolation as data endpoints.    |
+| Header          | Value                                                                                 | Purpose                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `Cache-Control` | `private, max-age=60, stale-while-revalidate=120`                                     | Shared/intermediate cache storage is forbidden; private cache can reuse briefly with background revalidation. |
+| `Vary`          | `NGSILD-Tenant, Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept` | Same tenant/auth isolation as data endpoints.                                                                 |
 
-メタエンドポイントは `ETag` / `Last-Modified` を返さず、`If-None-Match` / `If-Modified-Since` 条件付きリクエストをサポートしていません。クライアントは代わりに `max-age` / `stale-while-revalidate` ディレクティブに依存する必要があります。
+メタエンドポイントは `ETag` / `Last-Modified` を返さず、`If-None-Match` / `If-Modified-Since` 条件付きリクエストをサポートしません。クライアントは代わりに `max-age` / `stale-while-revalidate` ディレクティブに依存する必要があります。
 
 完全なセマンティクスについては [API.md §HTTP Cache Control](./endpoints.md#http-cache-control-etag--conditional-requests) を参照してください。
 
@@ -1095,22 +1189,23 @@ GET エンドポイントは、エンドポイントのクラスごとにキャ�
 
 ## HTTP エラーレスポンス
 
-| Status Code | Error Code            | Description                                                |
-| ----------- | --------------------- | ---------------------------------------------------------- |
-| 400         | BadRequest            | Invalid request parameters or body                         |
-| 400         | InvalidModification   | Invalid attribute modification (e.g., changing id or type) |
-| 401         | Unauthorized          | Authentication required or token is invalid                |
-| 403         | Forbidden             | Insufficient permissions                                   |
-| 404         | NotFound              | Entity, subscription, etc. not found                       |
-| 405         | MethodNotAllowed      | HTTP method not allowed                                    |
-| 409         | AlreadyExists         | Entity already exists (during POST creation)               |
-| 409         | TooManyResults        | Multiple entities matched (when type is not specified)     |
-| 411         | ContentLengthRequired | Content-Length header is required                          |
-| 413         | RequestEntityTooLarge | Request body is too large                                  |
-| 415         | UnsupportedMediaType  | Unsupported Content-Type                                   |
-| 422         | Unprocessable         | Entity format is invalid                                   |
-| 429         | TooManyRequests       | Rate limit exceeded                                        |
-| 500         | InternalError         | Internal server error                                      |
+| Status Code | Error Code            | Description                                                                                                                |
+| ----------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 400         | BadRequest            | Invalid request parameters or body                                                                                         |
+| 400         | InvalidModification   | Invalid attribute modification (e.g., changing id or type)                                                                 |
+| 401         | Unauthorized          | Authentication required or token is invalid                                                                                |
+| 403         | Forbidden             | Insufficient permissions                                                                                                   |
+| 404         | NotFound              | Entity, subscription, etc. not found                                                                                       |
+| 405         | MethodNotAllowed      | HTTP method not allowed                                                                                                    |
+| 409         | AlreadyExists         | Entity already exists (during POST creation)                                                                               |
+| 409         | TooManyResults        | Multiple entities matched (when type is not specified)                                                                     |
+| 409         | Conflict              | Concurrent modification: a subscription `PATCH` lost the optimistic-concurrency race repeatedly (#1593). Retry the request |
+| 411         | ContentLengthRequired | Content-Length header is required                                                                                          |
+| 413         | RequestEntityTooLarge | Request body is too large                                                                                                  |
+| 415         | UnsupportedMediaType  | Unsupported Content-Type                                                                                                   |
+| 422         | Unprocessable         | Entity format is invalid                                                                                                   |
+| 429         | TooManyRequests       | Rate limit exceeded                                                                                                        |
+| 500         | InternalError         | Internal server error                                                                                                      |
 
 **エラーレスポンス形式**
 
@@ -1125,18 +1220,18 @@ GET エンドポイントは、エンドポイントのクラスごとにキャ�
 
 ## エンドポイントリファレンス
 
-FIWARE NGSIv2 互換の Context Broker API。
+FIWARE NGSIv2 互換 Context Broker API。
 
 ### 共通仕様
 
 
 * **Content-Type**: `application/json`
   
-* **認証**: `AUTH_ENABLED=true` の場合は必須
+* **認証**: `AUTH_ENABLED=false` でない限り必須
   
 * **テナント分離**: `Fiware-Service` ヘッダーによるテナント分離
   
-* **ページネーション**: `limit`/`offset` パラメータ、`options=count` を使用すると合計数を取得できます
+* **ページネーション**: `limit`/`offset` パラメータ; 総数を取得するには `options=count` を使用
 
 ### エンティティ操作
 
@@ -1152,7 +1247,7 @@ FIWARE NGSIv2 互換の Context Broker API。
 | `/v2/entities/{entityId}/attrs`                  | PUT    | Replace attributes                      | 204     | 400, 401, 404, 415 | -             |
 | `/v2/entities/{entityId}/attrs/{attrName}`       | GET    | Get attribute                           | 200     | 401, 404           | -             |
 | `/v2/entities/{entityId}/attrs/{attrName}`       | PUT    | Update attribute                        | 204     | 400, 401, 404, 415 | -             |
-| `/v2/entities/{entityId}/attrs/{attrName}`       | DELETE | Delete attribute                        | 204     | 401, 404           | -             |
+| `/v2/entities/{entityId}/attrs/{attrName}`       | DELETE | Delete attribute                        | 204     | 400, 401, 404      | -             |
 | `/v2/entities/{entityId}/attrs/{attrName}/value` | GET    | Get attribute value                     | 200     | 401, 404           | -             |
 | `/v2/entities/{entityId}/attrs/{attrName}/value` | PUT    | Update attribute value                  | 204     | 400, 401, 404, 415 | -             |
 
@@ -1165,15 +1260,15 @@ FIWARE NGSIv2 互換の Context Broker API。
 
 ### サブスクリプション操作
 
-| Endpoint                             | Method | Description         | Success | Error              | Pagination    |
-| ------------------------------------ | ------ | ------------------- | ------- | ------------------ | ------------- |
-| `/v2/subscriptions`                  | GET    | List subscriptions  | 200     | 400, 401           | ✅ (max: 1000) |
-| `/v2/subscriptions`                  | POST   | Create subscription | 201     | 400, 401, 415      | -             |
-| `/v2/subscriptions/{subscriptionId}` | GET    | Get subscription    | 200     | 401, 404           | -             |
-| `/v2/subscriptions/{subscriptionId}` | PATCH  | Update subscription | 204     | 400, 401, 404, 415 | -             |
-| `/v2/subscriptions/{subscriptionId}` | DELETE | Delete subscription | 204     | 401, 404           | -             |
+| Endpoint                             | Method | Description         | Success | Error                   | Pagination    |
+| ------------------------------------ | ------ | ------------------- | ------- | ----------------------- | ------------- |
+| `/v2/subscriptions`                  | GET    | List subscriptions  | 200     | 400, 401                | ✅ (max: 1000) |
+| `/v2/subscriptions`                  | POST   | Create subscription | 201     | 400, 401, 415           | -             |
+| `/v2/subscriptions/{subscriptionId}` | GET    | Get subscription    | 200     | 401, 404                | -             |
+| `/v2/subscriptions/{subscriptionId}` | PATCH  | Update subscription | 204     | 400, 401, 404, 409, 415 | -             |
+| `/v2/subscriptions/{subscriptionId}` | DELETE | Delete subscription | 204     | 401, 404                | -             |
 
-### レジストレーション操作(フェデレーション)
+### 登録操作(フェデレーション)
 
 | Endpoint                             | Method | Description         | Success | Error              | Pagination    |
 | ------------------------------------ | ------ | ------------------- | ------- | ------------------ | ------------- |
@@ -1185,7 +1280,7 @@ FIWARE NGSIv2 互換の Context Broker API。
 
 ### バッチ操作
 
-> **注意**: バッチ操作(クエリを除く)は、リクエストあたり **`MAX_BATCH_SIZE`** エンティティに制限されます(デフォルト: 100)。この制限を超えると `400 Bad Request` が返されます。
+> **注意**: バッチ操作(クエリを除く)は、リクエストあたり **`MAX_BATCH_SIZE`** エンティティまでに制限されています(デフォルト: 100)。この制限を超えると `400 Bad Request` が返されます。
 
 | Endpoint        | Method | Description                          | Success | Error         | Pagination    |
 | --------------- | ------ | ------------------------------------ | ------- | ------------- | ------------- |
