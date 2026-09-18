@@ -43,7 +43,7 @@ Provide a public, versioned, bilingual catalog of NGSI-LD data models for Geonic
 | `schema.geonicdb.com` | Familiar from schema.org. | Reads as JSON Schema only. Ambiguous with database schema. |
 | Product-neutral domain (e.g. a `geolonia.*` name) | Survives a product rename. | Another domain to operate. Weakens the GeonicDB association that motivates the project. |
 
-The domain is permanent: every IRI a customer stores must resolve for the lifetime of their data. The obligation is accepted knowingly. It is smaller than the risk of pointing customers at third-party URLs Geolonia cannot keep alive. Operationally it means the `geonicdb.com` zone and the Worker deployment are treated with the same care as production, since a lapsed domain would break every stored IRI at once; this belongs in the GeonicDB runbooks.
+The domain is permanent: every IRI under `models.geonicdb.com` that a customer stores must resolve for the lifetime of their data. Upstream IRIs such as `https://smartdatamodels.org/...` are outside this promise; the pinned mirror below is the answer for customers who need the same guarantee for upstream contexts. The obligation is accepted knowingly. It is smaller than the risk of pointing customers at third-party URLs Geolonia cannot keep alive. Operationally it means the `geonicdb.com` zone and the Worker deployment are treated with the same care as production, since a lapsed domain would break every stored IRI at once; this belongs in the GeonicDB runbooks.
 
 ## Decision 2: Extend, do not duplicate
 
