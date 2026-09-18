@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| Status | Draft for discussion |
+| Status | In implementation; decisions 1 to 3 taken (see each section) |
 | Date | 2026-09-17 |
 | Author | Daniel Kastl |
-| Decision needed | Domain name, hosting platform, repository name, licence |
+| Decisions taken | Domain `models.geonicdb.com` (2026-09-18), Cloudflare Workers hosting, repository `geolonia/geonicdb-models`, Apache-2.0 / CC BY 4.0 |
 
 ## Summary
 
@@ -35,7 +35,7 @@ Provide a public, versioned, bilingual catalog of NGSI-LD data models for Geonic
 
 ## Decision 1: Domain name
 
-**Recommendation: `models.geonicdb.com`.**
+**Decision (2026-09-18): `models.geonicdb.com`, as the permanent IRI base for every subject, including vocabularies used beyond GeonicDB such as the planned `task` subject shared with the GTT project.** A product-neutral domain was considered and set aside: `models.geonicdb.com` is meant to be a stable, trusted authority in its own right.
 
 | Option | For | Against |
 |---|---|---|
@@ -43,7 +43,7 @@ Provide a public, versioned, bilingual catalog of NGSI-LD data models for Geonic
 | `schema.geonicdb.com` | Familiar from schema.org. | Reads as JSON Schema only. Ambiguous with database schema. |
 | Product-neutral domain (e.g. a `geolonia.*` name) | Survives a product rename. | Another domain to operate. Weakens the GeonicDB association that motivates the project. |
 
-Whatever domain is chosen becomes permanent: every IRI a customer stores must resolve for the lifetime of their data. The obligation is accepted knowingly. It is smaller than the risk of pointing customers at third-party URLs Geolonia cannot keep alive.
+The domain is permanent: every IRI under `models.geonicdb.com` that a customer stores must resolve for the lifetime of their data. Upstream IRIs such as `https://smartdatamodels.org/...` are outside this promise; the pinned mirror below is the answer for customers who need the same guarantee for upstream contexts. The obligation is accepted knowingly. It is smaller than the risk of pointing customers at third-party URLs Geolonia cannot keep alive. Operationally it means the `geonicdb.com` zone and the Worker deployment are treated with the same care as production, since a lapsed domain would break every stored IRI at once; this belongs in the GeonicDB runbooks.
 
 ## Decision 2: Extend, do not duplicate
 
@@ -290,10 +290,9 @@ The template has no licence parameter, so licensing is a manual follow-up. After
 
 ## Open questions
 
-1. Final domain: `models.geonicdb.com`, or a product-neutral domain for the IRIs only?
-2. Which customer projects supply the first model list?
-3. Is the pinned mirror of upstream contexts needed at all, and if so, which customers ask for it?
-4. Who reviews model semantics for Japanese standards (GIF, 推奨データセット) inside Geolonia?
+1. Which customer projects supply the first model list?
+2. Is the pinned mirror of upstream contexts needed at all, and if so, which customers ask for it?
+3. Who reviews model semantics for Japanese standards (GIF, 推奨データセット) inside Geolonia?
 
 ## References
 
