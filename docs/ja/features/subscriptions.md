@@ -5,7 +5,7 @@ outline: deep
 ---
 # WebSocket イベントストリーミング
 
-GeonicDB は WebSocket によるリアルタイムイベントストリーミングをサポートしています。エンティティの変更をリアルタイムでサブスクリプションライブし、Web アプリケーションやダッシュボードに即座に反映させることができます。
+GeonicDB は WebSocket 経由でリアルタイムイベントストリーミングをサポートしています。エンティティの変更をリアルタイムでサブスクリプションライブし、Web アプリケーションやダッシュボードに即座に反映させることができます。
 
 ## 目次
 
@@ -16,7 +16,7 @@ GeonicDB は WebSocket によるリアルタイムイベントストリーミン
   
 * [接続](#接続)
   
-* [メッセージ形式とフィルタリング](#message-format-and-filtering)
+* [メッセージフォーマットとフィルタリング](#メッセージフォーマットとフィルタリング)
   
 * [クライアント実装](#クライアント実装)
   
@@ -24,7 +24,7 @@ GeonicDB は WebSocket によるリアルタイムイベントストリーミン
   
 * [トラブルシューティング](#トラブルシューティング)
   
-* [制約事項](#constraints)
+* [制約](#制約)
 
 ***
 
@@ -32,13 +32,28 @@ GeonicDB は WebSocket によるリアルタイムイベントストリーミン
 
 イベントストリーミングは、既存の MongoDB Change Streams → EventBridge パイプラインに並列パスを追加し、エンティティの変更を WebSocket クライアントにブロードキャストします。
 
+### WebSocket は NGSI-LD リーダーです (#2284)
+
+**WebSocket 接続は NGSI-LD エンティティの変更のみをストリーミングします。NGSIv2 API を通じて行われた変更は配信されません。**
+
+これは、ソケットがすでに何であるかから導かれます:配信されるイベントは、サブスクリプションの `@context` で圧縮された NGSI-LD *正規化*表現を持ち (#2026 / #2044)、`entityTypes` セレクタは同じ `@context` で正規化されます (#2055)。エンティティはプロトコル分離されており (#964 — `POST /v2/entities` を通じて作成されたエンティティは NGSI-LD の読み取りには見えず、逆も同様)、ソケットは*継続的な読み取り*であるため、同じ境界がそれに適用されます。#2284 以前はそうではありませんでした:ブロードキャストフィルタはテナント、デプロイメント、エンティティタイプ、ID パターンを比較しましたが、プロトコルは比較しなかったため、NGSIv2 の書き込みが NGSI-LD サブスクリプションライバーに到達しました — これは HTTP サブスクリプションで #2253 が閉じたギャップの WebSocket セルでした。
+
+結果:
+
+
+* 変更をストリーミングするには、NGSI-LD API (`/ngsi-ld/v1/entities`、`/ngsi-ld/v1/entityOperations/*`) を通じて書き込みます。NGSIv2 ライターは代わりに HTTP サブスクリプション (`/v2/subscriptions`) を使用できます — これらは NGSIv2 の変更と一致し続けます。
+  
+* `protocol` フィールドなしで保存されたエンティティ (プロトコル分離以前のもの) は NGSI-LD として扱われ、読み取り方法と一致します ([INTEROPERABILITY.md](../core-concepts/ngsiv2-vs-ngsild.md) を参照)。そのため、それらの変更は引き続き配信されます。
+  
+* 認可は NGSI-LD エンティティ読み取りパス上でフレーム化されます — 以下の [WebSocket ポリシーは NGSI-LD 読み取りパスを許可する必要があります](#websocket-policies-must-permit-the-ngsi-ld-read-path-2284) および [AUTH.md](../reference/auth.md#websocket-authorization-ws--get) を参照してください。
+
 ### 通知チャネルの比較
 
-| Channel                  | Direction | Filtering                       | Latency |
-| ------------------------ | --------- | ------------------------------- | ------- |
-| HTTP Webhook (existing)  | Push      | Subscription conditions         | \~1 min |
-| MQTT (existing)          | Push      | Subscription conditions         | \~1 min |
-| WebSocket (this feature) | Push      | Tenant + entity type/ID pattern | \~1 min |
+| Channel                  | Direction | Filtering                                                         | Latency |
+| ------------------------ | --------- | ----------------------------------------------------------------- | ------- |
+| HTTP Webhook (existing)  | Push      | Subscription conditions                                           | \~1 min |
+| MQTT (existing)          | Push      | Subscription conditions                                           | \~1 min |
+| WebSocket (this feature) | Push      | Tenant + entity type/ID pattern (**NGSI-LD changes only**, #2284) | \~1 min |
 
 ***
 
@@ -60,7 +75,12 @@ EventBridge ─┬─> SubscriptionMatcher -> SQS -> HTTP/MQTT  [existing]
 
 ### 有効化
 
-GeonicDB SaaS ではイベントストリーミングは既定で有効です。追加の設定は不要です。
+SAM テンプレートで `EventStreamingEnabled` パラメータを `true` に設定し、デプロイします。
+
+```bash
+sam deploy -t infrastructure/template.yaml \
+  --parameter-overrides EventStreamingEnabled=true
+```
 
 ### 環境変数
 
@@ -80,7 +100,7 @@ GeonicDB SaaS ではイベントストリーミングは既定で有効です。
 wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 ```
 
-ローカル開発の場合：
+ローカル開発の場合:
 
 ```text
 ws://localhost:3000?tenant={tenantName}
@@ -88,13 +108,14 @@ ws://localhost:3000?tenant={tenantName}
 
 ### クエリパラメータ
 
-| Parameter | Required | Description                                             |
-| --------- | -------- | ------------------------------------------------------- |
-| `tenant`  | ✅        | Tenant name (equivalent to the `Fiware-Service` header) |
+| Parameter    | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tenant`     | ✅        | Tenant name (equivalent to the `Fiware-Service` header)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `deployment` | No       | Deployment hostname for non-default deployments (#2867). When the shared execute-api WebSocket endpoint is used (as returned by `GET /sdk/v1/streaming`), clients on a dedicated deployment **must** pass the same hostname registered in the `deployments` table (e.g. `ee24n6hnas.geonicdb.geolonia.com`). Omitted = Host-based resolution (unknown execute-api Host falls back to the env default DB). When present, resolution is **strict**: unknown, reserved, over-length, or disabled hostnames are rejected (403/400), and lookup infrastructure failures return 503. The GeonicDB SDK adds this parameter automatically when discovery returns a `deployment` field. |
 
 ### 認証
 
-`AUTH_ENABLED=true` の場合、WebSocket 接続を確立するには認証トークンが必要です。トークンは以下の優先順位で抽出されます：
+認証はデフォルトで有効になっています(ローカル開発用に明示的に `AUTH_ENABLED=false` を設定した場合のみ無効になります)。有効な場合、WebSocket 接続を確立するには認証トークンが必要です。トークンは以下の優先順位で抽出されます:
 
 
 1. **`Authorization` ヘッダー(推奨)**: `Authorization: Bearer <token>` — 最も安全な方法
@@ -106,9 +127,9 @@ ws://localhost:3000?tenant={tenantName}
 
 * REST API の `/auth/login` エンドポイントから取得した `accessToken` をトークンとして直接使用します。
   
-* `super_admin` ロールは WebSocket ストリーミングのために任意のテナントに接続できます。注意: `super_admin` は REST 経由でデータ API(`/v2/*`、`/ngsi-ld/*`)にアクセスできませんが、WebSocket イベントストリーミングは運用監視目的で許可されています。
+* `super_admin` ロールは、WebSocket ストリーミングのために任意のテナントに接続できます。注意: `super_admin` は REST 経由でデータ API(`/v2/*`、`/ngsi-ld/*`)にアクセスできませんが、運用監視目的で WebSocket イベントストリーミングは許可されています。
   
-* `tenant_admin` / `user` ロールは自分のテナントにのみ接続できます。
+* `tenant_admin` / `user` ロールは、自分自身のテナントにのみ接続できます。
 
 | Condition                                      | Result                       |
 | ---------------------------------------------- | ---------------------------- |
@@ -122,17 +143,17 @@ ws://localhost:3000?tenant={tenantName}
 ### 接続フロー
 
 
-1. クライアントが WebSocket URL に接続します(`tenant` クエリパラメータは必須です。認証が有効な場合はトークンも必須です)
+1. クライアントは WebSocket URL に接続します(`tenant` クエリパラメータは必須です。認証が有効な場合はトークンも必要です)
    
-2. サーバーがトークンを検証し、テナントアクセス権限を確認します(認証が有効な場合)
+2. サーバーはトークンを検証し、テナントアクセス権を確認します(認証が有効な場合)
    
-3. トークンに `cnf.jkt` クレーム(DPoP バインドトークン)が含まれている場合、接続は `pending_dpop` 状態に入ります — クライアントは 5 秒以内に `dpop_bind` メッセージを送信する必要があります(以下の [DPoP Binding](#dpop-binding-for-websocket) を参照)
+3. トークンに `cnf.jkt` クレーム(DPoP バインドトークン)が含まれている場合、接続は `pending_dpop` 状態になります — クライアントは 5 秒以内に `dpop_bind` メッセージを送信する必要があります(以下の [DPoP Binding](#dpop-binding-for-websocket) を参照)
    
-4. サーバーが DynamoDB に接続を記録します(TTL: 2 時間)
+4. サーバーは DynamoDB に接続を記録します(TTL: 2 時間)
    
-5. オプション: `subscribe` メッセージを介してフィルター条件を設定します
+5. オプション: `subscribe` メッセージを介してフィルタ条件を設定します
    
-6. エンティティが変更されると、サーバーがクライアントにイベントをプッシュします
+6. エンティティが変更されると、サーバーはクライアントにイベントをプッシュします
 
 ***
 
@@ -146,17 +167,33 @@ ws://localhost:3000?tenant={tenantName}
 {
   "action": "subscribe",
   "entityTypes": ["Room", "Sensor"],
-  "idPattern": "urn:ngsi-ld:Room:.*"
+  "idPattern": "urn:ngsi-ld:Room:.*",
+  "@context": "https://example.org/my-context.jsonld"
 }
 ```
 
-| Field         | Type      | Description                               |
-| ------------- | --------- | ----------------------------------------- |
-| `action`      | string    | `subscribe`                               |
-| `entityTypes` | string\[] | Entity types to filter                    |
-| `idPattern`   | string    | Regular expression pattern for entity IDs |
+| Field         | Type                      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action`      | string                    | `subscribe`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `entityTypes` | string\[]                 | Entity types to filter                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `@context`    | string \| string\[] | **#2026.** JSON-LD `@context` used to render delivered events — the entity type and attribute names are compacted against it (ETSI GS CIM 009 clause 5.5.7), and the value is echoed back in each event's `@context` member. Omit it to get the core `@context` (names come through in stored form). Only URL strings (or an array of them, max 10 entries, 2048 chars each) are accepted; inline context objects are rejected so a single message cannot dictate unbounded resolution work. **It also governs `entityTypes` matching** — since #2055 the supplied `@context` is resolved once at `subscribe` time to expand `entityTypes` into the canonical stored form, so a term defined by a custom `@context` does change which entities match. `idPattern` alone is matched against the stored form verbatim. |
+| `idPattern`   | string                    | Regular expression pattern for entity IDs. Omit the field to leave any existing ID filter untouched; send an **empty string** (`""`) to clear it and receive every entity ID again. Any other value is screened by the same ReDoS validation as every other regex entry point (max 200 chars, must compile, no quantified group containing an alternation or a nested quantifier — see SECURITY.md). Non-strings — including `null` — are rejected, matching how `entityTypes` is validated in the same message. A rejected value returns an error and leaves the existing subscription unchanged; the identical decision is made whether the broker runs on Lambda or standalone (#1931).                                                                                                                           |
 
-#### dpop\_bind (DPoP proof 検証)
+##### サブスクリプション確認応答 (#2055)
+
+成功時、サーバーは次のように応答します:
+
+```json
+{ "type": "subscribed" }
+```
+
+**フィルターがアクティブであると仮定する前に、このフレームを待ってください。** `subscribe` の適用は非同期です — サーバーは、マッチングに使用される正規形式に `entityTypes` を展開するために、提供された `@context` を解決します(ETSI GS CIM 009 clause 5.5.7)。`subscribe` フレームとこの確認応答の間のウィンドウで公開されたイベントは、配信が保証されません。
+
+注意:`ping`/`pong` は代替バリアとして使用できません。受信メッセージは接続ごとに順次処理されないため、`subscribe` がまだ適用されている間に `pong` が返される可能性があります。
+
+拒否された `subscribe`(無効な `entityTypes` / `idPattern` / `@context`、または認可拒否)は、代わりに `{"type": "error", "message": "..."}` を返し、確認応答は送信されません。
+
+#### dpop\_bind (DPoP 証明検証)
 
 ```json
 {
@@ -165,7 +202,7 @@ ws://localhost:3000?tenant={tenantName}
 }
 ```
 
-DPoP バインドトークン(`cnf.jkt` を含む JWT)で接続する場合に必須。接続から 5 秒以内に送信する必要があります。サーバーは proof の JWK Thumbprint がトークンの `cnf.jkt` クレームと一致することを検証し、`{"type": "dpop_verified"}` で応答します。検証されるまで、他のすべてのメッセージは `{"type": "error", "message": "DPoP proof required"}` で拒否されます。
+DPoP バインドトークン(`cnf.jkt` を含む JWT)で接続する場合に必要です。接続から 5 秒以内に送信する必要があります。サーバーは証明の JWK Thumbprint がトークンの `cnf.jkt` クレームと一致することを検証し、`{"type": "dpop_verified"}` で応答します。検証されるまで、他のすべてのメッセージは `{"type": "error", "message": "DPoP proof required"}` で拒否されます。
 
 詳細は [AUTH.md — DPoP Token Binding](../reference/auth.md#dpop-token-binding-rfc-9449) を参照してください。
 
@@ -177,7 +214,7 @@ DPoP バインドトークン(`cnf.jkt` を含む JWT)で接続する場合に�
 }
 ```
 
-サーバーは `{"type": "pong"}` を返します。10 分間のアイドルタイムアウトを防ぐため、5 分ごとに ping を送信してください。
+サーバーは `{"type": "pong"}` を返します。10 分のアイドルタイムアウトを防ぐために、5 分ごとに ping を送信してください。
 
 ### サーバー → クライアント
 
@@ -191,60 +228,91 @@ DPoP バインドトークン(`cnf.jkt` を含む JWT)で接続する場合に�
   "entityId": "urn:ngsi-ld:Room:001",
   "entityType": "Room",
   "data": {
-    "temperature": { "type": "Number", "value": 23.5 }
+    "temperature": { "type": "Property", "value": 23.5 }
   },
   "changedAttributes": ["temperature"],
-  "timestamp": "2024-01-01T00:00:00Z"
+  "timestamp": "2024-01-01T00:00:00Z",
+  "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.9.jsonld"
 }
 ```
 
-| Field               | Type      | Description                                       |
-| ------------------- | --------- | ------------------------------------------------- |
-| `type`              | string    | `entityCreated`, `entityUpdated`, `entityDeleted` |
-| `tenant`            | string    | Tenant name                                       |
-| `servicePath`       | string    | Service path                                      |
-| `entityId`          | string    | Entity ID                                         |
-| `entityType`        | string    | Entity type                                       |
-| `data`              | object    | Entity attribute data                             |
-| `changedAttributes` | string\[] | Names of changed attributes (on update only)      |
-| `timestamp`         | string    | Event timestamp (ISO 8601)                        |
+| Field               | Type                      | Description                                                                                                                                                                                                                                               |
+| ------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`              | string                    | `entityCreated`, `entityUpdated`, `entityDeleted`                                                                                                                                                                                                         |
+| `tenant`            | string                    | Tenant name                                                                                                                                                                                                                                               |
+| `servicePath`       | string                    | Service path                                                                                                                                                                                                                                              |
+| `entityId`          | string                    | Entity ID                                                                                                                                                                                                                                                 |
+| `entityType`        | string \| string\[] | Entity type(s), compacted with the subscription `@context` (clause 5.5.7). **#2477:** a single type is a string; multi-type entities use a string array (Table 5.2.4 / same rule as GET).                                                                 |
+| `data`              | object                    | Entity attributes in **NGSI-LD normalized representation** (clause 4.5.2). Attribute names are compacted with the subscription `@context`; sub-attributes appear inline; multi-attributes (clause 4.5.5) appear as an instance array carrying `datasetId` |
+| `changedAttributes` | string\[]                 | Names of changed attributes (on update only)                                                                                                                                                                                                              |
+| `timestamp`         | string                    | Event timestamp (ISO 8601)                                                                                                                                                                                                                                |
+| `@context`          | string \| string\[] | **#2026.** The vocabulary `entityType` and the `data` keys were rendered with — the subscription `@context`, or the core `@context` when none was given                                                                                                   |
+
+> **#2026 / #2044 で変更されました。** 以前、イベントはContext Brokerの内部属性形式を伝達していました:
+> NGSIv2 スタイルの型名 (`"Number"`, `"Text"`)、`metadata` ラッパーの下にネストされたサブ属性、解決するための `@context` を持たない完全修飾属性/型名、および内部形式のマルチ属性インスタンス。配信されるイベントは現在 **HTTP 通知と同じ表現レイヤー** を通過するため、`data` は NGSI-LD 正規化されています。エンベロープキー自体は変更されておらず、`@context` は純粋に追加的なものです — これを無視するクライアントは引き続き動作します。
+
+> **TTL 期限切れ時の `entityDeleted` (#1561)**: `expiresAt` で作成されたエンティティは、期限切れ時に `entityDeleted` も発行します — バックグラウンドの *expiry sweeper* が TTL 期限切れエンティティ (`expiresAt <= now`) を最大 1 分に 1 回取得してイベントを公開します。これは、MongoDB 自身の TTL モニターがアプリケーション層の外部でドキュメントを削除するため、そのままではクライアントが気付かないためです。配信は他の変更イベントと同様にベストエフォートです: エンティティの取得と公開の間でスイープが失敗すると、通知が失われる可能性があります (エンティティ自体は削除済みとマークされ、同じスイープ内で API 経由では見えなくなります)。イベントは `expiresAt` 経過後最大約 1 分で期待され、即座ではありません。
+>
+> **スナップショット複製 / 復元 (#1563)**: `POST /ngsi-ld/v1/snapshots/{id}/clone` は `EntityService` の外部でエンティティを書き込みます (`replaceOne` / `insertOne`)。現在、`createEventPublisher()` を通じて `entityCreated` (挿入) または `entityUpdated` (置換) を公開するため、WebSocket / サブスクリプションのサブスクリプションライバーが復元を確認できます。ファンアウトボリュームは送信時に既存の通知ファンアウトクォータ (#1544) によって制限されます — clone は別の上限を追加しません。
+>
+> **意図的に発行しないパス (#1563)**: テナントカスケード削除 (`tenant-data-cleanup.service.ts`) およびインデックス作成中の無効な geo の隔離 (`client.ts` の `quarantineInvalidGeoDocument`) は、設計上イベントレスのままです — 前者はテナント解体時の通知フラッドを避けるため、後者はビジネス変更ではなくインフラストラクチャ修復であるためです。両方の決定はコードコメントに記録されています。
 
 ### フィルタリング
 
-フィルタリングは次の順序で 3 つのレイヤーで適用されます:
+フィルタリングは次の順序で 4 つの層で適用されます:
 
+0\. **プロトコルフィルタ (#2284、設定不可)** — **NGSI-LD** API を通じて行われた変更のみがブロードキャストされます。NGSIv2 の変更は、接続が考慮される前にドロップされます(`debug` レベルで `WS_DELIVERY_PROTOCOL_MISMATCH`)。[WebSocket is an NGSI-LD reader](#websocket-is-an-ngsi-ld-reader-2284) を参照してください。
 
 1. **テナントフィルタ (必須)** — 接続時に `tenant` クエリパラメータを介して自動的に適用されます。
    
-2. **接続側の `subscribe` フィルタ (オプション)** — クライアントが受信したいものを絞り込みます:
+2. **接続側の `subscribe` フィルタ (オプション)** — クライアントが受信したい内容を絞り込みます:
    
    * `entityTypes`: 受信するエンティティタイプの配列
      
    * `idPattern`: `entityId` に対してマッチする正規表現
      
-3. **XACML 認可フィルタ** — 上記を通過した各接続に対して、ブロードキャスターはアクティブな XACML ポリシーを実行します。イベントに対してサブジェクトが `Permit` された接続のみに配信されます。
+3. **XACML 認可フィルタ** — 上記を通過した各接続に対して、ブロードキャスターはアクティブな XACML ポリシーを実行します。イベントに対してサブジェクトが `Permit` されている接続のみに配信されます。
 
 #### XACML で利用可能なイベントごとのリソース属性 (#1107)
 
 ブロードキャスターが配信を認可する際、これらのエンティティごとのリソース属性を AuthzRequest に注入します:
 
-| attributeId   | Source                                                                   |
-| ------------- | ------------------------------------------------------------------------ |
-| `entityType`  | event's entity type                                                      |
-| `entityId`    | event's entity ID                                                        |
-| `entityOwner` | event entity's `createdBy` (the user who originally `POST`ed the entity) |
+| attributeId   | Source                                                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `entityType`  | event's entity type                                                                                                               |
+| `entityId`    | event's entity ID                                                                                                                 |
+| `entityOwner` | event entity's `createdBy` (the user who originally `POST`ed the entity)                                                          |
+| `scope`       | event entity's `scope`, comma-joined — same matching semantics as entity-level checks and the list-query row filter (#1369/#1383) |
 
-これにより、単一の XACML ポリシーで `${subject.userId}` テンプレート展開を `entityOwner` に対して使用することで、「各ユーザーは自分が作成したエンティティのイベントのみを受信する」といった **ユーザーごとの配信フィルタ** を記述できます。完全なポリシー例については、[`docs/AUTH.md` — ブロードキャスト時のエンティティごとの属性](../reference/auth.md#per-entity-attributes-at-broadcast-time-1107) を参照してください。
+これにより、`entityOwner` に対する `${subject.userId}` テンプレート展開を使用して、単一の XACML ポリシーで「各ユーザーは自分が作成したエンティティのイベントのみを受信する」のような**ユーザーごとの配信フィルタ**を記述できます。完全なポリシー例については、[`docs/AUTH.md` — Per-entity attributes at broadcast time](../reference/auth.md#per-entity-attributes-at-broadcast-time-1107--1383) を参照してください。
 
-> 認証なしで書き込まれたエンティティ (または `createdBy` を設定しないレガシー / バッチパス経由) は、`owner` 属性を持たないイベントを発行します — 所有者ベースのルールはこれらのイベントにマッチしないため、そのフォールバックを念頭に置いてポリシーを設計してください。
+> 認証なしで書き込まれたエンティティ(または `createdBy` を設定しないレガシー/バッチパス経由)は、`owner` 属性のないイベントを発行します — オーナーベースのルールはこれらのイベントにマッチしないため、このフォールバックを念頭に置いてポリシーを設計してください。
+
+#### WebSocket ポリシーは NGSI-LD 読み取りパスを許可する必要があります (#2284)
+
+`authorizeWs()` は、すべての WebSocket の決定を `resource.path = /ngsi-ld/v1/entities` でフレーム化します。以前は `/v2/entities` を送信していましたが、これは同じソケット上の NGSI-LD 表現とセレクタ処理と矛盾していました。
+
+**これは、NGSIv2 パス glob のみを通じて WebSocket アクセスを許可するカスタムポリシーにとって破壊的変更です**(例: ターゲットが `{"attributeId": "path", "matchValue": "/v2/**"}` であるルール)。このようなルールは WebSocket リクエストのターゲットセットの一部ではなくなったため、`Permit` を提供せず、サブスクリプションは拒否されます。ロールのデフォルト(`user`、`tenant_admin`)は `/v2/**` *と* `/ngsi-ld/**` の両方を許可するため、ロールのデフォルトに依存するプリンシパルは影響を受けません。
+
+移行: 同じサブジェクトに対して `/ngsi-ld/**` にマッチするルール — または具体的には `/ngsi-ld/v1/entities` — を追加(または拡張)し、既存の `entityType` / `entityOwner` / `scope` 条件はそのまま保持します。影響を受けるポリシーを見つけるには、`subscribe` 時にこの警告を監視してください:
+
+```json
+{ "level": "WARN", "errorCode": "WS_AUTHZ_FRAME_MIGRATION_REQUIRED", "wsFramePath": "/ngsi-ld/v1/entities", "legacyFramePath": "/v2/entities" }
+```
+
+これは、NGSI-LD フレームでサブスクリプションライブが拒否されたが、古い NGSIv2 フレームでは許可されて*いた*場合に発行されます — つまり、拡張が必要なポリシーを正確に示します。決定は依然として `Deny` です: レガシーフレームを尊重すると、NGSIv2 読み取りに制限されたプリンシパルが NGSI-LD エンティティを受信できてしまい、これは #2284 が閉じる境界です。
+
+**逆方向には警告ではなく移行が必要です。** `/v2/**` glob を通じて WebSocket 配信を*制限*したポリシー(例:「このユーザーが作成したエンティティのみ」)も新しいフレームではターゲットから外れます — そしてその場合、ロールのデフォルトの `Permit` が残るため、ソケットは**そのテナント内のそのタイプのすべて**を受信します。
+
+移行期の安全網として、このケースでは明示的なレガシー `Deny` が尊重されていました。**これは [#2326](https://github.com/geolonia/geonicdb/issues/2326) で削除されました**。移行が完了し、対応する警告が観測されなくなったためです。**`/v2/**` のみにスコープされた制限ポリシーは WebSocket 配信を制限しなくなりました — これらを `/ngsi-ld/**` に再スコープしてください。**
 
 ***
 
 ## クライアント実装
 
-### JavaScript SDK(推奨)
+### JavaScript SDK (推奨)
 
-GeonicDB JavaScript SDK は、WebSocket イベントストリーミングを使用する最も簡単な方法を提供します。認証、トークンの更新、DPoP バインディング、再接続を自動的に処理します。
+GeonicDB JavaScript SDK は、WebSocket イベントストリーミングを使用する最も簡単な方法を提供します。認証、トークンのリフレッシュ、DPoP バインディング、および再接続を自動的に処理します。
 
 ```bash
 npm install @geolonia/geonicdb-sdk
@@ -284,7 +352,7 @@ db.on('connected', function() {
 // db.reconnect();
 ```
 
-Bearer JWT 認証の場合(例:ログインフロー後)、`setCredentials()` で認証情報を注入します:
+Bearer JWT 認証(例:ログインフロー後)の場合は、`setCredentials()` で認証情報を注入します:
 
 ```javascript
 import GeonicDB from '@geolonia/geonicdb-sdk';
@@ -338,7 +406,19 @@ db.connect();
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === 'pong') return;
+      // Control frames carry no entityId/data, so they must not go down the
+      // entity-event path. `dpop_verified` acknowledges a `dpop_bind`.
+      if (data.type === 'pong' || data.type === 'dpop_verified') return;
+      // #2055: the subscription filter is now active on the server.
+      if (data.type === 'subscribed') {
+        console.log('✅ Subscription active');
+        return;
+      }
+      // `error` covers every server-side rejection, not just `subscribe`.
+      if (data.type === 'error') {
+        console.error('❌ WebSocket error:', data.message);
+        return;
+      }
 
       // Display event on screen
       const eventDiv = document.createElement('div');
@@ -358,15 +438,26 @@ db.connect();
 ```typescript
 import { useEffect, useRef, useState } from 'react';
 
+// Control frames carry no entity payload — keep them out of the entity event type.
+// `subscribed` (#2055) means the subscription filter is now active on the server;
+// `dpop_verified` acknowledges a successful `dpop_bind`; `error` covers every
+// server-side rejection (invalid JSON, DPoP failures, a rejected `subscribe`,
+// unknown action), so do not label it as subscribe-specific.
+interface ControlFrame {
+  type: 'pong' | 'subscribed' | 'dpop_verified' | 'error';
+  message?: string;
+}
+
 interface EntityEvent {
-  type: 'entityCreated' | 'entityUpdated' | 'entityDeleted' | 'pong';
+  type: 'entityCreated' | 'entityUpdated' | 'entityDeleted';
   tenant: string;
   entityId: string;
-  entityType: string;
+  entityType: string | string[];  // #2477: multi-type is string[]
   data: Record<string, any>;
   entity?: Record<string, any>;  // Complete NGSI-LD entity ({ id, type, ...data }). Undefined for some delete events.
   changedAttributes?: string[];
   timestamp: string;
+  '@context'?: string | string[];  // #2026: vocabulary the names were rendered with
 }
 
 interface UseGeonicDBWebSocketOptions {
@@ -375,6 +466,8 @@ interface UseGeonicDBWebSocketOptions {
   token?: string;
   entityTypes?: string[];
   onEvent?: (event: EntityEvent) => void;
+  /** #2055: fired once the server has activated the subscription filter. */
+  onSubscribed?: () => void;
 }
 
 export function useGeonicDBWebSocket({
@@ -382,7 +475,8 @@ export function useGeonicDBWebSocket({
   tenant,
   token,
   entityTypes,
-  onEvent
+  onEvent,
+  onSubscribed
 }: UseGeonicDBWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -417,10 +511,21 @@ export function useGeonicDBWebSocket({
     };
 
     ws.onmessage = (event) => {
-      const data: EntityEvent = JSON.parse(event.data);
-      if (data.type !== 'pong' && onEvent) {
-        onEvent(data);
+      const data: ControlFrame | EntityEvent = JSON.parse(event.data);
+
+      // Control frames first — they have no entity payload, so passing them to
+      // onEvent would append `undefined` entity ids to the caller's event list.
+      if (data.type === 'pong' || data.type === 'dpop_verified') return;
+      if (data.type === 'subscribed') {
+        onSubscribed?.();
+        return;
       }
+      if (data.type === 'error') {
+        console.error('❌ WebSocket error:', (data as ControlFrame).message);
+        return;
+      }
+
+      onEvent?.(data as EntityEvent);
     };
 
     ws.onerror = (error) => {
@@ -442,7 +547,9 @@ export function useGeonicDBWebSocket({
       }
       ws.close();
     };
-  }, [wsUrl, tenant, token, entityTypes, onEvent]);
+    // `onSubscribed` is captured by the `onmessage` closure, so it belongs here —
+    // otherwise a re-rendered parent's new callback never sees the ACK.
+  }, [wsUrl, tenant, token, entityTypes, onEvent, onSubscribed]);
 
   return { isConnected };
 }
@@ -569,7 +676,7 @@ async def stream_events():
 asyncio.run(stream_events())
 ```
 
-### wscat (デバッグ用)
+### wscat(デバッグ用)
 
 ```bash
 # Connect (when authentication is enabled, send the token via the Authorization header)
@@ -586,7 +693,7 @@ wscat -c "wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant=smart
 
 ## WebSocket の DPoP バインディング
 
-DPoP バインドトークンを使用する WebSocket 接続には、接続後の証明検証ステップが必要です。WebSocket プロトコルは初期ハンドシェイク後のカスタムヘッダーをサポートしていないため、DPoP 証明は接続確立後にメッセージとして送信されます。
+DPoP バインドトークンを使用する WebSocket 接続では、接続後の証明検証ステップが必要です。WebSocket プロトコルは初期ハンドシェイク後のカスタムヘッダーをサポートしていないため、DPoP 証明は接続確立後にメッセージとして送信されます。
 
 ### フロー
 
@@ -622,9 +729,9 @@ Client                               Server
 
 ### 1. Reconnection Logic
 
-> **注意**: JavaScript SDK を使用している場合、指数バックオフによる再接続が組み込まれています。`db.reconnect()` を使用して強制的に再接続するか、`reconnecting` イベントをリッスンして再接続の試行を追跡できます。以下の例は、生の WebSocket 実装向けです。
+> **注意**: JavaScript SDK を使用している場合、指数バックオフによる再接続が組み込まれています。強制的に再接続するには `db.reconnect()` を使用するか、`reconnecting` イベントをリッスンして再接続の試行を追跡してください。以下の例は、生の WebSocket 実装向けです。
 
-指数バックオフによる堅牢な再接続を実装します:
+指数バックオフを使用した堅牢な再接続を実装してください:
 
 ```javascript
 class GeonicDBWebSocket {
@@ -662,7 +769,7 @@ class GeonicDBWebSocket {
 
 ### 2. Keep-Alive
 
-10 分のアイドルタイムアウトを防ぐために、5 分ごとに ping を送信します:
+10 分間のアイドルタイムアウトを防ぐために、5 分ごとに ping を送信します:
 
 ```javascript
 setInterval(() => {
@@ -674,7 +781,7 @@ setInterval(() => {
 
 ### 3. Optimizing Event Processing
 
-大量のイベントを受信する場合、デバウンスを使用して UI 更新を最適化します:
+大量のイベントを受信する場合、デバウンスを使用して UI の更新を最適化します:
 
 ```javascript
 import { debounce } from 'lodash';
@@ -708,7 +815,7 @@ async function getToken() {
 }
 ```
 
-**トークン有効期限の管理:**
+**トークン有効期限管理:**
 
 ```javascript
 function isTokenExpired(token, bufferSeconds = 60) {
@@ -724,7 +831,7 @@ function isTokenExpired(token, bufferSeconds = 60) {
 
 ### 5. Memory Management
 
-メモリリークを防ぐために、イベント履歴に制限を設定します:
+メモリリークを防ぐためにイベント履歴に制限を設定します:
 
 ```javascript
 const MAX_EVENTS = 1000;
@@ -751,7 +858,7 @@ onUnmounted(() => {
   
 * テナントへのアクセス権限がない
   
-* `AUTH_ENABLED=true` にもかかわらずトークンが提供されていない
+* 認証が有効になっているにもかかわらずトークンが提供されていない (デフォルト)
 
 **解決方法:**
 
@@ -784,9 +891,13 @@ setInterval(() => {
 
 **原因:**
 
+* **変更が NGSIv2 API を通じて書き込まれた (#2284)** — WebSocket ストリームは NGSI-LD の変更のみ
+  
 * フィルターが厳しすぎる
   
-* テナントが間違っている
+* 間違ったテナント
+  
+* カスタム XACML ポリシーが `/v2/**` のみに読み取りアクセスを許可している ([#2284 migration](#websocket-policies-must-permit-the-ngsi-ld-read-path-2284) を参照 — WebSocket を対象としなくなったため、`Permit` が提供されない)
   
 * エンティティの作成/更新が実際には発生していない
 
@@ -813,7 +924,7 @@ ws.send(JSON.stringify({
 
 * ローカルサーバーが起動していない
   
-* WebSocket URL が正しくない
+* WebSocket URL が間違っている
 
 **解決方法:**
 
@@ -825,7 +936,7 @@ npm start
 const wsUrl = 'ws://localhost:3000?tenant=demo';
 ```
 
-### 5. Debugging
+### 5. デバッグ
 
 ブラウザの開発者ツールの Network タブで、WebSocket 接続と送受信されたメッセージを検査できます。
 
@@ -851,24 +962,44 @@ class DebugWebSocket {
 
 ## 制約
 
-| Item                   | Value         | Description                                           |
-| ---------------------- | ------------- | ----------------------------------------------------- |
-| Idle timeout           | 10 minutes    | Clients must send a ping every 5 minutes              |
-| Concurrent connections | 500 (default) | Can be increased via AWS Support                      |
-| Frame size             | 128KB         | Large entities require truncation                     |
-| Latency                | \~1 minute    | Depends on the MongoDB Change Stream polling interval |
-| Connection TTL         | 2 hours       | Automatically cleaned up by DynamoDB TTL              |
-| Local development      | Supported     | Available via local WebSocket server                  |
+| Item                   | Value         | Description                                                     |
+| ---------------------- | ------------- | --------------------------------------------------------------- |
+| Idle timeout           | 10 minutes    | Clients must send a ping every 5 minutes                        |
+| Concurrent connections | 500 (default) | Can be increased via AWS Support                                |
+| Frame size             | 128KB         | Large entities require truncation                               |
+| Latency                | \~1 minute    | Depends on the MongoDB Change Stream polling interval           |
+| API protocol           | NGSI-LD only  | Changes written through the NGSIv2 API are not streamed (#2284) |
+| Connection TTL         | 2 hours       | Automatically cleaned up by DynamoDB TTL                        |
+| Local development      | Supported     | Available via local WebSocket server                            |
+
+### マルチデプロイメントルーティング (#1304)
+
+ホスト名ルーティングされたデプロイメント（マルチサブドメイン構成）に対応するため、イベントと接続レコードにデプロイメント情報が付与される:
+
+
+* **イベントスキーマ**: `EntityChangeEvent` / `RuleNotificationEvent` に `deployment?: { hostname: string }` フィールドが追加された（`undefined` = env デフォルト DB）。発行時に発生元デプロイメントが自動付与され、背景ワーカー（購読 matcher / notifier / rules / WS broadcaster）がこのホスト名で正しい DB に対して処理する
+  
+* **WS 接続レコード**: `$connect` 時に `Host` ヘッダー、または `#2867` の `?deployment=` クエリパラメータからデプロイメントを解決し、接続レコードに `hostname` を保存する。broadcaster はイベントの発生元デプロイメントと接続の `hostname` が一致する接続にのみ配信する（デフォルト同士も一致扱い — 既存接続と後方互換）。認可（XACML）もそのデプロイメントの DB に対して評価される
+  
+* **SDK ディスカバリ** (#2867): `GET /sdk/v1/streaming` はリクエスト `Host` が非 default デプロイメントに解決できる場合、レスポンスに `deployment` フィールド（hostname）を含める。SDK は `$connect` URL に `?deployment=` を自動付与する
+  
+* **未知ホストの WS 接続**: `?deployment=` 省略時は Host ベース。HTTP と異なり 404 にせずデフォルト扱いで受け入れる（現状 WS は raw `execute-api` ドメインが唯一の経路のため）。**`?deployment=` 明示時は strict** — unknown / 予約語 / 超過長は拒否 (#2867)
+  
+* **lookup 一時障害時の WS $connect** (#1306): デプロイメント解決がインフラ障害（`error`）で失敗した場合は fail-closed で **503** を返して接続を拒否する（デフォルト DB へフォールバックして誤った DB のデータを配信しないため）。Host ベースで未登録ホスト（`not_found`）はデフォルト扱いのまま。**`?deployment=` 明示時の unknown/not\_found は 403**
+  
+* **背景ワーカーの lookup 障害耐性** (#1306): EventBridge 駆動ワーカー（rules / WS broadcaster）と SQS 駆動 notifier は、lookup 一時障害イベントを再試行し、リトライ超過分を `<stack>-worker-dlq`（EventBridge 系）/ 通知 DLQ（SQS 系）に退避する。standalone 経路は有限リトライ後に skip する（再配信機構なし）
+  
+* **制限**: デプロイメント DB への直接 DB 書き込み（API 非経由）は WS 配信されない（change stream バックアップはデフォルト DB のみ）
 
 ***
 
 ## 関連ドキュメント
 
 
-* JavaScript SDK - SDK API リファレンス(ブラウザアプリケーション推奨)
+* JavaScript SDK - SDK API リファレンス（ブラウザアプリケーション推奨）
   
-* [API Common Specification](../api-reference/endpoints.md) - REST API ドキュメント
+* [API 共通仕様](../api-reference/endpoints.md) - REST API ドキュメント
   
-* [Authentication and Authorization](../reference/auth.md) - 認証設定
+* [認証と認可](../reference/auth.md) - 認証設定
   
-* Development Guide - ローカル開発とデプロイ
+* 開発ガイド - ローカル開発とデプロイメント
