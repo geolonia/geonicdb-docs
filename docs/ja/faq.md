@@ -5,12 +5,12 @@ outline: deep
 ---
 # よくある質問 (FAQ)
 
-GeonicDB についてよくある質問と回答のコレクションです。
+GeonicDB に関するよくある質問と回答のコレクションです。
 
 ## 目次
 
 
-* [データ量とパフォーマンス](#data-volume-and-performance)
+* [データ量とパフォーマンス](#データ量とパフォーマンス)
   
 * [FIWARE Orion との違い](#fiware-orion-との違い)
   
@@ -18,53 +18,57 @@ GeonicDB についてよくある質問と回答のコレクションです。
   
 * [API の使い方](#api-の使い方)
   
-* [地理空間拡張](#geospatial-extensions)
+* [地理空間拡張](#地理空間拡張)
   
 * [セキュリティ](#セキュリティ)
 
 ***
 
-## データボリュームとパフォーマンス
+## データ量とパフォーマンス
 
-### Q: データボリュームの制限はありますか?
+### Q: データ量の上限はありますか？
 
-**A:** GeonicDB 自体には明示的なデータボリューム制限はありません。MongoDB のスケーリング機能に依存します。
+**A:** GeonicDB 自体には明示的なデータ量の上限はありません。MongoDB のスケーリング能力に依存します。
 
-#### ハード制限(システム制約)
+#### ハードリミット（システム制約）
 
-| Constraint                | Value      | Description                                                  |
-| ------------------------- | ---------- | ------------------------------------------------------------ |
-| Maximum items per request | 1,000      | `limit` upper bound for pagination (FIWARE Orion compatible) |
-| Admin API maximum items   | 100        | Pagination upper bound for admin APIs                        |
-| API Gateway timeout       | 29 seconds | AWS-side limit                                               |
-| Lambda timeout            | 15 minutes | For Lambda functions such as batch processing                |
+| Constraint                         | Value      | Description                                                                                                   |
+| ---------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| Maximum items per request          | 1,000      | `limit` upper bound for pagination (FIWARE Orion compatible)                                                  |
+| Admin API maximum items            | 100        | Pagination upper bound for admin APIs                                                                         |
+| Query execution time (read)        | 3 seconds  | Interactive reads (entity list/query/geo/get). Exceeding it cancels the query and returns `503`               |
+| Query execution time (aggregation) | 5 seconds  | Aggregations (temporal rollups, `distinct`/`distinctCount`). Exceeding it cancels the query and returns `503` |
+| API Gateway timeout                | 29 seconds | AWS-side limit                                                                                                |
+| Lambda timeout                     | 15 minutes | For Lambda functions such as batch processing                                                                 |
 
-#### 本番環境での実用的なガイドライン
+> **クエリタイムアウト時の `503` について:** 上記の制限時間を超えて実行されるクエリ（ほぼ常にエンティティを多数スキャンすることが原因）は、サービスを保護するためにサーバー側でキャンセルされ、API は `503 ServiceUnavailable` とクエリを絞り込むよう求めるメッセージで応答します。`type` または `id` フィルタを追加するか、より小さい `limit`/`lastN` を使用するか、地理的エリアや時間範囲を制限してから再試行してください。どのパターンが遅くなる傾向があるかについては、以下の *"注意が必要なクエリ（潜在的に遅い）"* を参照してください。
 
-| Data Scale               | Recommended Environment                        |
-| ------------------------ | ---------------------------------------------- |
-| Up to 100,000 entities   | MongoDB Atlas M10–M30                          |
-| Up to 1,000,000 entities | MongoDB Atlas M30–M50                          |
-| Over 1,000,000 entities  | MongoDB Atlas M50+ with sharding consideration |
+#### 本番環境における実用的なガイドライン
 
-### Q: クエリが遅くなるケースはありますか?
+| Data Scale                 | Recommended Environment                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Up to 1,000,000 entities   | MongoDB Atlas M20–M30 (shared) or dedicated M30                                                                          |
+| Up to 50,000,000 entities  | Dedicated MongoDB Atlas M30 (T30 / PREMIUM)                                                                              |
+| Up to 250,000,000 entities | Dedicated MongoDB Atlas M40+ (T40 / ENTERPRISE); **M50 recommended** if entity and temporal ceilings are filled together |
 
-**A:** 以下のケースでクエリパフォーマンスが低下する可能性があります。
+### Q: クエリが遅くなるケースはありますか？
 
-#### インデックスを活用するクエリ(高速)
+**A:** 次のようなケースでクエリパフォーマンスが低下する可能性があります。
+
+#### インデックスを活用するクエリ（高速）
 
 
 * エンティティ ID による検索
   
 * エンティティタイプによるフィルタリング
   
-* ジオクエリ(`georel`、`geometry`、`coordinates`)
+* 地理クエリ（`georel`、`geometry`、`coordinates`）
   
-* 最終更新日時(`modifiedAt`)によるソート
+* 最終更新日による並べ替え（`modifiedAt`）
   
 * `observedAt` による時系列データ検索
 
-#### 注意が必要なクエリ(潜在的に低速)
+#### 注意が必要なクエリ（潜在的に遅い）
 
 | Query Pattern                            | Reason                    | Mitigation                       |
 | ---------------------------------------- | ------------------------- | -------------------------------- |
@@ -73,9 +77,18 @@ GeonicDB についてよくある質問と回答のコレクションです。
 | Wide-range Geo searches                  | Too many candidates       | Limit the search area            |
 | Retrieving all records without `limit`   | High memory consumption   | Always use pagination            |
 
-### Q: 時系列(Temporal)データで注意すべきことは?
+### Q: 時系列（Temporal）データで注意すべきことは何ですか？
 
-**A:** 時系列データのボリュームは、エンティティ数 x 属性数 x 時間間隔で急速に増大します。
+**A:** Entity API への書き込みは、Temporal データに履歴レコードを自動的に追加**しません**。履歴を記録するには、次のいずれかを使用してください：
+
+
+1. Temporal API に明示的に書き込む（`POST /ngsi-ld/v1/temporal/entities`、temporal バッチエンドポイント）。MCP および A2A temporal ツールは同じ Temporal サービスを呼び出します。
+   
+2. `appendToTemporal` アクションを持つ ReactiveCore ルールを設定し、一致するエンティティの変更が Temporal 履歴に追加されるようにする（[REACTIVCORE\_RULES.md](./features/reactivcore-rules.md)）。
+
+この Entity API / Temporal API の分離は意図的なものです（[#344](https://github.com/geolonia/geonicdb/issues/344) を参照）：暗黙的な副作用を回避し、現在の状態の書き込みと履歴管理を別々の責任として保ち、Entity API の標準動作を変更せずに維持します（自動追加を追加すると、標準的な Entity API 書き込みの動作が変わります）。これは GeonicDB の設計上の決定です — ETSI GS CIM 009 は、Context Brokerが自動記録をスキップすることを要求していません。運用上の副作用として、これによりデフォルトですべてのエンティティ更新による無制限の履歴増加も防止されます。
+
+時系列データのボリュームは、エンティティ数 x 属性数 x 時間間隔によって急速に増加するため、保持期間と容量を明示的に計画してください。
 
 #### 推奨設定
 
@@ -84,35 +97,35 @@ GeonicDB についてよくある質問と回答のコレクションです。
 # expireAfterSeconds can be set in MongoDB Atlas collection settings
 ```
 
-#### データボリューム推定例
+#### データ量推定例
 
 ```text
 1,000 entities x 10 attributes x 1-minute interval x 24 hours x 30 days
 = approximately 430 million records/month
 ```
 
-大量の時系列データを扱う場合は、専用の時系列データベース(TimescaleDB、InfluxDB)との統合を検討してください。
+大量の時系列データを処理する場合は、専用の時系列データベース（TimescaleDB、InfluxDB）との統合を検討してください。
 
 ***
 
 ## FIWARE Orion との違い
 
-### Q: FIWARE Orion との互換性は?
+### Q: FIWARE Orion との互換性はありますか?
 
-**A:** NGSIv2 API は高い互換性があります。詳細は [FIWARE Orion 比較ドキュメント](./migration/compatibility-matrix.md) を参照してください。
+**A:** NGSIv2 API は高い互換性があります。GeonicDB 側のカバー範囲は以下の通りです。特定の Orion バージョンがサポートする内容については、[公式 FIWARE Orion ドキュメント](https://fiware-orion.readthedocs.io/) を参照してください。
 
 #### 互換機能
 
 
 * NGSIv2 エンティティ CRUD 操作
   
-* サブスクリプション(通知)
+* サブスクリプション (通知)
   
-* 地理空間クエリ
+* Geo クエリ
   
 * バッチ操作
   
-* レジストレーション(Context Provider)
+* レジストレーション (Context Provider)
 
 #### GeonicDB 独自機能
 
@@ -123,9 +136,7 @@ GeonicDB についてよくある質問と回答のコレクションです。
   
 * マルチテナンシー
   
-* AI ツール連携(MCP)
-  
-* ベクトルタイル出力
+* AI ツール連携 (MCP)
   
 * スナップショット機能
 
@@ -157,9 +168,8 @@ curl -X POST "https://api.example.com/v2/op/update" \
 | ------------------------ | --------------------------------------------------- |
 | AWS Lambda + API Gateway | Recommended. Serverless with automatic scaling      |
 | Local (`npm start`)      | For development and testing. Uses in-memory MongoDB |
-| Docker                   | Can run in any container environment                |
 
-### Q: どの MongoDB を使うべきですか?
+### Q: どの MongoDB を使用すればよいですか?
 
 **A:** 以下のいずれかを推奨します。
 
@@ -168,11 +178,11 @@ curl -X POST "https://api.example.com/v2/op/update" \
 | MongoDB Atlas       | Recommended. Fully managed, automatic scaling |
 | Self-hosted MongoDB | Full control, but high operational overhead   |
 
-> **注意**: MongoDB 8.0 以上が必要です(Time Series Collection サポートのため)。Amazon DocumentDB は Time Series Collections をサポートしていないため非対応です。
+> **注意**: MongoDB 8.0 以上が必要です (Time Series Collection サポートのため)。Amazon DocumentDB は Time Series Collection をサポートしていないため使用できません。
 
-### Q: コストの目安は?
+### Q: 推定コストはどのくらいですか?
 
-**A:** サーバーレスアーキテクチャのため、使った分だけ課金されます。
+**A:** サーバーレスアーキテクチャのため、使用した分だけ課金されます。
 
 | Component           | Small scale (100,000 requests/month) | Medium scale (1,000,000 requests/month) |
 | ------------------- | ------------------------------------ | --------------------------------------- |
@@ -182,7 +192,7 @@ curl -X POST "https://api.example.com/v2/op/update" \
 | **Total**           | **\~$70/month**                      | **\~$115/month**                        |
 
 
-* 実際のコストはリージョン、データ量、リクエストパターンによって変動します。
+* 実際のコストはリージョン、データ量、リクエストパターンによって異なります。
 
 ***
 
@@ -192,13 +202,13 @@ curl -X POST "https://api.example.com/v2/op/update" \
 
 **A:** ユースケースに基づいて選択してください。
 
-| Perspective           | NGSIv2                                           | NGSI-LD                                           |
-| --------------------- | ------------------------------------------------ | ------------------------------------------------- |
-| Learning curve        | Low                                              | Somewhat high (requires understanding of JSON-LD) |
-| FIWARE ecosystem      | Many tools available                             | Number of compatible tools is growing             |
-| Time-series data      | Not supported (requires separate implementation) | Standard support via Temporal API                 |
-| Data interoperability | Limited                                          | High via JSON-LD                                  |
-| Recommended use       | Integration with existing FIWARE systems         | New development, data interoperability focus      |
+| Perspective           | NGSIv2                                           | NGSI-LD                                                                                                                                        |
+| --------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Learning curve        | Low                                              | Somewhat high (requires understanding of JSON-LD)                                                                                              |
+| FIWARE ecosystem      | Many tools available                             | Number of compatible tools is growing                                                                                                          |
+| Time-series data      | Not supported (requires separate implementation) | Standard support via Temporal API (explicit Temporal writes or `appendToTemporal` rules are required; Entity API writes are not auto-recorded) |
+| Data interoperability | Limited                                          | High via JSON-LD                                                                                                                               |
+| Recommended use       | Integration with existing FIWARE systems         | New development, data interoperability focus                                                                                                   |
 
 ### Q: 認証なしで使用できますか？
 
@@ -215,29 +225,28 @@ curl -X GET "https://api.example.com/v2/entities" \
   -H "Authorization: Bearer <access_token>"
 ```
 
-### Q: テナント (Fiware-Service) は必要ですか？
+### Q: テナント (Fiware-Service) は必須ですか？
 
 **A:** 必須ではありませんが、指定しない場合は `default` テナントが使用されます。本番環境では明示的にテナントを指定することを推奨します。
 
 ***
 
-## 地理空間拡張機能
+## 地理空間拡張
 
-### Q: 地理空間拡張機能とは何ですか?
+### Q: 地理空間拡張とは何ですか?
 
-**A:** NGSI 標準の Geo クエリに加えて、GeonicDB が提供する独自の地理空間機能です。これらを総称して「地理空間拡張機能」と呼びます。
+**A:** NGSI 標準の Geo クエリに加えて、GeonicDB は独自の地理空間機能を提供しています。これらをまとめて「地理空間拡張」と呼びます。
 
 #### 機能一覧
 
-| Feature      | Description                                | Supported APIs  |
-| ------------ | ------------------------------------------ | --------------- |
-| Geo queries  | NGSI standard geospatial search            | NGSIv2, NGSI-LD |
-| Vector tiles | GeoJSON tile output for map display        | NGSIv2, NGSI-LD |
-| Spatial ID   | Japan Digital Agency 3D Spatial ID support | NGSIv2, NGSI-LD |
+| Feature     | Description                                | Supported APIs  |
+| ----------- | ------------------------------------------ | --------------- |
+| Geo queries | NGSI standard geospatial search            | NGSIv2, NGSI-LD |
+| Spatial ID  | Japan Digital Agency 3D Spatial ID support | NGSIv2, NGSI-LD |
 
-### Q: Geo クエリで何ができますか？
+### Q: Geo クエリで何ができますか?
 
-**A:** 地理的条件を使用して、位置情報を持つエンティティを検索できます。
+**A:** 地理的条件を使用して位置情報を持つエンティティを検索できます。
 
 #### サポートされているジオメトリタイプ
 
@@ -270,53 +279,9 @@ curl -X GET "http://localhost:3000/v2/entities?georel=within&geometry=polygon&co
   -H "Fiware-Service: default"
 ```
 
-### Q: ベクタータイルとは何ですか?
-
-**A:** 地図アプリケーション向けに、エンティティの位置情報を GeoJSON タイル形式で出力する機能です。
-
-#### 機能
-
-
-* **タイル座標系**: Web Mercator (z/x/y 形式)
-  
-* **クラスタリング**: ズームレベルに基づいてポイントを自動的に集約
-  
-* **TileJSON サポート**: MapLibre GL JS などの地図ライブラリと統合可能
-
-#### エンドポイント
-
-```bash
-# Get TileJSON metadata
-curl -X GET "http://localhost:3000/v2/tiles.json" \
-  -H "Fiware-Service: default"
-
-# Get tile (example: z=14, x=14552, y=6451)
-curl -X GET "http://localhost:3000/v2/tiles/14/14552/6451.geojson" \
-  -H "Fiware-Service: default"
-```
-
-#### MapLibre GL JS での使用例
-
-```javascript
-map.addSource('entities', {
-  type: 'geojson',
-  data: 'http://localhost:3000/v2/tiles/14/14552/6451.geojson'
-});
-
-map.addLayer({
-  id: 'entity-points',
-  type: 'circle',
-  source: 'entities',
-  paint: {
-    'circle-radius': 6,
-    'circle-color': '#007cbf'
-  }
-});
-```
-
 ### Q: Spatial ID とは何ですか?
 
-**A:** 日本のデジタル庁/IPA によって制定された「3次元空間識別子」仕様をサポートする機能です。緯度経度に加えて高度(階層)を含む 3D 空間の一意な識別を可能にします。
+**A:** 日本のデジタル庁/IPA が制定した「3次元空間ID」仕様をサポートする機能です。緯度経度に加えて高度(階層)を含む 3次元空間の一意な識別を可能にします。
 
 #### Spatial ID フォーマット
 
@@ -350,7 +315,7 @@ y: Y tile coordinate
 
 * 屋内測位(建物内の階層識別)
   
-* ドローン飛行経路管理
+* ドローンの飛行経路管理
   
 * 3D 都市モデルとの統合
   
@@ -358,9 +323,9 @@ y: Y tile coordinate
 
 ### Q: GeoProperty を設定するにはどうすればよいですか?
 
-**A:** エンティティに位置情報を保存するには、`location` 属性に GeoJSON 形式で座標を設定します。
+**A:** エンティティに位置情報を保存するには、`location` 属性に GeoJSON フォーマットで座標を設定します。
 
-#### NGSIv2 形式
+#### NGSIv2 フォーマット
 
 ```json
 {
@@ -376,7 +341,7 @@ y: Y tile coordinate
 }
 ```
 
-#### NGSI-LD 形式
+#### NGSI-LD フォーマット
 
 ```json
 {
@@ -392,7 +357,7 @@ y: Y tile coordinate
 }
 ```
 
-**注**: 座標は `[longitude, latitude]` の順序です (GeoJSON 標準)。
+**注意**: 座標は `[経度, 緯度]` の順序です(GeoJSON 標準)。
 
 ***
 
@@ -408,9 +373,9 @@ y: Y tile coordinate
 | IP whitelist        | Restrict allowed IPs per tenant                                         |
 | API Key (X-Api-Key) | Lightweight authentication for IoT devices and third-party integrations |
 
-### Q: ロール (権限) にはどのような種類がありますか?
+### Q: ロール(権限)にはどのような種類がありますか?
 
-**A:** ロールには 4 種類があります。
+**A:** 4 種類のロールがあります。
 
 | Role           | Permissions                                                                             |
 | -------------- | --------------------------------------------------------------------------------------- |
@@ -431,8 +396,6 @@ y: Y tile coordinate
 
 
 * [API 仕様](./api-reference/endpoints.md)
-  
-* [FIWARE Orion 比較](./migration/compatibility-matrix.md)
   
 * 開発とデプロイメントガイド
   
