@@ -500,7 +500,7 @@ Manage context source registrations (`/ngsi-ld/v1/csourceRegistrations`). Alias:
 
 | Command | Description |
 |---------|-------------|
-| `geonic reg list` | List registrations |
+| `geonic reg list` | List registrations. **Breaking (#2304):** `GET /csourceRegistrations` now requires `type` / `attrs` / `q` / a geoquery; this command 400s until [geonicdb-cli#201](https://github.com/geolonia/geonicdb-cli/issues/201) adds those flags |
 | `geonic reg get <id>` | Get a registration |
 | `geonic reg create [json]` | Create a registration |
 | `geonic reg update <id> [json]` | Update a registration |
