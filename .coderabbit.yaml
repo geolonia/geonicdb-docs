@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+inheritance: true
 language: ja
 tone_instructions: "日本語でレビューしてください"
 reviews:
