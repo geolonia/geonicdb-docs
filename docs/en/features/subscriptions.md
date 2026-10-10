@@ -24,13 +24,25 @@ GeonicDB supports real-time event streaming via WebSocket. You can subscribe to 
 
 Event Streaming adds a parallel path to the existing MongoDB Change Streams → EventBridge pipeline, broadcasting entity changes to WebSocket clients.
 
+### WebSocket is an NGSI-LD reader (#2284)
+
+**A WebSocket connection streams NGSI-LD entity changes only. Changes made through the NGSIv2 API are never delivered to it.**
+
+This follows from what the socket already is: delivered events carry the NGSI-LD *normalized* representation compacted with the subscription `@context` (#2026 / #2044), and the `entityTypes` selector is canonicalized with that same `@context` (#2055). Entities are protocol-isolated (#964 — an entity created through `POST /v2/entities` is invisible to NGSI-LD reads and vice versa), and a socket is a *continuous read*, so the same boundary applies to it. Before #2284 it did not: the broadcast filter compared tenant, deployment, entity type and id pattern but never the protocol, so an NGSIv2 write reached NGSI-LD subscribers — the WebSocket cell of the same gap #2253 closed for HTTP subscriptions.
+
+Consequences:
+
+- To stream a change, write it through the NGSI-LD API (`/ngsi-ld/v1/entities`, `/ngsi-ld/v1/entityOperations/*`). NGSIv2 writers can use HTTP subscriptions (`/v2/subscriptions`) instead — those keep matching NGSIv2 changes.
+- Entities stored without a `protocol` field (predating protocol isolation) are treated as NGSI-LD, matching how they are read (see [INTEROPERABILITY.md](../core-concepts/ngsiv2-vs-ngsild.md)), so their changes are still delivered.
+- Authorization is framed on the NGSI-LD entity read path — see [WebSocket policies must permit the NGSI-LD read path](#websocket-policies-must-permit-the-ngsi-ld-read-path-2284) below and [AUTH.md](../reference/auth.md#websocket-authorization-ws--get).
+
 ### Notification Channel Comparison
 
 | Channel | Direction | Filtering | Latency |
 |---------|-----------|-----------|---------|
 | HTTP Webhook (existing) | Push | Subscription conditions | ~1 min |
 | MQTT (existing) | Push | Subscription conditions | ~1 min |
-| WebSocket (this feature) | Push | Tenant + entity type/ID pattern | ~1 min |
+| WebSocket (this feature) | Push | Tenant + entity type/ID pattern (**NGSI-LD changes only**, #2284) | ~1 min |
 
 ---
 
@@ -80,10 +92,11 @@ ws://localhost:3000?tenant={tenantName}
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `tenant` | ✅ | Tenant name (equivalent to the `Fiware-Service` header) |
+| `deployment` | No | Deployment hostname for non-default deployments (#2867). When the shared execute-api WebSocket endpoint is used (as returned by `GET /sdk/v1/streaming`), clients on a dedicated deployment **must** pass the same hostname registered in the `deployments` table (e.g. `ee24n6hnas.geonicdb.geolonia.com`). Omitted = Host-based resolution (unknown execute-api Host falls back to the env default DB). When present, resolution is **strict**: unknown, reserved, over-length, or disabled hostnames are rejected (403/400), and lookup infrastructure failures return 503. The GeonicDB SDK adds this parameter automatically when discovery returns a `deployment` field. |
 
 ### Authentication
 
-When `AUTH_ENABLED=true`, an authentication token is required to establish a WebSocket connection. The token is extracted in the following order of priority:
+Authentication is enabled by default (it is disabled only by an explicit `AUTH_ENABLED=false`, intended for local development). While enabled, an authentication token is required to establish a WebSocket connection. The token is extracted in the following order of priority:
 
 1. **`Authorization` header (recommended)**: `Authorization: Bearer <token>` — the most secure method
 2. **`Sec-WebSocket-Protocol` header (for browsers)**: `Sec-WebSocket-Protocol: access_token, <token>` — use this when a browser client cannot set the `Authorization` header
@@ -124,7 +137,8 @@ When `AUTH_ENABLED=true`, an authentication token is required to establish a Web
 {
   "action": "subscribe",
   "entityTypes": ["Room", "Sensor"],
-  "idPattern": "urn:ngsi-ld:Room:.*"
+  "idPattern": "urn:ngsi-ld:Room:.*",
+  "@context": "https://example.org/my-context.jsonld"
 }
 ```
 
@@ -132,7 +146,22 @@ When `AUTH_ENABLED=true`, an authentication token is required to establish a Web
 |-------|------|-------------|
 | `action` | string | `subscribe` |
 | `entityTypes` | string[] | Entity types to filter |
-| `idPattern` | string | Regular expression pattern for entity IDs |
+| `@context` | string \| string[] | **#2026.** JSON-LD `@context` used to render delivered events — the entity type and attribute names are compacted against it (ETSI GS CIM 009 clause 5.5.7), and the value is echoed back in each event's `@context` member. Omit it to get the core `@context` (names come through in stored form). Only URL strings (or an array of them, max 10 entries, 2048 chars each) are accepted; inline context objects are rejected so a single message cannot dictate unbounded resolution work. **It also governs `entityTypes` matching** — since #2055 the supplied `@context` is resolved once at `subscribe` time to expand `entityTypes` into the canonical stored form, so a term defined by a custom `@context` does change which entities match. `idPattern` alone is matched against the stored form verbatim. |
+| `idPattern` | string | Regular expression pattern for entity IDs. Omit the field to leave any existing ID filter untouched; send an **empty string** (`""`) to clear it and receive every entity ID again. Any other value is screened by the same ReDoS validation as every other regex entry point (max 200 chars, must compile, no quantified group containing an alternation or a nested quantifier — see SECURITY.md). Non-strings — including `null` — are rejected, matching how `entityTypes` is validated in the same message. A rejected value returns an error and leaves the existing subscription unchanged; the identical decision is made whether the broker runs on Lambda or standalone (#1931). |
+
+##### Subscription acknowledgement (#2055)
+
+On success the server replies with:
+
+```json
+{ "type": "subscribed" }
+```
+
+**Wait for this frame before assuming the filter is active.** Applying a `subscribe` is asynchronous — the server resolves the supplied `@context` in order to expand `entityTypes` to the canonical form used for matching (ETSI GS CIM 009 clause 5.5.7). Events published in the window between the `subscribe` frame and this acknowledgement are not guaranteed to be delivered.
+
+Note that `ping`/`pong` cannot be used as a substitute barrier: inbound messages are not processed sequentially per connection, so a `pong` may be returned while the `subscribe` is still being applied.
+
+A rejected `subscribe` (invalid `entityTypes` / `idPattern` / `@context`, or an authorization denial) returns `{"type": "error", "message": "..."}` instead, and no acknowledgement is sent.
 
 #### dpop_bind (DPoP proof verification)
 
@@ -169,10 +198,11 @@ The server returns `{"type": "pong"}`. Send a ping every 5 minutes to prevent th
   "entityId": "urn:ngsi-ld:Room:001",
   "entityType": "Room",
   "data": {
-    "temperature": { "type": "Number", "value": 23.5 }
+    "temperature": { "type": "Property", "value": 23.5 }
   },
   "changedAttributes": ["temperature"],
-  "timestamp": "2024-01-01T00:00:00Z"
+  "timestamp": "2024-01-01T00:00:00Z",
+  "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.9.jsonld"
 }
 ```
 
@@ -182,15 +212,45 @@ The server returns `{"type": "pong"}`. Send a ping every 5 minutes to prevent th
 | `tenant` | string | Tenant name |
 | `servicePath` | string | Service path |
 | `entityId` | string | Entity ID |
-| `entityType` | string | Entity type |
-| `data` | object | Entity attribute data |
+| `entityType` | string \| string[] | Entity type(s), compacted with the subscription `@context` (clause 5.5.7). **#2477:** a single type is a string; multi-type entities use a string array (Table 5.2.4 / same rule as GET). |
+| `data` | object | Entity attributes in **NGSI-LD normalized representation** (clause 4.5.2). Attribute names are compacted with the subscription `@context`; sub-attributes appear inline; multi-attributes (clause 4.5.5) appear as an instance array carrying `datasetId` |
 | `changedAttributes` | string[] | Names of changed attributes (on update only) |
 | `timestamp` | string | Event timestamp (ISO 8601) |
+| `@context` | string \| string[] | **#2026.** The vocabulary `entityType` and the `data` keys were rendered with — the subscription `@context`, or the core `@context` when none was given |
+
+> **Changed in #2026 / #2044.** Events used to carry the broker's internal attribute form:
+> NGSIv2-style type names (`"Number"`, `"Text"`), sub-attributes nested under a `metadata`
+> wrapper, fully qualified attribute/type names with no `@context` to resolve them against, and
+> multi-attribute instances in internal shape. Delivered events now go through the **same
+> representation layer as HTTP notifications**, so `data` is NGSI-LD normalized. The envelope keys
+> themselves are unchanged and `@context` is purely additive — clients that ignore it keep working.
+
+> **`entityDeleted` on TTL expiry (#1561)**: entities created with `expiresAt` also fire
+> `entityDeleted` when they expire — a background *expiry sweeper* claims TTL-expired entities
+> (`expiresAt <= now`) at most once per minute and publishes the event, since MongoDB's own TTL
+> monitor deletes documents outside the application layer and would otherwise leave clients
+> unaware. Delivery is best-effort like any other change event: a sweep failure between claiming
+> the entity and publishing means the notification can be lost (the entity itself is still marked
+> deleted and becomes invisible via the API within the same sweep). Expect the event up to ~1
+> minute after `expiresAt` elapses, not instantaneously.
+>
+> **Snapshot clone / restore (#1563)**: `POST /ngsi-ld/v1/snapshots/{id}/clone` writes entities
+> outside `EntityService` (`replaceOne` / `insertOne`). It now publishes `entityCreated` (insert)
+> or `entityUpdated` (replace) through `createEventPublisher()` so WebSocket / subscription
+> subscribers see the restore. Fan-out volume is bounded by the existing notification fan-out
+> quota (#1544) at send time — clone does not add a separate cap.
+>
+> **Paths that intentionally do not emit (#1563)**: tenant cascade delete
+> (`tenant-data-cleanup.service.ts`) and invalid-geo quarantine during index creation
+> (`quarantineInvalidGeoDocument` in `client.ts`) remain event-less by design — the former to
+> avoid a notification flood on tenant teardown, the latter because it is infrastructure repair
+> rather than a business change. Both decisions are recorded in code comments.
 
 ### Filtering
 
-Filtering is applied in three layers, in this order:
+Filtering is applied in four layers, in this order:
 
+0. **Protocol filter (#2284, not configurable)** — only changes made through the **NGSI-LD** API are broadcast at all. NGSIv2 changes are dropped before any connection is considered (`WS_DELIVERY_PROTOCOL_MISMATCH` at `debug` level). See [WebSocket is an NGSI-LD reader](#websocket-is-an-ngsi-ld-reader-2284).
 1. **Tenant filter (required)** — automatically applied via the `tenant` query parameter at connection time.
 2. **Connection-side `subscribe` filters (optional)** — the client narrows what it wants:
    - `entityTypes`: array of entity types to receive
@@ -206,10 +266,29 @@ When the broadcaster authorizes a delivery, it injects these per-entity resource
 | `entityType` | event's entity type |
 | `entityId` | event's entity ID |
 | `entityOwner` | event entity's `createdBy` (the user who originally `POST`ed the entity) |
+| `scope` | event entity's `scope`, comma-joined — same matching semantics as entity-level checks and the list-query row filter (#1369/#1383) |
 
-This lets you write **per-user delivery filters** like "each user only receives events for entities they created" using a single XACML policy with `${subject.userId}` template expansion against `entityOwner`. See [`docs/AUTH.md` — Per-entity attributes at broadcast time](../reference/auth.md#per-entity-attributes-at-broadcast-time-1107) for a complete policy example.
+This lets you write **per-user delivery filters** like "each user only receives events for entities they created" using a single XACML policy with `${subject.userId}` template expansion against `entityOwner`. See [`docs/AUTH.md` — Per-entity attributes at broadcast time](../reference/auth.md#per-entity-attributes-at-broadcast-time-1107--1383) for a complete policy example.
 
 > Entities written without authentication (or via legacy / batch paths that don't set `createdBy`) emit events with no `owner` attribute — owner-based rules will not match those events, so design your policies with that fallback in mind.
+
+#### WebSocket policies must permit the NGSI-LD read path (#2284)
+
+`authorizeWs()` frames every WebSocket decision on `resource.path = /ngsi-ld/v1/entities`. It used to send `/v2/entities`, which contradicted the NGSI-LD representation and selector handling on the same socket.
+
+**This is a breaking change for custom policies that granted WebSocket access through an NGSIv2 path glob only** (e.g. a rule whose target is `{"attributeId": "path", "matchValue": "/v2/**"}`). Such a rule is no longer part of the target set for WebSocket requests, so it supplies no `Permit` and the subscription is denied. The role defaults (`user`, `tenant_admin`) permit `/v2/**` *and* `/ngsi-ld/**`, so principals that rely on a role default are unaffected.
+
+Migration: add (or widen to) a rule matching `/ngsi-ld/**` — or the concrete `/ngsi-ld/v1/entities` — for the same subject, keeping any `entityType` / `entityOwner` / `scope` conditions as they are. To find affected policies, watch for this warning at `subscribe` time:
+
+```json
+{ "level": "WARN", "errorCode": "WS_AUTHZ_FRAME_MIGRATION_REQUIRED", "wsFramePath": "/ngsi-ld/v1/entities", "legacyFramePath": "/v2/entities" }
+```
+
+It is emitted when a subscribe is denied under the NGSI-LD frame but *would* have been permitted under the old NGSIv2 frame — i.e. exactly the policies that need widening. The decision is still `Deny`: honouring the legacy frame would let a principal restricted to NGSIv2 reads receive NGSI-LD entities, which is the boundary #2284 closes.
+
+**The reverse direction needs a migration, not a warning.** A policy that *restricted* WebSocket delivery through a `/v2/**` glob (e.g. "only entities this user created") also falls out of target under the new frame — and there the role default's `Permit` survives, so the socket receives **everything of that type in the tenant**.
+
+A transitional safety net used to honour an explicit legacy `Deny` for this case. **It was removed in [#2326](https://github.com/geolonia/geonicdb/issues/2326)** after the migration completed and the corresponding warning was never observed. **Restricting policies scoped to `/v2/**` alone no longer restrict WebSocket delivery — re-scope them to `/ngsi-ld/**`.**
 
 ---
 
@@ -311,7 +390,19 @@ Minimal connection example without authentication:
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === 'pong') return;
+      // Control frames carry no entityId/data, so they must not go down the
+      // entity-event path. `dpop_verified` acknowledges a `dpop_bind`.
+      if (data.type === 'pong' || data.type === 'dpop_verified') return;
+      // #2055: the subscription filter is now active on the server.
+      if (data.type === 'subscribed') {
+        console.log('✅ Subscription active');
+        return;
+      }
+      // `error` covers every server-side rejection, not just `subscribe`.
+      if (data.type === 'error') {
+        console.error('❌ WebSocket error:', data.message);
+        return;
+      }
 
       // Display event on screen
       const eventDiv = document.createElement('div');
@@ -331,15 +422,26 @@ Minimal connection example without authentication:
 ```typescript
 import { useEffect, useRef, useState } from 'react';
 
+// Control frames carry no entity payload — keep them out of the entity event type.
+// `subscribed` (#2055) means the subscription filter is now active on the server;
+// `dpop_verified` acknowledges a successful `dpop_bind`; `error` covers every
+// server-side rejection (invalid JSON, DPoP failures, a rejected `subscribe`,
+// unknown action), so do not label it as subscribe-specific.
+interface ControlFrame {
+  type: 'pong' | 'subscribed' | 'dpop_verified' | 'error';
+  message?: string;
+}
+
 interface EntityEvent {
-  type: 'entityCreated' | 'entityUpdated' | 'entityDeleted' | 'pong';
+  type: 'entityCreated' | 'entityUpdated' | 'entityDeleted';
   tenant: string;
   entityId: string;
-  entityType: string;
+  entityType: string | string[];  // #2477: multi-type is string[]
   data: Record<string, any>;
   entity?: Record<string, any>;  // Complete NGSI-LD entity ({ id, type, ...data }). Undefined for some delete events.
   changedAttributes?: string[];
   timestamp: string;
+  '@context'?: string | string[];  // #2026: vocabulary the names were rendered with
 }
 
 interface UseGeonicDBWebSocketOptions {
@@ -348,6 +450,8 @@ interface UseGeonicDBWebSocketOptions {
   token?: string;
   entityTypes?: string[];
   onEvent?: (event: EntityEvent) => void;
+  /** #2055: fired once the server has activated the subscription filter. */
+  onSubscribed?: () => void;
 }
 
 export function useGeonicDBWebSocket({
@@ -355,7 +459,8 @@ export function useGeonicDBWebSocket({
   tenant,
   token,
   entityTypes,
-  onEvent
+  onEvent,
+  onSubscribed
 }: UseGeonicDBWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -390,10 +495,21 @@ export function useGeonicDBWebSocket({
     };
 
     ws.onmessage = (event) => {
-      const data: EntityEvent = JSON.parse(event.data);
-      if (data.type !== 'pong' && onEvent) {
-        onEvent(data);
+      const data: ControlFrame | EntityEvent = JSON.parse(event.data);
+
+      // Control frames first — they have no entity payload, so passing them to
+      // onEvent would append `undefined` entity ids to the caller's event list.
+      if (data.type === 'pong' || data.type === 'dpop_verified') return;
+      if (data.type === 'subscribed') {
+        onSubscribed?.();
+        return;
       }
+      if (data.type === 'error') {
+        console.error('❌ WebSocket error:', (data as ControlFrame).message);
+        return;
+      }
+
+      onEvent?.(data as EntityEvent);
     };
 
     ws.onerror = (error) => {
@@ -415,7 +531,9 @@ export function useGeonicDBWebSocket({
       }
       ws.close();
     };
-  }, [wsUrl, tenant, token, entityTypes, onEvent]);
+    // `onSubscribed` is captured by the `onmessage` closure, so it belongs here —
+    // otherwise a re-rendered parent's new callback never sees the ACK.
+  }, [wsUrl, tenant, token, entityTypes, onEvent, onSubscribed]);
 
   return { isConnected };
 }
@@ -721,7 +839,7 @@ onUnmounted(() => {
 **Causes:**
 - Token is invalid or expired
 - No access permission for the tenant
-- Token not provided despite `AUTH_ENABLED=true`
+- Token not provided while authentication is enabled (the default)
 
 **Resolution:**
 
@@ -753,8 +871,10 @@ setInterval(() => {
 ### 3. Not Receiving Events
 
 **Causes:**
+- **The change was written through the NGSIv2 API (#2284)** — WebSocket streams NGSI-LD changes only
 - Filters are too restrictive
 - Wrong tenant
+- A custom XACML policy grants read access on `/v2/**` only (see [#2284 migration](#websocket-policies-must-permit-the-ngsi-ld-read-path-2284) — it no longer targets WebSocket, so no `Permit` is supplied)
 - Entity creation/update has not actually occurred
 
 **Resolution:**
@@ -822,8 +942,21 @@ class DebugWebSocket {
 | Concurrent connections | 500 (default) | Can be increased via AWS Support |
 | Frame size | 128KB | Large entities require truncation |
 | Latency | ~1 minute | Depends on the MongoDB Change Stream polling interval |
+| API protocol | NGSI-LD only | Changes written through the NGSIv2 API are not streamed (#2284) |
 | Connection TTL | 2 hours | Automatically cleaned up by DynamoDB TTL |
 | Local development | Supported | Available via local WebSocket server |
+
+### Multi-Deployment Routing (#1304)
+
+ホスト名ルーティングされたデプロイメント（マルチサブドメイン構成）に対応するため、イベントと接続レコードにデプロイメント情報が付与される:
+
+- **イベントスキーマ**: `EntityChangeEvent` / `RuleNotificationEvent` に `deployment?: { hostname: string }` フィールドが追加された（`undefined` = env デフォルト DB）。発行時に発生元デプロイメントが自動付与され、背景ワーカー（購読 matcher / notifier / rules / WS broadcaster）がこのホスト名で正しい DB に対して処理する
+- **WS 接続レコード**: `$connect` 時に `Host` ヘッダー、または `#2867` の `?deployment=` クエリパラメータからデプロイメントを解決し、接続レコードに `hostname` を保存する。broadcaster はイベントの発生元デプロイメントと接続の `hostname` が一致する接続にのみ配信する（デフォルト同士も一致扱い — 既存接続と後方互換）。認可（XACML）もそのデプロイメントの DB に対して評価される
+- **SDK ディスカバリ** (#2867): `GET /sdk/v1/streaming` はリクエスト `Host` が非 default デプロイメントに解決できる場合、レスポンスに `deployment` フィールド（hostname）を含める。SDK は `$connect` URL に `?deployment=` を自動付与する
+- **未知ホストの WS 接続**: `?deployment=` 省略時は Host ベース。HTTP と異なり 404 にせずデフォルト扱いで受け入れる（現状 WS は raw `execute-api` ドメインが唯一の経路のため）。**`?deployment=` 明示時は strict** — unknown / 予約語 / 超過長は拒否 (#2867)
+- **lookup 一時障害時の WS $connect** (#1306): デプロイメント解決がインフラ障害（`error`）で失敗した場合は fail-closed で **503** を返して接続を拒否する（デフォルト DB へフォールバックして誤った DB のデータを配信しないため）。Host ベースで未登録ホスト（`not_found`）はデフォルト扱いのまま。**`?deployment=` 明示時の unknown/not_found は 403**
+- **背景ワーカーの lookup 障害耐性** (#1306): EventBridge 駆動ワーカー（rules / WS broadcaster）と SQS 駆動 notifier は、lookup 一時障害イベントを再試行し、リトライ超過分を `<stack>-worker-dlq`（EventBridge 系）/ 通知 DLQ（SQS 系）に退避する。standalone 経路は有限リトライ後に skip する（再配信機構なし）
+- **制限**: デプロイメント DB への直接 DB 書き込み（API 非経由）は WS 配信されない（change stream バックアップはデフォルト DB のみ）
 
 ---
 
