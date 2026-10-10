@@ -37,7 +37,7 @@ outline: deep
   
   * [メール / パスワードログイン](#メール--パスワードログイン)
     
-  * [OAuth 2.0 Client Credentials](#oauth-20-client-credentials)
+  * [OAuth 2.0 クライアント認証情報](#oauth-20-client-credentials)
     
   * [トークン自動更新](#トークン自動更新)
     
@@ -49,7 +49,7 @@ outline: deep
   
 * [ドライラン](#ドライラン)
   
-* [更新通知](#更新通知)
+* [更新通知](#update-notifier)
   
 * [コマンドリファレンス](#コマンドリファレンス)
   
@@ -144,7 +144,7 @@ geonic entities get urn:ngsi-ld:Room:001
 
 ## グローバルオプション
 
-すべてのコマンドで使用可能です。優先順位ルールについては [Option Resolution Order](#option-resolution-order) を参照してください。
+すべてのコマンドで使用可能。優先順位のルールについては [Option Resolution Order](#option-resolution-order) を参照してください。
 
 | Option                 | Description                                                                |
 | ---------------------- | -------------------------------------------------------------------------- |
@@ -187,7 +187,7 @@ CLI は設定を `~/.config/geonic/config.json` に保存します。`GEONIC_CON
 
 #### `geonic config set <key> <value>`
 
-設定値を保存します。機密値(`token`、`refreshToken`、`apiKey`、`clientId`、`clientSecret`)は出力でマスクされます。
+設定値を保存します。機密性の高い値(`token`、`refreshToken`、`apiKey`、`clientId`、`clientSecret`)は出力時にマスクされます。
 
 #### `geonic config get <key>`
 
@@ -223,7 +223,7 @@ CLI は設定を `~/.config/geonic/config.json` に保存します。`GEONIC_CON
 
 #### `geonic profile show [name]`
 
-プロファイル設定を表示します。デフォルトではアクティブなプロファイルが対象です。機密値はマスクされます。
+プロファイル設定を表示します。デフォルトではアクティブなプロファイルが対象です。機密性の高い値はマスクされます。
 
 ### 環境変数
 
@@ -258,7 +258,7 @@ CLI は設定を `~/.config/geonic/config.json` に保存します。`GEONIC_CON
 geonic auth login
 ```
 
-ターミナルで実行する場合、CLI は対話的にメールとパスワードの入力を求めます。非対話環境では、`GDB_EMAIL` および `GDB_PASSWORD` 環境変数を設定してください。
+ターミナルで実行する場合、CLI は対話的にメールとパスワードの入力を求めます。非対話型環境では、`GDB_EMAIL` と `GDB_PASSWORD` 環境変数を設定してください。
 
 CLI は `POST /auth/login` を呼び出し、受信した `accessToken` と `refreshToken` を設定ファイルに保存します。
 
@@ -271,7 +271,7 @@ geonic auth login --client-credentials \
   --scope "read write"
 ```
 
-OAuth 2.0 Client Credentials フロー(`POST /oauth/token`)を使用します。Client ID とシークレットは `GDB_OAUTH_CLIENT_ID` および `GDB_OAUTH_CLIENT_SECRET` 環境変数でも設定できます。
+OAuth 2.0 Client Credentials フロー(`POST /oauth/token`)を使用します。Client ID とシークレットは `GDB_OAUTH_CLIENT_ID` と `GDB_OAUTH_CLIENT_SECRET` 環境変数でも設定できます。
 
 | Option                     | Description                         |
 | -------------------------- | ----------------------------------- |
@@ -283,9 +283,9 @@ OAuth 2.0 Client Credentials フロー(`POST /oauth/token`)を使用します。
 
 ### トークン自動更新
 
-リクエストが 401 Unauthorized を返し、`refreshToken` が利用可能な場合、CLI は `POST /auth/refresh` 経由で自動的にトークンを更新し、リクエストを再試行します。
+リクエストが 401 Unauthorized を返し、`refreshToken` が利用可能な場合、CLI は自動的に `POST /auth/refresh` でトークンを更新し、リクエストを再試行します。
 
-`clientId` と `clientSecret` が設定に保存されている場合(例:`geonic me oauth-clients create --save` 経由)、CLI はトークンの有効期限が切れると Client Credentials フローを使用して自動的に再認証します。
+`clientId` と `clientSecret` が設定に保存されている場合(例:`geonic me oauth-clients create --save` で保存)、CLI はトークンの有効期限が切れると自動的に Client Credentials フローで再認証を行います。
 
 ### ログアウト
 
@@ -299,7 +299,7 @@ geonic auth logout
 
 ## 入力形式
 
-`[json]` 引数を受け入れるコマンドは、複数の入力方法をサポートしています。CLI は入力元を自動検出します:
+`[json]` 引数を受け付けるコマンドは、複数の入力方法をサポートしています。CLI はソースを自動検出します:
 
 ### インライン JSON / JSON5
 
@@ -307,7 +307,7 @@ geonic auth logout
 geonic entities create '{"id": "urn:ngsi-ld:Room:001", "type": "Room"}'
 ```
 
-JSON5 がサポートされています:引用符なしのキー、シングルクォート、末尾のカンマ、およびコメント。
+JSON5 がサポートされています:引用符なしのキー、シングルクォート、末尾のカンマ、コメントが使用できます。
 
 ```bash
 geonic entities create '{id: "urn:ngsi-ld:Room:001", type: "Room",}'
@@ -333,7 +333,7 @@ cat entity.json | geonic entities create -
 
 ### 対話モード
 
-CLI がターミナルに接続されており、JSON 引数が提供されていない場合、対話型の `json>` プロンプトが開きます。入力は括弧がバランスすると自動的に送信されます。
+CLI がターミナルに接続されており、JSON 引数が提供されていない場合、対話的な `json>` プロンプトが開きます。括弧がバランスした時点で入力が自動送信されます。
 
 ***
 
@@ -353,7 +353,7 @@ CLI がターミナルに接続されており、JSON 引数が提供されて�
 
 ## ドライラン
 
-任意のコマンドで `--dry-run` を使用すると、リクエストを実行する代わりに同等の `curl` コマンドを出力します。出力はコピーしてターミナルで直接実行できます。
+任意のコマンドで `--dry-run` を使用すると、リクエストを実行する代わりに、同等の `curl` コマンドが出力されます。出力された内容はターミナルで直接コピーして実行できます。
 
 ```bash
 $ geonic entities list --type Sensor --dry-run
@@ -364,7 +364,7 @@ curl \
   'http://localhost:3000/ngsi-ld/v1/entities?type=Sensor'
 ```
 
-ボディを含む POST など、すべての操作で動作します:
+ボディを含む POST を含むすべての操作で動作します:
 
 ```bash
 $ geonic entities create '{"id":"Room1","type":"Room"}' --dry-run
@@ -378,9 +378,9 @@ curl \
 
 ***
 
-## 更新通知
+## 更新通知機能
 
-CLI は 24 時間ごとに新しいバージョンをチェックし、更新が利用可能な場合に通知ボックスを表示します。このチェックは CI 環境および非 TTY 端末ではスキップされます。`NO_UPDATE_NOTIFIER=1` を設定することで無効化できます。
+CLI は 24 時間ごとに新しいバージョンをチェックし、更新が利用可能な場合は通知ボックスを表示します。このチェックは CI 環境および非 TTY 端末ではスキップされます。`NO_UPDATE_NOTIFIER=1` を設定することで無効にできます。
 
 ***
 
@@ -388,7 +388,7 @@ CLI は 24 時間ごとに新しいバージョンをチェックし、更新が
 
 ### `entities`
 
-NGSI-LD コンテキストエンティティ (`/ngsi-ld/v1/entities`) を管理します。
+NGSI-LD コンテキストエンティティを管理します (`/ngsi-ld/v1/entities`)。
 
 #### `geonic entities list`
 
@@ -473,7 +473,7 @@ geonic entities update urn:ngsi-ld:Room:001 '{"temperature": {"type": "Property"
 
 ### `entities attrs`
 
-エンティティの個別属性を管理します。
+エンティティの個別の属性を管理します。
 
 | Command                                                     | Description                 |
 | ----------------------------------------------------------- | --------------------------- |
@@ -518,7 +518,7 @@ cat entities.json | geonic batch upsert
 
 ### `subscriptions` (sub)
 
-コンテキストサブスクリプションを管理 (`/ngsi-ld/v1/subscriptions`)。エイリアス: `sub`。
+コンテキストサブスクリプションを管理します (`/ngsi-ld/v1/subscriptions`)。エイリアス: `sub`。
 
 | Command                         | Description           |
 | ------------------------------- | --------------------- |
@@ -545,15 +545,15 @@ geonic sub create '{
 
 ### `registrations` (reg)
 
-コンテキストソース登録を管理 (`/ngsi-ld/v1/csourceRegistrations`)。エイリアス: `reg`。
+コンテキストソース登録を管理します (`/ngsi-ld/v1/csourceRegistrations`)。エイリアス: `reg`。
 
-| Command                         | Description           |
-| ------------------------------- | --------------------- |
-| `geonic reg list`               | List registrations    |
-| `geonic reg get <id>`           | Get a registration    |
-| `geonic reg create [json]`      | Create a registration |
-| `geonic reg update <id> [json]` | Update a registration |
-| `geonic reg delete <id>`        | Delete a registration |
+| Command                         | Description                                                                                                                                                                                                                              |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `geonic reg list`               | List registrations. **Breaking (#2304):** `GET /csourceRegistrations` now requires `type` / `attrs` / `q` / a geoquery; this command 400s until [geonicdb-cli#201](https://github.com/geolonia/geonicdb-cli/issues/201) adds those flags |
+| `geonic reg get <id>`           | Get a registration                                                                                                                                                                                                                       |
+| `geonic reg create [json]`      | Create a registration                                                                                                                                                                                                                    |
+| `geonic reg update <id> [json]` | Update a registration                                                                                                                                                                                                                    |
+| `geonic reg delete <id>`        | Delete a registration                                                                                                                                                                                                                    |
 
 **`reg list` オプション**: `--limit <n>`, `--offset <n>`, `--count`
 
@@ -561,7 +561,7 @@ geonic sub create '{
 
 ### `types`
 
-利用可能なエンティティタイプをクエリ (`/ngsi-ld/v1/types`)。
+利用可能なエンティティタイプを照会します (`/ngsi-ld/v1/types`)。
 
 | Command                       | Description                     |
 | ----------------------------- | ------------------------------- |
@@ -618,7 +618,7 @@ geonic temporal entities get urn:ngsi-ld:Room:001 \
 
 #### `geonic temporal entityOperations query [json]`
 
-POST による時系列エンティティのクエリを集約サポート付きで実行します。
+集約サポート付きで POST による時系列エンティティのクエリを実行します。
 
 | Option                     | Description                                          |
 | -------------------------- | ---------------------------------------------------- |
@@ -636,7 +636,7 @@ geonic temporal entityOperations query @query.json \
 
 ### `snapshots`
 
-エンティティのスナップショットを管理します。
+エンティティスナップショットを管理します。
 
 | Command                        | Description           |
 | ------------------------------ | --------------------- |
@@ -760,7 +760,7 @@ API キー管理。`tenant_admin` または `super_admin` ロールが必要で�
 | `geonic admin api-keys update <id> [json]` | Update an API key |
 | `geonic admin api-keys delete <id>`        | Delete an API key |
 
-**`admin api-keys list` オプション**: `--limit <n>`, `--offset <n>`, `--count`, `--tenant-id <id>` (super\_admin のみ)
+**`admin api-keys list` オプション**: `--limit <n>`、`--offset <n>`、`--count`、`--tenant-id <id>` (super\_admin のみ)
 
 ```bash
 # Create an API key with policy binding
@@ -827,11 +827,11 @@ CLI バージョンとサーバーバージョンを表示します (`GET /versi
 geonic me
 ```
 
-現在のユーザー情報、JWT トークンの有効期限(期限切れの場合は赤、5 分以内に期限切れになる場合は黄色)、およびアクティブなプロファイル名を表示します。
+現在のユーザー情報、JWT トークンの有効期限(期限切れの場合は赤、5 分以内に期限切れの場合は黄色)、およびアクティブなプロファイル名を表示します。
 
 #### `me oauth-clients`
 
-自分の OAuth クライアント(`/me/oauth-clients`)を管理します。`admin oauth-clients` とは異なり、管理者権限は不要です — 認証された任意のユーザーが自分のクライアントを管理できます。
+自分自身の OAuth クライアント (`/me/oauth-clients`) を管理します。`admin oauth-clients` とは異なり、これには管理者権限は必要ありません — 認証された任意のユーザーが自分自身のクライアントを管理できます。
 
 | Command                                 | Description               |
 | --------------------------------------- | ------------------------- |
@@ -858,11 +858,11 @@ geonic me oauth-clients create --name my-ci-bot --save
 geonic me oauth-clients create '{"name":"my-bot","policyId":"bot-access"}'
 ```
 
-`--save` を使用すると、CLI は即座に Client Credentials グラントを実行し、`clientId`、`clientSecret`、および結果として得られる `token` を設定に保存します。その後のトークンの有効期限切れは自動的に処理されます。
+`--save` を使用すると、CLI は直ちに Client Credentials グラントを実行し、`clientId`、`clientSecret`、および結果として得られる `token` を設定に保存します。その後のトークンの期限切れは自動的に処理されます。
 
 #### `me api-keys`
 
-自分の API キー(`/me/api-keys`)を管理します。`admin api-keys` とは異なり、管理者権限は不要です — 認証された任意のユーザーが自分のキーを管理できます。ユーザーあたり 5 個のキーに制限されています。
+自分自身の API キー (`/me/api-keys`) を管理します。`admin api-keys` とは異なり、これには管理者権限は必要ありません — 認証された任意のユーザーが自分自身のキーを管理できます。テナントごとにユーザーあたり 5 個のキーに制限されています。
 
 | Command                              | Description          |
 | ------------------------------------ | -------------------- |
@@ -887,7 +887,7 @@ geonic me api-keys list
 geonic me api-keys delete gdb_abc123
 ```
 
-> **注意**: プレーンテキストの API キーは、作成レスポンスの `key` フィールドで一度だけ返されます。安全に保管してください。
+> **注意**: プレーンテキストの API キーは、作成応答の `key` フィールドで一度だけ返されます。安全に保存してください。
 
 ### `help`
 
@@ -922,7 +922,7 @@ eval "$(geonic cli completions zsh)"
 
 永続化するには `~/.zshrc` に追加してください。
 
-補完機能はサブコマンド名、オプションフラグ、および `--format` の値候補(`json`、`table`、`geojson`)をサポートしています。
+補完はサブコマンド名、オプションフラグ、および `--format` の値候補(`json`、`table`、`geojson`)をサポートしています。
 
 ***
 
