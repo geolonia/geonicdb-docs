@@ -500,7 +500,7 @@ Manage context source registrations (`/ngsi-ld/v1/csourceRegistrations`). Alias:
 
 | Command | Description |
 |---------|-------------|
-| `geonic reg list` | List registrations |
+| `geonic reg list` | List registrations. **Breaking (#2304):** `GET /csourceRegistrations` now requires `type` / `attrs` / `q` / a geoquery; this command 400s until [geonicdb-cli#201](https://github.com/geolonia/geonicdb-cli/issues/201) adds those flags |
 | `geonic reg get <id>` | Get a registration |
 | `geonic reg create [json]` | Create a registration |
 | `geonic reg update <id> [json]` | Update a registration |
@@ -813,7 +813,7 @@ When `--save` is used, the CLI performs a Client Credentials grant immediately a
 
 #### `me api-keys`
 
-Manage your own API keys (`/me/api-keys`). Unlike `admin api-keys`, this does not require admin privileges — any authenticated user can manage their own keys. Limited to 5 keys per user.
+Manage your own API keys (`/me/api-keys`). Unlike `admin api-keys`, this does not require admin privileges — any authenticated user can manage their own keys. Limited to 5 keys per user per tenant.
 
 | Command | Description |
 |---------|-------------|
