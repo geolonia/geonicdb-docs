@@ -30,7 +30,9 @@ SDK はバンドルサイズを最適化するため 3 つのサブパスに分�
 | `@geolonia/geonicdb-sdk/react` | React hooks + GeonicDbMap コンポーネント | 必要（optional peerDep） |
 | `@geolonia/geonicdb-sdk/ngsi-v2` | NGSIv2 基本クライアント | 不要 |
 
-## コア (`@geolonia/geonicdb-sdk`)
+## コア (`@geolonia/geonicdb-sdk`
+
+)
 
 ```typescript
 import GeonicDB from '@geolonia/geonicdb-sdk';
@@ -55,7 +57,9 @@ await db.createEntity({
 });
 ```
 
-## React Hooks (`@geolonia/geonicdb-sdk/react`)
+## React Hooks (`@geolonia/geonicdb-sdk/react`
+
+)
 
 ### `useLdEntities`
 
@@ -140,7 +144,9 @@ function EntityMap({ client }) {
 
 > **注意:** `GeonicDbMap` は `@geolonia/embed` を動的 import で読み込みます。使用する場合は `npm install @geolonia/embed` が必要です。
 
-## NGSIv2 クライアント (`@geolonia/geonicdb-sdk/ngsi-v2`)
+## NGSIv2 クライアント (`@geolonia/geonicdb-sdk/ngsi-v2`
+
+)
 
 NGSIv2 互換 Context Broker 向けのクライアントです。
 
