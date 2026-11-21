@@ -47,13 +47,13 @@ GeonicDB の **ReactiveCore Rules** は、エンティティの変更を自動�
 
 * **自動エンティティ処理**: エンティティの作成、更新、削除を検出し、自動的にアクションを実行
   
-* **柔軟な条件設定**: 属性値、パターンマッチング、変更検出、時間範囲、エンティティタイプに基づいて条件を指定
+* **柔軟な条件設定**: 属性値、パターンマッチング、変更検出、時間範囲、エンティティタイプに基づいた条件を指定可能
   
 * **複数のアクションサポート**: 派生エンティティの作成、属性の更新、属性の削除、通知の送信、Webhook の呼び出し
   
 * **テンプレート変数**: `${entity.id}`、`${attribute.temperature.value}` などを使用して動的に値を参照
   
-* **優先度制御**: 複数のルールが一致する場合、優先度の昇順で実行
+* **優先度制御**: 複数のルールが一致した場合、優先度の昇順で実行
   
 * **テナント分離**: テナントごとに独立したルール管理
 
@@ -64,6 +64,8 @@ GeonicDB の **ReactiveCore Rules** は、エンティティの変更を自動�
 ```bash
 export RULES_ENABLED=true
 ```
+
+> **注意 (#1304)**: ホスト名ルーティングされたデプロイメント(マルチサブドメイン構成の専用 DB)でもルールは実行されます。API 経由のエンティティ変更はリクエストスコープでイベントを発行し、発生元デプロイメントの情報(`deployment.hostname`)を運んで rules ワーカーが正しい DB のルールを評価・実行します(アクションによる派生エンティティも同じ DB に作成されます)。**制限**: デプロイメント DB への直接 DB 書き込み(API を経由しない変更)はルールをトリガーしません — change stream によるバックアップ監視はデフォルト DB のみです。
 
 ### ローカル開発環境でのテスト
 
@@ -77,7 +79,7 @@ export RULES_ENABLED=true
 npm start
 ```
 
-起動時には、以下のような出力が表示されます。
+起動時には、次のような出力が表示されます。
 
 ```text
 ━━━ ReactiveCore Rules - Change Stream Started ━━━
@@ -147,7 +149,7 @@ curl -X POST "http://localhost:3000/v2/entities" \
 
 #### 4. Change Stream の出力を確認する
 
-`npm start` を実行しているターミナルには、以下のような出力が表示されます。
+`npm start` を実行しているターミナルには、次のような出力が表示されます。
 
 ```text
 ━━━ Entity Change Detected ━━━
@@ -166,7 +168,7 @@ curl -X GET "http://localhost:3000/v2/entities?type=Alert" \
   -H "Fiware-Service: test"
 ```
 
-応答例:
+レスポンス例:
 
 ```json
 [
@@ -192,14 +194,14 @@ curl -X GET "http://localhost:3000/v2/entities?type=Alert" \
 ]
 ```
 
-#### 注意事項
+#### Notes
 
 
 * **自動起動**: `npm start` を実行するだけで、MongoDB (レプリカセットモード) と Change Stream Watcher が自動的に起動します。
   
-* **レプリカセットモード**: Change Stream が必要とするため、MongoDB はレプリカセットモードで起動します (Change Stream はスタンドアロン MongoDB モードでは動作しません)。
+* **レプリカセットモード**: Change Streams にはレプリカセットが必要なため、MongoDB はレプリカセットモードで起動します (Change Streams はスタンドアロン MongoDB モードでは動作しません)。
   
-* **レジュームトークン**: サーバーを停止して再起動しても、Change Stream の処理は中断した場所から再開されます (レジュームトークンは MongoDB に保存されます)。
+* **Resume Token**: サーバーを停止して再起動しても、Change Stream の処理は中断したところから再開されます (resume token は MongoDB に保存されます)。
   
 * **リアルタイム処理**: エンティティが作成または更新されると、Change Stream は即座にルールを実行します。
   
@@ -212,11 +214,11 @@ curl -X GET "http://localhost:3000/v2/entities?type=Alert" \
    
 2. **属性の自動計算**: 温度と湿度から不快指数を自動的に計算して追加
    
-3. **しきい値監視**: 温度が 30 度を超えたときに警告属性を自動的に追加
+3. **閾値監視**: 温度が 30 度を超えたときに警告属性を自動的に追加
    
 4. **時間ベースの処理**: 営業時間外にステータス属性を自動的に更新
    
-5. **Webhook 連携**: エンティティの変更を外部システムに自動的に通知
+5. **Webhook 統合**: エンティティの変更を外部システムに自動的に通知
 
 ***
 
@@ -230,7 +232,9 @@ curl -X GET "http://localhost:3000/v2/entities?type=Alert" \
                             │
                             │ EntityService publishes to EventBridge
                             │ (#1119: Rule firing migrated from
-                            │  scheduled change-stream to EventBridge)
+                            │  scheduled change-stream to EventBridge;
+                            │  #1560: the CDC worker was removed, so
+                            │  EntityService is the single publisher)
                             │
 ┌───────────────────────────▼─────────────────────────────────┐
 │              Rule Processor Handler (Lambda)                 │
@@ -278,27 +282,42 @@ curl -X GET "http://localhost:3000/v2/entities?type=Alert" \
 
 1. **エンティティ変更検出**
    
-   * Lambda 上: `EntityService` は `EntityCreated/Updated/Deleted` を EventBridge に直接パブリッシュします。`RuleProcessorFunction` は EventBridgeRule によって呼び出され、`EntityChangeEvent` を構築します
+   * Lambda 上: `EntityService` が `EntityCreated/Updated/Deleted` を EventBridge に直接パブリッシュします。`RuleProcessorFunction` は EventBridgeRule によって呼び出され、`EntityChangeEvent` を構築します
      
-   * ローカル / スタンドアロン上: `local-server.ts` は MongoDB Change Stream を追跡し、同じ `EntityChangeEvent` をプロセス内で構築します
+   * ローカル / スタンドアロン上: `local-server.ts` が MongoDB Change Stream を追跡し、同じ `EntityChangeEvent` を **ReactiveCore Rules** 用にプロセス内で構築します。サブスクリプション通知は `EntityService` → `LocalEventBusPublisher` → `emitEntityChangeForSubscription` (#2337) を使用し、AWS EventBridge パスと同じリッチペイロード(`previousAttributes` を含む)を送信します。Change Stream はもはやサブスクリプションのソースではありません — 物理削除には `fullDocument` がないため、そのパスはテナントを `'unknown'` に設定し、`entityDeleted` / `attributeDeleted` 通知を暗黙的にドロップしていました
      
-   * レガシーの `ChangeStreamProcessorFunction` は依然として `publishEntityChangeEvent()` を呼び出して、チェンジストリーム由来のイベントを同じ EventBridge ファンアウトに再パブリッシュするため、`RuleProcessorFunction`、`SubscriptionMatcherFunction`、および `WsBroadcastFunction` はすべてそれらの再生されたイベントを受信して処理します(ルールとサブスクリプションが再評価されます)。`RuleEngineService` を直接呼び出すことはなくなったため、ルールパスは単一の EventBridge コンシューマに統合されました(#1119)
+   * **#3827**: ルール評価の前に、共有コンシューマーエントランスは、`(createdAt, version)` が DB 内のエンティティよりも古い**古い**イベントをドロップします。これにより、順序が狂った古いスナップショットがアクション(書き戻しを含む)を駆動することを防ぎます。配信が競合する場合、中間イベントは省略される可能性があります。履歴には Temporal を使用してください。`version` を持たないレガシーイベントは引き続き処理されます(マイグレーション中はフェイルオープン)
+     
+   * **#1560**: レガシーの `ChangeStreamProcessorFunction` は削除されました。これは Change Stream 派生イベントを同じ EventBridge ファンアウトに再パブリッシュしていましたが、`EntityService` が直接パブリッシュを開始すると(#738)、すべての `insert`/`update`/`delete` がルールとサブスクリプションを**二重**に発火させることになっていました。実際には 2026-03-08 以降 100% 失敗していました(resume token が oplog ウィンドウを超えて期限切れになり、ハンドラーに回復パスがなかった)ため、重複は実現しませんでした — 壊れていたことが唯一それを防いでいました。AWS では、`EntityService` → `IEventPublisher` が現在単一のパブリッシャーです。ローカル/スタンドアロンでは、`LocalEventBusPublisher` がデフォルト DB のサブスクリプションソースであり、Change Stream はルール専用のため、2 つのパスは分離されたままです(#2337 / #1304)。リグレッションガード(`tests/unit/infrastructure/single-entity-event-publisher.test.ts`)は、2 つ目の EventBridge パブリッシャーが再び現れることを禁止します
+     
 
 2\. **ルール評価**
 
-* テナントと servicePath のアクティブなルールを取得します
+* テナントと servicePath のアクティブなルールを**2 つの境界付きフレーム**で取得します(#3957):
   
-* 各ルールの条件を評価します(AND 結合)
+  * **グローバルフレーム**(`tenantId: null`): 最大 `RULE_ENGINE.MAX_GLOBAL_RULE_FETCH_PER_EVENT` / `MAX_GLOBAL_RULE_EVALUATIONS_PER_EVENT`
+    
+  * **テナントフレーム**(テナント固有): 最大 `RULE_ENGINE.MAX_TENANT_RULE_FETCH_PER_EVENT` / `MAX_TENANT_RULE_EVALUATIONS_PER_EVENT`
+    
+* 各フレーム内で、選択順序は `priority` 昇順、次に `ruleId` 昇順(決定的なタイブレーク)です
   
-* マッチしたルールを優先度順にソートします
+* フレームの上限を超えるルールは**警告付きでスキップされます**(フェイルクローズ)。フレームが過剰に登録されている場合、低優先度 / 高 `ruleId` ルールの永続的なスキップは予想されます — アクティブなルールを減らすか、発火する必要があるルールの**数値 `priority` を下げてください**(小さい値 = 高い優先度)
+  
+* **#3957 / dual-write**: `hasActiveAppendToTemporalRule`(Entity API temporal dual-write スキップ)は、同じ境界付きフレーム内のルールのみを検査します。上限外の `appendToTemporal` ルールは dual-write を抑制しません — そうでなければ、ルールも dual-write も履歴を記録しないことになります
+  
+* テナントルールのフラッドがグローバルフレームを枯渇させることはありません(逆も同様)。別のテナントのイベントは、そのテナント自身のフレームを独立してロードします
+  
+* 各**選択された**ルールの条件を評価します(AND 結合)
+  
+* マッチしたルールを `priority`、次に `ruleId` でソートします
 
 3\. **アクション実行**
 
 * 各ルールのアクションを順次実行します
   
-* テンプレート変数を実際の値に置換します
+* テンプレート変数を実際の値で置換します
   
-* エラーが発生しても、他のアクションは実行を継続します
+* エラーが発生しても、他のアクションは引き続き実行されます
 
 ***
 
@@ -359,7 +378,51 @@ interface Rule {
 
 ## 条件
 
-条件はルールが一致するかどうかを決定します。複数の条件は AND で結合されます。
+条件は、ルールが一致するかどうかを決定します。複数の条件は AND で結合されます。
+
+### JSON-LD 語彙 (`@context`
+
+) — GeonicDB 拡張 (#1973)
+
+`POST /rules` および `PATCH /rules/{ruleId}` は、オプションの `@context` (リクエストボディ内、または JSON-LD `Link` ヘッダーとして; 両方が提供された場合はボディが優先) を受け付けます。これは**ルール自身の条件名がどの語彙で記述されているか**を宣言します。
+
+重要な理由: NGSI-LD エンティティは、属性名とエンティティタイプの*正規*形式で保存されます(書き込み側の `@context` を通じて展開されます)。同じ IRI を異なる用語で記述するルール — 例えばルールでは `warmth`、書き込み側では `temperature` で、両方とも `https://example.org/vocab/temp` にマッピングされる場合 — は、これがないと**静かに発火しなくなります**。エラーは発生せず、ルールは単にマッチしません。
+
+```json
+{
+  "@context": { "warmth": "https://example.org/vocab/temp" },
+  "name": "High temperature warning",
+  "conditions": [{ "type": "change", "attributeName": "warmth" }],
+  "actions": [ /* ... */ ]
+}
+```
+
+GeonicDB がこれで行うこと:
+
+
+* 作成/更新時に、すべての条件の `attributeName` (`value` / `pattern` / `change`) および `entityTypes` (`entityType`) の正規形式が計算され、逐語的な値と共に `canonicalAttributeName` / `canonicalEntityTypes` として保存されます。ネストされた `and` / `or` / `not` ツリーも走査されます。
+  
+* 評価時には、マッチングは両側で**逐語的 ∪ 正規形式**を使用します。`@context` なしで作成されたルールは正規形式を持たず、以前と全く同じ動作をします — この変更は厳密なスーパーセットなので、**既存のルールにはバックフィルが不要です**。
+  
+* これら 2 つのフィールドは**サーバー計算**です。クライアントが送信した値は破棄され、再計算されます。
+  
+* **`@context` 自体がルールに保存されます。** 後の更新で `@context` を提供せずに `conditions` を置き換えた場合、保存されたものが再利用されます (`supplied ?? stored`)。これがないと、ルールを `GET` して `PATCH` で直接戻す — `@context` は `GET` レスポンスの一部ではない — と、静かに正規形式が削除され、ルールは他の語彙のエンティティで発火しなくなり、エラーは一切発生しません。また、`@context` の概念を持たないエントリポイント (MCP `config` ツール) がルールをダウングレードすることなく更新できることも意味します。
+  
+* `PATCH` で `@context` を提供すると、一緒に送信する条件について保存されたものが置き換えられます。これはリクエストが `@context` を**宣言した**かどうかで決まり、何に解決されたかではありません — したがって、コアコンテキストのみを宣言すると、静かに負けるのではなく、保存された語彙がクリアされます。これがルールをコア語彙に戻す唯一の方法です。
+  
+* `PATCH` は、一緒に送信する `conditions` および/または `actions` に `@context` を適用します。`conditions` または `actions` のいずれもなしで `@context` を送信すると、静かに無視されるのではなく `400` で拒否されます (#2260 は、`actions` が以下で独自の正規形式を獲得した後、これを「`conditions` なし」から拡大しました — そうしないと、`conditions` にも触れずにアクションの語彙をリダイレクトする方法がありませんでした)。
+  
+* ボディ `@context` と `Link` ヘッダーの両方が存在する場合、**ボディが優先されます — ボディがコアコンテキストのみを宣言する場合も含めて**。優先順位は、ボディが `@context` を持っているかどうかで決まり、非コア語彙に解決されたかどうかではありません。
+  
+* **`@context` の解決中の `400` 失敗 — そしてそれらのみ — はこのエンドポイント自身のエラー語彙で報告されます** (`{"error": "BadRequest"}`)、`/rules` からの他のすべての `400` と一致します。`400` でないものは、ステータス**と** NGSI-LD エラー識別子の両方を保持します: 到達不能な `@context` は `{"error": "https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable"}` を持つ `504` を返し、アウトバウンドレート制限は `429` を返します。これらを `400` に折りたたむと、クライアントは「入力が間違っている」と「後で再試行」を区別できなくなります。
+  
+* エンティティレベルのフィールド名 `"id"` および `"type"` (`value` / `pattern` 条件で使用可能) は正規化されません — これらは属性ではなく、エンティティ自体をアドレス指定します。
+  
+* `celExpression` 条件は書き換えられません: 式は不透明な文字列であり、構造化された属性名フィールドではありません。
+  
+* **アクションも正規化されます (#2260)**、同じルール `@context` と上記の条件と同じサーバー計算 / 逐語保存パターンを使用します: `updateAttribute` / `deleteAttribute` `attributeName` (→ `canonicalAttributeName`)、`createEntity` `entityType` (→ `canonicalEntityType`) とその `attributes` オブジェクトのキー (→ `canonicalAttributeNames`、実際に異なるキーのみを保持する逐語キー → 正規キーマップ)、および `appendToTemporal` `attributes` (→ `canonicalAttributeNames`)。条件マッチングとは異なり、書き込みは逐語的 ∪ 正規形式の和集合ではなく、**単一の**保存形式が必要です — **NGSI-LD** エンティティを対象とする `createEntity` / `updateAttribute` / `deleteAttribute` / `appendToTemporal` は、存在する場合は正規形式を使用し、逐語的にフォールバックします; **NGSIv2** のターゲットは常に逐語的を使用します、なぜなら NGSIv2 には `@context` の概念がなく、そこで正規化すると NGSIv2 API から属性にアクセスできなくなるためです。`${...}` テンプレートを含む値 (例: `${entity.type}`) は決して折りたたまれません — テンプレートはアクション実行時に展開され、展開結果はすでにトリガーエンティティの保存された (正規) 値なので、リテラルテンプレート文字列を折りたたむことは意味がありません。`sendNotification` / `webhook` にはエンティティ属性名やタイプが含まれないため、影響を受けません; `webhook` アクションの `body` は任意の JSON であり、エンティティ属性ではないため、折りたたまれません。逐語的が変更されずに保持されるため、`GET /rules/{ruleId}` → 未修正 `PATCH` ラウンドトリップはデータを失わず、条件がすでに持っていたラウンドトリップ保証と一致します。
+
+ReactiveCore Rules は GeonicDB 拡張であるため、`/rules` は `@context` ソースを `Content-Type` に結びつける ETSI GS CIM 009 条項 6.3.5 規則に拘束されません; ボディはデフォルトの `application/json` コンテンツタイプで受け付けられます。
 
 ### 条件タイプ
 
@@ -378,7 +441,9 @@ interface Rule {
 
 ### 1. Value Condition
 
-属性の値を比較します。エンティティ属性名に加えて、エンティティレベルのフィールド `"id"` と `"type"` も `attributeName` に指定できます。
+属性の値を比較します。エンティティ属性名に加えて、エンティティレベルのフィールド `"id"` および `"type"` も `attributeName` に指定できます。
+
+> **NGSI-LD マルチ属性 (GeonicDB 拡張、#2785):** 属性が複数のインスタンス (`datasetId`) を持つ場合、値/パターン条件は `resolveDefaultInstance` によって選択された**デフォルトインスタンス**(`datasetId` なし、それ以外の場合は最初のインスタンス)を評価します。これは GeonicDB のルール評価規則であり、NGSI-LD の `options=keyValues` とは同一ではありません。`options=keyValues` は `dataset` 構造内のすべてのデータセット(`@none` を含む)を表現する場合があります。非デフォルトインスタンスの更新でも変更イベントが発生し、`change` 条件(名前の一致)を満たすことができますが、`${attribute.<name>.value}` および CEL の `attribute.<name>.value` は常にデフォルトインスタンスを読み取ります。インスタンスごとのセレクタ(例: `${attribute.x@datasetId}`)は範囲外です。
 
 ```typescript
 interface ValueCondition {
@@ -413,7 +478,7 @@ interface ValueCondition {
 
 ### 2. Pattern Condition
 
-属性値を正規表現と照合します。エンティティ属性名に加えて、エンティティレベルのフィールド `"id"` と `"type"` も `attributeName` に指定できます。
+属性値を正規表現と照合します。エンティティ属性名に加えて、エンティティレベルのフィールド `"id"` および `"type"` も `attributeName` に指定できます。
 
 ```typescript
 interface PatternCondition {
@@ -433,7 +498,7 @@ interface PatternCondition {
 }
 ```
 
-パターンによってエンティティ ID をフィルタリングする例:
+パターンでエンティティ ID をフィルタリングする例:
 
 ```json
 {
@@ -465,7 +530,7 @@ interface ChangeCondition {
 
 ### 4. Time Condition
 
-現在の時刻が指定された範囲内にあるかどうかをチェックします。
+現在時刻が指定された範囲内にあるかどうかをチェックします。
 
 ```typescript
 interface TimeCondition {
@@ -507,9 +572,19 @@ interface EntityTypeCondition {
 }
 ```
 
+**型名の表記ゆれ (#2125)**: 照合は NGSI-LD core 語彙で正規化してから行われます。短縮名
+`TemperatureSensor` と、それが展開される `https://uri.etsi.org/ngsi-ld/default-context/TemperatureSensor`
+は**同一の型**として扱われ、どちらの表記で書いてもマッチします
+(ETSI GS CIM 009 clause 4.4 の `@vocab` フォールバック)。別の名前空間の同名 IRI
+(例 `https://example.org/vocab/TemperatureSensor`) は別の型であり、マッチしません。
+
+同じ正規化はループ検出 (action が trigger と同じ型のエンティティを作る自己発火の防止) にも
+適用されます。なお Rules API には `@context` の受け口が無いため、テナント固有の `@context` が
+定義する term (core 語彙にない写像) は解決されません (#1973)。
+
 ### 6. Event Type Condition
 
-変更を生成したトリガーイベントでフィルタリングします。内部イベント名(`EntityCreated` / `EntityUpdated` / `EntityDeleted`)を小文字のトークン `create` / `update` / `delete` にマップします。
+変更を生成したトリガーイベントでフィルタリングします。内部イベント名(`EntityCreated` / `EntityUpdated` / `EntityDeleted`)を小文字のトークン `create` / `update` / `delete` にマッピングします。
 
 ```typescript
 interface EventTypeCondition {
@@ -521,11 +596,11 @@ interface EventTypeCondition {
 **ユースケース**:
 
 
-* エンティティ作成時のみアクションを実行する(例:`GeoJSON` が作成されたときのみ `ActivityLog` を書き込む)
+* エンティティの作成時のみアクションを実行する(例:`GeoJSON` が作成されたときのみ `ActivityLog` を書き込む)
   
 * 削除時のみクリーンアップを実行する
   
-* 更新によって引き起こされるカスケード書き込みをスキップする
+* 更新によって誘発されるカスケード書き込みをスキップする
 
 **例**:
 
@@ -547,7 +622,7 @@ interface EventTypeCondition {
 }
 ```
 
-`entityType` と組み合わせて特定のタイプにスコープを絞る:
+`entityType` と組み合わせて特定のタイプにスコープを設定:
 
 ```json
 {
@@ -559,11 +634,11 @@ interface EventTypeCondition {
 }
 ```
 
-> **注**: UPDATE イベントでの属性レベルのフィルタリングには、`change` と組み合わせます(例:`{type: "change", attributeName: "status"}`)。CREATE / DELETE では、`changedAttributes` が未定義であるため、`change` は常に false と評価されます。
+> **注**: UPDATE イベントにおける属性レベルのフィルタリングには、`change` と組み合わせます(例:`{type: "change", attributeName: "status"}`)。CREATE / DELETE では、`changedAttributes` が未定義であるため、`change` は常に false と評価されます。
 
-### 7. CEL Expression Condition
+### 7. CEL 式条件
 
-[Common Expression Language (CEL)](https://github.com/google/cel-spec) を使用した柔軟な条件式です。複雑な計算、文字列操作、複数の属性の組み合わせ評価をサポートします。
+[Common Expression Language (CEL)](https://github.com/google/cel-spec) を使用した柔軟な条件式です。複雑な計算、文字列操作、および複数の属性の組み合わせ評価をサポートします。
 
 ```typescript
 interface CelExpressionCondition {
@@ -572,18 +647,76 @@ interface CelExpressionCondition {
 }
 ```
 
+**内包表記のネスト制限 (#3656)**: 内包表記マクロ(`all` / `exists` / `exists_one` / `map` / `filter`)は最大 2 レベルまでネスト可能です(`RULE_ENGINE.CEL_MAX_COMPREHENSION_DEPTH`)。これは、反復回数がレベルごとに乗算され、CEL 評価が同期的であるためです。ネストはマクロ本体内でのみカウントされます(レシーバーは一度だけ評価されます)。`cel.bind(v, value, expr)` でバインドされた変数は、参照されるたびに `value` のネスト深度をカウントするため、`cel.bind` でネスト制限を回避することはできません。
+
+**評価予算 (#3958)**: ネスト深度とは独立して、各**ルール評価**は CEL コスト予算を共有します(`RULE_ENGINE.CEL_EVALUATION_BUDGET_PER_RULE`、デフォルトは 100,000)。チャージには以下が含まれます:
+
+
+* 内包表記の反復(量化子 / map / filter ループステップ)ごとに **1**
+  
+* `==` / `!=` / `in` / `<` / `<=` / `>` / `>=` および `+` 連結(リスト / マップ / バイト / 長い文字列)のコンテナオペランドの**入力サイズ**(**ネストされたコンテナは再帰的にチャージされます**ので、大きなリストを外側のリストでラップしても予算を回避できません。スカラーと `CEL_EVALUATION_STRING_COST_THRESHOLD` 未満の短い文字列はサイズコストを追加しません — 反復でカバーされます。長い文字列は、長い共通プレフィックスをウォークする順序付き文字列比較を含めて、文字数でチャージされます)。インデックス(`[]`)は O(1) でありサイズチャージされません
+  
+* サイズ依存メソッド(`contains` / `startsWith` / `endsWith` / `indexOf` / `lastIndexOf` / `matches` / `split` / `join` / `lowerAscii` / `upperAscii` / `trim` / `size` / `substring` / バイトの `at` / `json` / `hex` / `base64` / `string` / タイムスタンプのタイムゾーンメソッド(`getHours(tz)` など))とグローバル関数(`size` / `bytes` / `string` / `double` / `int` / `uint` / `bool` / `duration` / `timestamp`)、および GeonicDB `within()`(ポリゴンリングの長さは GeoJSON 検証の**前に**チャージされるため、`||` によって吸収される未閉鎖リングの例外は予算を回避できません)の**文字列スキャン / デコード / パース**コスト
+  
+* **ランタイムコンテキストのリリース**: 各評価後、`cel.bind` / 内包表記の `OverlayContext` 親参照(`#parent` / `iterValue` / `accuValue`)はクリアされるため、キャッシュされたクロージャが最後の入力を保持することはできません
+  
+* **既知の制限(フェイルクローズド)**: 長さが異なるリストの等価性は、CEL が長さチェック後に false を返すことができるにもかかわらず、`size(a)+size(b)` をチャージします。予算を超える長さの属性リストに対する深度 1 のルールは発火を停止する可能性があります。`duration(string)` / `timestamp(string)` / `getHours(tz)`(および関連するゲッター)へのタイムゾーン引数の **`CEL_EVALUATION_TEMPORAL_PARSE_MAX_LENGTH`(64)を超える時間文字列引数**は、基礎となるパーサー / `toLocaleString` が実行される**前に**即座に予算超過を強制します(cel-js の duration バックトラッキングと無効なタイムゾーン ID はそうでなければ超線形であり、`|| true` によって吸収される可能性があります)
+
+深度 2 の純粋な二重反復は √100000 ≈ 315 要素付近で制限されます。大きなリストを比較する深度 2 の式(例: L=315、A/B が 50,000 要素)は、反復回数単独では収まる場合でも、サイズチャージによって予算を超過します。予算を超えると、条件は**評価不可能**として扱われます(#3656 と同じフェイルクローズドラッチ): ルールは発火せず、ラップする `not` はそれを発火に反転できません。**破壊的変更**: (1)以前に評価されていた大きな属性リスト(100,000 要素以上)に対する深度 1 のルールがスキップされる可能性があります。(2)64 文字を超える `duration` / `timestamp` / タイムゾーン文字列(病理的な数字のみまたはジャンクタイムゾーン ID を含む)を渡すルールは、評価時にスキップされるようになりました。無制限の内包表記や無制限の時間文字列に依存するのではなく、属性値のフィルタリング / ページング、短い Go スタイルの duration(`"1h30m"`)、ISO-8601 タイムスタンプ、短い IANA タイムゾーン ID(`"UTC"`、`"Asia/Tokyo"`)の使用、またはルール間での作業の分割を推奨します。
+
+**値成長制限 (#3662)**: ネスト深度とは独立して、CEL 式は `size ≤ b + s·S + Σ e_k·E_k` として静的に推定されます(S = `attribute.*` などの自由入力、E\_k = map 反復シンボル)。cel-js が入力依存のサイズを乗算できる場所は `map`/`filter` の蓄積と `list.join(sep)` のみです。これらの乗数は**入力に依存しない**必要があります:
+
+
+* **`join(sep)`**: `sep` は定数(リテラルのみ)である必要があります。`xs.join(attribute.y.value)` は拒否されます。
+  
+* **`map` 変換**: 変換は自身の反復変数とリテラルのみに依存する必要があります。`xs.map(a, a + attribute.y.value)` は拒否されます。述語位置(`all` / `exists` / `filter` 述語 / `map` のオプション述語)では、依然として自由入力を参照できます。
+  
+* **フィールド / インデックスアクセス**(`.k`、`[0]`): 親式のサイズ推定を継承します(係数のリセットはありません)。したがって、`cel.bind` 内で `{"k": v+v}.k` をチェーンすると依然として倍増します。
+  
+* 任意のノードで有効係数 `s+Σe` が `RULE_ENGINE.CEL_MAX_VALUE_GROWTH_FACTOR`(64)を超える場合、または join/map 乗数が入力依存の場合、式は拒否されます。要素ごとに 64 文字以上のリテラルを追加すること(例: `xs.map(a, a + "<64 chars>")`、係数 `1+64`)は係数を超えます。63 文字はまだ通過するニアミスです。
+  
+* 空の `map` 変換(`""` / `[]` / `{}`)は依然として要素サイズ ≥ 1 としてカウントされるため、後続の `join`/`map` で係数をゼロにすることはできません。
+  
+* バイトおよび数値リテラルはその長さ / 桁数を定数項に寄与します(したがって `string(b"…")` は係数を超えて長い定数を密輸することはできません)。
+  
+* リスト / マップリテラルはコンテナコスト `CEL_VALUE_CONTAINER_WEIGHT + elementCount` を追加します(デフォルトの重み 4。空の `[]` / `{}` は重みとしてカウントされます)。`timestamp` / `duration` は同じ重みを使用します(V8 Date/object vs 文字サイズ)。13 個のシングルトンラッパーの深いネストは拒否されます。12 がニアミスです。`.map(c, [c])` のチェーンは各ステップで (weight+2) 倍になります(3 チェーンは拒否、2 は許可)。
+  
+* `string(<入力非依存>)` および `now()` は少なくとも 24 文字と推定されます(int64/double / ISO-8601 上限)。
+  
+* 固定サイズの結果を返す関数(`size` / `int` / `double` / `getHours` / GeonicDB `distance` / `within` / `dayOfWeek` など)は定数サイズとして許可リストに登録されています。未知の関数名は拒否されます(フェイルクローズド)。
+  
+* **既知の制限**: (1)係数は UTF-16 コードユニットベースです。UTF-8 / `upperAscii` はバイトを最大約 4 倍に膨張させる可能性があります。(2)`string(<入力依存の数値>)` は int/double を要素ごとに最大 24 文字に拡張できます(例: int64 入力での `xs.map(a, string(a))`)。
+
+
+* 内包表記深度または値成長制限を超える式を持つルールの作成または更新は `400` で拒否されます。
+  
+* 評価予算(#3958)は**ランタイムのみ**です(属性リストの長さは作成時に不明です): 作成 / 更新は依然として深度 2 の式を受け入れます。過大な入力は評価時にスキップされます。
+  
+* 制限を超える式で**既に保存されている**ルールは、ロード時に拒否されません: その条件が**評価される**とき、式はスキップされ(マッチしないものとして扱われ)、`unevaluableConditionEncountered` が設定されるため、ラップする `not` はそれを発火に反転できません。また、警告がログに記録されます。このようなルールをより平坦な式で再保存してください。同じ評価不可能ラッチは、評価予算を超えたときにも適用されます(#3958)。
+
+**`matches()` ReDoS ガード (#3935)**: CEL `string.matches(string)` は、同じ `validateRegexPattern` / `compileStoredRegex` チェック(#1948)と、`SECURITY.MAX_REGEX_INPUT_LENGTH`(1024)のレシーバー長上限でガードされています。後方参照を介して次数 3 以上の重複反復チェーンを形成するパターン — 例: `(.*)(.*)\1x`、`^(\d+)(\d+)\1$` — は、他の ReDoS 傾向のあるパターンと同じ方法で拒否されます。
+
+
+* **作成 / 更新**: `validateRegexPattern` に失敗する**リテラル**パターンは `400` で拒否されます。動的パターン(`x.matches(attribute.p.value)`)は受け入れられます。ランタイムレイヤーがそれらをガードします。
+  
+* **評価**: 安全でないパターンまたは過長のレシーバーは評価不可能として扱われます。ルールは `unevaluableConditionEncountered` を設定するため、ラップする `not` / そうでなければマッチする `or` の兄弟は発火**できません**。オペレーターは警告 `Rule contains an unevaluable condition`(および `reason` 付きの `CEL matches() rejected as unevaluable`)を監視し、式を安全なリテラルまたは `pattern` 条件に書き直す必要があります。ルールごとの matches レシーバー予算を超える式(内包表記内の長いテキスト属性、多くの `||` matches)は、`pattern` 条件または `startsWith`/`contains` に書き直すか、ターゲットリストを絞り込む必要があります。
+  
+* **移行**: 保存された `celExpression` ルールで `matches(...)` を検査してください。安全でないリテラルを `validateRegexPattern` を通過するパターンに置き換えます(後方参照を固定長 / 非重複形式に展開するか、`pattern` 条件を使用します)。編集後に再保存してください。レガシーの安全でないリテラルは、修正されるまで発火しません(フェイルクローズド)。
+  
+* **残留リスク**: 次数 2 のチェーンは #3643 に従って許可されたままであり、`MAX_REGEX_INPUT_LENGTH`(1024)によって呼び出しごとに制限されています。内包表記 / `||` チェーンがそのコストを乗算するのを防ぐために、各**ルール評価**には累積 matches レシーバー予算 `RULE_ENGINE.CEL_MATCHES_RECEIVER_BUDGET_PER_RULE`(2048 文字。空のレシーバーは 1 としてカウント)があります。これを超えるとルールは評価不可能になります(フェイルクローズド、`reason: matches receiver budget exceeded` 付きで警告 `CEL matches() rejected as unevaluable`)。残留: 1 つのルールは、評価ごとに最大 2 つの 1024 文字の次数 2 matches を依然として消費できます。イベントごとに評価されるルールの数は、このガードによって制限されません。
+
 #### CEL コンテキスト変数
 
-| Variable                          | Description                | Example                                            |
-| --------------------------------- | -------------------------- | -------------------------------------------------- |
-| `entity.id`                       | Entity ID                  | `"urn:ngsi-ld:Device:001"`                         |
-| `entity.type`                     | Entity type                | `"Device"`                                         |
-| `attribute.<name>.value`          | Current attribute value    | `attribute.temperature.value` → `35`               |
-| `attribute.<name>.type`           | Current attribute type     | `attribute.temperature.type` → `"Number"`          |
-| `previous.attribute.<name>.value` | Pre-change attribute value | `previous.attribute.temperature.value` → `25`      |
-| `previous.attribute.<name>.type`  | Pre-change attribute type  | `previous.attribute.temperature.type` → `"Number"` |
+| Variable                          | Description                                                                                  | Example                                            |
+| --------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `entity.id`                       | Entity ID                                                                                    | `"urn:ngsi-ld:Device:001"`                         |
+| `entity.type`                     | Entity type                                                                                  | `"Device"`                                         |
+| `attribute.<name>.value`          | Current attribute value (default instance for multi-attribute; GeonicDB extension, #2785)    | `attribute.temperature.value` → `35`               |
+| `attribute.<name>.type`           | Current attribute type                                                                       | `attribute.temperature.type` → `"Number"`          |
+| `previous.attribute.<name>.value` | Pre-change attribute value (default instance for multi-attribute; GeonicDB extension, #2785) | `previous.attribute.temperature.value` → `25`      |
+| `previous.attribute.<name>.type`  | Pre-change attribute type                                                                    | `previous.attribute.temperature.type` → `"Number"` |
 
-イベントタイプごとの `previous` のセマンティクス:
+イベントタイプ別の `previous` のセマンティクス:
 
 | Event           | `previous.attribute`             |
 | --------------- | -------------------------------- |
@@ -591,13 +724,13 @@ interface CelExpressionCondition {
 | `EntityUpdated` | Pre-update attributes snapshot   |
 | `EntityDeleted` | Final attributes before deletion |
 
-> **ヒント — `has()` でガードする**: 属性が以前の状態に存在しない可能性がある場合(例: `EntityCreated` 時、または新しく追加された属性の場合)、アクセスを `has()` でラップしてください:
+> **ヒント — `has()` でガードする**: 属性が以前の状態に存在しない可能性がある場合(例: `EntityCreated` または新しく追加された属性の場合)、アクセスを `has()` でラップします:
 >
 > ```text
 > has(previous.attribute.temperature) && previous.attribute.temperature.value <= 30 && attribute.temperature.value > 30
 > ```
 >
-> 存在しないキーに対して `has()` なしで直接アクセスすると評価エラーが発生し、これはキャッチされて `false` として扱われます。
+> 欠落しているキーに対して `has()` なしで直接アクセスすると評価エラーが発生し、これはキャッチされて `false` として扱われます。
 
 #### 例
 
@@ -646,7 +779,7 @@ interface CelExpressionCondition {
 }
 ```
 
-冪等な更新(同じ値を再書き込み)は発火しません。これは `previous.attribute.temperature.value` がすでに > 30 だからです。
+冪等な更新(同じ値を再書き込み)は、`previous.attribute.temperature.value` がすでに > 30 であるため発火しません。
 
 **状態遷移(例: `draft` → `published`):**
 
@@ -666,7 +799,7 @@ interface CelExpressionCondition {
 }
 ```
 
-**型変更の検出 (例: テキスト → 数値):**
+**型変更の検出(例: Text → Number):**
 
 ```json
 {
@@ -677,11 +810,11 @@ interface CelExpressionCondition {
 
 #### カスタム関数
 
-以下のカスタム関数が CEL 式で利用可能です。これらは IoT およびスマートシティのユースケースで一般的に必要とされる地理空間計算および時間ベースの条件評価をサポートしています。
+以下のカスタム関数は CEL 式で使用できます。これらは IoT およびスマートシティのユースケースで一般的に必要とされる地理空間計算および時間ベースの条件評価をサポートします。
 
-##### `distance(location1, location2)` — 2 点間の距離 (メートル単位)
+##### `distance(location1, location2)` — 2 点間の距離(メートル単位)
 
-Haversine 公式を使用した大円距離計算。入力は GeoJSON Point オブジェクト、出力はメートル (数値) です。
+Haversine 公式を使用した大圏距離の計算。入力は GeoJSON Point オブジェクト、出力はメートル(Number)です。
 
 ```json
 {
@@ -690,9 +823,9 @@ Haversine 公式を使用した大円距離計算。入力は GeoJSON Point オ�
 }
 ```
 
-##### `within(location, polygon)` — ポイントインポリゴンチェック
+##### `within(location, polygon)` — ポイント・イン・ポリゴンチェック
 
-Ray casting アルゴリズムを使用したポイントインポリゴン判定。入力は GeoJSON Point と GeoJSON Polygon、出力は真偽値です。外側のリングのみがサポートされます (穴/内側のリングはサポートされません)、また外側のリングは閉じている必要があります (開始座標と終了座標が同じでなければなりません)。
+Ray casting アルゴリズムを使用したポイント・イン・ポリゴンの判定。入力は GeoJSON Point と GeoJSON Polygon、出力は Boolean です。外側のリングのみがサポートされます(穴/内側のリングはサポートされていません)、また外側のリングは閉じている必要があります(開始座標と終了座標が同じである必要があります)。
 
 ```json
 {
@@ -701,7 +834,7 @@ Ray casting アルゴリズムを使用したポイントインポリゴン判�
 }
 ```
 
-ジオフェンス退出を検出するには否定演算子を使用します:
+ジオフェンスの退出を検出するには否定演算子を使用します:
 
 ```json
 {
@@ -734,7 +867,7 @@ UTC ベースの曜日を数値として返します (0=日曜日、1=月曜日�
 
 ##### 関数の組み合わせ
 
-カスタム関数は他の CEL 演算子やコンテキスト変数と自由に組み合わせることができます:
+カスタム関数は、他の CEL 演算子やコンテキスト変数と自由に組み合わせることができます:
 
 ```json
 {
@@ -746,11 +879,11 @@ UTC ベースの曜日を数値として返します (0=日曜日、1=月曜日�
 #### 制限事項
 
 
-* 最大式長: 1000 文字
+* 式の最大長: 1000 文字
   
-* CEL はチューリング不完全です (ループや再帰がありません) ので、無限ループのリスクはありません
+* CEL はチューリング不完全です (ループや再帰はありません) ので、無限ループのリスクはありません
   
-* 式は真偽値を返す必要があります (真偽値以外の結果は false として扱われます)
+* 式はブール値を返す必要があります (ブール値以外の結果は false として扱われます)
   
 * 評価エラーが発生した場合、条件は false として扱われます (例外はスローされません)
   
@@ -828,7 +961,7 @@ UTC ベースの曜日を数値として返します (0=日曜日、1=月曜日�
 
 ## アクション
 
-条件が一致したときに実行される操作です。
+条件が一致した場合に実行される操作です。
 
 ### アクションタイプ
 
@@ -852,8 +985,11 @@ interface CreateEntityAction {
   entityType: string;             // Supports template variables
   attributes: Record<string, unknown>;  // Supports template variables
   protocol?: 'ngsiv2' | 'ngsild';  // Target protocol (default: inherit from trigger)
-  servicePath?: string;              // Target servicePath for ngsiv2 (supports template variables)
-  scope?: string[];                  // Target scope for ngsild (supports template variables)
+  servicePath?: string;              // Target servicePath (supports ${...} templates; validated
+                           // against /^\/[\w/]*$/ at creation and again after substitution.
+                           // For ngsild targets it is forced to '/' unless set explicitly — #1605)
+  scope?: string[];                  // Target scope for ngsild (static values only — the API schema
+                                     // rejects `${...}` templates; see NgsiLdScopeStringSchema)
 }
 ```
 
@@ -899,6 +1035,12 @@ interface UpdateAttributeAction {
   attributeName: string;
   value: unknown;          // Supports template variables
   protocol?: 'ngsiv2' | 'ngsild';  // Target protocol (default: inherit from trigger)
+  servicePath?: string;    // Target servicePath (supports ${...} templates; validated
+                           // against /^\/[\w/]*$/ at creation and again after substitution.
+                           // For ngsild targets it is forced to '/' unless set explicitly — #1605)
+  scope?: string[];        // Target scope for ngsild (static values only — schema rejects `${...}`).
+                           // Applied to the entity ONLY when explicitly set (never auto-derived);
+                           // an empty array is ignored rather than clearing the entity's scope
 }
 ```
 
@@ -913,6 +1055,20 @@ interface UpdateAttributeAction {
 }
 ```
 
+**例**: クロスプロトコル — 以前の `createEntity` アクションによって作成された NGSI-LD ミラーエンティティを更新
+
+```json
+{
+  "type": "updateAttribute",
+  "entityId": "urn:ngsi-ld:Alert:${entity.id}",
+  "attributeName": "acknowledged",
+  "value": true,
+  "protocol": "ngsild"
+}
+```
+
+> **`servicePath`/`scope` の解決は `createEntity` と共有されます (#1606)**: アクションが NGSI-LD をターゲットとし、明示的に `servicePath` を設定しない場合、ターゲット `servicePath` は `'/'` に強制されます — これは `createEntity` (#1605) と同じで、HTTP NGSI-LD API がエンティティを検索する場所だからです。これがないと、同じルールエンジンによって作成された NGSI-LD ミラーをターゲットとする `updateAttribute`/`deleteAttribute` アクションは、*トリガーの* servicePath で検索し続けるため、決してそれを見つけることができません (`NotFoundError`)。以下の「Automatic servicePath ↔ scope Mapping」を参照してください — 同じテーブルがここにも適用されます。
+
 ### 3. Delete Attribute Action
 
 エンティティから属性を削除します。
@@ -923,6 +1079,11 @@ interface DeleteAttributeAction {
   entityId: string;        // Supports template variables
   attributeName: string;
   protocol?: 'ngsiv2' | 'ngsild';  // Target protocol (default: inherit from trigger)
+  servicePath?: string;    // Target servicePath (supports ${...} templates; validated
+                           // against /^\/[\w/]*$/ at creation and again after substitution.
+                           // For ngsild targets it is forced to '/' unless set explicitly — #1605)
+  scope?: string[];        // Target scope for ngsild (static values only — schema rejects `${...}`; used only for
+                           // servicePath auto-mapping — deleteAttribute does not itself modify scope)
 }
 ```
 
@@ -952,7 +1113,7 @@ interface SendNotificationAction {
 }
 ```
 
-**注意:** `subscriptionId` または `subscriptionIds` の少なくとも一方を指定する必要があります。
+**注意:** `subscriptionId` または `subscriptionIds` のいずれか少なくとも 1 つを指定する必要があります。
 
 #### 例
 
@@ -982,15 +1143,15 @@ interface SendNotificationAction {
 
 #### テンプレート変数
 
-`notificationData` では以下のテンプレート変数を使用できます:
+`notificationData` で使用できるテンプレート変数は以下の通りです:
 
-* `${entity.id}` - Entity ID
+* `${entity.id}` - エンティティ ID
   
-* `${entity.type}` - Entity タイプ
+* `${entity.type}` - エンティティタイプ
   
-* `${attribute.<name>.value}` - Attribute 値
+* `${attribute.<name>.value}` - 属性値
   
-* `${attribute.<name>.metadata.<metaName>.value}` - Attribute メタデータ値
+* `${attribute.<name>.metadata.<metaName>.value}` - 属性メタデータ値
 
 #### 制限事項
 
@@ -1003,7 +1164,7 @@ interface SendNotificationAction {
 
 ### 5. Webhook Action
 
-外部の HTTP エンドポイントを呼び出します。
+外部 HTTP エンドポイントを呼び出します。
 
 ```typescript
 interface WebhookAction {
@@ -1015,7 +1176,7 @@ interface WebhookAction {
 }
 ```
 
-**例**: 温度データを外部 API に送信
+**例**: 温度データを外部 API に送信する
 
 ```json
 {
@@ -1034,22 +1195,26 @@ interface WebhookAction {
 }
 ```
 
+送信される `webhook` 呼び出しは、サブスクリプション通知と同じ `pinnedRequest` トランスポートを使用します(#2932): DNS はリバインディングに対してピン留めされ、**HTTP リダイレクトは追跡されません**(` 3xx` はアクションを失敗させます)。`url` は最終エンドポイントを指定してください。
+
 ### 6. Append to Temporal Action
 
-エンティティ属性データを Temporal API(時系列データベース)に自動的に追加します。内部的に `TemporalService.recordEntityChange()` を呼び出して、Time Series Collection にデータを記録します。
+エンティティ属性データを Temporal API(時系列データベース)に自動的に追記します。内部的には `TemporalService.recordEntityChange()` を呼び出して Time Series Collection にデータを記録します。
 
 #### インターフェース
 
 ```typescript
 interface AppendToTemporalAction {
   type: 'appendToTemporal';
-  attributes?: string[];  // List of attribute names to record (defaults to changedAttributes if omitted)
+  attributes?: string[];  // Attribute names to record. Omitted: prefer changedAttributeSelectors
+  // (instance-level diff) from the entity change event; legacy events without selectors
+  // fall back to changedAttributes (name-level = all instances of those attributes).
 }
 ```
 
 #### 例
 
-**特定の属性のみを記録:**
+**特定の属性のみ記録:**
 
 ```json
 {
@@ -1058,7 +1223,7 @@ interface AppendToTemporalAction {
 }
 ```
 
-**変更された属性を自動的に記録 (attributes を省略):**
+**変更された属性を自動的に記録(attributes を省略):**
 
 ```json
 {
@@ -1071,50 +1236,86 @@ interface AppendToTemporalAction {
 
 * `attributes` が指定されている場合:指定された属性のみが Temporal API に記録されます
   
-* `attributes` が省略されている場合:エンティティ変更イベントからの `changedAttributes`(変更された属性)が記録されます
+  * **ハイブリッドインスタンス選択(#2818):** トリガーの `changedAttributeSelectors`(`{ name, datasetId? }`)に名前付き属性が含まれている場合、それらのインスタンスのみが記録されます(diff)。`attributes` にリストされているが、トリガー diff には**含まれていない**名前は、完全属性スナップショット(すべてのインスタンス — 名前のみセレクタ)として記録されます。
+    
+* `attributes` が省略されている場合:エンティティ変更イベントの `changedAttributeSelectors` を優先します(インスタンスレベルの diff)。セレクタを持たないレガシーイベントは `changedAttributes` にフォールバックします(名前レベル = それらの属性のすべてのインスタンス)。
+  
+* Temporal への入力は、イベントの展開されていない `currentAttributes`(複数属性配列が保持される)から構築されます。ルール条件の評価では、デフォルトインスタンスに折りたたまれます(`resolveDefaultInstance`)。その折りたたまれた `context.entity` は temporal には**渡されません**。
   
 * 属性に `observedAt` メタデータがある場合、その値がタイムスタンプとして使用されます。それ以外の場合は現在時刻が使用されます
   
-* データは Time Series Collection に追加されます(既存のデータは保持されます)
+* データは Time Series Collection に追記されます(既存のデータは保持されます)
+  
+* **`TEMPORAL_ENTITY_DUAL_WRITE` との相互作用(#2508 / #2527):** この環境フラグが `true` の場合、Entity API も Temporal Evolution に二重書き込みを行います(Core API の create/update/replace/batch write パス**および delete パス**を削除トゥームストーンとして)。**テナントに有効な `appendToTemporal` ルールがある場合、二重書き込みはスキップされます**(ルールが優先 — 属性サブセット/条件セマンティクスを含む)。チェックは粗い粒度です(tenant + servicePath。ルールのエンティティタイプ条件はスキップ判定では評価されません)。EntityExpiryService による TTL 期限切れ(GC)も、フラグがオンの場合はトゥームストーンとして二重書き込みされます(#2780)。
 
 #### ユースケース
 
 
 1. **IoT センサーデータの自動アーカイブ**:温度や湿度センサーの値が更新されるたびに、時系列データとして自動的に記録します
    
-2. **閾値超過時のスナップショット記録**:特定の条件が満たされたときのみ時系列データを記録します(条件と組み合わせて使用)
+2. **閾値超過時のスナップショット記録**:特定の条件が満たされた場合のみ時系列データを記録します(条件と組み合わせて使用)
    
-3. **選択的な属性記録**:すべての属性ではなく、特定の属性のみを効率的に記録します
+3. **選択的属性記録**:すべての属性ではなく、特定の属性のみを効率的に記録します
 
 ***
 
-## クロスプロトコル Entity 作成
+## プロトコル間エンティティ作成
 
-ルールエンジンは、プロトコル境界を越えた Entity の作成をサポートします。例えば、NGSIv2 センサーの変更が NGSI-LD Entity の作成をトリガーしたり、その逆も可能です。
+ルールエンジンは、プロトコル境界を越えたエンティティの作成をサポートします。例えば、NGSIv2 センサーの変更が NGSI-LD エンティティの作成をトリガーすることができ、その逆も可能です。
 
 ### 概要
 
-GeonicDB はプロトコルの分離を強制します。NGSIv2 Entity は NGSIv2 API 経由でのみアクセス可能であり、NGSI-LD Entity は NGSI-LD API 経由でアクセス可能です。ルールエンジンは、アクションがトリガー Entity のプロトコルとは異なるターゲット `protocol` を指定できるようにすることで、このギャップを埋めます。
+GeonicDB はプロトコル分離を強制します:NGSIv2 エンティティは NGSIv2 API 経由でのみアクセス可能で、NGSI-LD エンティティは NGSI-LD API 経由でのみアクセス可能です。ルールエンジンは、アクションがトリガーエンティティのプロトコルとは異なるターゲット `protocol` を指定できるようにすることで、このギャップを埋めます。
 
-### クロスプロトコルのためのアクションフィールド
+### クロスプロトコルのための Action フィールド
 
-| Field         | Actions                                        | Type                         | Default                  |
-| ------------- | ---------------------------------------------- | ---------------------------- | ------------------------ |
-| `protocol`    | createEntity, updateAttribute, deleteAttribute | `'ngsiv2' \| 'ngsild'` | Inherited from trigger   |
-| `servicePath` | createEntity                                   | `string`                     | Inherited or auto-mapped |
-| `scope`       | createEntity                                   | `string[]`                   | Inherited or auto-mapped |
+| Field         | Actions                                                                                                                                                                                                            | Type                         | Default                                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `protocol`    | createEntity, updateAttribute, deleteAttribute                                                                                                                                                                     | `'ngsiv2' \| 'ngsild'` | Inherited from trigger                                                                                         |
+| `servicePath` | createEntity, updateAttribute, deleteAttribute                                                                                                                                                                     | `string`                     | Inherited/auto-mapped for ngsiv2 targets; **forced to `'/'` for ngsild targets unless explicitly set** (#1605) |
+| `scope`       | createEntity (applied to the created entity); updateAttribute (**applied only when explicitly set on the action** — never auto-derived); deleteAttribute (used only for `servicePath` auto-mapping, never applied) | `string[]`                   | createEntity: inherited or auto-mapped / updateAttribute: explicit only                                        |
+
+>
+
+### ⚠️ セキュリティ: クロスプロトコル配置は認可境界を変更します
+>
+> **NGSI-LD 認可は `servicePath` ではなく `scope` で表現されます。** NGSI-LD API は
+> `resource.servicePath` を `'/'` に固定します(`policy.pip.ts`; #964 を参照)。そのため、`servicePath` でグループを制限するポリシーは **NGSI-LD エンティティを保護しません** — これらのルールが作成するミラーも含まれます。
+> 非ルート NGSIv2 トリガーから作成されたミラーは現在 `servicePath: '/'` に配置されるため(#1605 — そうしなければ HTTP API がまったくアクセスできません)、`servicePath` でデータを分割しているテナントは、そのデータを制限し続けるために **scope ベース** のポリシーを追加する必要があります。エンジンは非ルートトリガーパスからターゲットを再配置するたびに
+> `metric: RuleCrossProtocolRelocation`(WARN)をログに記録するため、変更は観測可能です。
+>
+> **`updateAttribute` における `scope` は置き換えであり、`scope` は認可属性です。**
+> そのため、`updateAttribute` は **アクションが明示的に設定した場合にのみ** `scope` を適用します — トリガーから自動導出されることはありません。自動導出を許可すると、「1 つの属性を更新」することで既存のエンティティを黙って再分類できてしまいます(例えば、`['/private/hr']` にスコープされたエンティティが `/foo` のルールによって触れられると
+> `['/foo']` になり、その後 `/private/**` をキーとする `Deny` ルールと行レベルフィルタが適用されなくなります)。
+> HTTP パスとは異なり、ルールエンジンにはスコープ遷移のための認可チェックポイントがありません。
+>
+> **ルールエンジンは環境権限で動作します** — 書き込むエンティティに対して XACML 評価を実行しません。したがって、ルールを作成できるプリンシパルは **同じテナント** 内の任意のエンティティにアクセスできます
+> (テナント分離自体は決してバイパスできません: `service` は常にトリガーから取得されます)。それに応じて
+> `POST /rules` を制限してください。エンジンレベルのエンティティごとの認可は別途追跡されます。
+>
+> **#1606**: `updateAttribute`/`deleteAttribute` は `servicePath`/`scope` を
+> `createEntity` とまったく同じ関数で解決します(個別/重複したロジックはありません)。これは #1605 のために重要です: このルールエンジンによって作成された NGSI-LD エンティティは、アクションが明示的にオーバーライドしない限り常に `servicePath: '/'` に配置されます — したがって、そのエンティティをターゲットとする後続の `updateAttribute`/
+> `deleteAttribute` は同じ `'/'` に解決される必要があります。さもなければ、エンティティの検索に黙って失敗します
+> (`NotFoundError`、`metric: 'RuleActionFailure'` でログに記録されます — 以下の「オブザーバビリティ」を参照)。
 
 ### 自動 servicePath ↔ scope マッピング
 
-プロトコルを越える際、階層システムは自動的にマッピングされます:
+プロトコルを跨ぐ際、階層システムは自動的にマッピングされます:
 
-| Direction              | Condition            | Mapping                  |
-| ---------------------- | -------------------- | ------------------------ |
-| NGSIv2 → NGSI-LD       | `servicePath != '/'` | `scope = [servicePath]`  |
-| NGSI-LD → NGSIv2       | `scope` has elements | `servicePath = scope[0]` |
-| Root servicePath `'/'` | (always)             | No scope generated       |
+| Direction              | Condition                    | Mapping                                                     |
+| ---------------------- | ---------------------------- | ----------------------------------------------------------- |
+| NGSIv2 → NGSI-LD       | trigger `servicePath != '/'` | `scope = [trigger.servicePath]`, target `servicePath = '/'` |
+| NGSI-LD → NGSIv2       | `scope` has elements         | `servicePath = scope[0]`                                    |
+| Root servicePath `'/'` | (always)                     | No scope generated                                          |
 
-アクションに明示的な `servicePath` または `scope` を指定すると、自動マッピングが上書きされます。テンプレート変数(`${trigger.servicePath}`、`${trigger.scope}`)は、カスタムマッピングロジックに使用できます。
+アクションに明示的な `servicePath` または `scope` が指定されている場合は、自動マッピングがオーバーライドされます。テンプレート変数(`${trigger.servicePath}`、`${trigger.scope}`)をカスタムマッピングロジックに使用できます。
+
+> **NGSI-LD エンティティは、アクションが明示的にオーバーライドしない限り、常に `servicePath: '/'` に作成されます(#1605)。**
+> NGSI-LD HTTP API は `Fiware-ServicePath` の概念を持っていません — 常にルートパスで読み書きします
+> (`tenant.middleware.ts` の `apiType: 'ngsild'` ハンドリング、#964 による: 「servicePath と scope は独立した概念です」)。NGSI-LD エンティティの階層は `scope` を通じてのみ表現されます。もし
+> `protocol: "ngsild"` `createEntity` アクションが非ルート `servicePath` を明示的に設定した場合、結果として得られるエンティティは **`GET`/`DELETE /ngsi-ld/v1/entities/{id}` からアクセス不可能** になります(`servicePath: '/'` のみを読み取ります)
+> 内部的には完全に可視である(例: MCP ツール経由)にもかかわらずです。`servicePath` をデフォルトのままにして、
+> `scope` を使用する(トリガーの `servicePath` から自動マッピングされる、または明示的に設定される)ことで階層を表現することを推奨します。
 
 ### 例: NGSIv2 センサー → NGSI-LD アラート
 
@@ -1140,7 +1341,7 @@ GeonicDB はプロトコルの分離を強制します。NGSIv2 Entity は NGSIv
 }
 ```
 
-### 例: NGSI-LD Entity → NGSIv2 ミラー
+### 例: NGSI-LD エンティティ → NGSIv2 ミラー
 
 ```json
 {
@@ -1164,11 +1365,13 @@ GeonicDB はプロトコルの分離を強制します。NGSIv2 Entity は NGSIv
 ### 制限事項
 
 
-* **複数の scope**: scope → servicePath へのマッピング時、servicePath は単一の文字列であるため、最初の要素(`scope[0]`)のみが使用されます
+* **複数のスコープ**: scope → servicePath をマッピングする際、servicePath は単一の文字列であるため、最初の要素 (`scope[0]`) のみが使用されます
   
-* **ルート servicePath**: `'/'` は scope にマッピングされません(NGSI-LD において意味を持たないため)
+* **ルート servicePath**: `'/'` は scope にマッピングされません (NGSI-LD において意味的な意味を持たないため)
   
-* **後方互換性**: `protocol` が省略された場合、アクションはトリガー Entity のプロトコルを継承します(既存の動作)
+* **後方互換性**: `protocol` が省略された場合、アクションはトリガーエンティティのプロトコルを継承します (既存の動作)
+  
+* **NGSI-LD servicePath は強制的に `'/'` になります**: `protocol: "ngsild"` の `createEntity` アクションの場合、`servicePath` はトリガーの servicePath に関係なくデフォルトで `'/'` になります — 階層は代わりに `scope` を介して表現する必要があります。このようなアクションに明示的にルート以外の `servicePath` を設定することは可能ですが、NGSI-LD HTTP API からエンティティにアクセスできなくなります (#1605)
 
 ***
 
@@ -1182,17 +1385,17 @@ GeonicDB はプロトコルの分離を強制します。NGSIv2 Entity は NGSIv
 
 ### 利用可能なパス
 
-| Path                                       | Description                         | Example                                                      |
-| ------------------------------------------ | ----------------------------------- | ------------------------------------------------------------ |
-| `${entity.id}`                             | Entity ID                           | `"Sensor001"`                                                |
-| `${entity.type}`                           | Entity type                         | `"TemperatureSensor"`                                        |
-| `${attribute.<name>.value}`                | Attribute value                     | `${attribute.temperature.value}` → `25.5`                    |
-| `${attribute.<name>.type}`                 | Attribute type                      | `${attribute.temperature.type}` → `"Number"`                 |
-| `${attribute.<name>.metadata.<key>.value}` | Metadata value                      | `${attribute.temperature.metadata.unit.value}` → `"Celsius"` |
-| `${trigger.protocol}`                      | Trigger entity's protocol           | `"ngsiv2"` or `"ngsild"`                                     |
-| `${trigger.servicePath}`                   | Trigger entity's servicePath        | `"/Madrid/Sensors"`                                          |
-| `${trigger.scope}`                         | Trigger entity's scope array (JSON) | `["/Madrid/Sensors"]`                                        |
-| `${trigger.service}`                       | Trigger entity's tenant service     | `"smartcity"`                                                |
+| Path                                       | Description                                                                       | Example                                                      |
+| ------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `${entity.id}`                             | Entity ID                                                                         | `"Sensor001"`                                                |
+| `${entity.type}`                           | Entity type                                                                       | `"TemperatureSensor"`                                        |
+| `${attribute.<name>.value}`                | Attribute value (default instance for multi-attribute; GeonicDB extension, #2785) | `${attribute.temperature.value}` → `25.5`                    |
+| `${attribute.<name>.type}`                 | Attribute type                                                                    | `${attribute.temperature.type}` → `"Number"`                 |
+| `${attribute.<name>.metadata.<key>.value}` | Metadata value                                                                    | `${attribute.temperature.metadata.unit.value}` → `"Celsius"` |
+| `${trigger.protocol}`                      | Trigger entity's protocol                                                         | `"ngsiv2"` or `"ngsild"`                                     |
+| `${trigger.servicePath}`                   | Trigger entity's servicePath                                                      | `"/Madrid/Sensors"`                                          |
+| `${trigger.scope}`                         | Trigger entity's scope array (JSON)                                               | `["/Madrid/Sensors"]`                                        |
+| `${trigger.service}`                       | Trigger entity's tenant service                                                   | `"smartcity"`                                                |
 
 ### 例
 
@@ -1217,7 +1420,7 @@ GeonicDB はプロトコルの分離を強制します。NGSIv2 Entity は NGSIv
 }
 ```
 
-#### 動的な Webhook URL
+#### 動的 Webhook URL
 
 ```json
 {
@@ -1227,7 +1430,7 @@ GeonicDB はプロトコルの分離を強制します。NGSIv2 Entity は NGSIv
 
 ### テンプレート関数
 
-パス解決に加えて、アクションテンプレートは `${name(args)}` の形式で純粋関数の小さなホワイトリストを呼び出すことができます。サーバーのウォールクロック時刻をスタンプする場合や、派生エンティティ(例:追記専用の `ActivityLog` レコード)で一意の ID を生成する場合に便利です。
+パス解決に加えて、アクションテンプレートは `${name(args)}` の形式で純粋関数の小さなホワイトリストを呼び出すことができます。サーバーのウォールクロック時刻のスタンプや、派生エンティティ(例: 追記専用の `ActivityLog` レコード)での一意な ID の生成に便利です。
 
 | Function                     | Returns                                | Example                                  |
 | ---------------------------- | -------------------------------------- | ---------------------------------------- |
@@ -1239,13 +1442,13 @@ GeonicDB はプロトコルの分離を強制します。NGSIv2 Entity は NGSIv
 **注意事項**
 
 
-* 関数は **ルール発火ごとに** 評価されます — すべてのイベントが新しい値を作成します(そのため `${uuid()}` は派生エンティティごとに真に一意であり、`${now()}` はルール登録時ではなく評価の瞬間を反映します)。
+* 関数は**ルール発火ごと**に評価されます — すべてのイベントが新しい値を生成します(したがって `${uuid()}` は派生エンティティごとに真に一意であり、`${now()}` はルール登録時ではなく評価時点を反映します)。
   
-* 引数パーサーは、単純なカンマ区切りのリテラル文字列(`'iso'`、`"unix"`)のみを処理します。ネストされた式、数値演算、`${now(entity.id)}` などの参照はサポートされていません — 代わりに CEL の `celExpression` 条件でそれらを計算し、結果をエンティティ属性として公開してください。
+* 引数パーサーは単純なカンマ区切りのリテラル文字列(`'iso'`、`"unix"`)のみを処理します。ネストされた式、数値演算、および `${now(entity.id)}` のような参照はサポートされていません — これらは代わりに CEL の `celExpression` 条件で計算し、結果をエンティティ属性として表面化してください。
   
-* 未知の関数名とサポートされていない引数値は、プレースホルダーテキストをそのまま残します(例:`${notAFunction()}` はリテラルのまま)。ルール作成者がタイプミスを修正できるように警告がログに記録されます。
+* 不明な関数名やサポートされていない引数値は、プレースホルダーテキストをそのまま残します(例: `${notAFunction()}` はリテラルのままです)。警告がログに記録されるため、ルール作成者は誤字を修正できます。
   
-* パス解決と関数呼び出しは共存できます:`https://example.com/log?id=${uuid()}&entity=${entity.id}` は期待通りに動作します。
+* パス解決と関数呼び出しは共存します: `https://example.com/log?id=${uuid()}&entity=${entity.id}` は期待どおりに機能します。
 
 #### 追記専用 ActivityLog の例
 
@@ -1262,29 +1465,29 @@ GeonicDB はプロトコルの分離を強制します。NGSIv2 Entity は NGSIv
 }
 ```
 
-すべてのエンティティ作成イベントは新しい `ActivityLog` インスタンスを生成します — entityId の衝突もクールダウンの競合もありません。
+すべてのエンティティ作成イベントが新しい `ActivityLog` インスタンスを生成します — entityId の衝突もクールダウンの競合もありません。
 
 ***
 
 ## Rules API
 
-### ルール一覧
+### ルールのリスト
 
 ```http
 GET /rules
 Authorization: Bearer <accessToken>
 ```
 
-**認可**: XACML ポリシーベース (`tenant_admin` ロールが必要。`AUTH_ENABLED=true` の場合、`super_admin` は `/rules*` エンドポイントにアクセスできません)
+**認可**: XACML ポリシーベース (`tenant_admin` ロールが必要。認証が有効な場合 (デフォルト)、`super_admin` は `/rules*` エンドポイントにアクセスできません)
 
 **クエリパラメータ**
 
-| Parameter     | Description                                           |
-| ------------- | ----------------------------------------------------- |
-| `limit`       | Number of results to retrieve (default: 20, max: 100) |
-| `offset`      | Offset (default: 0)                                   |
-| `servicePath` | Filter by service path                                |
-| `isActive`    | Filter by enabled/disabled (`true` / `false`)         |
+| Parameter     | Description                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `limit`       | Number of results to retrieve (default: 20, max: 100)                                                                                                                                                                                                                                                                                                                                     |
+| `offset`      | Offset (default: 0)                                                                                                                                                                                                                                                                                                                                                                       |
+| `servicePath` | Filter by service path. Must match `/^\/[\w/]*$/` (a single, non-hierarchical path — see "servicePath syntax" below); `400 Bad Request` otherwise (#1607). **If omitted, defaults to the servicePath authorization was evaluated against** — the resolved `Fiware-ServicePath` (default `/`) — rather than matching every servicePath (#2259; see "servicePath default resolution" below) |
+| `isActive`    | Filter by enabled/disabled (`true` / `false`)                                                                                                                                                                                                                                                                                                                                             |
 
 **レスポンス**: `200 OK`
 
@@ -1313,7 +1516,7 @@ Authorization: Bearer <accessToken>
   
 * `Link`: ページネーションリンク
 
-### ルール作成
+### ルールの作成
 
 ```http
 POST /rules
@@ -1352,9 +1555,46 @@ Content-Type: application/json
 }
 ```
 
-**レスポンス**: `201 Created`
+ルールの `servicePath` は、`servicePath` クエリパラメータまたは `Fiware-ServicePath` ヘッダーから取得されます(クエリパラメータが優先されます)。どちらも指定されていない場合はデフォルトで `/` になります。
 
-### ルール取得
+**レスポンス**: `201 Created` / `400 Bad Request`(`servicePath` の検証に失敗した場合。以下の「servicePath の構文」を参照)
+
+#### servicePath の構文 (#1607)
+
+ルールの `servicePath` は `/^\/[\w/]*$/` に一致する必要があります — 先頭の `/` の後に、任意の数の英数字、アンダースコア、および `/` が続きます。**ハイフンやその他の句読点は許可されません**。また、単一の非階層的なパスである必要があります(カンマ区切りの複数パスや末尾の `/#` は不可)。`POST /rules` と `GET /rules?servicePath=...` の両方がこれを強制します(NGSIv2 データ書き込みが使用するのと同じ検証、`parseServicePathHeader()` を使用)。
+
+これは、一般的な NGSIv2 書き込みパス検証よりも一つの点で厳格です: 階層的な `/#` は明示的に拒否されますが、`parseServicePathHeader()` は通常それをリテラルパスセグメントとして受け入れます。ルールは常に正確に一つの `servicePath` に一致します — `rule.repository.ts` の `findActiveRulesForTenant()` と `listRules` フィルタの両方が**完全一致の文字列比較**を行い、プレフィックス/階層による比較は行いません — したがって、`/#` を末尾に付けたりカンマ区切りの `servicePath` は、実際には受信するエンティティ変更に一致することはありません。これを受け入れると、作成時に大きく失敗する代わりに、決して発火しないルール(`POST /rules`)や常に空を返すリストフィルタ(`GET /rules`)が静かに生成されてしまいます。
+
+**ルールの `servicePath` は、それをトリガーするための NGSIv2 書き込みで使用される `Fiware-ServicePath` と完全に一致する必要があります。** たとえば、`servicePath: "/sensors"` で作成されたルールは、トリガーイベントが `servicePath: "/sensors"` を持つエンティティ変更に対してのみ発火します — `/sensors/indoor` でも `/` でも、省略された場合(デフォルトで `/` になる)でもありません。
+
+#### servicePath のデフォルト解決 (#2259)
+
+`/rules` は、リクエストの*有効な* `servicePath` を、認可と実際の操作の両方に対して同じ方法で解決します — 独立してデフォルト化された 2 つの入力ではなく、**単一**の解決ポイント(`resolveRulesRequestServicePath`)です。リクエストが値を宣言している場合(`servicePath` クエリパラメータ)、それは検証され(上記の「servicePath の構文」を参照)、両方に使用されます。宣言していない場合、両方とも `Fiware-ServicePath` から解決された servicePath(デフォルトは `/`)にフォールバックします — XACML ポリシーエンジンがリクエストを評価する際に使用するのと同じ値です。
+
+**破壊的変更**: #2259 以前は、`servicePath` クエリパラメータのない `GET /rules` は**すべての** servicePath からルールを返していましたが、認可は依然として単一の `Fiware-ServicePath` 派生値に対して評価されていました — `servicePath` スコープの Deny ポリシーは、単にクエリパラメータを省略するだけでバイパスできました。`GET /rules` は、パラメータが省略された場合、その単一の解決された servicePath のルールのみを返すようになりました。異なる servicePath の下にあるルールを見るには、`?servicePath=...`(または一致する `Fiware-ServicePath` ヘッダー)を明示的に渡してください — その同じ値が認可でも評価されます。`POST /rules`(新しいルールがどの servicePath に保存されるか)は、すでに持っていた優先順位を維持します(クエリパラメータ、なければヘッダー、なければ `/`)が、一つの例外があります: **明示的に空の** `?servicePath=` は、「指定されていない」ではなく「ルートパス `/`」を意味するようになりました。以前は空の値は `Fiware-ServicePath` にフォールスルーしていましたが、両側が一つの解決ポイントを通るため、現在はリストフィルタが常に読み取ってきた方法と同じように読み取られます(#1607)。認可はその同じ `/` に対して評価されるため、これは両者を分割しません。
+
+#### ID ごとの操作は、ルールの保存された servicePath に対して認可されます (#2283)
+
+上記の解決は、*クライアント*が servicePath を提供する操作(`GET /rules`、`POST /rules`)をカバーします。ID ごとの操作 — `GET`、`PATCH`、`DELETE /rules/{ruleId}` および `POST /rules/{ruleId}/activate|deactivate` — はそうではありません: ルールはすでに存在しているため、その servicePath は**ルールに保存されているもの**です。
+
+したがって、これらの操作は**2 回**認可されます:
+
+
+1. パスレベル、リクエストから解決された servicePath に対して(以前と同様)、および
+   
+2. ルールレベル、データベースから読み取られた `rule.servicePath` に対して、ルールがロードされた後、書き込みの前。
+
+両方が許可する必要があります。`servicePath: /secret` で拒否されたプリンシパルは、`Fiware-ServicePath: /open`(または `?servicePath=/open`)を送信することで、`/secret` の下に保存されたルールを読み取ったり変更したりできなくなりました — #2283 以前は、ID ごとの検索は `ruleId` + `tenantId` のみでフィルタリングしていたため、認可は、触れられているルールとは何の関係もない servicePath を評価していました。
+
+ルールレベルのチェックは `RuleService` にあるため、HTTP API、MCP `config` ツール、および
+
+A2A `config` スキル。`404` の動作は変更なし:呼び出し元のテナントに存在しないルールは引き続き `404` を返し、存在するが許可されていないルールは `403` を返します — ID による問い合わせ自体は servicePath によって**フィルタリングされない**ため、クライアントは自分のルールを取得するためにヘッダーを一致させる必要はありません。
+
+> **制限 — `servicePath` スコープのポリシーは ID によるルートを制約しません。** `GET`/`PATCH`/`DELETE` `/rules/{ruleId}` および activate/deactivate ルートは、`ruleId` (+ テナント) のみでルールを検索します。これらは servicePath でフィルタリングすることはなく、一方でこれらのルートの認証は*リクエスト*が解決した servicePath に対して評価されます。したがって、`/open` で許可されたプリンシパルは、`ruleId` を指定することで `/secret` の下に保存されたルールを読み取りまたは削除できます。これは上記で修正されたものとは異なる根本原因です — ルールの servicePath は保存された値であり、クライアントが提供したものではないため、これを閉じるにはエンティティレベルの認証(読み込まれたルール自身の `servicePath` に対して評価)が必要です。これはエンティティの `checkEntityOwnership` と同じ形です。[#2283](https://github.com/geolonia/geonicdb/issues/2283) で追跡されています。
+
+MCP `config` ツールの `rules`/`list` アクションと A2A `config` スキルの `rules`/`list` アクションは同じルールに従います:省略された `servicePath` 引数は、すべての servicePath からルールを返すのではなく、その呼び出しの認証が評価された servicePath にデフォルト設定されます。
+
+### ルールの取得
 
 ```http
 GET /rules/:ruleId
@@ -1363,7 +1603,7 @@ Authorization: Bearer <accessToken>
 
 **レスポンス**: `200 OK` / `404 Not Found`
 
-### ルールを更新する
+### ルールの更新
 
 ```http
 PATCH /rules/:ruleId
@@ -1385,7 +1625,7 @@ Content-Type: application/json
 
 **レスポンス**: `204 No Content` / `404 Not Found`
 
-### ルールを削除する
+### ルールの削除
 
 ```http
 DELETE /rules/:ruleId
@@ -1394,7 +1634,7 @@ Authorization: Bearer <accessToken>
 
 **レスポンス**: `204 No Content` / `404 Not Found`
 
-### ルールを有効化/無効化する
+### ルールの有効化/無効化
 
 ```http
 POST /rules/:ruleId/activate
@@ -1410,7 +1650,7 @@ Authorization: Bearer <accessToken>
 
 ### 例 1: 高温アラート
 
-温度が 30 度を超えた場合に、自動的に警告属性を追加します。
+温度が 30 度を超えると、自動的に警告属性を追加します。
 
 ```json
 {
@@ -1446,9 +1686,9 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-### 例 2:営業時間外での自動ステータス更新
+### 例 2: 営業時間外の自動ステータス更新
 
-営業時間外(18:00 から 09:00)にステータスを自動的に「closed」に設定します。
+営業時間外(18:00 から 09:00)に、ステータスを自動的に「閉店」に設定します。
 
 ```json
 {
@@ -1489,9 +1729,9 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-### 例 3:派生エンティティの自動生成
+### 例 3: 派生エンティティの自動生成
 
-センサーデータから日次サマリーエンティティを自動的に生成します。
+センサーデータから日次サマリエンティティを自動的に生成します。
 
 ```json
 {
@@ -1567,7 +1807,7 @@ Authorization: Bearer <accessToken>
 
 ### 例 5: 複雑な条件 (AND + OR)
 
-温度が 30 度以上、かつ湿度が 80% 以上、または時刻が 12:00 から 15:00 の間のいずれかの場合に警告を発行します。
+温度が 30 度以上、かつ、湿度が 80% 以上、または時刻が 12:00 から 15:00 の間のいずれかの場合に警告を発します。
 
 ```json
 {
@@ -1614,18 +1854,18 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-### 例 6: 不快指数による熱中症アラート通知 (CEL Expression + Notification)
+### 例 6: 不快指数による熱中症アラート通知 (CEL 式 + 通知)
 
-温度と湿度から **不快指数** をリアルタイムで評価し、閾値を超えたときに subscription 経由で通知を送信する実用的な例です。
+温度と湿度から **不快指数** をリアルタイムで評価し、閾値を超えた際にサブスクリプション経由で通知を送信する実践的な例です。
 
-**不快指数の公式:**
+**不快指数の計算式:**
 
 ```text
 DI = 0.81 × T + 0.01 × H × (0.99 × T − 14.3) + 46.3
 ```
 
 
-* T: 気温 (°C)
+* T: 温度 (°C)
   
 * H: 相対湿度 (%)
 
@@ -1642,9 +1882,9 @@ DI = 0.81 × T + 0.01 × H × (0.99 × T − 14.3) + 46.3
 | 80\~85           | Hot with perspiration              |
 | 85\~             | Unbearably hot                     |
 
-#### ステップ 1: 通知 subscription の作成
+#### ステップ 1: 通知サブスクリプションを作成する
 
-まず、アラート通知を受信するための subscription を作成します。
+まず、アラート通知を受信するためのサブスクリプションを作成します。
 
 ```bash
 # Create an NGSIv2 subscription
@@ -1671,11 +1911,11 @@ curl -X POST "http://localhost:3000/v2/subscriptions" \
   }'
 ```
 
-レスポンスの `Location` ヘッダーから subscription ID を取得してください (例: `urn:ngsi-ld:Subscription:abc123`)。
+レスポンスの `Location` ヘッダーからサブスクリプション ID を取得します (例: `urn:ngsi-ld:Subscription:abc123`)。
 
-#### ステップ 2: 不快指数アラートルールの作成
+#### ステップ 2: 不快指数アラートルールを作成する
 
-CEL expression を使用して不快指数を計算し、75 を超えたときにアクションを実行するルールを作成します。
+CEL 式を使用して不快指数を計算し、75 を超えた際にアクションを実行するルールを作成します。
 
 ```bash
 curl -X POST "http://localhost:3000/rules" \
@@ -1728,24 +1968,24 @@ curl -X POST "http://localhost:3000/rules" \
   }'
 ```
 
-**このルールのキーポイント:**
+**このルールの重要なポイント:**
 
 
-* **条件 1 (entityType)**: `WeatherStation` 型のエンティティのみを対象とする
+* **条件 1 (entityType)**: `WeatherStation` タイプのエンティティのみを対象とします
   
-* **条件 2 (or + change)**: `temperature` または `humidity` が変化した場合にのみ評価する(不要な再評価を回避)
+* **条件 2 (or + change)**: `temperature` または `humidity` が変更されたときのみ評価します(不要な再評価を回避)
   
-* **条件 3 (celExpression)**: 不快指数の計算式を直接 CEL で記述し、75 を超えるかどうかをチェックする
+* **条件 3 (celExpression)**: 不快指数の計算式を CEL で直接記述し、75 を超えるかどうかをチェックします
   
-* **アクション 1 (updateAttribute)**: エンティティに `discomfortLevel` 属性を追加する
+* **アクション 1 (updateAttribute)**: エンティティに `discomfortLevel` 属性を追加します
   
-* **アクション 2 (sendNotification)**: サブスクリプション経由でアラート通知を送信する
+* **アクション 2 (sendNotification)**: サブスクリプション経由でアラート通知を送信します
   
-* **cooldownSeconds: 600**: 10 分間のクールダウンにより、過度な通知配信を防止する
+* **cooldownSeconds: 600**: 10 分間のクールダウンにより、過度な通知配信を防ぎます
 
-#### ステップ 3: 危険レベル(DI > 80)の Webhook 通知ルールを追加する
+#### ステップ 3: 危険レベル (DI > 80) の Webhook 通知ルールを追加する
 
-不快指数がさらに高い場合に、Webhook 経由で緊急通知を送信する追加ルールを作成します。
+不快指数がさらに高い場合に Webhook 経由で緊急通知を送信する追加ルールを作成します。
 
 ```json
 {
@@ -1792,7 +2032,7 @@ curl -X POST "http://localhost:3000/rules" \
 }
 ```
 
-**注意:** このルールは `priority: 5` であり、例 6 の `priority: 10` よりも高い優先度です。したがって、DI > 80 の場合、`DANGER` が最初に設定されますが、その後の `WARNING` 更新によって上書きされないように注意する必要があります。同じエンティティに対して両方のルールがマッチした場合、優先度の昇順で実行されるため、順序は `DANGER` → `WARNING` となります。これを回避するには、WARNING ルールの CEL 式に上限条件を追加します:
+**注意:** このルールは `priority: 5` であり、例 6 の `priority: 10` よりも高い優先度です。したがって、DI > 80 の場合、`DANGER` が最初に設定されますが、その後の `WARNING` 更新によって上書きされないように注意する必要があります。同じエンティティに対して両方のルールが一致する場合、優先度の昇順で実行されるため、順序は `DANGER` → `WARNING` となります。これを回避するには、WARNING ルールの CEL 式に上限条件を追加します:
 
 ```json
 {
@@ -1801,7 +2041,7 @@ curl -X POST "http://localhost:3000/rules" \
 }
 ```
 
-#### ステップ 4: 動作を検証する
+#### ステップ 4: 動作を確認する
 
 ```bash
 # Temperature 27°C, Humidity 75% → Discomfort index ≈ 77.5 (WARNING)
@@ -1837,19 +2077,19 @@ curl -s "http://localhost:3000/v2/entities/urn:ngsi-ld:WeatherStation:shibuya-00
 
 ***
 
-## 無限ループ防止
+## 無限ループの防止
 
-ReactiveCore Rules は、ルールが無限ループに陥ることを防ぐために、複数の保護メカニズムを実装しています。
+ReactiveCore Rules は、ルールが無限ループに陥るのを防ぐための複数の保護メカニズムを実装しています。
 
 ### 1. Action Entity Type Exclusion (Self-Trigger Prevention)
 
-**制限**: ルールのアクションによって作成されるエンティティタイプは、同じルールのトリガーターゲットから**自動的に除外**されます。
+**制限**: ルールのアクションによって作成されるエンティティタイプは、同じルールのトリガー対象から**自動的に除外**されます。
 
 **動作**:
 
 * ルールのアクション(`createEntity`)によって作成されるエンティティタイプを抽出
   
-* 変更イベント内のエンティティタイプがアクションで指定されたタイプと一致する場合、そのルールの実行がブロックされます
+* 変更イベントのエンティティタイプがアクションで指定されたタイプと一致する場合、そのルールの実行がブロックされます
 
 **例**:
 
@@ -1884,21 +2124,21 @@ ReactiveCore Rules は、ルールが無限ループに陥ることを防ぐた�
 
 このルール:
 
-* ✅ `TemperatureSensor` エンティティへの変更時に実行される
+* ✅ `TemperatureSensor` エンティティの変更時に実行される
   
-* ❌ `Alert` エンティティへの変更時には実行されない(自己トリガー防止)
+* ❌ `Alert` エンティティの変更時には実行されない(自己トリガー防止)
 
 **メリット**:
 
-* ルールが作成したエンティティによって再トリガーされることを防止
+* ルールが作成したエンティティによって再トリガーされることを防ぎます
   
-* 意図しない連鎖反応を自動的に防止
+* 意図しない連鎖反応を自動的に防ぎます
   
-* 明示的な条件設定なしでループを回避
+* 明示的な条件設定なしでループを回避します
 
 ### 2. Execution Counter (Per Entity, Per Time Window)
 
-**制限**: 単一のエンティティに対して、単一のルールは 1 分あたり最大 **10 回**まで実行できます。
+**制限**: 単一のエンティティに対して、単一のルールは **1 分あたり最大 10 回**実行できます。
 
 ```typescript
 // Default configuration (src/config/defaults.ts)
@@ -1908,15 +2148,15 @@ RULE_ENGINE.EXECUTION_WINDOW_SECONDS = 60;   // Time window (seconds)
 
 **動作**:
 
-* エンティティごと、ルールごとに実行回数を追跡
+* ルールごと、エンティティごとに実行回数を追跡
   
 * 時間ウィンドウ内で最大値に達した場合、それ以降の実行をブロック
   
-* カウンターは時間ウィンドウが経過すると自動的にリセットされます
+* カウンターは時間ウィンドウが期限切れになると自動的にリセットされます
 
 ### 3. Loop Detection (Circular Rule Chains)
 
-**制限**: ルール実行チェーンの深さは最大 **5 レベル**に制限されます。
+**制限**: ルール実行チェーンの深さは最大 **5 レベル**に制限されています。
 
 ```typescript
 // Default configuration (src/config/defaults.ts)
@@ -1925,9 +2165,9 @@ RULE_ENGINE.MAX_CHAIN_DEPTH = 5;
 
 **動作**:
 
-* ルール A → エンティティ更新 → ルール B → エンティティ更新 → ルール C といったチェーンを追跡
+* ルール A → エンティティ更新 → ルール B → エンティティ更新 → ルール C のようなチェーンを追跡
   
-* 実行チェーン内で同じルールが 2 回出現する場合(循環)、実行がブロックされます
+* 実行チェーン内で同じルールが 2 回出現した場合(循環)、実行がブロックされます
   
 * チェーンの深さが最大値を超えた場合、実行がブロックされます
 
@@ -1943,7 +2183,7 @@ Rule A (temperature sensor) → creates Alert entity
 
 ### 4. Cooldown Period
 
-各ルールに対して **最小実行間隔** を設定することができます。
+各ルールに対して**最小実行間隔**を設定できます。
 
 ```json
 {
@@ -1955,7 +2195,7 @@ Rule A (temperature sensor) → creates Alert entity
 }
 ```
 
-**デフォルト値**: `cooldownSeconds` が指定されていない場合、デフォルトで **60 秒** のクールダウンが適用されます。
+**デフォルト値**: `cooldownSeconds` が指定されていない場合、デフォルトで **60 秒**のクールダウンが適用されます。
 
 ```typescript
 // Default configuration (src/config/defaults.ts)
@@ -1966,7 +2206,7 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
 
 * ルールごと、エンティティごとに最後の実行時刻を追跡
   
-* クールダウン期間内の場合は実行をブロック
+* クールダウン期間内であれば実行をブロック
   
 * クールダウン期間が経過すると再び実行が可能になる
 
@@ -1974,9 +2214,11 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
 
 * 頻繁に変化するセンサーデータに対するアラート通知の制御
   
-* 過度な Webhook 呼び出しの防止
+* 過剰な Webhook 呼び出しの防止
   
-* 外部システムへの負荷の軽減
+* 外部システムへの負荷軽減
+
+> **アクションの結果に関係なくクールダウンは消費される (#1606)**: クールダウン/実行ウィンドウカウンターは、ルールが実行対象として選択されるとすぐに更新されます (`trackExecution()`)。これはアクションが実行される*前*に行われます。ルール内のすべてのアクションが失敗し続ける場合(例: 誤って設定された `entityId` テンプレートや、存在しないクロスプロトコルターゲット)でも、ルールはマッチングするイベントごとにクールダウンを消費します — 実際には何も起こらなかったからといって、より早く再試行されることはありません。現在、クエリ可能な実行履歴(発火ごとの成功/失敗)は存在しません。繰り返し静かに失敗しているルールを検出するには、`metric: 'RuleActionFailure'` / `metric: 'RuleExecutionFailure'` 構造化ログフィールド(以下の「アクション実行エラー」を参照)を使用してください。クエリ可能な履歴は #1606 のフォローアップとして追跡されています。
 
 ### ループ防止のベストプラクティス
 
@@ -1992,7 +2234,7 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
    // Changes to Alert entities will not trigger this rule (automatically excluded)
    ```
 
-2\. **Change 条件を使用する**: 属性が実際に変化した場合にのみトリガーする
+2\. **変更条件を使用する**: 属性が実際に変更された場合にのみトリガー
 
 ```json
 {
@@ -2001,7 +2243,7 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
 }
 ```
 
-3\. **cooldownSeconds を設定する**: 高頻度の実行が予想される場合は適切なクールダウンを設定する
+3\. **cooldownSeconds を設定する**: 高頻度実行が予想される場合は適切なクールダウンを設定
 
 ```json
 {
@@ -2009,33 +2251,37 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
 }
 ```
 
-4\. **ルールの優先度を適切に設定する**: 実行順序を制御して意図しない連鎖を防ぐ
+4\. **ルールの優先度を適切に設定する**: 意図しない連鎖を防ぐために実行順序を制御
 
 ***
 
 ## 制限事項
 
+### テナントの非アクティブ化 (#3596)
+
+テナントが非アクティブ化されている間(`POST /admin/tenants/{tenantId}/deactivate` または `PATCH` で `isActive: false` を設定)、ReactiveCore Rules はそのテナントに対して**評価されません**。これには `webhook`、`createEntity`、`updateAttribute`、`deleteAttribute`、`appendToTemporal`、`sendNotification` が含まれます。ルールドキュメントは `isActive` / `status` を保持し、何も取り消されません。`activate` 後、次のエンティティ変更イベントで評価が自動的に再開されます。他のインスタンス(および RuleProcessor Lambda コンテナ)は、`CACHE.TENANT_TTL_MS`(30秒)以内に変更を観測します。
+
 ### 現在の制限事項
 
 
-1. **トランザクションなし**: 複数のアクションの実行中にエラーが発生した場合、ロールバックは行われません
+1. **トランザクションなし**: 複数のアクションの実行中にエラーが発生した場合、ロールバックは実行されません
    
-2. **条件評価のパフォーマンス**: ルール数が多い場合、評価に時間がかかる可能性があります
+2. **条件評価のパフォーマンス**: 大量のルールがある場合、評価に時間がかかる可能性があります
    
-3. **テンプレート変数の型チェックなし**: 実行時エラーが発生する可能性があります
+3. **テンプレート変数の型チェックなし**: ランタイムエラーが発生する可能性があります
 
 ### パフォーマンスに関する考慮事項
 
 
-* ルール数が多い場合、エンティティの変更ごとの処理時間が増加します
+* 多数のルールがある場合、エンティティ変更ごとの処理時間が増加します
   
-* 不要なルールを無効化します (`isActive: false`)
+* 不要なルールを無効にします(`isActive: false`)
   
-* 実行順序を最適化するために優先順位を適切に設定します
+* 実行順序を最適化するために優先度を適切に設定します
   
-* 高頻度で変更されるエンティティに対してルールを設定する場合は注意が必要です
+* 高頻度で変更されるエンティティに対してルールを設定する際は注意が必要です
   
-* **ループ防止**: アクションエンティティタイプ除外、実行カウンター、ループ検出、クールダウン期間メカニズムにより、無限ループは自動的に防止されます
+* **ループ防止**: 無限ループは、アクションエンティティタイプの除外、実行カウンター、ループ検出、クールダウン期間のメカニズムによって自動的に防止されます
 
 ***
 
@@ -2046,15 +2292,17 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
 **チェックリスト**:
 
 
-1. `RULES_ENABLED=true` が設定されているか?
+1. `RULES_ENABLED=true` が設定されていますか?
    
-2. ルールが有効になっているか (`isActive: true`)?
+2. ルールが有効になっていますか(`isActive: true`)?
    
-3. 条件が正しくマッチしているか (特にエンティティタイプ)?
+3. 条件が正しく一致していますか(特にエンティティタイプ)?
    
-4. servicePath がマッチしているか?
+4. servicePath は一致していますか?
    
-5. Change Stream Handler が動作しているか?
+5. Change Stream Handler は実行されていますか?
+   
+6. テナントはアクティブですか?(非アクティブ化されたテナントはすべてのルール評価をスキップします — #3596)
 
 **デバッグ**:
 
@@ -2070,9 +2318,9 @@ grep "RuleEngineService" /var/log/lambda.log
 **チェックリスト**:
 
 
-1. 変数のパスが正しいか (例: `${entity.id}`、`${attribute.temperature.value}`)?
+1. 変数パスは正しいですか(例: `${entity.id}`、`${attribute.temperature.value}`)?
    
-2. 参照されている属性が存在しているか?
+2. 参照される属性は存在しますか?
    
 3. 大文字と小文字の違いに注意してください
 
@@ -2088,19 +2336,19 @@ grep "RuleEngineService" /var/log/lambda.log
 **チェックリスト**:
 
 
-1. URL が正しいか?
+1. URL は正しいですか?
    
-2. 外部 API に到達可能か (ネットワーク、ファイアウォール)?
+2. 外部 API に到達可能ですか(ネットワーク、ファイアウォール)?
    
-3. Authorization ヘッダーが正しいか?
+3. Authorization ヘッダーは正しいですか?
    
-4. Content-Type が正しいか?
+4. Content-Type は正しいですか?
    
-5. リクエストボディのフォーマットが正しいか?
+5. リクエストボディの形式は正しいですか?
 
 **デバッグ**:
 
-エラーメッセージのログを確認してください。
+ログでエラーメッセージを確認してください。
 
 ```bash
 # Search for Webhook errors
@@ -2109,44 +2357,54 @@ grep "Webhook execution failed" /var/log/lambda.log
 
 ### 無限ループ
 
-ルールのアクションが別のルールの条件にマッチする可能性があり、無限ループを引き起こす可能性があります。
+あるルールのアクションが別のルールの条件に一致し、無限ループを引き起こす可能性があります。
 
 **対策**:
 
 
 1. ルールの条件を慎重に設計する
    
-2. `change` 条件を使用して特定の属性変更のみをトリガーする
+2. `change` 条件を使用して、特定の属性変更時のみトリガーする
    
-3. エンティティタイプを分離する (例: 派生エンティティには異なるタイプを使用する)
+3. エンティティタイプを分離する(例:派生エンティティには別のタイプを使用する)
 
 ### アクション実行エラー
 
 **チェックリスト**:
 
 
-1. エンティティ ID が存在しているか (updateAttribute、deleteAttribute の場合)?
+1. エンティティ ID は存在するか(updateAttribute、deleteAttribute の場合)?
    
-2. 属性名が正しいか?
+2. 属性名は正しいか?
    
-3. 値の型が正しいか (例: 数値属性に文字列値を設定していないか)?
+3. 値の型は正しいか(例:数値属性に文字列値を設定していないか)?
    
-4. tenant と servicePath が正しいか?
+4. tenant と servicePath は正しいか? NGSI-LD を対象とするクロスプロトコルの `updateAttribute`/`deleteAttribute` の場合、アクションが明示的に上書きしない限り、ターゲットの `servicePath` は `'/'` に強制されることに注意してください(#1605/#1606)—上記の「クロスプロトコルエンティティ作成」を参照してください。
+
+**可観測性(#1606)**: アクション/ルール実行の失敗は構造化エラーとしてログに記録されます(暗黙的に無視されません)—1 つのアクションの失敗が他のアクション/ルールの実行を停止させることはありませんが、各失敗は次の情報と共にログに記録されます:
+
+
+* `logger.error('Failed to execute action', { ruleId, actionType, entityId, error, metric: 'RuleActionFailure' })` —アクション単位の失敗(例:`servicePath` 解決の誤りによる `NotFoundError`)。ここでの `entityId` はテンプレート展開前の*生の*アクション定義値です。解決済みの entityId とターゲットの `servicePath`/`protocol` は、`executeUpdateAttributeAction`/`executeDeleteAttributeAction` の内部から別途ログに記録されます(`logger.info('Updating entity
+  attribute', ...)` / `logger.info('Deleting entity attribute', ...)`)が、変更を行う呼び出しの直前に記録されます。
+  
+* `logger.error('Failed to execute rule actions', { ruleId, error, metric: 'RuleExecutionFailure' })` —ルールレベルの失敗(例:アクション単位の try/catch の外側での予期しない例外)。
+
+失敗しているルールを見つけるには、ログで `metric: "RuleActionFailure"` または `metric: "RuleExecutionFailure"` を検索してください。専用のルール実行履歴コレクション/API はまだありません—これはログベースの可観測性のみです。
 
 ***
 
-## 技術仕様 (GeonicDB Rule Specification v1.0)
+## 技術仕様(GeonicDB ルール仕様 v1.0)
 
 **ステータス**: ドラフト
 **バージョン**: 1.0.0
-**最終更新日**: 2026-02-10
+**最終更新**: 2026-02-10
 **著者**: GeonicDB Development Team
 
 ### 概要
 
-本文書は、NGSI ベースのコンテキストブローカーにおけるエンティティ変更を処理するための GeonicDB Rule Engine フォーマットを規定します。本仕様は、Event-Condition-Action (ECA) パターンに従った JSON ベースのルールフォーマットを定義し、IoT およびスマートシティアプリケーションに最適化されています。
+本文書は、NGSI ベースのコンテキストブローカーにおけるエンティティ変更を処理するための GeonicDB Rule Engine フォーマットを規定します。この仕様では、IoT およびスマートシティアプリケーションに最適化された Event-Condition-Action (ECA) パターンに従った JSON ベースのルールフォーマットを定義します。
 
-### 1. Introduction
+### 1. はじめに
 
 #### 1.1 目的
 
@@ -2161,7 +2419,7 @@ GeonicDB Rule Engine は、FIWARE 互換のコンテキストブローカーに�
   
 * **NGSI-Aware**: NGSI エンティティ属性とメタデータのネイティブサポート
   
-* **Composable**: 任意のネストで論理演算子 (AND、OR、NOT) をサポートする条件
+* **Composable**: 任意のネストをサポートする論理演算子(AND、OR、NOT)による条件の構成可能性
   
 * **Type-Safe**: 条件とアクションのための判別共用体型
   
@@ -2184,20 +2442,20 @@ GeonicDB Rule Engine は、FIWARE 互換のコンテキストブローカーに�
 
 #### 2.1 適合性レベル
 
-REQUIRED とマークされたすべての機能を実装している場合、その実装は**適合**しています。
+実装は、REQUIRED としてマークされたすべての機能を実装する場合、**適合**しています。
 
-OPTIONAL とマークされた機能は、実装者の裁量で実装してもかまいません。
+OPTIONAL としてマークされた機能は、実装者の裁量で実装してもかまいません。
 
 #### 2.2 必須機能
 
-適合実装は以下を満たさなければなりません:
+適合する実装は、以下を満たさなければなりません:
 
 
 1. セクション 4 で定義されたすべての条件タイプをサポートする
    
 2. セクション 5 で定義されたすべてのアクションタイプをサポートする
    
-3. セクション 6 で定義されたテンプレート変数置換をサポートする
+3. セクション 6 で定義されたテンプレート変数の置換をサポートする
    
 4. セクション 7 で定義されたループ防止メカニズムを実装する
    
@@ -2209,34 +2467,34 @@ OPTIONAL とマークされた機能は、実装者の裁量で実装しても�
 
 #### 2.3 オプション機能
 
-適合実装は以下を行ってもかまいません:
+適合する実装は、以下を満たしてもかまいません:
 
 
 1. 追加のカスタム条件タイプをサポートする
    
 2. 追加のカスタムアクションタイプをサポートする
    
-3. 拡張テンプレート変数パスを提供する
+3. 拡張されたテンプレート変数パスを提供する
    
 4. カスタムループ防止戦略を実装する
 
 ### 3. JSON Schema
 
-GeonicDB Rule Specification v1.0 の完全な JSON Schema は仕様書で利用可能です。すべてのルールはこのスキーマに対して検証される必要があります。
+GeonicDB Rule Specification v1.0 の完全な JSON Schema は、仕様ドキュメントで入手できます。すべてのルールは、このスキーマに対して検証されなければなりません。
 
 主要な検証ルール:
 
-* `ruleId`、`name`、`tenantId`、`servicePath`、`conditions`、`actions`、`isActive`、`priority` は必須フィールドです
+* `ruleId`、`name`、`tenantId`、`servicePath`、`conditions`、`actions`、`isActive`、および `priority` は REQUIRED フィールドです
   
-* `conditions` 配列は少なくとも 1 つの条件を含む必要があります
+* `conditions` 配列は、少なくとも 1 つの条件を含まなければなりません
   
-* `actions` 配列は少なくとも 1 つのアクションを含む必要があります
+* `actions` 配列は、少なくとも 1 つのアクションを含まなければなりません
   
-* `cooldownSeconds` は指定する場合、正の整数である必要があります
+* `cooldownSeconds` は、指定する場合は正の整数でなければなりません
   
-* `servicePath` は `/` で始まる必要があります
+* `servicePath` は `/` で始まらなければなりません
 
-完全な JSON Schema 定義については、正式な仕様書のセクション 8 を参照してください。
+完全な JSON Schema 定義については、正式な仕様ドキュメントのセクション 8 を参照してください。
 
 ### 4. Versioning
 
@@ -2255,7 +2513,7 @@ GeonicDB Rule Specification v1.0 の完全な JSON Schema は仕様書で利用�
 
 #### 4.2 互換性
 
-ルールは `specVersion` フィールドを使用して準拠する仕様バージョンを宣言することができます:
+ルールは、`specVersion` フィールドを使用して、準拠する仕様バージョンを宣言してもかまいません:
 
 ```json
 {
@@ -2271,11 +2529,11 @@ GeonicDB Rule Specification v1.0 の完全な JSON Schema は仕様書で利用�
 
 1. 機能はドキュメントで DEPRECATED としてマークされます
    
-2. 機能は少なくとも 1 つの MAJOR バージョンの間は機能し続けます
+2. 機能は少なくとも 1 つの MAJOR バージョンの間は動作し続けます
    
 3. 非推奨警告をログに記録すべきです
    
-4. 移行ガイドを提供する必要があります
+4. 移行ガイドを提供しなければなりません
 
 ### 参考文献
 
@@ -2294,7 +2552,7 @@ GeonicDB Rule Specification v1.0 の完全な JSON Schema は仕様書で利用�
 
 ### 謝辞
 
-この仕様は、以下からインスピレーションを得て、Geolonia Inc. の GeonicDB チームによって開発されました:
+本仕様は Geolonia Inc. の GeonicDB チームによって開発され、以下から着想を得ました:
 
 * FIWARE Complex Event Processing (Proton CEP)
   
@@ -2304,8 +2562,8 @@ GeonicDB Rule Specification v1.0 の完全な JSON Schema は仕様書で利用�
   
 * Common Expression Language (CEL)
 
-**ライセンス**: GNU Affero General Public License v3.0 (AGPL-3.0)
-**著作権**: © 2026 Geolonia Inc.
+**License**: GNU Affero General Public License v3.0 (AGPL-3.0)
+**Copyright**: © 2026 Geolonia Inc.
 
 ***
 
@@ -2314,8 +2572,8 @@ GeonicDB Rule Specification v1.0 の完全な JSON Schema は仕様書で利用�
 
 * [API Common Specification](../api-reference/endpoints.md) - 一般的な API 仕様
   
-* [Authentication & Authorization](../reference/auth.md) - 管理 API と認証要件の詳細
+* [Authentication & Authorization](../reference/auth.md) - 管理者 API と認証要件の詳細
   
-* [API Specification](../api-reference/endpoints.md) - すべてのエンドポイントのリスト
+* [API Specification](../api-reference/endpoints.md) - 全エンドポイントのリスト
   
 * Development Guide - HTTP ステータスコードの詳細

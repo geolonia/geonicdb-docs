@@ -5,7 +5,7 @@ outline: deep
 ---
 # GeonicDB Context Broker API ドキュメント
 
-これは AWS Lambda 上で動作する FIWARE Orion 互換 Context Broker の API ドキュメントです。NGSIv2 と NGSI-LD API の両方をサポートしています。
+これは AWS Lambda 上で実行される FIWARE Orion 互換の Context Broker の API ドキュメントです。NGSIv2 と NGSI-LD API の両方をサポートしています。
 
 ## 目次
 
@@ -32,15 +32,13 @@ outline: deep
   
 * [GeoJSON 出力](#geojson-出力)
   
-* [ベクタタイル](#vector-tiles)
-  
 * [座標参照系 (CRS)](#座標参照系-crs)
   
 * [データカタログ API](#data-catalog-api)
   
 * [CADDE 統合](#cadde-統合)
   
-* [イベントストリーミング](#イベントストリーミング)
+* [イベントストリーミング](#event-streaming)
   
 * [エラーレスポンス](#エラーレスポンス)
   
@@ -54,7 +52,7 @@ outline: deep
 
 **関連ドキュメント:**
 
-* [NGSIv2 / NGSI-LD 相互運用ガイド](../core-concepts/ngsiv2-vs-ngsild.md) - 両 API 間の相互運用性、型マッピング、ベストプラクティス
+* [NGSIv2 / NGSI-LD 相互運用性ガイド](../core-concepts/ngsiv2-vs-ngsild.md) - 両 API 間の相互運用性、型マッピング、ベストプラクティス
   
 * [WebSocket イベントストリーミング](../features/subscriptions.md) - リアルタイムイベントサブスクリプション、実装例、ベストプラクティス
 
@@ -71,13 +69,19 @@ https://{api-gateway-url}/{stage}
 | NGSIv2      | `/v2`         | `application/json`    |
 | NGSI-LD     | `/ngsi-ld/v1` | `application/ld+json` |
 
+### 末尾のスラッシュ (#1582)
+
+単一の末尾スラッシュは正規化されて削除されます (Orion-LD 互換): `/ngsi-ld/v1/entities/` は `/ngsi-ld/v1/entities` として扱われ、`/health/` や `/version/` などの運用エンドポイントは、スラッシュなしの形式と同じように応答します。実際の API リクエストでの**末尾の二重スラッシュ** (`//`) は `400 BadRequest` で拒否されます。仕様 (ETSI GS CIM 009、NGSIv2) は末尾スラッシュパスを定義していませんが、これらを正規化することで、スラッシュを追加するクライアント/テストスイートとの相互運用性が向上し、ロードバランサーやモニターが末尾スラッシュ付きで設定されている場合のヘルスチェック誤検知を回避できます。
+
+> **注意 (CORS プリフライト)**: API パス以外 (例: `/version`、`/health`) への `OPTIONS` リクエストは、パス正規化の前に CORS レイヤーによって直接 `204` で応答されるため、そのようなパスへの末尾 `//` の `OPTIONS` プリフライトは `400` ではなく `204` を返します。プリフライトはリクエストボディを持たず、データ/認可の決定を行わないため、これは無害です。データパス (`/ngsi-ld/*`、`/v2/*`) への `OPTIONS` は、他のメソッドと同様に正規化されます。
+
 ### OPTIONS メソッド
 
 `OPTIONS` メソッドはすべてのエンドポイントでサポートされています。CORS プリフライトリクエストに応答して、許可されたメソッドとヘッダーに関する情報を返します。
 
 #### レスポンス形式
 
-OPTIONS リクエストは以下のヘッダーとともに `204 No Content` を返します:
+OPTIONS リクエストは、以下のヘッダーを含む `204 No Content` を返します:
 
 ```http
 OPTIONS /v2/entities/urn:ngsi-ld:Room:Room1
@@ -90,7 +94,7 @@ Access-Control-Allow-Headers: Content-Type, Fiware-Service, Fiware-ServicePath, 
 Access-Control-Max-Age: 86400
 ```
 
-NGSI-LD エンドポイントの場合、追加で `Accept-Patch` ヘッダーも返されます:
+NGSI-LD エンドポイントの場合、追加の `Accept-Patch` ヘッダーも返されます:
 
 ```http
 OPTIONS /ngsi-ld/v1/entities/urn:ngsi-ld:Room:Room1
@@ -104,24 +108,24 @@ Access-Control-Allow-Headers: Content-Type, NGSILD-Tenant, Fiware-Service, Link,
 Access-Control-Max-Age: 86400
 ```
 
-> **注**: `If-None-Match` / `If-Modified-Since` は `Access-Control-Allow-Headers` に明示的にリストされているため、ブラウザの HTTP キャッシュ自動再検証や SDK の条件付きリクエストがプリフライト拒否なしにクロスオリジンで発行できます (#1065)。
+> **注意**: `If-None-Match` / `If-Modified-Since` は `Access-Control-Allow-Headers` に明示的にリストされているため、ブラウザの HTTP キャッシュ自動再検証と SDK の条件付きリクエストを、プリフライト拒否なしでクロスオリジンで発行できます (#1065)。
 
 ### エンティティ ID の一意性 (GeonicDB 拡張)
 
-> **GeonicDB 拡張**: この動作は、同じ ID で異なる型を持つエンティティの共存を許可する標準 NGSIv2 仕様とは異なります。
+> **GeonicDB 拡張**: この動作は、同じ ID でも異なる型のエンティティが共存できる標準 NGSIv2 仕様とは異なります。
 
-GeonicDB では、エンティティ ID は **テナント** (`Fiware-Service`) と **ServicePath** (`Fiware-ServicePath`) のスコープ内で一意です。エンティティ `type` は一意性制約の一部では**ありません**。
+GeonicDB では、エンティティ ID は**テナント** (`Fiware-Service`) と**ServicePath** (`Fiware-ServicePath`) のスコープ内で一意です。エンティティの `type` は一意性制約の一部では**ありません**。
 
 **主な動作:**
 
 
-* 既存のエンティティと同じ ID を持つエンティティを作成すると (異なる `type` であっても)、`409 AlreadyExists` が返されます
+* 既存のエンティティと同じ ID を持つエンティティを作成すると(異なる `type` であっても)、`409 AlreadyExists` が返されます
   
-* バッチ upsert 操作は `entityId` のみでエンティティをマッチします (型は上書き可能)
+* バッチアップサート (NGSI-LD デフォルト更新モード) は `entityId` のみで一致し、既存のリストに新規のエンティティタイプを**追加**します(置換または削除はしません; ETSI GS CIM 009 5.6.8.4 → 5.6.2.4 / #2455)。NGSIv2 バッチ追加は、保存された型を保持します
   
-* 同じ ID のエンティティ間で型を区別するための NGSIv2 の `?type=` クエリパラメータは適用されなくなりました
+* 同じ ID のエンティティ間での型の曖昧性を解消するための NGSIv2 の `?type=` クエリパラメータは適用されなくなりました
 
-この設計は、エンティティ ID が URI であり本質的に一意である NGSI-LD 仕様に準拠しています。エンティティ ID はテナント、servicePath、プロトコルごとに一意です。NGSIv2 と NGSI-LD のエンティティは完全に分離されており、同じエンティティ ID が各プロトコルで独立して存在できます。
+この設計は、エンティティ ID が URI であり、本質的に一意である NGSI-LD 仕様と整合しています。エンティティ ID は、テナント、servicePath、プロトコルごとに一意です。NGSIv2 と NGSI-LD のエンティティは完全に分離されており、同じエンティティ ID が各プロトコルで独立して存在できます。
 
 ***
 
@@ -129,7 +133,7 @@ GeonicDB では、エンティティ ID は **テナント** (`Fiware-Service`) 
 
 ### 必須ヘッダー
 
-すべてのリクエストには以下のヘッダーを含めることを推奨します:
+すべてのリクエストには次のヘッダーを含めることを推奨します:
 
 | Header                             | Required    | Description                                                                                                                             | Default                              |
 | ---------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
@@ -154,18 +158,18 @@ curl -X GET "https://api.example.com/v2/entities" \
   
 * テナント名は自動的に小文字に変換されます
 
-### ServicePath仕様
+### ServicePathの仕様
 
-[FIWARE Orion 仕様](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html)に準拠しています。
+[FIWARE Orion 仕様](https://fiware-orion.readthedocs.io/en/1.3.0/user/service_path/index.html) に準拠しています。
 
-#### 基本フォーマット
+#### 基本形式
 
 
 * `/` で始まる絶対パスのみが許可されます
   
 * 英数字とアンダースコアのみが許可されます
   
-* 最大 10 レベル、1 レベルあたり最大 50 文字まで
+* 最大 10 レベル、各レベルは最大 50 文字まで
 
 ```bash
 # Retrieve entities at a specific path
@@ -198,58 +202,106 @@ curl "http://localhost:3000/v2/entities" \
   -H "Fiware-ServicePath: /park1, /park2"
 ```
 
-#### デフォルトの動作
+#### デフォルト動作
 
 | Operation                     | When Header is Omitted | Description                |
 | ----------------------------- | ---------------------- | -------------------------- |
 | Query (GET)                   | `/`                    | Search root path only      |
 | Write (POST/PUT/PATCH/DELETE) | `/`                    | Create/update in root path |
 
-**注意**: 書き込み操作では、単一の非階層パスのみを使用できます。`/#` や複数パスを指定するとエラーになります。
+**注意**: 書き込み操作では、単一の非階層パスのみ使用できます。`/#` または複数パスを指定するとエラーになります。
 
 ***
 
 ## ページネーション
 
-ページネーションは、すべてのリスト型 API エンドポイントでサポートされています。
+すべてのリスト型 API エンドポイントでページネーションがサポートされています。
 
 ### パラメータ
 
-| Parameter | Description                         | Default | Maximum               |
-| --------- | ----------------------------------- | ------- | --------------------- |
-| `limit`   | Maximum number of results to return | 20      | 1000 (Admin API: 100) |
-| `offset`  | Number of results to skip           | 0       | -                     |
+| Parameter   | Description                                                                                                                                                                          | Default | Maximum               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | --------------------- |
+| `limit`     | Maximum number of results to return                                                                                                                                                  | 20      | 1000 (Admin API: 100) |
+| `offset`    | Number of results to skip                                                                                                                                                            | 0       | 10000                 |
+| `pageToken` | Opaque continuation token from the previous response's next-page header (`Fiware-Next-Token` / `NGSILD-Next`). Enables **keyset pagination** on the default sort — see below (#1435) | -       | -                     |
 
 ### レスポンスヘッダー
 
-各 API タイプに対して、合計数を示すヘッダーが返されます:
+各 API タイプに対して、合計カウントを示すヘッダーが返されます:
 
-| API         | Header Name            | Condition                            |
-| ----------- | ---------------------- | ------------------------------------ |
-| NGSIv2      | `Fiware-Total-Count`   | Always returned (all list endpoints) |
-| NGSI-LD     | `NGSILD-Results-Count` | Always returned                      |
-| Admin API   | `X-Total-Count`        | Always returned                      |
-| Catalog API | `X-Total-Count`        | Always returned                      |
+| API         | Header Name            | Condition                                                                |
+| ----------- | ---------------------- | ------------------------------------------------------------------------ |
+| NGSIv2      | `Fiware-Total-Count`   | Only when requested via `options=count` (opt-in per FIWARE NGSIv2 spec)  |
+| NGSI-LD     | `NGSILD-Results-Count` | Only when requested via `count=true` (opt-in per ETSI GS CIM 009 §5.5.6) |
+| Admin API   | `X-Total-Count`        | Always returned                                                          |
+| Catalog API | `X-Total-Count`        | Always returned                                                          |
+
+> NGSI エンティティリストエンドポイントは、カウントが要求されていない場合、カウントクエリを完全にスキップします。次のページは `Link` (`rel="next"`) / next-page トークンを介して示されます (#1434)。
 
 ### Link ヘッダー
 
 すべてのリストエンドポイントは、[RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) に準拠した `Link` ヘッダーを返し、次のページ (`rel="next"`) と前のページ (`rel="prev"`) の URL を提供します。結果が 1 ページに収まる場合、`Link` ヘッダーは返されません。
 
+NGSI-LD ページネーションリンクには、`type` Link Target Attribute も含まれます。その値は、[ETSI GS CIM 009](https://cim.etsi.org/NGSI-LD/official/clause-6.html) の clause 6.3.10 で要求されているように、元のリクエストのメディアタイプ(ネゴシエートされた `Content-Type`)と**完全に**一致します。JSON-LD `@context` リンクは、レスポンスのメディアタイプに関係なく `type="application/ld+json"` を保持します。
+
 ```http
 Link: <https://api.example.com/v2/entities?limit=10&offset=20>; rel="next", <https://api.example.com/v2/entities?limit=10&offset=0>; rel="prev"
 ```
+
+```http
+# NGSI-LD (Accept: application/json) — pagination type matches Content-Type
+Link: <https://api.example.com/ngsi-ld/v1/entities?limit=10&offset=20>; rel="next"; type="application/json", <https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.9.jsonld>; rel="http://www.w3.org/ns/json-ld#context"; type="application/ld+json"
+```
+
+### キーセットページネーション (`pageToken`
+
+, #1435)
+
+エンティティリストエンドポイント (NGSIv2 `/v2/entities`, NGSI-LD `/ngsi-ld/v1/entities`) は、**デフォルトソート** (`createdAt` 昇順、次に `_id`) での**キーセット(シーク)ページネーション**をサポートしています。これにより、深いオフセットページの線形 `skip` コストが回避されます。
+
+
+* 各レスポンスの next-page トークン (`Fiware-Next-Token` / `NGSILD-Next`) は、最後に返されたエンティティの位置をエンコードします。これを**不透明**なものとして扱ってください — 自分でデコードまたは構築しないでください。
+  
+* 次のページを取得するには、`pageToken` クエリパラメータを介してそれを送り返します。Context Brokerは、`skip` ではなく、インデックス範囲スキャン (`O(log n)`) で次のページを解決します。
+  
+* キーセットパスでは、`Link` `rel="next"` URL は `offset` の代わりに `pageToken` を含みます(キーセットは前方のみであるため、`rel="prev"` はありません)。
+
+```bash
+# Page 1 — read the Fiware-Next-Token response header
+curl -i "http://localhost:3000/v2/entities?limit=100" -H "Fiware-Service: smartcity"
+
+# Page 2 — send that token back as pageToken
+curl "http://localhost:3000/v2/entities?limit=100&pageToken=<token-from-page-1>" \
+  -H "Fiware-Service: smartcity"
+```
+
+注意事項と制約:
+
+
+* `offset`/`limit` は完全にサポートされ、変更されません。`pageToken` は追加的なものです。キーセットは、それを送り返したときにのみアクティブになります。
+  
+* `pageToken` はデフォルトソートに対してのみ有効です。`orderBy`(または距離順の geo クエリ)と組み合わせると `400` が返されます。
+  
+* `pageToken` と `offset` は相互に排他的です(両方が提供された場合は `400`)。
+  
+* `pageToken` を再利用しながらページ間でフィルターパラメータ (`q`, `mq`, `type`, …) を変更すると、結果は未定義になります(行をスキップまたは繰り返す可能性があります) — これは標準的なキーセットの注意事項です。
+  
+* `options=count` / `count=true` は、(トークンの位置とは独立して)完全な合計カウントを返します。
 
 ### 検証
 
 無効なページネーションパラメータは `400 Bad Request` を返します:
 
-| Error Condition | Error Message                            |
-| --------------- | ---------------------------------------- |
-| Negative limit  | `Invalid limit: must not be negative`    |
-| Negative offset | `Invalid offset: must not be negative`   |
-| limit=0         | `Invalid limit: must be greater than 0`  |
-| Exceeds maximum | `Invalid limit: must not exceed 1000`    |
-| Non-numeric     | `Invalid limit: must be a valid integer` |
+| Error Condition                 | Error Message                                               |
+| ------------------------------- | ----------------------------------------------------------- |
+| Negative limit                  | `Invalid limit: must not be negative`                       |
+| Negative offset                 | `Invalid offset: must not be negative`                      |
+| limit=0                         | `Invalid limit: must be greater than 0`                     |
+| Exceeds maximum                 | `Invalid limit: must not exceed 1000`                       |
+| Non-numeric                     | `Invalid limit: must be a valid integer`                    |
+| Invalid `pageToken`             | `Invalid pageToken`                                         |
+| `pageToken` + `offset` together | `offset and pageToken must not be used together`            |
+| keyset `pageToken` + `orderBy`  | `pageToken is only valid for default sort (remove orderBy)` |
 
 ### 使用例
 
@@ -266,47 +318,47 @@ curl "http://localhost:3000/v2/entities?limit=10&options=count" \
 ### 注意事項
 
 
-* `offset` が合計数を超える場合、空の配列が返されます (エラーではありません)
+* `offset` が合計カウントを超える場合、空の配列が返されます(エラーではありません)
   
-* FIWARE Orion 仕様に準拠しています
+* FIWARE Orion 仕様に準拠
 
 ***
 
-## HTTP キャッシュ制御 (ETag / 条件付きリクエスト)
+## HTTP キャッシュコントロール (ETag / 条件付きリクエスト)
 
-GET エンドポイントは、エンドポイントクラスに基づいてキャッシュ関連のヘッダーを返します。クライアントはこれらを使用して、変更されていないレスポンスボディの転送をスキップでき、[RFC 7232](https://datatracker.ietf.org/doc/html/rfc7232) および [RFC 7234](https://datatracker.ietf.org/doc/html/rfc7234) に準拠します。
+GET エンドポイントは、エンドポイントクラスに基づいてキャッシュ関連のヘッダーを返します。クライアントはこれらを使用して、変更されていないレスポンスボディの転送をスキップできます。これは [RFC 7232](https://datatracker.ietf.org/doc/html/rfc7232) および [RFC 7234](https://datatracker.ietf.org/doc/html/rfc7234) に準拠しています。
 
 ### エンドポイントクラス
 
-| Class        | Endpoints                                                                                                                                                                                                                                                                         | Validator (ETag/Last-Modified)                                        | Conditional Requests                              | Cache-Control                            |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------- |
-| **Data**     | `/v2/entities` (list, single, attrs, attrs/{name}, attrs/{name}/value), `/v2/subscriptions`, `/v2/registrations`, `/ngsi-ld/v1/entities` (list, single, attrs, attrs/{name}), `/ngsi-ld/v1/subscriptions`, `/ngsi-ld/v1/csourceRegistrations`, `/ngsi-ld/v1/csourceSubscriptions` | ✓                                                                     | ✓ (`If-None-Match` / `If-Modified-Since` → `304`) | `private, no-cache`                      |
-| **Temporal** | `/ngsi-ld/v1/temporal/entities` (list, single, including aggregation)                                                                                                                                                                                                             | ✗ (no ETag — time-series aggregation lacks cheap monotonic validator) | ✗                                                 | `private, no-cache`                      |
-| **Meta**     | `/v2/types`, `/ngsi-ld/v1/types`, `/ngsi-ld/v1/attributes` (list and single)                                                                                                                                                                                                      | ✗ (no ETag, no Last-Modified)                                         | ✗ (no `304` support)                              | `max-age=60, stale-while-revalidate=120` |
+| Class        | Endpoints                                                                                                                                                                                                                                                                         | Validator (ETag/Last-Modified)                                        | Conditional Requests                              | Cache-Control                                     |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
+| **Data**     | `/v2/entities` (list, single, attrs, attrs/{name}, attrs/{name}/value), `/v2/subscriptions`, `/v2/registrations`, `/ngsi-ld/v1/entities` (list, single, attrs, attrs/{name}), `/ngsi-ld/v1/subscriptions`, `/ngsi-ld/v1/csourceRegistrations`, `/ngsi-ld/v1/csourceSubscriptions` | ✓                                                                     | ✓ (`If-None-Match` / `If-Modified-Since` → `304`) | `private, no-cache`                               |
+| **Temporal** | `/ngsi-ld/v1/temporal/entities` (list, single, including aggregation)                                                                                                                                                                                                             | ✗ (no ETag — time-series aggregation lacks cheap monotonic validator) | ✗                                                 | `private, no-cache`                               |
+| **Meta**     | `/v2/types`, `/ngsi-ld/v1/types`, `/ngsi-ld/v1/attributes` (list and single)                                                                                                                                                                                                      | ✗ (no ETag, no Last-Modified)                                         | ✗ (no `304` support)                              | `private, max-age=60, stale-while-revalidate=120` |
 
-すべてのキャッシュ制御されたレスポンスは同じ `Vary` ヘッダーを共有します:`Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept`(テナント + 認証 + コンテンツネゴシエーションの分離、CloudFront のような共有キャッシュに必要)。
+すべてのキャッシュ制御されたレスポンスは同じ `Vary` ヘッダーを共有します: `NGSILD-Tenant, Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept, x-cadde-options` (テナント + 認証 + コンテンツネゴシエーション + CADDE オプションの分離、CloudFront などの共有キャッシュに必要)。
 
 ### レスポンスヘッダー (データエンドポイント)
 
-| Header          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ETag`          | Weak entity tag (`W/"..."`, RFC 7232 §2.3.2 weak validator). Generation always mixes a **resource scope** (`path + Accept + tenant + Fiware-ServicePath`) into the seed so that different endpoints, Accept formats, **tenants**, or **service paths** produce distinct ETags even when the underlying state is identical. The `tenant` slot reads `NGSILD-Tenant` first and falls back to `Fiware-Service`, matching `extractTenantContext` precedence. The tenant / servicePath seed defends against cross-tenant ETag collision even if `Vary` is mishandled by an intermediate cache. <br>• **Lists**: streaming digest of each element's `id + modifiedAt`, combined with the total count and the resource scope. <br>• **Single resources**: hash of `modifiedAt` combined with the resource scope. |
-| `Last-Modified` | RFC 1123 HTTP-date of the latest `modifiedAt` in the result set.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `Cache-Control` | `private, no-cache` — `private` forbids storage in shared / intermediate caches (CloudFront, ISP proxies, corporate proxies). `no-cache` forces revalidation before reuse from a private cache.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `Vary`          | `Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Header          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ETag`          | Weak entity tag (`W/"..."`, RFC 7232 §2.3.2 weak validator). Generation always mixes a **resource scope** (`path + Accept + representation + resolved tenant + servicePath`) into the seed so that different endpoints, Accept formats, **tenants**, or **service paths** produce distinct ETags even when the underlying state is identical. The tenant / servicePath slots come from the **resolved `TenantContext`** produced by `extractTenantContext` (CADDE `x-cadde-options` merge included) — raw request headers are not re-read (#1835). The tenant / servicePath seed defends against cross-tenant ETag collision even if `Vary` is mishandled by an intermediate cache. <br>• **NGSI-LD entity list** (`GET /ngsi-ld/v1/entities`, non-federated, non-geoNear, non-materialized): lightweight validator derived from `total count + max(modifiedAt)` with a scope that also includes the full query string, computed **without fetching entity bodies** so `If-None-Match` is evaluated and `304` returned before the heavy query (#1261). Federated / geoNear / join / splitEntities / entityMap paths fall back to the streaming digest below. <br>• **Other lists** (NGSIv2 entities, subscriptions, registrations, csource\*): streaming digest of each element's `id + modifiedAt`, combined with the total count and the resource scope. <br>• **Single resources**: hash of `modifiedAt` combined with the resource scope. |
+| `Last-Modified` | RFC 1123 HTTP-date of the latest `modifiedAt` in the result set.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `Cache-Control` | `private, no-cache` — `private` forbids storage in shared / intermediate caches (CloudFront, ISP proxies, corporate proxies). `no-cache` forces revalidation before reuse from a private cache.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `Vary`          | `NGSILD-Tenant, Fiware-Service, Fiware-ServicePath, Authorization, X-Api-Key, Accept, x-cadde-options`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ### レスポンスヘッダー (メタエンドポイント)
 
-| Header          | Description                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------- |
-| `Cache-Control` | `max-age=60, stale-while-revalidate=120` — short-term caching with background revalidation. |
-| `Vary`          | Same as data endpoints.                                                                     |
+| Header          | Description                                                                                                                                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Cache-Control` | `private, max-age=60, stale-while-revalidate=120` — shared/intermediate cache storage is forbidden; private cache can reuse briefly with background revalidation. |
+| `Vary`          | Same as data endpoints.                                                                                                                                           |
 
-メタエンドポイントは意図的に `ETag` / `Last-Modified` を省略しています。これは、そのコンテンツが集約クエリから派生しており、安価な単調バリデータを持たないためです。クライアントは条件付きリクエストの代わりに `max-age` に依存する必要があります。
+メタエンドポイントは意図的に `ETag` / `Last-Modified` を省略しています。これは、それらのコンテンツが集約クエリから派生しており、安価で単調なバリデータを持たないためです。クライアントは、条件付きリクエストの代わりに、プライベートキャッシュの `max-age` ウィンドウに依存する必要があります。
 
 ### 条件付きリクエスト (データエンドポイントのみ)
 
-クライアントは条件付きリクエストヘッダーを送信して、結果が変更されていない場合に `304 Not Modified`(空のボディ)を受信できます:
+クライアントは条件付きリクエストヘッダーを送信することで、結果が変更されていない場合に `304 Not Modified` (空のボディ) を受信できます:
 
 | Request Header                   | Behavior                                                                                     |
 | -------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -337,15 +389,17 @@ curl -i "http://localhost:3000/v2/entities" \
 ### 注意事項
 
 
-* ETag は弱い (`W/`) です — バイト単位の完全一致ではなく、意味的な等価性を伝えます。同じデータを持つが属性の順序が異なる 2 つのレスポンスは、同じ ETag を共有します。
+* ETag は弱い (`W/`) です — これらはバイト単位の同一性ではなく、意味的な等価性を伝えます。同じデータで属性の順序が異なる 2 つのレスポンスは、同じ ETag を共有します。
   
-* ETag 生成には、リソースパスと `Accept` ヘッダーがシードに含まれます。異なるエンドポイントと異なるコンテンツネゴシエーションは、基礎となる状態(例:空のリスト)が同一であっても、常に異なる ETag を生成し、クロスエンドポイントやクロス Accept のキャッシュポイズニングを防ぎます。
+* ETag の生成には、リソースパスと `Accept` ヘッダーがシードに含まれます。異なるエンドポイントと異なるコンテンツネゴシエーションは、基礎となる状態 (例: 空のリスト) が同一であっても、常に異なる ETag を生成し、エンドポイント間または Accept 間のキャッシュポイズニングを防ぎます。
   
 * `304` レスポンスは `ETag`、`Last-Modified`、`Cache-Control`、`Vary`、および CORS ヘッダーを保持します。
   
-* 条件付き評価は、ステータス `200` の `GET` および `HEAD` リクエストに適用されます。`HEAD` は空のボディで `GET` と同じヘッダーを返し (RFC 7231 §4.3.2)、`200` でもボディを転送せずに軽量な再検証を可能にします。
+* 条件付き評価は、基礎となる `GET` または `HEAD` レスポンスのステータスが `200` の場合に適用されます。条件が一致する場合でも、軽量な再検証のために `304` を返します。
   
-* キャッシュ制御は以下に適用されます:
+* 実装された ETSI NGSI-LD 取得操作の成功した `HEAD` リクエストは、ボディ、`Content-Length`、または `Content-Range` なしで `204 No Content` を返します。`200` をチェックするクライアントは `204` を受け入れる必要があります。部分的な結果や範囲メタデータが必要な場合は `GET` を使用してください。[ETSI TS 104 176 V1.1.1, clause 5](https://www.etsi.org/deliver/etsi_ts/104100_104199/104176/01.01.01_60/ts_104176v010101p.pdf#page=21) を参照してください。
+  
+* キャッシュコントロールは以下に適用されます:
   
   * **NGSIv2**: `/v2/entities` (リスト / 単一 / attrs / attrs+name / attrs+name+value)、`/v2/subscriptions`、`/v2/registrations`、`/v2/types`
     
@@ -353,9 +407,9 @@ curl -i "http://localhost:3000/v2/entities" \
     
   * **NGSI-LD Meta**: `/ngsi-ld/v1/types`、`/ngsi-ld/v1/attributes`
     
-  * **NGSI-LD Temporal**: `/ngsi-ld/v1/temporal/entities` (リストおよび単一、`Cache-Control` のみ — `ETag` / `Last-Modified` なし)
+  * **NGSI-LD Temporal**: `/ngsi-ld/v1/temporal/entities` (リストと単一、`Cache-Control` のみ — `ETag` / `Last-Modified` なし)
 
-### クライアント主導のキャッシュ制御
+### クライアント駆動のキャッシュコントロール
 
 クライアントは `Cache-Control` リクエストヘッダーを送信して、キャッシュ動作に影響を与えることができます:
 
@@ -365,19 +419,30 @@ curl -i "http://localhost:3000/v2/entities" \
 | `Cache-Control: no-cache`  | Server makes no special override; the endpoint's default policy still applies (data → revalidation; meta → `max-age=60` etc).      |
 | `Cache-Control: max-age=N` | Reserved for edge-cache layer (Phase 3 / CloudFront). The Lambda server itself is stateless and does not interpret this directive. |
 
+### エラーレスポンスキャッシング (#1821)
+
+RFC 9110 §15.1 は、ヒューリスティックにキャッシュ可能なステータスコードとして 200、203、204、206、300、301、308、404、405、410、414、501 を定義しています。これらのうちエラーステータスは 404、405、410、414、501 です。明示的な `Cache-Control` ディレクティブがない場合、共有キャッシュ(例えば CloudFront Error Caching Minimum TTL)はこれらのレスポンスをヒューリスティックに保存する可能性があります。テナントスコープのエンティティ GET において、別のテナントからキャッシュされた 404 が存在オラクル(CWE-525 クラス)になる可能性があります。
+
+GeonicDB のエラーハンドラーは、生成するすべてのヒューリスティックにキャッシュ可能なエラーに `Cache-Control: no-store` を設定します。ほとんどの 400 クラスのエラーはヒューリスティックにキャッシュ可能ではなく、上書きは行われません。エラーハンドラーはこれらのレスポンスに独自の `Vary` を追加しません(CORS レイヤーは引き続き `Vary: Origin` を追加します)。
+
+| Status                      | Error-handler `Cache-Control` |
+| --------------------------- | ----------------------------- |
+| 404 / 405 / 410 / 414 / 501 | `no-store`                    |
+| 400 / 401 / 403 / 409 / …   | (no override)                 |
+
 ***
 
 ## 認証 API
 
-認証機能により、ユーザー認証とアクセス制御が可能になります。
+認証機能は、ユーザー認証とアクセス制御を可能にします。
 
 ### 有効化
 
 認証はデフォルトで無効になっています。以下の環境変数で有効にすることができます。
 
-**注意**: `AUTH_ENABLED=false` の場合、認証関連のエンドポイント (`/auth/*`、`/me`、`/me/*`、`/admin/*`) は 404 を返します。
+**注意**: `AUTH_ENABLED=false` の場合、認証関連エンドポイント(`/auth/*`、`/me`、`/me/*`、`/admin/*`)は 404 を返します。
 
-**重要**: `AUTH_ENABLED=true` の場合、NGSI API エンドポイント (`/v2/*`、`/ngsi-ld/*`、`/catalog/*`) へのアクセスには認証が必要です。認証なしでアクセスすると `401 Unauthorized` エラーが返されます。
+**重要**: 認証はデフォルトで有効になっています(明示的な `AUTH_ENABLED=false` によってのみ無効化され、これはローカル開発を意図しています)。有効な場合、NGSI API エンドポイント(`/v2/*`、`/ngsi-ld/*`、`/catalog/*`)へのアクセスには認証が必要です。認証なしでアクセスすると `401 Unauthorized` エラーが返されます。
 
 | Environment Variable     | Default | Description                                                 |
 | ------------------------ | ------- | ----------------------------------------------------------- |
@@ -389,13 +454,14 @@ curl -i "http://localhost:3000/v2/entities" \
 | `SUPER_ADMIN_PASSWORD`   | -       | Super admin password set via environment variable           |
 | `ADMIN_ALLOWED_IPS`      | -       | IPs/CIDRs allowed to access the Admin API (comma-separated) |
 
-### ロールと権限
+### ロールとアクセス許可
 
-| Role           | Description          | Permissions                                                                                                                                          |
-| -------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `super_admin`  | Super administrator  | `/admin/*`, `/auth/*`, `/me/*`, monitoring endpoints only. **Cannot** access data APIs (`/v2/*`, `/ngsi-ld/*`, `/catalog*`, `/rules*`) — returns 403 |
-| `tenant_admin` | Tenant administrator | Manage users within their own tenant                                                                                                                 |
-| `user`         | General user         | View own profile and change password only                                                                                                            |
+| Role             | Description                     | Permissions                                                                                                                                                                                                                                                                                                                                                |
+| ---------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `super_admin`    | Super administrator             | `/admin/*`, `/auth/*`, `/me/*`, monitoring endpoints only. **Cannot** access data APIs (`/v2/*`, `/ngsi-ld/*`, `/catalog*`, `/rules*`) — returns 403                                                                                                                                                                                                       |
+| `platform_admin` | IAM-exchanged Geolonia operator | Only `/admin/deployments*`, `/admin/users` (`super_admin` rows), `/admin/metrics`, and `/me`. Other admin APIs (tenants, API keys, policies, …) return 403 (#3817). Same data-API deny-fence as `super_admin`. Issued only by `POST /auth/platform-token` (15 min, no refresh). Can create and manage `super_admin` only. Cannot be assigned to a DB user. |
+| `tenant_admin`   | Tenant administrator            | Manage users within their own tenant                                                                                                                                                                                                                                                                                                                       |
+| `user`           | General user                    | View own profile and change password only                                                                                                                                                                                                                                                                                                                  |
 
 ### ログイン
 
@@ -410,22 +476,28 @@ Content-Type: application/json
 {
   "email": "user@example.com",
   "password": "SecurePassword123!",
-  "tenantId": "target-tenant-id",
-  "resourceScopes": [
-    { "entityTypes": ["TemperatureSensor"], "ops": ["read", "write"] },
-    { "entityTypes": ["HumiditySensor"], "attrs": ["humidity"], "ops": ["read"] }
-  ]
+  "tenantId": "target-tenant-id"
 }
 ```
 
-| Parameter        | Type             | Required | Description                                                                                                                                   |
-| ---------------- | ---------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `email`          | string           | Yes      | Email address                                                                                                                                 |
-| `password`       | string           | Yes      | Password                                                                                                                                      |
-| `tenantId`       | string           | No       | If specified, issues a JWT scoped to that tenant. Defaults to primary tenant if omitted                                                       |
-| `resourceScopes` | ResourceScope\[] | No       | Entity-level access control scopes. Full access if omitted. See [AUTH.md](../reference/auth.md#resource-scopesgeonicdb-extension) for details |
+| Parameter    | Type   | Required | Description                                                                                    |
+| ------------ | ------ | -------- | ---------------------------------------------------------------------------------------------- |
+| `email`      | string | Yes      | Email address                                                                                  |
+| `password`   | string | Yes      | Password                                                                                       |
+| `tenantId`   | string | No       | Tenant UUID. Issues a JWT scoped to that tenant. Mutually exclusive with `tenantName`          |
+| `tenantName` | string | No       | Tenant name (#1223). Resolved server-side to a tenant UUID. Mutually exclusive with `tenantId` |
 
-**テナントヘッダーサポート**: ボディ内の `tenantId` の代わりに、`NGSILD-Tenant` または `Fiware-Service` ヘッダーを介してテナントを指定できます (テナント名で解決されます)。優先順位: `body.tenantId` > ヘッダー > プライマリテナント。ヘッダー値は `^[a-z0-9_]+$` に一致する必要があります。
+**テナント解決の優先順位**:
+
+1. `body.tenantId` (UUID、最優先)
+   
+2. `body.tenantName` (サーバー側で UUID に解決、#1223)
+   
+3. `NGSILD-Tenant` / `Fiware-Service` ヘッダー (名前で UUID に解決)
+   
+4. プライマリテナント (`user.tenantId`) — 何も指定されていない場合のフォールバック
+
+`tenantId` と `tenantName` は **相互排他** — 両方を指定すると `400 Bad Request` が返されます。ヘッダー値は `^[a-z0-9_]+$` にマッチする必要があります。テナント名は `tenants.name` の部分的なユニーク制約により、アクティブ / 非アクティブテナント間で一意性が保証されます(ソフト削除されたテナントは除外、#1223)。
 
 **レスポンス例**
 
@@ -455,11 +527,23 @@ Content-Type: application/json
 
 ```json
 {
-  "refreshToken": "<refresh_token>"
+  "refreshToken": "<refresh_token>",
+  "tenantId": "<optional_target_tenant_id>"
 }
 ```
 
-**レスポンス**: ログインと同じ形式
+
+* `tenantId` (オプション): 別 tenant scope へシームレスに切り替える。ユーザーが対象 tenant に active な membership を持つ必要がある。`super_admin` の場合は無視される。
+  
+* 切替不可 (membership なし / inactive / tenant inactive) → `403 Forbidden`
+  
+* `refreshToken` 自体が無効 / 期限切れ → `401 Unauthorized`
+  
+* `user.isActive=false` (アカウント無効化) → `401 Unauthorized`
+
+**レスポンス**: ログインと同じ形式。
+
+`availableTenants` は **ユーザーが 1 つ以上の active membership を持つ場合のみ含まれる** (`super_admin` や membership 0 件のユーザーでは省略される)。クライアントは存在しない可能性を考慮して扱うこと。
 
 ### 現在のユーザー情報を取得
 
@@ -480,6 +564,24 @@ Authorization: Bearer <accessToken>
 }
 ```
 
+API キー(`X-Api-Key` または `api_key_session`)と OAuth クライアント資格情報は異なるボディを使用します。ユーザーフィールドは含まれません。[AUTH.md — Current principal](../reference/auth.md#current-principal-get-me) を参照してください。
+
+他の `/me` ルート(`/me/password`、`/me/api-keys`、`/me/oauth-clients`、`/me/policies`)はユーザー専用です。API キーと OAuth クライアントプリンシパルは `403 Forbidden` を受け取ります。
+
+```json
+{
+  "principal": "api_key",
+  "keyId": "7610a684-....",
+  "name": "geonicai-chat",
+  "tenantId": "tenant-456",
+  "tenantName": "My Organization",
+  "createdBy": "user-123",
+  "policyId": null
+}
+```
+
+`createdBy` は、保存された API キーに作成者がいない場合は `null` になります。このプロパティは常に存在します。
+
 ### パスワードの変更
 
 ```http
@@ -499,7 +601,7 @@ Content-Type: application/json
 
 **レスポンス**: `204 No Content`
 
-**注意**: パスワードを変更すると、既存のすべてのアクセストークンとリフレッシュトークンが無効化されます。新しいトークンを取得するため、再度ログインしてください。
+**注意**: パスワードを変更すると、既存のすべてのアクセストークンとリフレッシュトークンが無効化されます。新しいトークンを取得するには、再度ログインしてください。
 
 ### ログアウト
 
@@ -508,11 +610,11 @@ POST /auth/logout
 Authorization: Bearer <accessToken>
 ```
 
-すべてのセッションを無効化します。このユーザーに対して発行されたすべてのアクセストークンとリフレッシュトークンが即座に無効化されます。
+すべてのセッションを無効化します。このユーザーに対して発行されたすべてのアクセストークンとリフレッシュトークンは直ちに無効化されます。
 
 **レスポンス**: `204 No Content`
 
-### API Key Token 交換
+### API キートークン交換
 
 #### Nonce を取得
 
@@ -534,7 +636,7 @@ Origin: https://example.com
 }
 ```
 
-#### Token を交換
+#### トークンを交換
 
 ```http
 POST /oauth/token
@@ -560,13 +662,13 @@ Origin: https://example.com
 }
 ```
 
-**DPoP token バインディング**(オプション):[RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449) に従って ECDSA P-256 proof JWT を含む `DPoP` ヘッダーを含めます。存在する場合、レスポンスの `token_type` は `"DPoP"` になり、JWT には proof キーにバインドする `cnf.jkt` claim が含まれます。サーバーは DPoP-Nonce (RFC 9449 §8) を要求します。最初のリクエストは `DPoP-Nonce` ヘッダーと共に `400 use_dpop_nonce` を返します。proof の `nonce` claim に nonce を含めて再試行してください。詳細は [AUTH.md](../reference/auth.md#dpop-token-binding-rfc-9449) を参照してください。
+**DPoP トークンバインディング**(オプション): [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449) に従って ECDSA P-256 proof JWT を含む `DPoP` ヘッダーを含めます。存在する場合、レスポンスの `token_type` は `"DPoP"` となり、JWT には proof キーにバインドされる `cnf.jkt` クレームが含まれます。サーバーは DPoP-Nonce (RFC 9449 §8) を要求します — 最初のリクエストは `DPoP-Nonce` ヘッダー付きで `400 use_dpop_nonce` を返します。proof の `nonce` クレームに nonce を含めて再試行してください。詳細については [AUTH.md](../reference/auth.md#dpop-token-binding-rfc-9449) を参照してください。
 
 ### Admin API
 
-Admin API は `super_admin` または `tenant_admin` ロールを持つユーザーのみがアクセスできます。
+Admin API は `super_admin` または `tenant_admin` ロールを持つユーザーのみがアクセス可能です。
 
-#### ユーザー一覧取得
+#### ユーザー一覧
 
 ```http
 GET /admin/users
@@ -597,9 +699,33 @@ Content-Type: application/json
   "email": "newuser@example.com",
   "password": "SecurePassword123!",
   "role": "user",
-  "tenantId": "tenant-456"
+  "primaryTenantId": "tenant-456"
 }
 ```
+
+**招待モード (#1532)** — `passwordResetRequired: true` を設定し(`password` は省略)、サーバーが生成したワンタイムの一時パスワードでアカウントを作成し、初回ログイン時にパスワード変更を強制します:
+
+```json
+{
+  "email": "newuser@example.com",
+  "role": "user",
+  "primaryTenantId": "tenant-456",
+  "passwordResetRequired": true
+}
+```
+
+`201` レスポンスには `temporaryPassword` と `expiresAt` (デフォルト TTL 7 日)が含まれ、`Cache-Control: no-store` が設定されます。`password` と `passwordResetRequired: true` を同時に送信すると `400` で拒否されます。初回ログインフローの詳細は [AUTH.md](../reference/auth.md) を参照してください。
+
+#### ユーザーパスワードのリセット
+
+**既存**ユーザー(例:パスワードを忘れた場合)に新しい一時パスワードを発行し、次回ログイン時に変更を強制します:
+
+```http
+POST /admin/users/{userId}/reset-password
+Authorization: Bearer <accessToken>
+```
+
+`{ userId, temporaryPassword, expiresAt, passwordResetRequired, message }` を `Cache-Control: no-store` とともに返します。認可: `super_admin` (全ユーザー) / `tenant_admin` (自身のテナント内のユーザー)。
 
 #### ユーザー取得
 
@@ -625,6 +751,12 @@ Content-Type: application/json
 }
 ```
 
+ここで `password` を設定すると、**保留中の強制パスワード変更がクリアされ** (#1566)、**ユーザーの既存のパスワード由来セッションが取り消されます** — 管理者が選択したパスワードは直ちに使用可能になり、ユーザーは次回ログイン時にリセットを求められません。
+
+`tenant_admin` または `user` の `role` は、ユーザーがプライマリテナントに持つ既存のメンバーシップにも適用されます(同じリクエスト内の `primaryTenantId` 変更後)。これにより次回ログイン時に有効になります (#3552)。他のテナントのメンバーシップは変更されません — それらには `PUT /admin/tenants/{tenantId}/users/{userId}` を使用してください。プライマリテナントにメンバーシップがない場合、新規作成はされません。
+
+`isActive` はこのエンドポイントでは受け付けられません (400)。有効化または無効化には `POST /admin/users/{userId}/activate` または `POST /admin/users/{userId}/deactivate` を使用してください (#3516)。
+
 #### ユーザー削除
 
 ```http
@@ -632,7 +764,7 @@ DELETE /admin/users/{userId}
 Authorization: Bearer <accessToken>
 ```
 
-#### ユーザーの有効化/無効化
+#### ユーザーのアクティベート / ディアクティベート
 
 ```http
 POST /admin/users/{userId}/activate
@@ -642,7 +774,7 @@ Authorization: Bearer <accessToken>
 
 #### ログインのロック解除
 
-ブルートフォース保護によってロックされたアカウントのロックを解除します。
+ブルートフォース攻撃保護によってロックされたアカウントをロック解除します。
 
 ```http
 POST /admin/users/{userId}/unlock
@@ -661,7 +793,7 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-### テナント管理(super\_admin のみ)
+### テナント管理 (super\_admin のみ)
 
 #### テナント一覧
 
@@ -690,7 +822,13 @@ Content-Type: application/json
 }
 ```
 
-> **注意**: テナント名は小文字の英数字とアンダースコアのみを含む必要があります(`^[a-z0-9_]+$`)。
+> **注意**: テナント名は小文字の英数字とアンダースコアのみを含む必要があります (`^[a-z0-9_]+$`)。
+
+`settings.requireDataModel` (boolean、デフォルトは off) — `true` の場合、すべてのエンティティタイプにアクティブなカスタムデータモデルが存在しない限り、エンティティの作成 / 更新 / upsert は 400 で拒否されます。バッチ作成と新しいエンティティを挿入するバッチ upsert も 400 になります。バッチ更新 (`POST /ngsi-ld/v1/entityOperations/update`) とバッチマージ (`POST /ngsi-ld/v1/entityOperations/merge`) は 207 を返し、エンティティごとのエラーに拒否内容が含まれます。`isActive: false` は欠落として扱われ、異なるエラーメッセージが表示されます。読み取りとエンティティの削除は変更されません。フィールドを省略する (または `false` を設定する) と、モデルを持たないタイプを許可するデフォルトが維持されます。
+属性の削除も同様に拒否されます。`DELETE /ngsi-ld/v1/entities/{id}/attrs/{attrName}` は 400 になり、`datasetId` が 1 つのインスタンスのみを削除する場合も含まれます。バッチ属性削除 (マージ時の `urn:ngsi-ld:null`) は上記のように 207 になります。エンティティを削除するか、モデルを登録してクリーンアップしてください。
+`super_admin` のみが `settings.requireDataModel` を設定できます (`POST` / `PATCH /admin/tenants/{tenantId}`)。
+
+`settings.caddeEnabled` (boolean、unset = 公開されない) — GeonicDB 拡張 (#3580、#3628 以降はオプトイン)。`true` のみが `/cadde/**` でこのテナントを提供することを許可します。unset、`false`、または非 boolean 値は `403` `Access denied: no applicable policy` を返し、欠落または非アクティブ化されたテナントと同じボディになります。**破壊的変更:** #3628 より前は unset のテナントは読み取り可能でした。認証が無効の場合は評価されません (unset = 403 ルールは認証が有効な場合のみ適用されます)。SECURITY.md を参照してください。
 
 #### テナント取得
 
@@ -714,9 +852,9 @@ DELETE /admin/tenants/{tenantId}
 Authorization: Bearer <accessToken>
 ```
 
-**カスケード削除**: テナントが削除されると、関連するすべてのデータ(エンティティ、サブスクリプション、登録、ルール、ポリシー、ユーザー、メンバーシップ、およびすべての 16 コレクション)が自動的にカスケード削除されます。削除が開始される前に、新しい API リクエストをブロックするためにテナントが自動的に非アクティブ化されます。
+**カスケード削除**: テナントが削除されると、関連するすべてのデータ (エンティティ、サブスクリプション、レジストレーション、ルール、ポリシー、ユーザー、メンバーシップ、およびすべての 16 コレクション) が自動的にカスケード削除されます。削除が開始される前に、テナントは自動的に非アクティブ化され、新しい API リクエストがブロックされます。非アクティブ化により、既存のアクセストークン、API キー、または匿名アクセス、CADDE v4 (`/cadde/api/v4/*`、#3576) で行われたデータ操作、および新しい WebSocket 接続が 403 で拒否されます (他のインスタンスでは 30 秒以内)。テナントへの開かれている WebSocket 接続はベストエフォートベースで閉じられます (#3543): スタンドアロンサーバーはクローズコード `1008` と理由 `Tenant deactivated` を送信します。AWS では、API Gateway の `DeleteConnection` で接続が削除され、クローズコードや理由を伝えることはできません。閉じることに失敗した場合、接続は開いたままになる可能性がありますが、非アクティブなテナントのイベントは配信されません。テナントのサブスクリプション通知 (定期的、コンテキストソース、`notification.join`、ルール `sendNotification`、Web Push を含む) は、非アクティブな間は配信されません。ReactiveCore ルールは非アクティブな間はテナントに対して評価されません (`webhook` を含む)。[テナントのアクティブ化 / 非アクティブ化](#テナントのアクティブ化--非アクティブ化) を参照してください (#3596)。削除によりサブスクリプションが削除されるため、何も再開されません。可逆的なケースについては [テナントのアクティブ化 / 非アクティブ化](#テナントのアクティブ化--非アクティブ化) を参照してください。`requireAuth` の HTTP `isActive` チェックは、アクターが `tenantId` (通常は `primaryTenantId`) を持つ場合にのみ実行されます。`primaryTenantId` を持つ `super_admin` は、そのテナントが非アクティブ化された後、`/admin/**` で拒否されます。テナント ID を持たない `super_admin` / `platform_admin` はそのチェックをスキップします。データ API アクセスは依然として deny-fence によって拒否され、非アクティブなテナントへの WebSocket 接続はすべてのロールで拒否されます。アクティブ化により、期限切れでないアクセストークンのアクセスが復元されます。期限切れのアクセストークンは復活しません (まだ有効なリフレッシュトークンで新しいものを発行できます)。API キーは JWT の有効期限に制御されず、再発行なしで再び使用可能になります。トークンは取り消されません。
 
-#### テナントのアクティブ化/非アクティブ化
+#### テナントのアクティブ化 / 非アクティブ化
 
 ```http
 POST /admin/tenants/{tenantId}/activate
@@ -724,13 +862,17 @@ POST /admin/tenants/{tenantId}/deactivate
 Authorization: Bearer <accessToken>
 ```
 
+非アクティブ化により、そのテナントのデータ操作と新しい WebSocket 接続が 403 で拒否され、呼び出し前に発行された資格情報も含まれます。そのテナントのメンバーも `/admin/**`、`/me/**`、`/auth/logout`、`/auth/dpop-bind` で 403 で拒否されるため、テナント管理者は非アクティブな間は自分のテナントを再アクティブ化したり、キーを発行したりできません (#3542)。テナントへの開かれている WebSocket 接続はベストエフォートベースで閉じられます (#3543): スタンドアロンサーバーはクローズコード `1008` と理由 `Tenant deactivated` を送信します。AWS では、API Gateway の `DeleteConnection` で接続が削除され、クローズコードや理由を伝えることはできません。閉じることに失敗した場合、接続は開いたままになる可能性がありますが、非アクティブなテナントのイベントは配信されません。テナントのサブスクリプション通知 (定期的、コンテキストソース、`notification.join`、ルール `sendNotification`、Web Push を含む) は、非アクティブな間は配信されません。ReactiveCore ルールは非アクティブな間はテナントに対して評価されません (`webhook` を含む)。評価はアクティブ化時に再開されます (#3596)。サブスクリプションは `status` を維持し、何も取り消されないため、`activate` 後、通知は次のイベントまたは期間で再開されます。WebSocket クライアントは再接続する必要があります (SDK は自動的に再接続し、最大 10 回試行します)。デプロイメント管理者の非アクティブなテナントへの WebSocket 接続も拒否されます。`requireAuth` の HTTP `isActive` チェックは、アクターが `tenantId` を持つ場合にのみ適用されます。`primaryTenantId` が設定されている `super_admin` は非アクティブ化後、`/admin/**` で拒否されますが、テナントを持たない `super_admin` / `platform_admin` はそのチェックをスキップします。データ API アクセス (NGSI、カタログ、ルール) は依然として deny-fence によって拒否されます。他のインスタンスは、テナントキャッシュ TTL (30 秒) 以内に変更を適用します。アクティブ化により、新しいログインなしで期限切れでないアクセストークンのアクセスが復元されます。期限切れのアクセストークンには有効なリフレッシュトークンまたは新しいログインが必要です。API キーは JWT の有効期限に制御されず、再発行なしで再び使用可能になります。
+
 ### カスタムデータモデル管理
 
-> **注意**: カスタムデータモデル API は `/custom-data-models` に移動しました。詳細については、[Custom Data Models API](#custom-data-models-api) セクションを参照してください。
+> **注意**: カスタムデータモデル API は `/custom-data-models` に移動しました。詳細は [カスタムデータモデル API](#カスタムデータモデル-api) セクションを参照してください。
 
 ### IP 制限
 
-`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API(`/admin/*`)へのアクセスを特定の IP アドレスに制限できます:
+**SaaS 利用者の方へ**: これは tenant 設定 API 経由で設定されます。詳細は Geolonia サポートにお問い合わせください。
+
+`ADMIN_ALLOWED_IPS` 環境変数を設定することで、Admin API (`/admin/*`) へのアクセスを特定の IP アドレスに制限できます:
 
 ```bash
 # Single IP
@@ -745,9 +887,9 @@ ADMIN_ALLOWED_IPS=192.168.1.0/24,10.0.0.0/8
 
 許可されていない IP からのアクセスは `403 Forbidden` エラーになります。
 
-#### テナントごとの IP 制限
+#### テナント毎の IP 制限
 
-個別の IP 制限はテナントごとに設定できます。テナントレベルの設定が存在する場合、グローバル設定(`ADMIN_ALLOWED_IPS`)より優先されます。
+テナント毎に個別の IP 制限を設定できます。テナントレベルの設定が存在する場合、グローバル設定 (`ADMIN_ALLOWED_IPS`) よりも優先されます。
 
 ```http
 GET /admin/tenants/{tenantId}/ip-restrictions
@@ -756,11 +898,11 @@ DELETE /admin/tenants/{tenantId}/ip-restrictions
 Authorization: Bearer <accessToken>
 ```
 
-スコープは `admin`(Admin API のみ)または `all`(すべての API)のいずれかになります。詳細については、[AUTH.md](../reference/auth.md#per-tenant-ip-restrictions) を参照してください。
+スコープは `admin` (Admin API のみ) または `all` (すべての API) のいずれかです。詳細は [AUTH.md](../reference/auth.md#per-tenant-ip-restrictions) を参照してください。
 
 ### ルールエンジン管理 (tenant\_admin)
 
-エンティティの変更を自動的に処理するルールを管理します。`tenant_admin` ロールが必要です。`AUTH_ENABLED=true` の場合、`super_admin` は `/rules*` エンドポイントにアクセスできません。
+エンティティの変更を自動的に処理するルールを管理します。`tenant_admin` ロールが必要です。認証が有効な場合 (デフォルト)、`super_admin` は `/rules*` エンドポイントにアクセスできません。
 
 
 * **[REACTIVCORE\_RULES.md](../features/reactivcore-rules.md)** - ユーザーガイド (使用例、Admin API など)
@@ -774,12 +916,12 @@ Authorization: Bearer <accessToken>
 
 **クエリパラメータ**
 
-| Parameter     | Description                                  |
-| ------------- | -------------------------------------------- |
-| `limit`       | Number of results (default: 20, max: 100)    |
-| `offset`      | Offset (default: 0)                          |
-| `servicePath` | Filter by service path                       |
-| `isActive`    | Filter by active/inactive (`true` / `false`) |
+| Parameter     | Description                                                                                                                                                                                                                                                     |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `limit`       | Number of results (default: 20, max: 100)                                                                                                                                                                                                                       |
+| `offset`      | Offset (default: 0)                                                                                                                                                                                                                                             |
+| `servicePath` | Filter by service path. If omitted, defaults to the servicePath authorization was evaluated against (resolved `Fiware-ServicePath`, default `/`) rather than matching every servicePath (#2259) — see [REACTIVCORE\_RULES.md](../features/reactivcore-rules.md) |
+| `isActive`    | Filter by active/inactive (`true` / `false`)                                                                                                                                                                                                                    |
 
 #### ルール作成
 
@@ -844,7 +986,7 @@ DELETE /rules/{ruleId}
 Authorization: Bearer <accessToken>
 ```
 
-#### ルールの有効化 / 無効化
+#### ルールの有効化/無効化
 
 ```http
 POST /rules/{ruleId}/activate
@@ -854,7 +996,7 @@ Authorization: Bearer <accessToken>
 
 #### クロスプロトコルアクション
 
-ルールアクション (`createEntity`、`updateAttribute`、`deleteAttribute`) は、プロトコル境界を越えて動作するためのオプションの `protocol` フィールドをサポートしています。`createEntity` アクションは、階層制御のための `servicePath` および `scope` フィールドもサポートしています。
+ルールアクション (`createEntity`、`updateAttribute`、`deleteAttribute`) は、プロトコルの境界を越えて操作するためのオプションの `protocol` フィールドをサポートしています。`createEntity` アクションは、階層制御のための `servicePath` および `scope` フィールドもサポートしています。
 
 | Field         | Actions                                        | Type                         | Description                                                 |
 | ------------- | ---------------------------------------------- | ---------------------------- | ----------------------------------------------------------- |
@@ -862,9 +1004,9 @@ Authorization: Bearer <accessToken>
 | `servicePath` | createEntity                                   | `string`                     | Target servicePath for NGSIv2 (supports template variables) |
 | `scope`       | createEntity                                   | `string[]`                   | Target scope for NGSI-LD (supports template variables)      |
 
-プロトコルをまたぐ場合、servicePath ↔ scope は自動的にマッピングされます。テンプレート変数 `${trigger.protocol}`、`${trigger.servicePath}`、`${trigger.scope}`、`${trigger.service}` は、トリガーエンティティのコンテキストを参照します。
+プロトコルをまたぐ場合、servicePath ↔ scope は自動的にマッピングされます。テンプレート変数 `${trigger.protocol}`、`${trigger.servicePath}`、`${trigger.scope}`、`${trigger.service}` はトリガーエンティティのコンテキストを参照します。
 
-詳細な例とマッピングルールについては、**[REACTIVCORE\_RULES.md](../features/reactivcore-rules.md)** を参照してください。
+詳細な例とマッピングルールについては **[REACTIVCORE\_RULES.md](../features/reactivcore-rules.md)** を参照してください。
 
 ***
 
@@ -890,7 +1032,7 @@ OAuth 2.0 Client Credentials Grant フローを使用した Machine-to-Machine (
   
 * `POST /me/oauth-clients/{clientId}/regenerate-secret` - 自分のシークレット再生成 (セルフサービス)
 
-**有効化:** OAuth 2.0 は `AUTH_ENABLED=true` の場合に常に有効です。`OAUTH_ENABLED` 環境変数は非推奨であり、無視されます。
+**有効化:** OAuth 2.0 は認証が有効になっている限り常に利用可能です (デフォルト)。`OAUTH_ENABLED` 環境変数は #1982 で削除されました — コードベース内に読み取り処理が存在しませんでした。
 
 **利用可能なスコープ:**
 
@@ -914,15 +1056,13 @@ OAuth 2.0 Client Credentials Grant フローを使用した Machine-to-Machine (
 | `permanent`                | Token never expires                                  |    —   |        —       |       —       |
 | `jwt`                      | JWT format token                                     |    —   |        —       |       —       |
 
-> ロール列は、セルフサービス (`/me/oauth-clients`) 経由でリクエスト可能なスコープを示しています。管理者が作成したクライアント (`/admin/oauth-clients`) はこれらの制限を受けません。
-
-**リソーススコープ:** `POST /oauth/token` で `resource_scopes` パラメータ (JSON 文字列) を指定すると、エンティティレベルのアクセス制御を持つトークンが発行されます。詳細は [AUTH.md](../reference/auth.md#resource-scopesgeonicdb-extension) を参照してください。
+> ロール列は、セルフサービス (`/me/oauth-clients`) 経由でリクエストできるスコープを示しています。管理者が作成したクライアント (`/admin/oauth-clients`) は、これらの制限の対象外です。
 
 **詳細:** [AUTH.md](../reference/auth.md) の OAuth 2.0 セクションを参照してください。
 
 ***
 
-## API キートークン交換 (Browser SDK)
+## API Key Token Exchange (Browser SDK)
 
 ブラウザベースのアプリケーションは、Nonce + Proof of Work を介して API キーを短期間有効なセッション JWT に交換できます。
 
@@ -934,9 +1074,9 @@ OAuth 2.0 Client Credentials Grant フローを使用した Machine-to-Machine (
 
 **JavaScript SDK:** `npm install @geolonia/geonicdb-sdk` — トークン交換、DPoP、WebSocket、再接続を自動的に処理します。
 
-**セキュリティレイヤー:** Origin 検証 → HMAC Nonce (60 秒 TTL) → Proof of Work → 短期間有効な JWT (1 時間)
+**セキュリティレイヤー:** Origin 検証 → HMAC Nonce (60秒 TTL) → Proof of Work → 短期間有効な JWT (1時間)
 
-**詳細:** 完全な API リファレンスについては、AUTH.md の [API Key Token Exchange](../reference/auth.md#api-key-token-exchange-browser-sdk) セクションと SDK ドキュメントを参照してください。
+**詳細:** AUTH.md の [API Key Token Exchange](../reference/auth.md#api-key-token-exchange-browser-sdk) セクションおよび完全な API リファレンスについては SDK ドキュメントを参照してください。
 
 ***
 
@@ -962,7 +1102,7 @@ AI フレンドリーな [llms.txt](https://llmstxt.org/) 形式で API ドキ�
 GET /api.json
 ```
 
-API エンドポイントのリストを JSON 形式で返します。
+JSON 形式で API エンドポイントのリストを返します。
 
 **レスポンス例**
 
@@ -988,7 +1128,7 @@ API エンドポイントのリストを JSON 形式で返します。
 GET /openapi.json
 ```
 
-OpenAPI 3.0 仕様を JSON 形式で返します。Swagger UI や各種 API クライアント生成ツールで使用できます。
+JSON 形式で OpenAPI 3.0 仕様を返します。Swagger UI や各種 API クライアント生成ツールで使用できます。
 
 **レスポンス**
 
@@ -1003,6 +1143,17 @@ GET /version
 ```
 
 FIWARE Orion 互換のバージョン情報を返します。
+
+GeonicDB 固有の `extensions.vectorSearch` オブジェクトは、接続された MongoDB デプロイメントが Atlas Vector Search (`$vectorSearch` / `listSearchIndexes`) をサポートしているかどうかを報告します。環境の機能に応じて RAG および埋め込み機能をゲート制御するために使用されます。
+
+| Field                                   | Type                    | Description                                                    |
+| --------------------------------------- | ----------------------- | -------------------------------------------------------------- |
+| `extensions.vectorSearch.available`     | boolean                 | `true` when Atlas Vector Search is reachable                   |
+| `extensions.vectorSearch.serverVersion` | string \| omitted | MongoDB server version (from `buildInfo`); omitted on failure  |
+| `extensions.vectorSearch.checkedAt`     | string (ISO 8601)       | Timestamp the capability was last probed                       |
+| `extensions.vectorSearch.reason`        | string \| omitted | Failure reason when `available=false` (e.g. `CommandNotFound`) |
+
+機能プローブは 5 分間メモリ内にキャッシュされるため、`/version` 自体は負荷がかかっても軽量なままです。
 
 **レスポンス例**
 
@@ -1022,6 +1173,13 @@ FIWARE Orion 互換のバージョン情報を返します。
   "vendor": {
     "name": "Geolonia Inc.",
     "url": "https://geolonia.com"
+  },
+  "extensions": {
+    "vectorSearch": {
+      "available": true,
+      "serverVersion": "7.0.5",
+      "checkedAt": "2026-05-19T12:34:56.000Z"
+    }
   }
 }
 ```
@@ -1046,7 +1204,7 @@ NGSI-LD API サポート情報を返します。
 
 ### ヘルスチェック
 
-すべてのヘルスチェックエンドポイントは、マルチリージョン HA サポートのために `region` と `regionRole` を返します。Route 53 フェイルオーバーはこれらのエンドポイントを監視し、プライマリが `503` を返すとセカンダリに切り替えます。
+すべてのヘルスチェックエンドポイントは、マルチリージョン HA サポートのために `region` と `regionRole` を返します。Route 53 フェイルオーバーはこれらのエンドポイントを監視し、プライマリが `503` を返したときにセカンダリに切り替えます。
 
 #### 基本ヘルス
 
@@ -1054,7 +1212,7 @@ NGSI-LD API サポート情報を返します。
 GET /health
 ```
 
-サービスの基本的な稼働ステータスを返します。
+サービスの基本的な動作ステータスを返します。
 
 **レスポンス例**
 
@@ -1073,7 +1231,7 @@ GET /health
 GET /health/live
 ```
 
-Kubernetes / Route 53 Liveness Probe 用。サービスが稼働しているかどうかをチェックします。
+Route 53 ヘルスチェックおよびその他の liveness probe 用。サービスが実行中かどうかをチェックします。
 
 **レスポンス例**
 
@@ -1092,14 +1250,17 @@ Kubernetes / Route 53 Liveness Probe 用。サービスが稼働しているか�
 GET /health/ready
 ```
 
-Kubernetes / Route 53 Readiness Probe 用。MongoDB の接続性をチェックし、オプションで DynamoDB と EventBridge の詳細なヘルスチェックを実行します。
+Route 53 ヘルスチェックおよびその他の readiness probe 用。MongoDB 接続をチェックし、オプションで DynamoDB、EventBridge、および WebSocket 配信パスのディープヘルスチェックを実行します。
 
-**環境変数による詳細ヘルスチェックの有効化**
+**環境変数によるディープヘルスチェックの有効化**
 
-| Environment Variable            | Description                                         |
-| ------------------------------- | --------------------------------------------------- |
-| `HEALTH_CHECK_DYNAMODB=true`    | Add DynamoDB DescribeTable connectivity check       |
-| `HEALTH_CHECK_EVENTBRIDGE=true` | Add EventBridge DescribeEventBus connectivity check |
+| Environment Variable            | Description                                                                         |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| `HEALTH_CHECK_DYNAMODB=true`    | Add DynamoDB DescribeTable connectivity check                                       |
+| `HEALTH_CHECK_EVENTBRIDGE=true` | Add EventBridge DescribeEventBus connectivity check                                 |
+| `HEALTH_CHECK_WEBSOCKET=false`  | Opt out of the WebSocket `$connect` synthetic probe (enabled by default; see below) |
+
+EventStreaming が有効な場合(`WS_API_ENDPOINT` が設定されている場合)、readiness probe は WebSocket `$connect` 合成プローブも自動的に実行します。これは実際の WebSocket API を通じて Upgrade リクエスト(トークンなし)を送信し、5xx の場合はサービスを異常とマークします。これにより、REST チェックでは検出できない WebSocket パスの静かな障害を検出します。通常は設定不要で、EventStreaming が無効またはスタンドアロンモードの場合は自動的にスキップされます。プローブを一時的に無効にする(例: WS インシデントの調査中)には、`HEALTH_CHECK_WEBSOCKET=false` を設定してください。
 
 **レスポンス**
 
@@ -1107,7 +1268,7 @@ Kubernetes / Route 53 Readiness Probe 用。MongoDB の接続性をチェック�
   
 * 失敗: `503 Service Unavailable` と `status: "unhealthy"`
 
-**レスポンス例(詳細ヘルスチェック有効時)**
+**レスポンス例(ディープヘルスチェック有効時)**
 
 ```json
 {
@@ -1118,7 +1279,8 @@ Kubernetes / Route 53 Readiness Probe 用。MongoDB の接続性をチェック�
   "checks": {
     "mongodb": { "status": "healthy", "latencyMs": 12 },
     "dynamodb": { "status": "healthy", "latencyMs": 8 },
-    "eventbridge": { "status": "healthy", "latencyMs": 15 }
+    "eventbridge": { "status": "healthy", "latencyMs": 15 },
+    "websocket": { "status": "healthy", "latencyMs": 42 }
   },
   "totalLatencyMs": 35
 }
@@ -1135,7 +1297,9 @@ GET /statistics
 Authorization: Bearer <token>
 ```
 
-FIWARE Orion 互換形式でサーバーの運用統計を返します。認証が有効な場合(`AUTH_ENABLED=true`)、認証されたユーザーのみがこのエンドポイントにアクセスできます。
+FIWARE Orion 互換形式でサーバーの運用統計を返します。認証が有効な場合(デフォルト)、認証されたユーザーのみがこのエンドポイントにアクセスできます。
+
+オプションの `reset=true` クエリパラメータは、カウンタを読み取った後にクリアします。これらのカウンタ(`counters`、`timing`、`notifQueue`)は**プロセスグローバルでテナント次元を持たない**ため、リクエストを処理したプロセス内でリセットを実行すると、すべてのテナントの数値が一度に消去され、テナントごとに分割することはできません。他のプロセスには影響しません。Lambda (#1507) では、`GET /statistics` と `GET /metrics` はデータプレーン関数で実行されます。`reset=true` は**そのリクエストを処理したデータプレーンインスタンスのみ**をクリアします。その関数の他のウォームコンテナ、および `/admin/metrics` を提供するコントロールプレーン関数は、独自のカウンタを保持します。したがって、これは環境スーパー管理者(`id` `super-admin`)または `platform_admin` (#3495) に制限されています。デプロイメントデータベースに保存された `super_admin` およびその他のロールは `403` を受け取ります(#3463)。`AUTH_ENABLED=false` の場合、リクエストは合成アクター(`id` `anonymous`、`role` `super_admin`)として実行されます。このアクターは環境プリンシパルではないため、`reset=true` は `403` を返します。`reset` なしの読み取りは影響を受けません。
 
 **レスポンス例**
 
@@ -1175,7 +1339,7 @@ GET /cache/statistics
 Authorization: Bearer <token>
 ```
 
-サブスクリプションと登録のキャッシュ統計を返します。認証が有効な場合(`AUTH_ENABLED=true`)、認証されたユーザーのみがこのエンドポイントにアクセスできます。
+サブスクリプションと登録のキャッシュ統計を返します。認証が有効な場合(デフォルト)、認証されたユーザーのみがこのエンドポイントにアクセスできます。
 
 **レスポンス例**
 
@@ -1205,7 +1369,9 @@ GET /metrics
 Authorization: Bearer <token>
 ```
 
-Prometheus エクスポジション形式でメトリクスを返します。認証が有効な場合(`AUTH_ENABLED=true`)、認証されたユーザーのみがこのエンドポイントにアクセスできます。Kubernetes 環境での監視や Grafana ダッシュボードとの統合に使用できます。
+Prometheus エクスポジション形式でメトリクスを返します。認証が有効な場合(デフォルト)、認証されたユーザーのみがこのエンドポイントにアクセスできます。これらのメトリクスは Prometheus ベースの監視や Grafana ダッシュボードとの統合に使用できます。
+
+この出力のリクエストおよび通知カウンタは、スクレイプを処理したデータプレーンインスタンスに属します。`DELETE /admin/metrics` はそれらに到達しません(#3241)。コレクションゲージ(`geonicdb_entities_total` およびサブスクリプションと登録の合計)は、ライブデータベースカウントです。インスタンス間で共有される時間ウィンドウでのカウントには、`GET /admin/metrics/api-calls` を使用してください(#3207)。
 
 **レスポンス**
 
@@ -1254,7 +1420,7 @@ GET /tools.json
 
 Claude Tool Use / OpenAI Function Calling と互換性のある JSON 形式でツール定義を返します。これは AI エージェントが API をツールとして使用するためのスキーマです。
 
-**提供されるツール**: `list_entities`, `get_entity`, `search_by_location`, `search_by_attribute`, `create_entity`, `update_entity`, `delete_entity`, `list_entity_types`, `get_temporal_data`, `subscribe`
+**提供されるツール**: `list_entities`、`get_entity`、`search_by_location`、`search_by_attribute`、`create_entity`、`update_entity`、`delete_entity`、`list_entity_types`、`get_temporal_data`、`subscribe`
 
 ##### AI プラグインマニフェスト
 
@@ -1264,6 +1430,15 @@ GET /.well-known/ai-plugin.json
 
 AI プラグインマニフェストを返します。API の概要、ツール定義 URL、OpenAPI 仕様 URL などが含まれます。
 
+##### Web Push VAPID 公開鍵 (#3014)
+
+```http
+GET /.well-known/webpush-vapid-key
+```
+
+`PushManager.subscribe({ applicationServerKey })` 用の `{ "publicKey": "<VAPID public key>" }` を返します。
+`WEBPUSH_VAPID_*` が未設定の場合は `503` を返します。[SUBSCRIPTIONS.md](../features/ngsi-subscriptions.md#web-push-3014) および ENV.md を参照してください。
+
 ##### MCP (Model Context Protocol)
 
 ```http
@@ -1272,9 +1447,9 @@ Content-Type: application/json
 Accept: application/json, text/event-stream
 ```
 
-MCP Streamable HTTP エンドポイント。MCP 互換 AI クライアント(Claude Desktop など)から直接接続できます。ステートレスモード(JSON レスポンス)で動作し、5 つのツールすべてが MCP tools/call 経由で利用可能です。
+MCP Streamable HTTP エンドポイント。MCP 互換の AI クライアント(Claude Desktop など)から直接接続できます。ステートレスモード(JSON レスポンス)で動作し、MCP tools/call 経由で 22 個のツール(5 個の粗粒度 + 17 個の細粒度、#3921)が利用可能です。非管理者は tools/list で管理者ツールを表示しません。`admin:users` または `admin:policies` を持つ `oauth_client` は tools/list で管理者ツールを表示しますが、すべての admin/admin\_\* 呼び出しは拒否されます — 代わりに HTTP Admin API(`/admin/users`、`/admin/policies`)を使用してください。
 
-`AUTH_ENABLED=true` の場合、Bearer トークン(JWT)による認証が必要です。テナントアクセス制御も適用されます。
+認証が有効になっている場合(デフォルト)、Bearer トークン(JWT)が必要です。テナントアクセス制御も適用されます。
 
 **Claude Desktop 設定例**:
 
@@ -1294,7 +1469,7 @@ MCP Streamable HTTP エンドポイント。MCP 互換 AI クライアント(Cla
 }
 ```
 
-注: `headers` は `AUTH_ENABLED=true` の場合のみ必要です。
+注: 認証が有効になっている場合(デフォルト)、`headers` は必須です。
 
 詳細については、[AI\_INTEGRATION.md](../ai-integration/overview.md) を参照してください。
 
@@ -1304,7 +1479,7 @@ MCP Streamable HTTP エンドポイント。MCP 互換 AI クライアント(Cla
 GET /.well-known/agent-card.json
 ```
 
-A2A Agent Card。このエージェントの機能、スキル、認証について記述します。認証は不要です。
+A2A Agent Card。このエージェントの機能、スキル、認証について説明します。認証は不要です。
 
 ```http
 POST /a2a
@@ -1313,19 +1488,33 @@ Authorization: Bearer <token>
 Fiware-Service: <tenant>  (optional, falls back to default tenant)
 ```
 
-エージェント間通信のための A2A JSON-RPC 2.0 エンドポイント。`AUTH_ENABLED=true` の場合は認証が必要です。サポートされるメソッド:
+エージェント間通信用の A2A JSON-RPC 2.0 エンドポイント。認証が有効になっている場合(デフォルト)、認証が必要です。メソッドディスパッチは JSON-RPC メソッド名に従います(`A2A-Version` ヘッダーはハンドラーを選択しません)。
 
-* `message/send` — メッセージを送信し、同期レスポンスを受信
-  
-* `tasks/get` — タスクの現在の状態を取得
-  
-* `tasks/list` — フィルタリングとページネーションでタスクを一覧表示
-  
-* `tasks/cancel` — タスクのキャンセルをリクエスト
+v1.0 メソッド名(proto-JSON; `A2A-Version` はオプションでありハンドラーを選択しません):
 
-5 つのスキルが利用可能: entities, batch, temporal, config, admin (MCP ツールと同じ)。
+* `SendMessage` — メッセージを送信して同期レスポンスを受信
+  
+* `GetTask` — タスクの現在の状態を取得
+  
+* `ListTasks` — タスクを一覧表示(`{tasks, nextPageToken, pageSize, totalSize}`)
+  
+* `CancelTask` — タスクのキャンセルをリクエスト
 
-詳細については、[AI\_INTEGRATION.md](../ai-integration/overview.md) を参照してください。
+v0.3 名は後方互換性があり、削除予定です(#3514):
+
+* `message/send` — `SendMessage` と同じ操作、レスポンスは `kind: "message"` / `parts[].kind: "text"` を使用
+  
+* `tasks/get` — `GetTask` と同じ操作、タスク `status.state` は文字列
+  
+* `tasks/list` — GeonicDB 拡張(v0.3 仕様にはありません)。`A2A-Version: 1.0` の場合でもレスポンスは `{tasks, total}` のまま
+  
+* `tasks/cancel` — `CancelTask` と同じ操作
+
+Task は作成した呼び出し主体（テナント + ユーザー / API キー）にのみ可視。他主体の `id` は `GetTask` / `tasks/get` / `CancelTask` / `tasks/cancel` / `SendMessage(message.taskId)` のいずれも `-32001 Task not found`。`tenant_admin` も他ユーザーの Task は見えない。`role` が `anonymous` の呼び出し、またはテナントや actor ID を解決できない呼び出しは Task を保存できず、`tasks/list` は空を返す。
+
+5 つのスキルが利用可能: entities、batch、temporal、config、admin (MCP tools と同じ)。
+
+詳細は [AI\_INTEGRATION.md](../ai-integration/overview.md) を参照してください。
 
 #### テナント別メトリクス (Admin API)
 
@@ -1334,7 +1523,34 @@ GET /admin/metrics
 Authorization: Bearer <accessToken>
 ```
 
-テナントとServicePath別のメトリクスを返します。`super_admin` ロールが必要です。
+テナントとServicePath別のメトリクスを返します。
+
+**スコープ (#2217)** — `super_admin` はすべてのテナントを参照できます。それ以外の認証されたロールは自身のテナントのみを参照でき、そのテナントはアクセストークンから解決されます: リクエストヘッダーの `Fiware-Service` / `NGSILD-Tenant` は、どのテナントのメトリクスが返されるかを選択**しません** (`/admin/*` はテナント境界チェックの前にディスパッチされるため、これらのヘッダーはここでは検証されません)。テナントを解決できない呼び出し主体 (テナントが割り当てられていない、またはテナントがもはや存在しない) は `{"services": {}}` を受け取ります — フェイルクローズドです; すべてのテナントを返すことにフォールバック**しません**。
+
+**リセット (#2236, #3241, #3463)** — `DELETE /admin/metrics` は空のボディで `204` を返します。`GET /admin/metrics?reset=true` はメトリクスを返した後、**その呼び出しを処理したプロセスのみ**のインメモリカウンターをクリアします。これらのカウンターはプロセスグローバルであり、**テナントの次元を持ちません**。したがって、そのプロセス内でのリセットは、すべてのテナントの数値を一度に消去し、テナント単位でのスライスはできません。そのため、両方とも環境のスーパー管理者 (id `super-admin`) または `platform_admin` (#3495) に制限されています; デプロイメントデータベースに保存された `super_admin`、およびその他のロール (`api_key` と `oauth_client` を含む) は `403` を受け取ります。`AUTH_ENABLED=false` の場合、`/admin/*` はこのガードの前に `404` を返します。合成アクター (`id` `anonymous`、`role` `super_admin`) は環境プリンシパルではないため、そのモードでは `GET /statistics?reset=true` は `403` を返します。`reset` なしの読み取りは影響を受けず、上記で説明したテナント別スコープを維持します。
+
+カウンターはモジュールメモリ (`requestCounters`、タイミング、通知キュー) です。リセットはエンティティ、サブスクリプション、または登録を削除しないため、`GET /admin/metrics` からの `entityCount`、`subscriptionCount`、`registrationCount` はそのまま維持されます — これらはライブコレクションカウントです。
+
+Lambda (#1507) では、API Gateway は `/admin/*` をコントロールプレーン関数に、`/statistics` と `/metrics` をデータプレーン関数に送信します。`/admin/metrics` を通じたリセットは、`GET /statistics` と `GET /metrics` が読み取るカウンターに**到達しません**。`GET /statistics?reset=true` は、**そのリクエストを処理したデータプレーンインスタンスのみ**をクリアします。どちらの関数の他のウォームコンテナも、コールドスタートするか、自身でリセットを処理するまで、そのままの状態を維持します。`204` は、受信プロセスがリセットを適用したことを意味します。
+
+カウントをタイムウィンドウ内で複数のインスタンスにわたって集約する必要がある場合は、これらのインメモリカウンターの代わりに `GET /admin/metrics/api-calls` (#3207) を使用してください。メモリにのみ残っているポイントは、そのコンテナがフラッシュ前に再利用された場合に失われます (下記の永続化を参照)。
+
+```http
+GET /admin/metrics/api-calls?tenant=<name>&from=YYYY-MM-DD&to=YYYY-MM-DD
+Authorization: Bearer <accessToken>
+```
+
+時間単位の API 呼び出し履歴 (呼び出し回数、エラー回数、平均応答時間) を返します。`errorCount` は 4xx と 5xx のみをカウントします (`statusCode >= 400`)。304 Not Modified を含む 3xx は `byStatus` に保持され、エラーではありません (#3224)。保存されたカウントは増分であり、この定義が変更されても再計算されません。`tenant` は `super_admin` に対してのみ有効です; それ以外のロールは自身のテナントにスコープされます。
+
+**永続化 (#3207):** カウントは Lambda コンテナごとにインメモリで集約され、各 API 呼び出しの終了時にしきい値フラッシュによって共有ストア (`USAGE_STATS_TABLE_NAME` / Mongo `apiCallMetrics`) に書き込まれます (`@config/defaults` の `FLUSH_MIN_BUCKETS` / `FLUSH_MAX_AGE_MS`)。ここでの `GET` もクエリ前に**コントロールプレーン**プロセスのインメモリバケットをフラッシュします。`#1507` 以降、データプレーンとコントロールプレーンは別々の Lambda であるため、管理者の `GET` だけではデータプレーンのメモリをフラッシュできません — 呼び出し終了時のフラッシュが必要です。フラッシュが完了する前にコンテナが再利用された場合、残留損失が残ります (ベストエフォートメトリクスであり、完全な監査証跡ではありません)。スタンドアロン E2E は 1 つのプロセスを共有するため、Lambda 間のギャップを検出できません。
+
+| Situation                                                                                       | Result                                                          |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `super_admin` (with or without `tenant`)                                                        | `200` — the named tenant, or `default` when omitted             |
+| Other role, `tenant` omitted or naming its own tenant                                           | `200` — that caller's own tenant                                |
+| Other role, `tenant` naming a different tenant                                                  | **`403`**                                                       |
+| Other role whose tenant cannot be resolved (no tenant assigned, or the tenant no longer exists) | **`403`** — fail-closed; it does **not** fall back to `default` |
+| `tenant` longer than 64 characters, or containing anything outside `[a-z0-9_]`                  | `400`                                                           |
 
 **レスポンス例**
 
@@ -1375,7 +1591,7 @@ NGSI-LD API の詳細については、[API\_NGSILD.md](./ngsild.md) を参照�
 
 ## クエリ言語
 
-属性値によるフィルタリングは、`q` パラメータを使用して可能です。
+`q` パラメータを使用して、属性値によるフィルタリングが可能です。
 
 ### 基本構文
 
@@ -1392,13 +1608,13 @@ NGSI-LD API の詳細については、[API\_NGSILD.md](./ngsild.md) を参照�
 
 ### 複数の条件
 
-AND 条件はセミコロン(`;`)で結合します:
+AND 条件はセミコロン (`;`) で結合します:
 
 ```text
 q=temperature>20;pressure<800
 ```
 
-OR 条件はパイプ(`|`)で結合します(`;` は `|` よりも優先順位が高い):
+OR 条件はパイプ (`|`) で結合します (`;` は `|` よりも優先順位が高くなります):
 
 ```text
 q=temperature==23|temperature==35
@@ -1407,7 +1623,7 @@ q=temperature>25;humidity<40|status==active
 
 ### 範囲クエリ
 
-`==` 演算子と `..` を組み合わせて範囲フィルタリング(境界値を含む)を行います:
+`==` 演算子と `..` を組み合わせて範囲フィルタリング (境界を含む) を行います:
 
 ```text
 q=temperature==20..30    # 20 or above and 30 or below
@@ -1424,23 +1640,23 @@ q=name==Room1     # Exact match
 
 ## ジオクエリ
 
-位置情報を持つエンティティは空間的にクエリできます。
+位置情報を持つエンティティは、空間的にクエリできます。
 
 ### パラメータ
 
-| Parameter  | Description                                                                                                                  |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `georel`   | Spatial relationship (coveredBy, within, intersects, disjoint, equals)                                                       |
-| `geometry` | Geometry type (point, polygon, line, box)                                                                                    |
-| `coords`   | Coordinates (NGSIv2: latitude,longitude format; NGSI-LD: longitude,latitude format; multiple points separated by semicolons) |
+| Parameter  | Description                                                                                                                                                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `georel`   | Spatial relationship (coveredBy, within, intersects, disjoint, equals)                                                                                                                                                                                                                                                    |
+| `geometry` | Geometry type. NGSIv2: `point`, `multipoint`, `linestring`, `multilinestring`, `polygon`, `multipolygon`, `line`, `box` (case-insensitive). NGSI-LD: the six GeoJSON names `Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon` (exact case). The `Multi*` variants are accepted since #1696 |
+| `coords`   | Coordinates (NGSIv2: latitude,longitude format; NGSI-LD: longitude,latitude format; multiple points separated by semicolons)                                                                                                                                                                                              |
 
-> **注意**: `georel`、`geometry`、および `coords`(NGSI-LD では `coordinates`)は、すべて一緒に指定する必要があります。一部のみを指定すると `400 Bad Request` が返されます(ETSI GS CIM 009 V1.9.1 clause 4.10)。
+> **注意**: `georel`、`geometry`、および `coords` (NGSI-LD では `coordinates`) はすべて一緒に指定する必要があります。これらの一部のみを指定すると `400 Bad Request` が返されます (ETSI GS CIM 009 V1.9.1 clause 4.10)。
 
 ### 座標フォーマット
 
 NGSIv2 では、座標は **緯度,経度** の順序で指定されます(NGSIv2 仕様に準拠)。NGSI-LD では、座標は **経度,緯度** の順序です(GeoJSON 標準に準拠)。
 
-> **重要**: NGSIv2 における緯度,経度の順序は、GeoJSON 標準(経度,緯度)からの逸脱です。これは NGSI-LD で修正され、GeoJSON と同じ経度,緯度の順序を使用します。API を使用する際は、使用している API バージョンに対して正しい順序で座標を指定するようにしてください。
+> **重要**: NGSIv2 における緯度,経度の順序は、GeoJSON 標準(経度,緯度)からの逸脱です。これは NGSI-LD で修正され、GeoJSON と同じ経度,緯度の順序を使用します。API を使用する際は、使用している API バージョンに対応した正しい順序で座標を指定してください。
 
 ```text
 # NGSIv2 (latitude,longitude)
@@ -1451,7 +1667,13 @@ coords=34,138;34,141;37,141;37,138;34,138  # Polygon (semicolon-separated)
 coordinates=[139.7671,35.6812]       # Single point
 ```
 
-### エリア検索 (coveredBy / within)
+#### ポリゴンリングの閉鎖 (#1644)
+
+`Polygon` リング — 保存された GeoProperty / `geo:json` 属性値内であれ、geo-query 内であれ — は閉じている必要があります:最初と最後の位置は **すべての要素において等しく** なければなりません。3 要素の位置(`[経度, 緯度, 高度]`、RFC 7946 §3.1.6)の場合、これには高度も含まれます。このチェックは NGSI-LD と NGSIv2 のパスで共有されているため、両方の API が同じルールを適用します。
+
+> **注意(軽微な破壊的変更、#1644)**: NGSIv2 は以前、リングの閉鎖を検証する際に経度/緯度のみを比較し、最初と最後の位置が高度で異なるリングを黙って受け入れていました。このようなリングは現在、`400 Bad Request`(「閉じている必要があります」)で拒否され、NGSI-LD の動作と一致します。2 要素(2D)座標を送信するクライアントは影響を受けません。
+
+### エリア検索(coveredBy / within)
 
 ポリゴン内のエンティティを検索:
 
@@ -1459,7 +1681,7 @@ coordinates=[139.7671,35.6812]       # Single point
 GET /v2/entities?georel=coveredBy&geometry=polygon&coords=34,138;34,141;37,141;37,138;34,138
 ```
 
-### 交差検索 (intersects)
+### 交差検索(intersects)
 
 ジオメトリと交差するエンティティを検索:
 
@@ -1467,7 +1689,7 @@ GET /v2/entities?georel=coveredBy&geometry=polygon&coords=34,138;34,141;37,141;3
 GET /v2/entities?georel=intersects&geometry=box&coords=35.67,139.76;35.69,139.78
 ```
 
-### 非交差検索 (disjoint)
+### 非交差検索(disjoint)
 
 ジオメトリと交差しないエンティティを検索:
 
@@ -1477,7 +1699,7 @@ GET /v2/entities?georel=disjoint&geometry=polygon&coords=34,138;34,141;37,141;37
 
 ### 近接検索 (near)
 
-指定された座標から一定距離内のエンティティを検索します。
+指定した座標から一定距離内のエンティティを検索します。
 
 #### パラメータ
 
@@ -1515,9 +1737,9 @@ GET /ngsi-ld/v1/entities?georel=near;minDistance==100000&geometry=Point&coordina
 GET /ngsi-ld/v1/entities?georel=near;minDistance==500;maxDistance==10000&geometry=Point&coordinates=[139.7671,35.6812]
 ```
 
-#### georel 構文の比較
+#### georel の構文比較
 
-georel パラメータの修飾子構文は NGSIv2 と NGSI-LD で異なります:
+georel パラメータ修飾子の構文は NGSIv2 と NGSI-LD で異なります:
 
 | Feature        | NGSIv2                                          | NGSI-LD                                           | Description            |
 | -------------- | ----------------------------------------------- | ------------------------------------------------- | ---------------------- |
@@ -1525,16 +1747,16 @@ georel パラメータの修飾子構文は NGSIv2 と NGSI-LD で異なりま�
 | Min distance   | `georel=near;minDistance:1000`                  | `georel=near;minDistance==1000`                   | `:` vs `==` difference |
 | Distance range | `georel=near;minDistance:500;maxDistance:10000` | `georel=near;minDistance==500;maxDistance==10000` | `:` vs `==` difference |
 
-> **構文の違いの理由**: NGSIv2 はパラメータ値の指定に `:` を使用しますが、NGSI-LD は ETSI 仕様に従って `==` を使用します。API を呼び出す際は、使用している API バージョンに対応した構文を使用してください。
+> **構文の違いの理由**: NGSIv2 ではパラメータ値の指定に `:` を使用しますが、NGSI-LD では ETSI 仕様に従って `==` を使用します。API を呼び出す際は、使用する API バージョンに対応した構文を使用してください。
 
 #### 距離ソートと距離情報
 
 `orderByDistance=true` パラメータを指定すると、以下の機能が有効になります:
 
 
-1. **距離ソート**: 結果は指定された座標からの距離の昇順でソートされます
+1. **距離ソート**: 結果は指定した座標からの距離の昇順でソートされます
    
-2. **距離情報**: 各エンティティに `@distance` 属性が追加され、指定された座標からの距離(メートル単位)が返されます
+2. **距離情報**: 各エンティティに `@distance` 属性が追加され、指定した座標からの距離(メートル単位)が返されます
 
 この機能は MongoDB の `$geoNear` 集約パイプラインを使用して実装されています。
 
@@ -1581,7 +1803,7 @@ GET /ngsi-ld/v1/entities?georel=near;maxDistance==5000&geometry=Point&coordinate
 
 ##### 降順ソート
 
-`orderDirection=desc` を併用して、距離の降順(遠い順)でソートします:
+`orderDirection=desc` を併用することで、距離の降順(遠い順)でソートできます:
 
 ```http
 GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.7671&orderByDistance=true&orderDirection=desc
@@ -1590,31 +1812,31 @@ GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.
 #### 制限事項
 
 
-* **ポイントジオメトリのみ**: `geometry=point` (NGSIv2) または `geometry=Point` (NGSI-LD) のみがサポートされています
+* **Point ジオメトリのみ**: `geometry=point` (NGSIv2) または `geometry=Point` (NGSI-LD) のみがサポートされています
 
 ### エラーハンドリング
 
 geo-query パラメータが無効な場合、`400 Bad Request` が返されます。
 
-| Error Condition                       | Example Error Message                                                                                    |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Invalid `georel` value                | `Invalid georel: xxx. Supported values: near, coveredBy, within, contains, intersects, disjoint, equals` |
-| Invalid `geometry` value              | `Unsupported geometry type: xxx. Supported types: point, polygon, linestring, line, box`                 |
-| Insufficient coordinates (Point)      | `Point geometry requires at least 2 coordinates, but got 1`                                              |
-| Insufficient coordinates (Polygon)    | `Polygon geometry requires at least 4 coordinate pairs (8 values), but got 6 values`                     |
-| Insufficient coordinates (LineString) | `LineString geometry requires at least 2 coordinate pairs (4 values), but got 2 values`                  |
-| Insufficient coordinates (Box)        | `Box geometry requires 2 coordinate pairs (4 values), but got 2 values`                                  |
-| Invalid coordinate value              | `Invalid coordinate value: xxx`                                                                          |
-| Latitude out of range                 | `Latitude out of range: 91. Must be between -90 and 90.`                                                 |
-| Longitude out of range                | `Longitude out of range: 181. Must be between -180 and 180.`                                             |
-| `near` without distance               | `The 'near' georel requires maxDistance and/or minDistance modifier`                                     |
-| `near` with non-Point geometry        | `The 'near' georel requires Point geometry, but 'polygon' was provided`                                  |
+| Error Condition                       | Example Error Message                                                                                                               |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Invalid `georel` value                | `Invalid georel: xxx. Supported values: near, coveredBy, within, contains, intersects, disjoint, equals`                            |
+| Invalid `geometry` value              | `Unsupported geometry type: xxx. Supported types: point, multipoint, polygon, multipolygon, linestring, multilinestring, line, box` |
+| Insufficient coordinates (Point)      | `Point geometry requires at least 2 coordinates, but got 1`                                                                         |
+| Insufficient coordinates (Polygon)    | `Polygon geometry requires at least 4 coordinate pairs (8 values), but got 6 values`                                                |
+| Insufficient coordinates (LineString) | `LineString geometry requires at least 2 coordinate pairs (4 values), but got 2 values`                                             |
+| Insufficient coordinates (Box)        | `Box geometry requires 2 coordinate pairs (4 values), but got 2 values`                                                             |
+| Invalid coordinate value              | `Invalid coordinate value: xxx`                                                                                                     |
+| Latitude out of range                 | `Latitude out of range: 91. Must be between -90 and 90.`                                                                            |
+| Longitude out of range                | `Longitude out of range: 181. Must be between -180 and 180.`                                                                        |
+| `near` without distance               | `The 'near' georel requires maxDistance and/or minDistance modifier`                                                                |
+| `near` with non-Point geometry        | `The 'near' georel requires Point geometry, but 'polygon' was provided`                                                             |
 
 ***
 
 ## 空間 ID 検索
 
-日本のデジタル庁 / IPA が定める 3 次元空間識別規格(ZFXY 形式)に基づく空間検索をサポートします。
+日本のデジタル庁 / IPA が定めた 3D 空間識別標準(ZFXY 形式)に基づく空間検索をサポートします。
 
 ### ZFXY 形式
 
@@ -1639,9 +1861,9 @@ GET /v2/entities?spatialId=20/0/929593/410773
 GET /ngsi-ld/v1/entities?spatialId=20/0/929593/410773
 ```
 
-### 階層展開(spatialIdDepth)
+### 階層的展開(spatialIdDepth)
 
-`spatialIdDepth` パラメータを指定すると、指定した空間 ID を中心に周囲のタイルまで検索範囲が展開されます。
+`spatialIdDepth` パラメータを指定すると、指定された空間 ID を中心に周囲のタイルへ検索が展開されます。
 
 ```http
 # depth=1: Expands to a 3x3 tile grid (9 tiles)
@@ -1675,7 +1897,7 @@ curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773&spatialIdDe
 
 ## GeoJSON 出力
 
-エンティティを RFC 7946 準拠の GeoJSON FeatureCollection 形式で出力できます。
+エンティティは RFC 7946 準拠の GeoJSON FeatureCollection 形式で出力できます。
 
 ### NGSIv2 での使用方法
 
@@ -1703,7 +1925,11 @@ GET /ngsi-ld/v1/entities?type=Store
 Accept: application/geo+json
 ```
 
-### レスポンス形式
+`POST /ngsi-ld/v1/entityOperations/query`(バッチクエリ)は、同じ `format=geojson` / `Accept: application/geo+json` ネゴシエーションをサポートし、`GET /ngsi-ld/v1/entities` と同じ形式の FeatureCollection を返します(#1783 — ETSI GS CIM 009 clause 6.3.4 では GeoJSON 対象操作として「Query Entity」、clause 5.7.2 がリストされています)。`GET /ngsi-ld/v1/entities/{entityId}`(単一取得)は、FeatureCollection ではなく単一の **Feature** を返します — [API\_NGSILD.md](./ngsild.md#retrieve-single-entity) を参照してください。
+
+NGSI-LD では、`properties` キーと `properties.type` はリクエストの `@context` に対して圧縮されます — これは JSON 表現を圧縮するのと同じルールです(ETSI GS CIM 009 clause 5.5.7、#1788)。
+
+### レスポンスフォーマット
 
 ```json
 {
@@ -1741,7 +1967,7 @@ Accept: application/geo+json
 
 ### NGSI-LD における @context
 
-NGSI-LD で GeoJSON を出力する際、`@context` は FeatureCollection レベルに含まれます:
+NGSI-LD で GeoJSON を出力する場合、`@context` は FeatureCollection レベルに含まれます:
 
 ```json
 {
@@ -1791,167 +2017,11 @@ curl "http://localhost:3000/v2/entities?spatialId=20/0/929592/410773&options=geo
 
 ***
 
-## ベクタータイル
-
-エンティティは XYZ タイルスキームに基づいて GeoJSON ベクタータイルとして出力できます。地図上に大量のエンティティを効率的に表示するために最適化されています。
-
-### エンドポイント
-
-| Endpoint                                    | Description                 |
-| ------------------------------------------- | --------------------------- |
-| `GET /v2/tiles`                             | TileJSON metadata (NGSIv2)  |
-| `GET /v2/tiles/{z}/{x}/{y}.geojson`         | GeoJSON tile (NGSIv2)       |
-| `GET /ngsi-ld/v1/tiles`                     | TileJSON metadata (NGSI-LD) |
-| `GET /ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GeoJSON tile (NGSI-LD)      |
-
-### TileJSON メタデータ
-
-TileJSON 3.0 仕様に準拠したメタデータを返します:
-
-```bash
-curl "http://localhost:3000/v2/tiles" \
-  -H "Fiware-Service: smartcity"
-```
-
-**レスポンス例**
-
-```json
-{
-  "tilejson": "3.0.0",
-  "tiles": ["http://localhost:3000/v2/tiles/{z}/{x}/{y}.geojson"],
-  "name": "GeonicDB Vector Tiles",
-  "description": "GeoJSON vector tiles for NGSI entities",
-  "minzoom": 0,
-  "maxzoom": 22,
-  "bounds": [-180, -85.051129, 180, 85.051129],
-  "center": [0, 0, 2]
-}
-```
-
-### GeoJSON タイルを取得
-
-XYZ 座標を指定してタイル内のエンティティを GeoJSON 形式で取得します:
-
-```bash
-# Zoom level 14 tile around Tokyo
-curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson" \
-  -H "Fiware-Service: smartcity"
-```
-
-**クエリパラメータ**
-
-| Parameter | Description                                            |
-| --------- | ------------------------------------------------------ |
-| `type`    | Filter by entity type                                  |
-| `attrs`   | Specify attributes to output as a comma-separated list |
-
-**使用例**
-
-```bash
-# Retrieve only a specific entity type
-curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?type=Store" \
-  -H "Fiware-Service: smartcity"
-
-# Retrieve only specific attributes
-curl "http://localhost:3000/v2/tiles/14/14549/6451.geojson?attrs=name,category" \
-  -H "Fiware-Service: smartcity"
-```
-
-**レスポンス例**
-
-```json
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "id": "Store1",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [139.7671, 35.6812]
-      },
-      "properties": {
-        "entityId": "Store1",
-        "entityType": "Store",
-        "name": "Tokyo Station Store"
-      }
-    }
-  ],
-  "totalCount": 1,
-  "tileCoordinates": {
-    "z": 14,
-    "x": 14549,
-    "y": 6451
-  }
-}
-```
-
-### クラスタリング
-
-タイル内のエンティティ数が閾値(デフォルト: 1000)を超えると、自動的にクラスタリングされます。クラスタリングされると、タイル内のすべてのエンティティの重心座標を持つ単一のクラスタ Feature が返されます。
-
-**クラスタリング時のレスポンス例**
-
-```json
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "id": "cluster-14-14549-6451",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [139.7654, 35.6798]
-      },
-      "properties": {
-        "cluster": true,
-        "point_count": 1523,
-        "entityTypes": {
-          "Store": 850,
-          "Restaurant": 673
-        }
-      }
-    }
-  ],
-  "totalCount": 1523,
-  "tileCoordinates": {
-    "z": 14,
-    "x": 14549,
-    "y": 6451
-  },
-  "clustered": true
-}
-```
-
-**レスポンスヘッダー**
-
-| Header          | Description                                                    |
-| --------------- | -------------------------------------------------------------- |
-| `X-Tile-Mode`   | `individual` (individual entities) or `clustered` (clustering) |
-| `X-Total-Count` | Total number of entities in the tile                           |
-
-### 設定
-
-| Environment Variable       | Default | Description                                                         |
-| -------------------------- | ------- | ------------------------------------------------------------------- |
-| `MAX_ENTITIES_PER_REQUEST` | `1000`  | Threshold for clustering (clustering occurs at or above this value) |
-
-### 参考文献
-
-
-* [TileJSON 3.0 Specification](https://github.com/mapbox/tilejson-spec/tree/master/3.0.0)
-  
-* [RFC 7946 GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946)
-  
-* [XYZ Tile Scheme](https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
-
-***
-
 ## 座標参照系 (CRS)
 
 座標参照系を指定することで、異なる測地系間で座標を変換できます。
 
-### サポートされる CRS
+### サポートされている CRS
 
 | CRS          | EPSG      | Description                          | Use Case                          |
 | ------------ | --------- | ------------------------------------ | --------------------------------- |
@@ -1993,13 +2063,13 @@ CRS を指定したリクエストへのレスポンスには `Content-Crs` ヘ�
 Content-Crs: EPSG:6668
 ```
 
-NGSI-LD で URN 形式が指定されている場合、URN 形式で返されます:
+NGSI-LD で URN 形式が指定された場合、URN 形式で返されます:
 
 ```text
 Content-Crs: urn:ogc:def:crs:EPSG::6668
 ```
 
-### 座標の入力 / 出力
+### 座標の入出力
 
 #### クエリ時(入力)
 
@@ -2012,7 +2082,7 @@ GET /v2/entities?georel=near;maxDistance:5000&geometry=point&coords=35.6812,139.
 
 #### エンティティ作成時
 
-エンティティを作成する際に `crs` パラメータを指定すると、入力座標が指定された CRS として解釈され、保存のために内部的に WGS84 に変換されます:
+エンティティ作成時に `crs` パラメータを指定すると、入力座標が指定された CRS として解釈され、内部的に WGS84 に変換されて保存されます:
 
 ```bash
 # Create entity with Web Mercator coordinates
@@ -2042,12 +2112,17 @@ curl "http://localhost:3000/v2/entities/Store1?crs=EPSG:6668" \
   -H "Fiware-Service: smartcity"
 ```
 
-### 座標変換精度
+### 座標変換の精度
 
-| Conversion           | Accuracy                                                       |
-| -------------------- | -------------------------------------------------------------- |
-| WGS84 ↔ JGD2011      | Several cm to tens of cm                                       |
-| WGS84 ↔ Web Mercator | Depends on calculation precision (within ±85 degrees latitude) |
+| Conversion                    | Accuracy                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| WGS84 ↔ JGD2011               | Identity (no datum grid; both geographic lon/lat)                                                           |
+| WGS84 → Web Mercator (output) | Closed-form spherical Mercator; finite for \|lat\| < 90; poles (\|lat\| ≥ 90) → 400 |
+| Web Mercator → WGS84 (input)  | Closed-form inverse; easting/northing outside ±R·π (≈ ±20037508.34 m) → 400                                 |
+
+### サポートされているジオメトリタイプ
+
+CRS 変換は、GeoProperty / `geo:json` ロケーション値で使用されるすべての GeoJSON ジオメトリタイプに適用されます:`Point`、`LineString`、`Polygon`、`MultiPoint`、`MultiLineString`、および `MultiPolygon` (#1641)。すべての位置は要素ごとに再投影されるため、高度のパススルー (#1595) はマルチジオメトリバリアントに均一に適用されます。`GeometryCollection` は変換できず、WGS84 以外の `crs` が指定された場合は `400 Bad Request` を返します。
 
 ### 使用例
 
@@ -2104,20 +2179,24 @@ curl "http://localhost:3000/ngsi-ld/v1/entities?type=Landmark&crs=EPSG:6668" \
 
 ### エラー
 
-| Error                    | HTTP Code | Description                                                |
-| ------------------------ | --------- | ---------------------------------------------------------- |
-| Unsupported CRS          | 400       | Specified CRS code is not supported                        |
-| Invalid CRS format       | 400       | Invalid CRS format specified                               |
-| Coordinates out of range | 400       | Coordinates exceeding ±85 degrees latitude in Web Mercator |
+| Error                             | HTTP Code | Description                                                              |
+| --------------------------------- | --------- | ------------------------------------------------------------------------ |
+| Unsupported CRS                   | 400       | Specified CRS code is not supported                                      |
+| Invalid CRS format                | 400       | Invalid CRS format specified                                             |
+| Coordinates out of range (input)  | 400       | EPSG:3857 easting/northing outside ±R·π (≈ ±20037508.34 m)               |
+| Coordinates out of range (output) | 400       | Geographic poles (\|lat\| ≥ 90) when projecting to EPSG:3857 |
 
 ### 制限事項
 
 
-* Web Mercator (EPSG:3857) は緯度 ±85 度を超える領域をサポートしていません
+* **方向の非対称性 (EPSG:3857):** 出力は |lat| < 90 を受け付けます (y は ±R·π を超える可能性があります)。入力は ±R·π の範囲外の値を拒否します。したがって、`crs=EPSG:3857` GET で返された座標は、同じ `crs` でクランプせずに書き戻した場合、拒否される可能性があります。
   
+* 地理的極点 (|lat| ≥ 90) は Web Mercator に投影できません (400)。WGS84 (`crs` を省略 / EPSG:4326) で読み取るか、保存された座標を修正することをお勧めします。`crs=EPSG:3857` の場合、一致したエンティティのいずれかが緯度 ±90 を持っていると、リストクエリは応答全体に対して 400 を返します。
+
+
 * すべての座標は内部的に WGS84 で保存されます
   
-* 座標変換には [proj4](https://github.com/proj4js/proj4js) ライブラリが使用されます
+* 座標変換は、サポートされている 3 つの CRS (EPSG:4326 / 6668 / 3857) に対して閉形式の数式を使用します。EPSG:4326 ↔ EPSG:6668 は恒等変換として扱われます
 
 ### 参考文献
 
@@ -2132,7 +2211,9 @@ curl "http://localhost:3000/ngsi-ld/v1/entities?type=Landmark&crs=EPSG:6668" \
 
 ## Data Catalog API
 
-DCAT-AP 形式でエンティティタイプ情報を出力し、CKAN harvest 互換エンドポイントを提供します。
+エンティティタイプ情報を DCAT-AP 形式で出力し、CKAN harvest 互換のエンドポイントを提供します。
+
+> **認証 (#2465 / #2472)。** Catalog は `GET /v2/entities` と同じ行レベルの読み取りフィルタを適用します。`/catalog/**` のみを許可する認証情報 (一致する `GET /v2/entities` Permit なし) は **403** を受け取ります — 意図的なフェイルクローズです。オープンデータポータルのレシピ: [AUTH.md — Catalog read credentials](../reference/auth.md#catalog-read-credentials-2465--2468--2472)。
 
 ### DCAT-AP カタログ
 
@@ -2140,7 +2221,7 @@ DCAT-AP 形式でエンティティタイプ情報を出力し、CKAN harvest �
 GET /catalog
 ```
 
-DCAT-AP 形式でカタログ全体を JSON-LD として出力します。
+カタログ全体を DCAT-AP フォーマットで JSON-LD として出力します。
 
 **レスポンス例**
 
@@ -2168,7 +2249,7 @@ DCAT-AP 形式でカタログ全体を JSON-LD として出力します。
 GET /catalog/datasets
 ```
 
-DCAT 形式でデータセットの一覧を出力します。
+データセットのリストを DCAT フォーマットで出力します。
 
 **クエリパラメータ**
 
@@ -2199,17 +2280,28 @@ GET /catalog/datasets/{datasetId}/sample
 | --------- | ----------------------------- | ------- |
 | `limit`   | Number of samples to retrieve | 5       |
 
+**レスポンス例**
+
+サンプルは、データセットのプロトコルの keyValues (簡略化)表現で返されます:`id`、`type` および属性値のみです。内部フィールド(owner、service path、system metadata、stored `@context` reference)およびシステム属性(`dateCreated` / `createdAt` など)は含まれません。
+
+```json
+[
+  { "id": "Room1", "type": "Room", "temperature": 23, "pressure": 1013 },
+  { "id": "Room2", "type": "Room", "temperature": 25, "pressure": 1015 }
+]
+```
+
 ### CKAN 互換 API
 
 CKAN データカタログハーベスターと互換性のある API を提供します。
 
-#### パッケージリスト
+#### パッケージ一覧
 
 ```http
 GET /catalog/ckan/package_list
 ```
 
-すべてのパッケージ(データセット)の ID リストを取得します。
+すべてのパッケージ(データセット)の ID 一覧を取得します。
 
 **レスポンス例**
 
@@ -2249,13 +2341,13 @@ GET /catalog/ckan/package_show?id={package_id}
 }
 ```
 
-#### リソース情報を含むパッケージリスト
+#### リソース付きパッケージ一覧
 
 ```http
 GET /catalog/ckan/current_package_list_with_resources
 ```
 
-リソース情報を含むパッケージのページネーション付きリストを取得します。
+リソース情報を含むパッケージの一覧をページネーション形式で取得します。
 
 **クエリパラメータ**
 
@@ -2274,7 +2366,7 @@ CADDE (Connector Architecture for Decentralized Data Exchange) コネクタと�
 
 ### 概要
 
-CADDE は、異なるセクター間でのデータ共有を可能にする日本のデータ交換アーキテクチャです。この Context Broker は CADDE コネクタからのリクエストを受け入れ、来歴情報を含むレスポンスを返します。
+CADDE は、異なるセクター間でのデータ共有を可能にする日本のデータ交換アーキテクチャです。この Context Broker は CADDE コネクタからのリクエストを受け付け、プロベナンス情報を含むレスポンスを返します。
 
 ### 有効化
 
@@ -2301,7 +2393,9 @@ curl -X PUT "https://api.example.com/admin/cadde" \
 | `jwtAudience`      | -       | Expected audience (`aud`) claim for JWT validation            |
 | `jwksUrl`          | -       | JWKS endpoint URL for signature verification (HTTPS required) |
 
-設定は MongoDB に保存され、デプロイ後に API を介して動的に変更できます。
+設定は MongoDB に保存されるため、デプロイ後に API 経由で動的に変更できます。
+
+> **XACML 除外 (#2469)。** CADDE v4 パス (`/cadde/api/v4/catalog`、`/cadde/api/v4/entities`) は GeonicDB XACML ポリシーを評価しません — 行レベルの `Deny(entityType)` ルールを含みます。CADDE の有効化は、デプロイメント全体の全テナントに対するデータ交換ゲートです。存在しないテナントまたは非アクティブ化されたテナントは 403 `Access denied: no applicable policy` を返します (#3576)。`authEnabled: true` の場合、すべての `/cadde/**` リクエストには、`x-cadde-*` ヘッダーの有無にかかわらず Bearer トークンが必要です。SECURITY.md — CADDE and XACML を参照してください。
 
 ### リクエストヘッダー
 
@@ -2316,7 +2410,7 @@ CADDE コネクタからのリクエストには、以下のヘッダーが含�
 
 ### x-cadde-options フォーマット
 
-テナント情報やその他の詳細は、`x-cadde-options` ヘッダーで指定できます:
+テナント情報およびその他の詳細は、`x-cadde-options` ヘッダーで指定できます:
 
 ```text
 x-cadde-options: Fiware-Service:smartcity, Fiware-ServicePath:/sensors
@@ -2337,7 +2431,7 @@ CADDE リクエストへのレスポンスには、以下の来歴ヘッダー�
 
 ### 認証
 
-`CADDE_AUTH_ENABLED=true` の場合、CADDE リクエストには Bearer 認証が必要です:
+CADDE 設定ドキュメントで `authEnabled: true` の場合、CADDE リクエストには Bearer 認証が必要です:
 
 ```http
 Authorization: Bearer <token>
@@ -2347,15 +2441,15 @@ Authorization: Bearer <token>
 
 #### JWT 検証(オプション)
 
-`CADDE_JWKS_URL` を設定すると、Bearer トークンの完全な JWT 検証が有効になります:
+`PUT /admin/cadde` で `jwksUrl` を設定すると、Bearer トークンの JWT 署名検証が有効になります。設定は MongoDB (`settings`、`_id: 'cadde'`) に保存されます — `CADDE_JWKS_URL` / `CADDE_JWT_*` 環境変数経由では**ありません**。
 
-| Feature                     | Description                                                                                  |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| **Signature verification**  | Supports RS256 or ES256 algorithms. Automatically fetches public keys from the JWKS endpoint |
-| **Expiration verification** | Validates the `exp` (expiration) claim and rejects expired tokens                            |
-| **Issued-at verification**  | Validates the `iat` (issued-at) claim and rejects tokens issued in the future                |
-| **Issuer verification**     | Validates the `iss` claim if `CADDE_JWT_ISSUER` is configured                                |
-| **Audience verification**   | Validates the `aud` claim if `CADDE_JWT_AUDIENCE` is configured                              |
+| Feature                     | Description                                                                                         |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Signature verification**  | Supports RS256 or ES256 algorithms. Automatically fetches public keys from the configured `jwksUrl` |
+| **Expiration verification** | Validates the `exp` (expiration) claim and rejects expired tokens                                   |
+| **Issued-at verification**  | Validates the `iat` (issued-at) claim and rejects tokens issued in the future                       |
+| **Issuer verification**     | Validates the `iss` claim only when `jwtIssuer` is set in the CADDE settings document               |
+| **Audience verification**   | Validates the `aud` claim only when `jwtAudience` is set in the CADDE settings document             |
 
 **設定例:**
 
@@ -2388,7 +2482,7 @@ JWT 検証が失敗した場合、詳細なエラーメッセージが返され�
 | `Unable to fetch signing keys`  | Failed to access the JWKS endpoint                    |
 | `Signing key not found`         | The key with the specified kid does not exist in JWKS |
 
-**注意:** `jwksUrl` が設定されていない場合、トークンの存在のみがチェックされます(後方互換性のため)。
+**注:** `jwksUrl` が設定されていない場合、トークンの存在のみがチェックされます(後方互換性のため)。
 
 ### 使用例
 
@@ -2423,7 +2517,7 @@ curl "http://localhost:3000/ngsi-ld/v1/entities" \
 
 CADDE connector v4 仕様に準拠した専用エンドポイント(CADDE 設定が有効な場合のみ利用可能、`PUT /admin/cadde` で設定)。
 
-参考: <https://github.com/CADDE-sip/connector>
+参照: <https://github.com/CADDE-sip/connector>
 
 #### エンドポイント一覧
 
@@ -2432,11 +2526,11 @@ CADDE connector v4 仕様に準拠した専用エンドポイント(CADDE 設定
 | GET    | `/cadde/api/v4/catalog`  | Catalog search (cross-domain search / detailed search) |
 | GET    | `/cadde/api/v4/entities` | NGSI data exchange                                     |
 
-#### カタログ検索 (`/cadde/api/v4/catalog`
+#### カタログ検索(`/cadde/api/v4/catalog`
 
 )
 
-`x-cadde-search` ヘッダーを使用して検索タイプを指定:
+`x-cadde-search` ヘッダーを使用して検索タイプを指定します:
 
 | Search Type         | Header Value             | Description                                                                     |
 | ------------------- | ------------------------ | ------------------------------------------------------------------------------- |
@@ -2447,9 +2541,9 @@ CADDE 固有のフィールドがレスポンスに追加されます:
 
 * `caddec_dataset_id_for_detail`: 詳細検索用のデータセット ID
   
-* `caddec_provider_id`: プロバイダー ID (`CADDE_DEFAULT_PROVIDER` が設定されている場合)
+* `caddec_provider_id`: プロバイダー ID(`CADDE_DEFAULT_PROVIDER` が設定されている場合)
   
-* `caddec_resource_type`: リソースタイプ (`api/ngsi`)
+* `caddec_resource_type`: リソースタイプ(`api/ngsi`)
 
 ```bash
 # Cross-domain search
@@ -2465,7 +2559,7 @@ curl "http://localhost:3000/cadde/api/v4/catalog?id=sensor" \
   -H "Fiware-Service: smartcity"
 ```
 
-#### NGSI データ交換 (`/cadde/api/v4/entities`
+#### NGSI データ交換(`/cadde/api/v4/entities`
 
 )
 
@@ -2503,9 +2597,9 @@ CADDE v4 エンドポイントのエラーレスポンスは以下の形式で�
 
 #### 認証
 
-CADDE v4 エンドポイントは GeonicDB 認証 (`requireAuth`) をバイパスします。認証は CADDE JWT 検証 (`processCaddeRequestAsync`) によって処理されます。
+CADDE v4 エンドポイントは GeonicDB 認証(`requireAuth`)をバイパスします。認証は CADDE JWT 検証(`processCaddeRequestAsync`)によって処理されます。
 
-### 参考文献
+### 参考資料
 
 
 * [CADDE (Cross-sector Data Exchange Infrastructure)](https://www.data-ex.jp/)
@@ -2516,7 +2610,7 @@ CADDE v4 エンドポイントは GeonicDB 認証 (`requireAuth`) をバイパ�
 
 ***
 
-## イベントストリーミング
+## Event Streaming
 
 WebSocket API Gateway を使用したリアルタイムのエンティティ変更ストリーミング。`EVENT_STREAMING_ENABLED=true` で有効化されます。
 
@@ -2541,7 +2635,7 @@ wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 | `entityUpdated` | An entity was updated |
 | `entityDeleted` | An entity was deleted |
 
-詳細については、[イベントストリーミングドキュメント](../features/subscriptions.md) を参照してください。
+詳細については、[Event Streaming ドキュメント](../features/subscriptions.md)を参照してください。
 
 ***
 
@@ -2558,8 +2652,8 @@ wss://{api-id}.execute-api.{region}.amazonaws.com/{stage}?tenant={tenantName}
 
 ### NGSI-LD エラーフォーマット (RFC 7807 ProblemDetails)
 
-NGSI-LD API のエラーレスポンスは [RFC 7807](https://tools.ietf.org/html/rfc7807) ProblemDetails フォーマットで返されます。
-Content-Type は `application/json` です(ETSI GS CIM 009 仕様に準拠するため、RFC 7807 の `application/problem+json` ではなく標準の JSON MIME タイプが使用されます)。
+NGSI-LD API のエラーレスポンスは、[RFC 7807](https://tools.ietf.org/html/rfc7807) ProblemDetails フォーマットで返されます。
+Content-Type は `application/json` です(ETSI GS CIM 009 仕様に準拠するため、RFC 7807 の `application/problem+json` の代わりに標準的な JSON MIME タイプが使用されます)。
 
 ```json
 {
@@ -2709,7 +2803,7 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 
 ## エンドポイントリファレンス
 
-このセクションでは、すべての GeonicDB API エンドポイントのページネーション、認証・認可、およびステータスコード情報をまとめています。
+このセクションでは、すべての GeonicDB API エンドポイントのページネーション、認証/認可、およびステータスコード情報を要約します。
 
 ### API カテゴリ
 
@@ -2725,31 +2819,32 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 
 \* `AUTH_ENABLED=false` の場合は認証不要
 
-† `/statistics`、`/cache/statistics`、`/metrics` は `AUTH_ENABLED=true` の場合に認証が必要
+† `/statistics`、`/cache/statistics`、`/metrics` は認証が有効な場合(デフォルト)に認証が必要
 
 ### パブリックエンドポイント (メタ / ヘルス)
 
 認証なしでアクセス可能なエンドポイント。
 
-| Endpoint                       | Method | Description                                                     | Success | Error         |
-| ------------------------------ | ------ | --------------------------------------------------------------- | ------- | ------------- |
-| `/llms.txt`                    | GET    | API documentation (llms.txt)                                    | 200     | -             |
-| `/version`                     | GET    | FIWARE Orion-compatible version information                     | 200     | -             |
-| `/health`                      | GET    | Basic health check                                              | 200     | -             |
-| `/health/live`                 | GET    | Kubernetes liveness probe                                       | 200     | -             |
-| `/health/ready`                | GET    | Kubernetes readiness probe                                      | 200     | 503           |
-| `/.well-known/ngsi-ld`         | GET    | NGSI-LD API discovery                                           | 200     | -             |
-| `/api.json`                    | GET    | API reference (JSON)                                            | 200     | -             |
-| `/openapi.json`                | GET    | OpenAPI 3.0 specification                                       | 200     | -             |
-| `/statistics`                  | GET    | FIWARE Orion-compatible statistics (authentication required)    | 200     | 401           |
-| `/cache/statistics`            | GET    | Cache statistics (authentication required)                      | 200     | 401           |
-| `/metrics`                     | GET    | Prometheus metrics (authentication required)                    | 200     | 401           |
-| `/tools.json`                  | GET    | AI tool definitions (Claude Tool Use / OpenAI Function Calling) | 200     | -             |
-| `/.well-known/ai-plugin.json`  | GET    | AI plugin manifest                                              | 200     | -             |
-| `/mcp`                         | POST   | MCP (Model Context Protocol) Streamable HTTP endpoint           | 200     | 400, 405, 500 |
-| `/.well-known/agent-card.json` | GET    | A2A Agent Card                                                  | 200     | -             |
+| Endpoint                         | Method | Description                                                                                                                                 | Success   | Error         |
+| -------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------- |
+| `/llms.txt`                      | GET    | API documentation (llms.txt)                                                                                                                | 200       | -             |
+| `/version`                       | GET    | FIWARE Orion-compatible version information                                                                                                 | 200       | -             |
+| `/health`                        | GET    | Basic health check                                                                                                                          | 200       | -             |
+| `/health/live`                   | GET    | Liveness probe                                                                                                                              | 200       | -             |
+| `/health/ready`                  | GET    | Readiness probe                                                                                                                             | 200       | 503           |
+| `/.well-known/ngsi-ld`           | GET    | NGSI-LD API discovery                                                                                                                       | 200       | -             |
+| `/api.json`                      | GET    | API reference (JSON)                                                                                                                        | 200       | -             |
+| `/openapi.json`                  | GET    | OpenAPI 3.0 specification                                                                                                                   | 200       | -             |
+| `/statistics`                    | GET    | FIWARE Orion-compatible statistics (authentication required; `reset=true` is environment super admin or `platform_admin` only, #3463/#3495) | 200       | 401, 403      |
+| `/cache/statistics`              | GET    | Cache statistics (authentication required)                                                                                                  | 200       | 401           |
+| `/metrics`                       | GET    | Prometheus metrics (authentication required)                                                                                                | 200       | 401           |
+| `/tools.json`                    | GET    | AI tool definitions (Claude Tool Use / OpenAI Function Calling)                                                                             | 200       | -             |
+| `/.well-known/ai-plugin.json`    | GET    | AI plugin manifest                                                                                                                          | 200       | -             |
+| `/.well-known/webpush-vapid-key` | GET    | Web Push VAPID public key (#3014)                                                                                                           | 200 / 503 | -             |
+| `/mcp`                           | POST   | MCP (Model Context Protocol) Streamable HTTP endpoint                                                                                       | 200       | 400, 405, 500 |
+| `/.well-known/agent-card.json`   | GET    | A2A Agent Card                                                                                                                              | 200       | -             |
 
-### AI エージェントエンドポイント (AUTH\_ENABLED=true の場合、認証が必要)
+### AI エージェントエンドポイント (AUTH\_ENABLED=false でない限り認証が必要)
 
 | Endpoint | Method | Description                                | Success | Error              |
 | -------- | ------ | ------------------------------------------ | ------- | ------------------ |
@@ -2758,23 +2853,23 @@ curl -X POST "https://api.example.com/ngsi-ld/v1/entities" \
 ### 認証エンドポイント
 
 
-* `/auth/*` は `AUTH_ENABLED=true` の場合のみ利用可能です
+* `/auth/*` は `AUTH_ENABLED=false` の場合のみ利用できません
   
-* `/oauth/token` は `AUTH_ENABLED=true` の場合に利用可能です (常に有効。`OAUTH_ENABLED` は非推奨)
+* `/oauth/token` は認証が有効な場合 (デフォルト) に利用可能です。`OAUTH_ENABLED` 変数は #1982 で削除されました
 
-| Endpoint        | Method | Description                                                                                       | Success | Error    |
-| --------------- | ------ | ------------------------------------------------------------------------------------------------- | ------- | -------- |
-| `/auth/login`   | POST   | User login (JWT)                                                                                  | 200     | 400, 401 |
-| `/auth/refresh` | POST   | Token refresh                                                                                     | 200     | 400, 401 |
-| `/auth/logout`  | POST   | Logout (invalidate all sessions, authentication required)                                         | 204     | 401      |
-| `/auth/nonce`   | POST   | Nonce + PoW challenge for API key token exchange                                                  | 200     | 400      |
-| `/oauth/token`  | POST   | OAuth token acquisition (M2M: `grant_type=client_credentials`, Browser SDK: `grant_type=api_key`) | 200     | 400, 401 |
+| Endpoint        | Method | Description                                                                                       | Success | Error         |
+| --------------- | ------ | ------------------------------------------------------------------------------------------------- | ------- | ------------- |
+| `/auth/login`   | POST   | User login (JWT)                                                                                  | 200     | 400, 401      |
+| `/auth/refresh` | POST   | Token refresh (optional `tenantId` for tenant switching)                                          | 200     | 400, 401, 403 |
+| `/auth/logout`  | POST   | Logout (invalidate all sessions, authentication required)                                         | 204     | 401           |
+| `/auth/nonce`   | POST   | Nonce + PoW challenge for API key token exchange                                                  | 200     | 400           |
+| `/oauth/token`  | POST   | OAuth token acquisition (M2M: `grant_type=client_credentials`, Browser SDK: `grant_type=api_key`) | 200     | 400, 401      |
 
 ### SDK
 
-JavaScript SDK は npm パッケージとして利用可能です: `npm install @geolonia/geonicdb-sdk`
+JavaScript SDK は npm パッケージとして利用可能です:`npm install @geolonia/geonicdb-sdk`
 
-SDK は完全なパブリック API を提供します: `login()`、`setCredentials()`、エンティティ CRUD、`request()`、`connect()`、`reconnect()`、`disconnect()`、`isConnected()`、`subscribe()`、`on()`/`off()` イベントリスナー (`tokenRefresh` イベントを含む)。詳細は SDK ドキュメントを参照してください。
+SDK は完全なパブリック API を提供します:`login()`、`setCredentials()`、エンティティの CRUD、`request()`、`connect()`、`reconnect()`、`disconnect()`、`isConnected()`、`subscribe()`、`on()`/`off()` イベントリスナー (`tokenRefresh` イベントを含む)。詳細は SDK ドキュメントを参照してください。
 
 ### ユーザーエンドポイント
 
@@ -2795,7 +2890,7 @@ SDK は完全なパブリック API を提供します: `login()`、`setCredenti
 
 ### Admin API
 
-テナントとユーザーを管理するための API です。エンドポイントには `super_admin` または `tenant_admin` ロールが必要です(`tenant_admin` は自テナントスコープのみ)。
+テナントとユーザーを管理するための API です。エンドポイントには `super_admin` または `tenant_admin` ロールが必要です(`tenant_admin` は自テナントのスコープのみ)。
 
 #### テナント管理
 
@@ -2830,7 +2925,76 @@ SDK は完全なパブリック API を提供します: `login()`、`setCredenti
 | `/admin/users/{userId}/unlock`     | POST   | Unlock login                                            | 200     | 400, 401, 403, 404      | -              |
 | `/admin/users/{userId}/tenants`    | GET    | List tenants the user belongs to (self or super\_admin) | 200     | 401, 403                | Yes (max: 100) |
 
-#### ポリシー管理(XACML 3.0 認可、super\_admin / tenant\_admin)
+#### デプロイメントルーティング管理(super\_admin のみ)
+
+ホスト名を MongoDB クラスター/データベースにマッピングし、大規模なテナントを専用クラスターに分離できるようにします(#1775 / Epic #1485)。運用手順書については DEDICATED\_CLUSTER\_ONBOARDING.md を参照してください。
+
+すべてのメソッドは、環境のスーパー管理者(`SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` から生成されたプリンシパル、id `super-admin`)または `POST /auth/platform-token` からの `platform_admin` トークン(#3495)に制限されています。デプロイメントデータベースに保存されている `super_admin` ユーザーは 403 を受け取ります(#3458)。
+
+| Endpoint                        | Method | Description                                                                                | Success | Error                   | Pagination     |
+| ------------------------------- | ------ | ------------------------------------------------------------------------------------------ | ------- | ----------------------- | -------------- |
+| `/admin/deployments`            | GET    | List deployment routing rows (filter: `enabled=true\|false`; disabled rows included) | 200     | 400, 401, 403           | Yes (max: 100) |
+| `/admin/deployments`            | POST   | Create a deployment routing row                                                            | 201     | 400, 401, 403, 409      | -              |
+| `/admin/deployments/{hostname}` | GET    | Get a deployment routing row (bypasses the routing cache)                                  | 200     | 400, 401, 403, 404      | -              |
+| `/admin/deployments/{hostname}` | PATCH  | Update a deployment routing row                                                            | 200     | 400, 401, 403, 404, 409 | -              |
+| `/admin/deployments/{hostname}` | DELETE | Delete a deployment routing row                                                            | 204     | 400, 401, 403, 404, 409 | -              |
+
+**リクエストボディ(POST)**
+
+| Field                 | Required                             | Description                                                                                                                                                                                                                                                                                                                                   |
+| --------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hostname`            | Yes                                  | DNS name. Normalised to lowercase to match how the `Host` header is resolved                                                                                                                                                                                                                                                                  |
+| `databaseName`        | Yes                                  | MongoDB database name (alphanumerics, `-`, `_`; max 63)                                                                                                                                                                                                                                                                                       |
+| `defaultQuotaPlan`    | Yes                                  | `FREE` \| `STANDARD` \| `PREMIUM` \| `ENTERPRISE` \| `CUSTOM`                                                                                                                                                                                                                                                         |
+| `mongodbUriSecretArn` | Either this or `mongodbUri`          | Secrets Manager reference. **Use the secret *name*** (e.g. `geonicdb/deployments/<name>`) in multi-region production — a full ARN embeds a region the failover Lambda cannot resolve. Full ARNs are accepted for single-region setups                                                                                                         |
+| `mongodbUri`          | Either this or `mongodbUriSecretArn` | Plaintext connection string. Rejected with 400 when `MONGODB_ENFORCE_SECRETS=true`                                                                                                                                                                                                                                                            |
+| `rateLimitTableName`  | No                                   | Per-deployment rate-limit table override                                                                                                                                                                                                                                                                                                      |
+| `enabled`             | No                                   | Defaults to `true`. Only enabled rows are routed                                                                                                                                                                                                                                                                                              |
+| `writeMode`           | No                                   | `normal` (default) \| `read-only`. While `read-only`, every write to this deployment's database fails, from the API and from background workers alike: API writes return `503` with `Retry-After`, workers fail and retry later. Reads keep working. Use it for the final copy when moving or restoring a deployment's database (#3285) |
+| `metadata`            | No                                   | Free-form object (max 4 KB serialized, max 5 levels deep)                                                                                                                                                                                                                                                                                     |
+
+`PATCH` は `hostname` を除く同じフィールドを受け付けます(不変 — 新しい行を作成して古い行を削除することで名前を変更します)。`mongodbUri` / `mongodbUriSecretArn` / `rateLimitTableName` / `metadata` をクリアするには `null` を送信してください。
+
+**レスポンス**
+
+平文の `mongodbUri` は**決して返されません**。レスポンスは `mongodbUriConfigured`(ブール値)と `mongodbUriSecretArn` のみを公開します。
+
+```json
+{
+  "hostname": "ohashi.geonicdb.example.com",
+  "databaseName": "ohashi",
+  "defaultQuotaPlan": "ENTERPRISE",
+  "enabled": true,
+  "writeMode": "normal",
+  "mongodbUriSecretArn": "geonicdb/deployments/ohashi",
+  "mongodbUriConfigured": false,
+  "rateLimitTableName": null,
+  "metadata": { "owner": "ops" },
+  "createdAt": 1753000000000,
+  "updatedAt": 1753000000000
+}
+```
+
+**使用不可能な行を防ぐための拒否**
+
+| Status | Condition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400    | Reserved subdomain — such a row is never routed even if it exists (#633)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 409    | Hostname listed in `DEFAULT_DEPLOYMENT_HOSTNAMES` — the env list wins and the row would be silently shadowed (#1291)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 400    | Plaintext `mongodbUri` while `MONGODB_ENFORCE_SECRETS=true` (#1086)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 400    | `databaseName` is a MongoDB system database (`admin`, `local`, `config`) or the platform default database (`MONGODB_DATABASE`), compared case-insensitively (#3432)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 400    | `POST`: no connection source at all (neither secret reference nor URI). `PATCH`: the update would remove the row's last connection source. A row that never had one inherits the platform cluster (`MONGODB_URI`, #1327; rows written by the geonicdb-deployments sync have this form while its `SHARED_CLUSTER_SECRET_ARN` is unset, as it is today) and can be updated normally (#3430). The sync overwrites `enabled`, `databaseName`, `defaultQuotaPlan`, `metadata` and `mongodbUriSecretArn` on its rows, so change those in its repository, not through this API                                                                                                                                                                                          |
+| 409    | Hostname already registered (conditional write; concurrent creates cannot overwrite each other)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 409    | Another row already uses the same `databaseName` (case-insensitive), whatever its connection (#3432). The name must be unique across all rows: the second row would write into the first one's database, and with a separate control-plane cluster (`CONTROL_PLANE_MONGODB_URI`) the auth data (users, tenants, API keys) of every row lives in a database of that name, so two rows with the same name would share users even on different clusters. `PATCH` checks this only when it changes `databaseName`, so a write freeze, an `enabled` change or a cutover to another cluster is never blocked by it. If the listing hits `DEPLOYMENTS.ADMIN.MAX_SCAN_ITEMS` the check cannot run and the request gets `503`. Two concurrent requests are not serialized |
+| 409    | Deleting or disabling the deployment serving the current request — it would make every API on that host, including this admin API, return 404. Perform the operation from another hostname                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 409    | Setting `writeMode: read-only` on the deployment serving the current request — writes on that host would stop, so undoing it could fail. Perform the operation from another hostname. Setting it back to `normal` is always allowed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 409    | `PATCH` optimistic-lock conflict — the row was modified or deleted between read and write. Re-read and retry. Updates are conditional on `updatedAt`, so a concurrent `PATCH` cannot silently overwrite another, and a `PATCH` racing a `DELETE` cannot resurrect the deleted row                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+
+**リスト境界**: ストアは順序付き範囲クエリを持たないプレーンなキー値コレクションであるため、リストはソートとページングの前にリポジトリレベルの上限(`DEPLOYMENTS.ADMIN.MAX_SCAN_ITEMS`)まで行を読み取ります。上限に達した場合、レスポンスには `X-Deployment-List-Truncated: true` が含まれ、サーバーは警告をログに記録します — リストが黙って不完全になることはありません。
+
+**キャッシュ収束**: ルーティングキャッシュはインスタンスごとに存在します。書き込み後、他のウォームインスタンスとバックグラウンドワーカーは最大 30 秒間(`DEPLOYMENTS.CACHE_TTL_MS`; #3285 以前は 5 分でした)、以前の設定を提供し続ける可能性があります。この境界は `writeMode` および変更された接続ターゲットにも適用されます。リフレッシュが失敗している間(例えば DynamoDB スロットリング)、インスタンスはさらに最大 5 分間(`DEPLOYMENTS.STALE_ON_ERROR_MS`)期限切れエントリを使用し続け、`Failed to refresh deployment config — serving the expired entry` をログに記録します。書き込みレスポンスにはこれを示す `notice` フィールドが含まれます; `DELETE` は `X-Deployment-Cache-Notice` ヘッダーでそれを返します。
+
+#### ポリシー管理(XACML 3.0 Authorization、super\_admin / tenant\_admin)
 
 | Endpoint                                | Method | Description           | Success | Error              | Pagination     |
 | --------------------------------------- | ------ | --------------------- | ------- | ------------------ | -------------- |
@@ -2843,7 +3007,7 @@ SDK は完全なパブリック API を提供します: `login()`、`setCredenti
 | `/admin/policies/{policyId}/activate`   | POST   | Activate policy       | 200     | 401, 403, 404      | -              |
 | `/admin/policies/{policyId}/deactivate` | POST   | Deactivate policy     | 200     | 401, 403, 404      | -              |
 
-ポリシー Target `resources` で利用可能な **リソース属性**:
+**リソース属性** ポリシー Target `resources` で利用可能:
 
 | attributeId     | Description                                   | Source                                    |
 | --------------- | --------------------------------------------- | ----------------------------------------- |
@@ -2855,7 +3019,7 @@ SDK は完全なパブリック API を提供します: `login()`、`setCredenti
 | `entityType`    | Target entity type (e.g. `Room`)              | Request (auto-extracted) / Entity context |
 | `entityOwner`   | Entity creator's userId (`createdBy` field)   | Entity context                            |
 
-> `entityType` は、パスレベルで HTTP リクエストから自動的に抽出されます — `?type=` クエリパラメータまたはリクエストボディの `type` / `@type` フィールドから抽出され、エンティティレベルのチェックなしでエンティティタイプベースのアクセス制御を可能にします。`entityId`、`entityOwner`、`scope` は、エンティティレベルの認可チェック(`requireEntityAuthz` 経由)でのみ利用可能です。`scope` は NGSI-LD エンティティのスコープ配列をカンマ区切り文字列として結合したもので、柔軟なマッチングには `string-regexp` または `glob` を使用します。
+> `entityType` はパスレベルで HTTP リクエストから自動的に抽出されます — `?type=` クエリパラメータまたはリクエストボディの `type` / `@type` フィールドから — エンティティレベルのチェックなしでエンティティタイプベースのアクセス制御を可能にします。`entityId`、`entityOwner`、`scope` はエンティティレベルの認可チェック(`requireEntityAuthz` 経由)でのみ利用可能です。`scope` は NGSI-LD エンティティのスコープ配列をカンマ区切り文字列として結合したものです — 柔軟なマッチングには `string-regexp` または `glob` を使用してください。
 
 #### OAuth クライアント管理
 
@@ -2869,7 +3033,7 @@ SDK は完全なパブリック API を提供します: `login()`、`setCredenti
 
 #### セルフサービス OAuth クライアント管理
 
-ユーザーは自分自身の OAuth クライアントを管理できます。ユーザーあたり最大 5 クライアントまで。オプションの `policyId` は、クライアントを既存の XACML ポリシーにバインドします。
+ユーザーは自分自身の OAuth クライアントを管理できます。テナントごと、ユーザーごとに最大 5 クライアント。オプションの `policyId` はクライアントを既存の XACML ポリシーにバインドします。
 
 | Endpoint                                         | Method | Description                       | Success | Error              | Pagination     |
 | ------------------------------------------------ | ------ | --------------------------------- | ------- | ------------------ | -------------- |
@@ -2881,7 +3045,7 @@ SDK は完全なパブリック API を提供します: `login()`、`setCredenti
 
 #### API キー管理
 
-`X-Api-Key` ヘッダーによる認証のための API キーを管理します。新しいキーはプレーンな UUID 形式(`randomUUID()`)を使用します。`gdb_` プレフィックス付きの既存のキーは引き続き有効です。ストレージには SHA-256 ハッシュ化されます。プレーンテキストキーは作成時とリフレッシュ時にのみ返されます。リスト/取得レスポンスは `"key": "******"` を返します。オプションの `policyId` フィールドは、キーを既存の XACML ポリシーにバインドします(バインドされたポリシーのターゲットは評価中にバイパスされます)。`policyId` がない場合、キーはテナントポリシー + ロールデフォルト(api\_key = All Deny)にフォールバックします。
+`X-Api-Key` ヘッダー経由の認証用 API キーを管理します。新しいキーはプレーンな UUID 形式(`randomUUID()`)を使用します; `gdb_` プレフィックス付きの既存のキーは有効なまま残ります。保存には SHA-256 ハッシュを使用; プレーンテキストキーは作成時と更新時にのみ返されます。リスト/取得レスポンスは `"key": "******"` を返します。オプションの `policyId` フィールドはキーを既存の XACML ポリシーにバインドします(バインドされたポリシーはそのポリシーレベルのターゲットとそのルールで評価されます)。`policyId` がない場合、キーはテナントポリシー + ロールデフォルト(api\_key = All Deny)にフォールバックします。
 
 | Endpoint                          | Method | Description                  | Success | Error              | Pagination     |
 | --------------------------------- | ------ | ---------------------------- | ------- | ------------------ | -------------- |
@@ -2894,7 +3058,7 @@ SDK は完全なパブリック API を提供します: `login()`、`setCredenti
 
 #### セルフサービス API キー管理
 
-ユーザーは自分の API キーを管理できます。ユーザーあたり最大 5 つのキーまで可能です。
+ユーザーは自分自身の API キーを管理できます。テナントごと、ユーザーごとに最大 5 キー。
 
 | Endpoint                       | Method | Description                      | Success | Error              | Pagination     |
 | ------------------------------ | ------ | -------------------------------- | ------- | ------------------ | -------------- |
@@ -2906,7 +3070,7 @@ SDK は完全なパブリック API を提供します: `login()`、`setCredenti
 
 #### CADDE 設定管理
 
-API 経由で CADDE(分野間データ連携基盤)の設定を管理します。設定は MongoDB に保存され、環境変数は必要ありません。
+API 経由で CADDE(クロスセクターデータ交換基盤)設定を管理します。設定は MongoDB に保存され、環境変数は必要ありません。
 
 | Endpoint       | Method | Description                          | Success | Error         | Pagination |
 | -------------- | ------ | ------------------------------------ | ------- | ------------- | ---------- |
@@ -2914,7 +3078,7 @@ API 経由で CADDE(分野間データ連携基盤)の設定を管理します�
 | `/admin/cadde` | PUT    | Update CADDE configuration (upsert)  | 200     | 400, 401, 403 | -          |
 | `/admin/cadde` | DELETE | Delete CADDE configuration (disable) | 204     | 401, 403      | -          |
 
-**リクエストボディ (PUT)**
+**リクエストボディ(PUT)**
 
 ```json
 {
@@ -2950,35 +3114,166 @@ API 経由で CADDE(分野間データ連携基盤)の設定を管理します�
 
 ### カスタムデータモデル API
 
-テナント固有のカスタムデータモデルを管理するための API です。JWT 認証が必要で、XACML ポリシーベースの認可により `tenant_admin` および `user` ロールがテナント内のカスタムデータモデルを管理できます。
+**カスタムデータモデル**は、テナント内のエンティティに対する**タイプごとの検証ルールセット**です(必須属性、値の形式、許可される値)。これはエンティティ自体のデータモデルではありません — NGSI-LD / JSON-LD が既に形状と語彙を定義しており、この API はその上に検査ルールを追加します(TypeScript が JavaScript にチェックを追加する方法に類似)。JWT 認証が必要です。XACML ポリシーベースの認可により、`tenant_admin` および `user` ロールがテナント内のカスタムデータモデルを管理できます。
 
 **関連ドキュメント**: [SMART\_DATA\_MODELS.md](../features/smart-data-models.md)
 
-| Endpoint                     | Method | Description              | Success | Error              | Pagination     |
-| ---------------------------- | ------ | ------------------------ | ------- | ------------------ | -------------- |
-| `/custom-data-models`        | GET    | List custom data models  | 200     | 400, 401, 403      | Yes (max: 100) |
-| `/custom-data-models`        | POST   | Create custom data model | 201     | 400, 401, 403, 409 | -              |
-| `/custom-data-models/{type}` | GET    | Get custom data model    | 200     | 401, 403, 404      | -              |
-| `/custom-data-models/{type}` | PATCH  | Update custom data model | 200     | 400, 401, 403, 404 | -              |
-| `/custom-data-models/{type}` | DELETE | Delete custom data model | 204     | 401, 403, 404      | -              |
+| Endpoint                            | Method | Description                                                                                                                                   | Success | Error                   | Pagination             |
+| ----------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------- | ---------------------- |
+| `/custom-data-models`               | GET    | List custom data models                                                                                                                       | 200     | 400, 401, 403           | Yes (max: 100)         |
+| `/custom-data-models`               | POST   | Create custom data model (local body **or** `sourceUrl`)                                                                                      | 201     | 400, 401, 403, 409, 502 | -                      |
+| `/custom-data-models/missing-types` | GET    | List entity types with no active data model (GeonicDB extension, #3477)                                                                       | 200     | 400, 401, 403           | No (capped; see below) |
+| `/custom-data-models/{type}`        | GET    | Get custom data model                                                                                                                         | 200     | 401, 403, 404           | -                      |
+| `/custom-data-models/{type}`        | PATCH  | Update custom data model (`?dryRun=true`: preview only, see below). Referenced models: source-owned fields → 409; `{"source": null}` detaches | 200     | 400, 401, 403, 404, 409 | -                      |
+| `/custom-data-models/{type}`        | DELETE | Delete custom data model                                                                                                                      | 204     | 401, 403, 404           | -                      |
 
-#### エンティティの検証
+#### `sourceUrl` 登録 (GeonicDB 拡張、#3683 / #3456 A)
 
-カスタムデータモデルが定義されると、エンティティの作成または更新時に自動的に検証が実行されます。検証は `isActive: true` のモデルにのみ適用されます。
+`POST /custom-data-models` は、ローカルモデルボディ(`type`、`domain`、`description`、`propertyDetails`、…)**または** `sourceUrl`(https のみ、ローカル / E2E ではループバック http)のいずれかを受け入れます。これらは相互排他的です。`isActive` / `uniqueConstraints` は `sourceUrl` と組み合わせることができます。サーバーは URL を取得し(SSRF 対策済み)、公開されたモデルボディを検証し、`source: { url, fetchedAt, sha256, etag?, version? }` と共にスナップショットを保存します。ホットパスのエンティティ検証は常に Mongo スナップショットを読み取ります — ネットワークは読み取りません。ネットワーク / アップストリーム HTTP 障害 → `502`(詳細には URL と理由が含まれます)。プライベート / ブロックされた URL(プライベート IP に解決される DNS を含む)→ `400`。無効なリモートボディ / サポートされていない Content-Type / 過大なボディ → `400`。タイプの衝突 → `409`。認可は取得後に取得した `type` を再評価します(2段階 PEP)。`entityType` に対して**許可リストのみ**のカスタムポリシーを持つテナント(タイプを条件とする Permit、パス全体の Permit なし)は、`type` が省略された場合、ステージ 1 で `403` を受け取ります。リモートモデルに一致するオプションの `type` ヒントを送信すれば、ステージ 1 が評価できます(`#3696`)。ヒントが一致しない場合、ステージ 2 認可後に `400` になります。回避策として単なるパス全体の Permit を追加**しない**でください(それにより許可されていないタイプがステージ 1 を通過してしまいます)。
+
+**Content-Type:** 取得したレスポンスの `Content-Type` が欠落している場合は**受け入れられます**(静的ホストはしばしばこれを省略します)。ボディは依然として JSON オブジェクトとしてパース可能でなければなりません。サポートされていないメディアタイプ(例: `text/html`)→ `400`。これは DESIGN の「`application/json` (+json) のみ」という文言に対する意図的な緩和です。
+
+`source` を持つモデルは**参照モデル**です。`propertyDetails` / `contextUrl` / `typeIri` / `additionalProperties` / `domain` / `description` の `PATCH` は `409` を返します(変更は `POST /custom-data-models/{type}/refresh` — #3684 — または切り離しで行います)。`isActive` / `uniqueConstraints` はパッチ可能なままです。`PATCH {"source": null}` はローカルモデルに切り離します。`source: null` とソース所有フィールドを**同じ**リクエストで組み合わせることも `409` です(最初に切り離してから編集)— E2E `@issue-3683-detach-combo` で修正されました。**`typeIri` は作成時に固定されます**(ローカルモデルと同じ): リモートの `typeIri` 変更、または既に `typeIri` を持つモデルに `contextUrl` を導入すると、リフレッシュ時に `400` を返します — 削除して再作成してください。`typeIri` を**持たない**モデルは、リフレッシュで `contextUrl` を変更できます(`diff.contextUrl` に表示されます)。
+
+`PATCH /custom-data-models/**` を Deny してモデルを凍結するテナントは、`POST .../refresh` も Deny する必要があります(またはリフレッシュをカバーする同じパスグロブ)— リフレッシュは別の書き込みパスであり、PATCH のみの Deny では**カバーされません**。
+
+#### 参照モデルのリフレッシュ(`POST /custom-data-models/{type}/refresh`
+
+)
+
+GeonicDB 拡張(#3684 / #3456 B)。`source.url` を再取得します(etag が保存されている場合は `If-None-Match` を使用した条件付き GET)。
+
+| Case                      | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No `source` (local model) | `409`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 304 or sha256 unchanged   | `{ changed: false, dryRun, version, source }`. Non-`dryRun` updates `source.fetchedAt` (and etag if the 304 carries a new one; on `200`+hash match, adopts the response etag or clears it); **does not** bump `version` / `updatedAt`. `dryRun=true` writes nothing. No `diff` / `conformance`.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Body changed              | Validates remote JSON; remote `type` must equal path `{type}` else `400`. Returns `diff` (source-owned fields, including `typeIri` / `jsonSchema` presence flag) + the same `DataModelConformanceReport` as `PATCH ?dryRun=true`. `dryRun=true` does not apply; otherwise applies via the update path (`version++`, `@context`, uniqueConstraints, compensating restore) and replaces `source.sha256` / `etag` / `fetchedAt` / `version`. Optional source-owned keys **absent** on the remote body are left unchanged locally (PATCH-shaped merge; not a full replace). Remote `typeIri` change or `typeIri`↔`contextUrl` switch → `400` (delete and recreate). Plain `contextUrl` change on a model without `typeIri` is applied. |
+| Upstream failure          | `502`; stored snapshot unchanged (entity validation never hits the network).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+
+レスポンスは常にリフレッシュラッパーです(モデルボディではありません)。`source` はすべての分岐に存在します。自動 / 定期的なリフレッシュはContext Brokerでは**行われません** — CLI cron / コンソール / ops を使用してください(`geonic models refresh --dry-run`)。
+
+公開されたモデルドキュメントには、スナップショットメタデータとして `jsonSchema` が含まれる場合があります。出所にはレスポンスフィールド `source` を使用してください。
+
+#### 欠落したタイプ (GeonicDB 拡張、#3477)
+
+`GET /ngsi-ld/v1/types` および `GET /v2/types` は存在するタイプをリストします。`GET /custom-data-models/missing-types` は異なる軸です: テナント内のライブエンティティタイプで、**アクティブな**カスタムデータモデルが**ない**ため、`settings.requireDataModel` を安全にオンにできるものです。スキャンは NGSIv2 と NGSI-LD、およびすべてのServicePathをカバーします。時系列ストアのみ、または登録のみに存在するタイプは含まれません。ソフト削除された、および期限切れのエンティティは除外されます。この呼び出しは読み取り専用であり、エンティティを削除しません。
+
+レスポンスの `type` は保存されている文字列です。リクエストの `@context` で圧縮されません。モデルのないタイプは `reason: "missing"` を持ちます。`isActive: false` のモデルは `reason: "inactive"` を持ちます(`requireDataModel` の拒否と同じ分割)。`canonicalType`(FQN)で一致したものを含むアクティブなモデルは省略されます。
+
+`scopeLimited` は、呼び出し元のエンティティリスト読み取りフィルタがスキャンされたエンティティを絞り込んだ場合に `true` になります。`truncated` は、サーバーが `maxTypes` で停止した場合に `true` になります。その場合、`types` 配列は不完全です。ページネーションはありません。
+
+タイプが文字通り `missing-types` であるカスタムデータモデルは、`GET /custom-data-models/{type}` で取得できません。この静的パスは予約されているためです。
+
+```bash
+curl https://api.example.com/custom-data-models/missing-types \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+```json
+{
+  "requireDataModel": false,
+  "types": [
+    { "type": "LegacySensor", "reason": "missing" },
+    { "type": "OldRoom", "reason": "inactive" }
+  ],
+  "scopeLimited": false,
+  "truncated": false,
+  "maxTypes": 1000
+}
+```
+
+#### 更新ドライラン (GeonicDB 拡張、#2098)
+
+データモデルを更新しても、既存のエンティティは自動的に再検証されません(以下の[エンティティ検証](#エンティティ検証)を参照)— `PATCH` で厳格化されたモデルは、既存のエンティティを次に書き込まれるまで静かに非準拠のままにすることができ、その時点で書き込みは `400` で失敗します。`PATCH /custom-data-models/{type}?dryRun=true` を使用すると、更新を適用する**前に**これを確認できます。
+
+`dryRun=true` の場合、更新は**適用されません** — データベース書き込み、`@context` 更新、一意制約インデックス同期は行われません。代わりに、レスポンスは `200` の適合性レポートであり、更新されたモデルに対する検証で失敗する既存のそのタイプのエンティティの数を説明します(`required` / `validation` / `additionalProperties` ルール)。スキャンには、候補タイプがそのタイプリストのどこかに表示される場合にエンティティが含まれます(マルチタイプエンティティはカウントされます)。チェック自体は**候補モデルのみ**を使用します。制約の交差や、エンティティの他のタイプからの `required` 属性の和集合は適用されません — その組み合わせは書き込みパスで強制されますが、このプレビューでは強制されません:
+
+```bash
+curl -X PATCH "https://api.example.com/custom-data-models/TemperatureSensor?dryRun=true" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <accessToken>" \
+  -d '{
+    "propertyDetails": {
+      "temperature": {
+        "ngsiType": "Property",
+        "valueType": "Number",
+        "validation": {"maximum": 30}
+      }
+    }
+  }'
+```
+
+```json
+{
+  "type": "TemperatureSensor",
+  "dryRun": true,
+  "conformance": {
+    "scanned": 2,
+    "violating": 1,
+    "undetermined": 0,
+    "truncated": false,
+    "maxScan": 10000,
+    "scopeLimited": false,
+    "samples": [
+      { "entityId": "Sensor001", "errors": ["temperature: Value (50) exceeds maximum (30)"] }
+    ]
+  }
+}
+```
+
+| Field                        | Description                                                                                                                                              |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scanned`                    | Number of live entities of that type scanned (soft-deleted and expired entities are excluded)                                                            |
+| `violating`                  | Number of scanned entities that would fail validation against the updated model                                                                          |
+| `undetermined`               | Scanned entities whose conformance could not be determined (e.g. could not be decrypted) — never rounded into `violating` or "conforms"                  |
+| `truncated`                  | `true` if the scan stopped early — either the scan limit (`maxScan`) or the internal time budget was reached; `scanned` is then a lower bound            |
+| `maxScan`                    | The scan limit actually applied by the server. Read it from the response rather than hard-coding it — it comes from server configuration                 |
+| `scopeLimited`               | `true` if the requester's row-level read authorization restricted which entities were scanned; `samples` then only cover entities the requester can read |
+| `samples`                    | Up to 20 non-conformant entities, each with up to 5 violation reasons                                                                                    |
+| `uniqueConstraintViolations` | Existing `uniqueConstraints` violations detected by the same pre-check used by a real update (present only when non-empty)                               |
+
+スキャンはテナントとエンティティタイプのみでスコープされます (ServicePathやプロトコルではありません)。認可と所有権チェック (`assertOwnership`) は、実際の `PATCH` と同じです。
+
+`dryRun=false` または省略すると通常の更新として動作します。その他の値 (例: `?dryRun=yes`) は、更新を静かに適用するのではなく `400 Bad Request` を返すため、タイプミスが誤った書き込みになることはありません。
+
+ドライランは HTTP `PATCH` エンドポイントでのみ利用可能です — MCP `custom_data_models` アクションと A2A には同等のオプションはありません。
+
+スキャンは **認証されたアクター** から解決されたテナントにスコープされ、`Fiware-Service` / `NGSILD-Tenant` リクエストヘッダーからではありません (このエンドポイントは意図的に `checkTenantAccess` をスキップするため、ヘッダーは呼び出し元のテナントに対して検証されません)。
+
+#### エンティティ検証
+
+カスタムデータモデルが定義されている場合、エンティティの作成または更新時に検証が自動的に実行されます。検証は `isActive: true` のモデルにのみ適用されます。
 
 **検証チェック:**
 
-| Check                 | Description                                                                                                                            |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Additional properties | When `additionalProperties: false`, attributes not defined in `propertyDetails` are rejected (default: `true` — allows any attributes) |
-| Required fields       | Whether attributes with `required: true` are present                                                                                   |
-| Type check            | Type validation based on `valueType` (string, number, integer, boolean, array, object, GeoJSON)                                        |
-| minLength / maxLength | String length constraints                                                                                                              |
-| minimum / maximum     | Numeric range constraints                                                                                                              |
-| pattern               | Regular expression pattern match                                                                                                       |
-| enum                  | List of permitted values                                                                                                               |
+| Check                    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Additional properties    | When `additionalProperties: false`, attributes not defined in `propertyDetails` are rejected (default: `true` — allows any attributes)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Required fields          | Whether attributes with `required: true` are present                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Type check               | Type validation based on `valueType` (`string`, `number`, `integer`, `boolean`, `array`, `object`, `geojson`, `uri`, `datetime`, `date`, `time`). `date` accepts `YYYY-MM-DD`, an RFC 3339 date-time, or a typed `Date` / `DateTime` value (schema.org Date or DateTime). `datetime` stays strict: a date without a time is rejected. `time` is an RFC 3339 full-time with a required offset, or a typed `Time` value. `ListProperty` checks that the value is an array and that each element matches `valueType`. `ListRelationship` checks that the value is an array and that each element is an NGSI-LD URI (`urn:ngsi-ld:...` or `http(s)://`) regardless of `valueType`; declaring a `valueType` other than `string` or `uri` is `400`. On array-shaped attributes (`valueType: array` — typically on `Property` — or `ngsiType` `ListProperty` / `ListRelationship`), `validation` may declare `items` / `minItems` / `maxItems` / `uniqueItems` only; top-level scalar rules (`enum`, `pattern`, `minLength`, `maxLength`, `minimum`, `maximum`) are `400` and the message points to `validation.items.<rule>`. Non-array attributes that declare array rules are also `400` |
+| Attribute type (NGSI-LD) | The attribute `type` must equal `ngsiType`. A mismatch is `400` and the message names the attribute, the expected type, and the received type. A Property whose value is a Point, Polygon, or LineString is stored as GeoProperty before the check, and the declared type is gone, so that value is not a mismatch against `ngsiType` Property. A non-GeoJSON Property against `ngsiType` GeoProperty is still `400`. NGSIv2 does not compare types such as `Text` or `Number` to `ngsiType`. A model property with no `ngsiType` skips the comparison. `dryRun` counts NGSI-LD entities that would fail; entities with no `protocol` are treated as NGSI-LD                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| objectType (NGSI-LD)     | On `Relationship` / `ListRelationship`, a present `objectType` must be one of the types declared on the model (every element, when the value is an array). A mismatch is `400` and the message names the attribute, the received type, and the declared types. Omitting `objectType` is allowed and is not filled in. The referenced entity is not loaded. `objectType` on any other `ngsiType` is `400` at model registration. NGSIv2 does not compare it. `dryRun` counts NGSI-LD entities that would fail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| minLength / maxLength    | String length constraints (scalar attributes; for arrays use `items.minLength` / `items.maxLength`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| minimum / maximum        | Numeric range constraints (scalar attributes; for arrays use `items.minimum` / `items.maximum`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| pattern                  | Regular expression pattern match (scalar attributes; for arrays use `items.pattern`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| enum                     | List of permitted values (scalar attributes; for arrays use `items.enum`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| items                    | Per-element scalar rules for array-shaped attributes (`Property`+`array` / `ListProperty` / `ListRelationship`). Same shape as scalar rules; nested `items` is not allowed. Failures name the index (`attr[i]`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| minItems / maxItems      | Array length bounds (0..10000). `minItems` > `maxItems` is `400` at model registration                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| uniqueItems              | When `true`, duplicate elements are rejected (`JSON.stringify` equality, same as `enum`). Failures name the index of the first duplicate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
-検証が失敗すると `400 Bad Request` が返されます:
+**複数のエンティティタイプ (NGSI-LD、#3454):** `type` はセットです (ETSI GS CIM 009 clause 4.16 / Table 5.2.4)。順序は重要ではありません: `["Note","Task"]` と `["Task","Note"]` は同じチェックです。これらのタイプの中のすべてのアクティブなモデルが一緒に適用されます:
+
+| Rule                          | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Required                      | Union of every model's `required: true` attributes. A missing attribute is `400 BadRequestData`                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Same-name constraints         | Intersection. The value must satisfy every model that defines that attribute (`minLength`, `enum`, and the other checks above)                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `additionalProperties: false` | An attribute defined in none of the models is rejected only when **every** resolved model is strict. If any model omits the flag or sets it to `true`, the attribute is allowed                                                                                                                                                                                                                                                                                                                                                                                  |
+| Disagreement                  | If the same attribute name has a different `ngsiType`, normalized `valueType`, `defaultValue` (both models define one, and the values differ), or `objectType` (both models declare one, and the match-key sets differ) the write is `400 BadRequestData`. The message names both models. A `defaultValue` or `objectType` defined on only one model is not a conflict; that model's rule is the one applied. `date` and `datetime` are different canonical types, so the same attribute declared as `date` on one model and `datetime` on another is a conflict |
+| Adding a type                 | Append, merge-patch, replace, and batch upsert that grow the type list re-validate the whole entity against the resulting set                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+NGSIv2 エンティティは単一のタイプを持つため、そのタイプのモデルのみが適用されます。
+
+検証失敗は `400 Bad Request` を返します:
 
 ```json
 {
@@ -2987,13 +3282,76 @@ API 経由で CADDE(分野間データ連携基盤)の設定を管理します�
 }
 ```
 
+**必須属性の削除 (GeonicDB 拡張):** `required: true` を持つ属性を削除すると `400 Bad Request` が返されます — NGSIv2 `DELETE /v2/entities/{id}/attrs/{attr}`、NGSI-LD `DELETE /ngsi-ld/v1/entities/{id}/attrs/{attr}`、および NGSI-LD マージパッチ削除 (`urn:ngsi-ld:null`) 経由で。属性を完全に削除する削除のみが拒否されます: 別のインスタンスが残っている間に `datasetId` で 1 つのマルチ属性インスタンスを削除すると、通常通り `204` が返されます。`required: false` の属性、および `isActive: false` のモデル上の属性は、依然として削除できます。
+
+**`defaultValue` 自動入力 (GeonicDB 拡張):** `propertyDetails.<name>.defaultValue` が設定されている場合、その属性を省略したエンティティは、完全な検証を実行する書き込み時に自動入力されます — 作成 (`POST /v2/entities`、`POST /ngsi-ld/v1/entities`、`POST /ngsi-ld/v1/entityOperations/create`)、アップサート-作成 (`POST /v2/op/update` with `append`、`POST /ngsi-ld/v1/entityOperations/upsert|update`)、および完全な属性置換 (`PUT /v2/entities/{id}/attrs`、バッチ `replace`)。部分更新 (`PATCH .../attrs`、属性追加 `POST .../attrs`) は自動入力しません。明示的に指定された値は上書きされません; `required: true` と組み合わせると、属性は事実上オプションになります。
+
+**`indexed` (予約済み、未実装):** `propertyDetails.<name>.indexed` は受け入れられますが、現在は無視されます — MongoDB インデックスは作成されません。
+
+**`objectType` (Relationship / ListRelationship):** `propertyDetails.<name>.objectType` はターゲットエンティティタイプを宣言します。値は短縮名、IRI、またはそれらの配列です (少なくとも 1 つ; 重複、空白、50 項目を超えるものは `400`)。他の `ngsiType` では拒否されます。`GET /custom-data-models` は保存された宣言を返します。登録時の一致キーはレスポンスの一部ではありません。正確に 1 つの値の宣言は、`GET /vocab/{tenantId}/{attribute}` で `rdfs:range` としても記述されます ([Term kind](#term-kind-type) を参照)。
+
+#### 一意制約 (複合一意)
+
+カスタムデータモデルは `uniqueConstraints` を宣言できます — そのタイプのエンティティ間で一意である必要がある属性の組み合わせ (テナントとServicePathでスコープされます)。一意性は **データベースレベルでサーバー側** で強制されるため (MongoDB 部分一意インデックス)、競合がなく、クライアントの規約から独立しています。
+
+```json
+{
+  "type": "RoomReservation",
+  "domain": "SmartBuilding",
+  "description": "Room reservation",
+  "propertyDetails": {
+    "room": { "ngsiType": "Property", "valueType": "string", "example": "R1" },
+    "date": { "ngsiType": "Property", "valueType": "string", "example": "2026-07-15" },
+    "startTime": { "ngsiType": "Property", "valueType": "string", "example": "10:00" }
+  },
+  "uniqueConstraints": [
+    { "name": "no-double-booking", "fields": ["room", "date", "startTime"] }
+  ]
+}
+```
+
+**ルール:**
+
+
+* `name`: モデル内で一意; 英数字で開始、その後は文字、数字、ハイフン、アンダースコア (最大 64 文字)
+  
+* `fields`: 1–8 個の属性名、それぞれがスカラー `valueType` (`string`、`number`、`integer`、`boolean`、`uri`、`datetime`、`date`、`time`) で `propertyDetails` に宣言されています。`array` / `object` / `geojson` は使用できません。`ListProperty` / `ListRelationship` も使用できません: これらの保存値は、`valueType` が要素タイプを指定している場合でも配列です
+  
+* モデルごとに最大 10 個の制約
+  
+* 制約は、宣言されたフィールドを **すべて** 持つエンティティにのみ適用されます — いずれかのフィールドが欠けているエンティティは免除されます
+
+
+* 制約はモデルの `isActive` フラグに関係なく適用され、モデルが削除されると削除されます
+  
+* `uniqueConstraints` を更新するとリスト全体が置き換えられます(すべての制約を削除するには `[]` を送信)
+  
+* 既存のエンティティがすでに制約に違反している場合、制約の追加は `400` で失敗します — 最初に重複を解決してください
+  
+* 同じモデルに対する並行 PATCH:更新は `_id` / `createdBy` / `version` を固定します。別の PATCH が先にコミットされた場合、後の更新は `404` を返します(楽観的ロック)。更新が失敗した場合、`version` が進んだときは一意性制約インデックス補償が現在のドキュメントに調整され、現在のドキュメントが読み取れない場合は補償をスキップします(#3583)
+
+**違反レスポンス:** 制約された組み合わせを重複させるエンティティの作成または更新は、違反した制約名とともに `409 AlreadyExists` を返します:
+
+```json
+{
+  "error": "AlreadyExists",
+  "description": "Entity already exists: violates unique constraint 'no-double-booking' on fields [room, date, startTime]"
+}
+```
+
+NGSI-LD リクエストは同等の Problem Details レスポンス(`type: https://uri.etsi.org/ngsi-ld/errors/AlreadyExists`)を受け取ります。バッチ操作では、`errors` 配列内でエンティティごとに違反を報告します。
+
+> **注意**: 属性暗号化が有効なテナントの場合、属性値は暗号文として保存されるため、一意性制約は重複する平文値を検出できません。
+
 #### 自動 JSON Schema 生成
 
-カスタムデータモデルが作成または更新されると、`propertyDetails` から JSON Schema (Draft 2020-12) が自動的に生成され、レスポンスの `jsonSchema` フィールドに含まれます。`jsonSchema` を手動で指定することも可能です。
+POST および PATCH リクエストボディからトップレベルの `jsonSchema` フィールドを削除してください(モデルレスポンスを再利用する場合も含む)。これを含むリクエストは `400` を返します。`geonic models create`、`update`、または `apply` を使用する場合は、コマンドに渡す JSON からこのフィールドを削除してください。エンティティ検証ルールは `propertyDetails` に記述します。GeonicDB はローカルモデルの作成時またはそのスキーマフィールドの更新時に、これらの詳細から JSON Schema(Draft 2020-12)を生成します。レスポンスには OpenAPI スキーマエクスポートなどのコンシューマー向けのメタデータとして `jsonSchema` が引き続き含まれます。`objectType` を宣言するプロパティは、そのスキーマに `"x-ngsi": { "objectType": <宣言された値> }` を含みます。
 
-#### プロパティ @context (JSON-LD 語彙マッピング)
+API の変更を本番環境にリリースする前に、API を使用する各 Console デプロイメントに対してモデル登録を確認してください。まだ `jsonSchema` を送信している Console を先に更新してください。エンティティタイプのみによる登録を許可するテナントの場合、Console が `sourceUrl` とともに一致する `type` ヒントを送信し、登録が成功することを確認してください。
 
-`propertyDetails` の各プロパティには、JSON-LD 語彙マッピングのためのオプションの `@context` フィールドに HTTP(S) URL を含めることができます。これにより、自動生成された URI の代わりに、よく知られた語彙 (例: schema.org) を使用できます。
+#### Property @context (JSON-LD 語彙マッピング)
+
+`propertyDetails` 内の各プロパティには、JSON-LD 語彙マッピング用の HTTP(S) URL を持つオプションの `@context` フィールドを含めることができます。これにより、自動生成された URI の代わりに、よく知られた語彙(例:schema.org)を使用できます。
 
 ```json
 {
@@ -3016,17 +3374,103 @@ API 経由で CADDE(分野間データ連携基盤)の設定を管理します�
 
 * `@context` を持つプロパティ → 指定された URL が JSON-LD コンテキストで使用されます
   
-* `@context` を持たないプロパティ → 自動生成された URL (`https://geonicdb.geolonia.com/vocab/{tenantId}/{propertyName}`)
+* `@context` を持たないプロパティ → **このContext Broker自身のベース URL** 上で自動生成された URL(`{brokerBaseUrl}/vocab/{tenantId}/{propertyName}`、#1984)が使用され、[`GET /vocab/{tenantId}/{term}`](#vocabulary-endpoint) 経由で参照可能です。`{brokerBaseUrl}` がどこから来るかについては、[Broker base URL resolution](#broker-base-url-resolution) を参照してください
   
-* プロパティ URI はエンティティタイプに依存しません (同じプロパティ名はテナント内で同じ URI を共有します)
+* プロパティ URI はエンティティタイプに依存しません(同じプロパティ名はテナント内で同じ URI を共有します)
   
-* `@context` は HTTP(S) URL でなければなりません (URN は受け付けられません)
+* `@context` は HTTP(S) URL でなければなりません(URN は受け付けられません)。U+0000–U+0020 および DEL(U+007F)の文字は `400` で拒否されます — これらは削除されません(#3407)。`typeIri` と同じクラスです。
 
-#### @context 解決拡張
+#### Type IRI(`typeIri`
 
-NGSI-LD レスポンスでは、カスタムデータモデルに `contextUrl` が設定されている場合、カスタムコンテキストがエンティティの `@context` に自動的に含まれます (コアコンテキストと共に配列として返されます)。
+、#3359)
 
-### カタログ API
+エンティティタイプはプロパティと同じ方法で IRI を取得します。自動生成された `@context` では、モデルがトップレベルの `typeIri`(HTTP(S) URL、最大 2048 文字)を設定しない限り、タイプ用語は `{brokerBaseUrl}/vocab/{tenantId}/{type}` になります:
+
+```json
+{
+  "type": "RoadRestriction",
+  "typeIri": "https://datamodels.jp/ns/transportation/RoadRestriction",
+  "propertyDetails": { "...": "..." }
+}
+```
+
+
+* 生成された `@context` 内のタイプ用語は `typeIri` になり、モデルの FQN ルックアップキー(`canonicalType`)もそれに従うため、その `@context` で書き込まれたエンティティはモデルにマッチし、`?type=<typeIri>` でそれらを見つけることができます。
+  
+* `contextUrl` は U+0000–U+0020 および DEL(U+007F)の文字を `400` で拒否します — これらは削除されません(#3407)。スキームは制限されません。
+  
+* `typeIri` は `contextUrl` と組み合わせることはできません(`400`):独自の `@context` を使用する場合、タイプ IRI はそこで定義されます。
+  
+* **`typeIri` は作成時に固定されます。** 異なる `typeIri` を持つ `PATCH`、`typeIri` なしで作成されたモデルに対する `typeIri` の追加、または `typeIri` を持つモデルに対する `contextUrl` の追加は `400` を返します(同じ値は受け入れられます。省略すると現在の値が保持され、`propertyDetails` が `@context` を再生成する場合も同様です)。古い FQN の下にすでに保存されているエンティティは、モデルとのマッチングが静かに停止します。変更するには、モデルを削除して再度作成してください。
+
+#### @context 解決(#1733)
+
+NGSI-LD レスポンスをレンダリングするために使用される `@context` は、リクエストが提供したもの**のみ**です。何も提供されない場合、NGSI-LD コア `@context` のみが使用され、それがコンパクト化できない用語は完全修飾 URI としてレンダリングされます(ETSI GS CIM 009 clause 5.5.5 / 5.5.7、<https://cim.etsi.org/NGSI-LD/official/clause-5.html>)。
+
+したがって、カスタムデータモデルの `contextUrl` は自動的にレスポンスに追加**されません**。その語彙でレスポンスをコンパクト化するには、読み取り時にそれを渡してください(JSON-LD `Link` ヘッダー)。
+
+#### Vocabulary Endpoint
+
+自動生成された語彙 IRI はこのContext Brokerによって提供されるため、参照解決が可能です。
+
+| Endpoint                   | Method | Description                                                                                                                              | Auth          | Success | Error |
+| -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------- | ----- |
+| `/vocab/{tenantId}/{term}` | GET    | JSON-LD (`application/ld+json`) self-description of an auto-generated vocabulary term (`@id`, `@type`, `rdfs:label`, `rdfs:isDefinedBy`) | None (public) | 200     | 400   |
+
+報告される `@id` は、生成された `@context` に書き込まれる IRI とまったく同じように構築されます。
+
+##### 用語の種類(`@type`
+
+)
+
+エンティティタイプと属性は同じ名前空間(`{brokerBaseUrl}/vocab/{tenantId}/{term}`)を共有するため、レスポンスは `@type` を通じてそれらを区別します(#3191)。これがないと、RDF レベルの語彙アライメント(外部 Context Broker との連携、CADDE)でクラスとプロパティを区別できません。
+
+| Term                                                                           | `@type`        | Extra statements                                                                                              |
+| ------------------------------------------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------- |
+| An entity type of a custom data model in that tenant                           | `rdfs:Class`   | —                                                                                                             |
+| An attribute declared in exactly one model's `propertyDetails`                 | `rdf:Property` | `rdfs:domain` (the declaring model's type IRI); `rdfs:range` only when resolvable (see below)                 |
+| An attribute declared in two or more models                                    | `rdf:Property` | none — multiple `rdfs:domain` values assert an *intersection* in RDFS, which is not what "either model" means |
+| Anything else (unknown term, or an attribute that declares its own `@context`) | `rdfs:Class`   | —                                                                                                             |
+
+`rdfs:range` は以下の宣言から導出されます:`GeoProperty` → `https://purl.org/geojson/vocab#Geometry`、`LanguageProperty` → `rdf:langString`、`JsonProperty` → `rdf:JSON`、それ以外の場合は `valueType`(`string`/`number`/`integer`/`boolean`/`datetime`/`time`/`uri`/`geojson`)に対応する XSD データ型。`array`、`object`、および `date` には単一の XSD 対応型が存在しません(`date` はカレンダー日付と日時の両方を受け入れます)ので、これらには `rdfs:range` が省略されます。`VocabProperty` と `ListProperty` は `rdfs:range` を省略します(`VocabProperty` の値はボキャブラリー IRI であり、リストの `valueType` は要素型であるため、その XSD 型を出力すると誤りになります)。`Relationship` と `ListRelationship` は、`objectType` が正確に 1 つの宣言値を持つ場合のみ `rdfs:range` を出力します(#3511)。IRI は、その属性のマッチキーに含まれる最初の絶対 IRI(HTTP(S) などの `://`、または `urn:` IRI)、または存在しない場合は宣言された型のボキャブラリー IRI(`{brokerBaseUrl}/vocab/{tenantId}/{objectType}` — 属性名ではなく、宣言された型)になります。コンパクト IRI(`schema:Person`)はここでは絶対 IRI として扱われません。2 つ以上の宣言値は省略されます。これは、複数の `rdfs:range` 値が RDFS において交差を主張するためです(複数の `rdfs:domain` 値が省略される理由と同じ)。`objectType` がない場合は、以前と同様に省略されます。対象モデルの `typeIri` は検索されません。
+
+このエンドポイントには意図的な 2 つの特性があります:
+
+
+* **未知の用語でも 404 ではなく 200 を返します。** 404 を返すと、この認証不要のエンドポイントがテナント内に存在する型と属性を列挙するためのオラクルになってしまいます。
+  
+* **`description` は決して `rdfs:comment` にコピーされません。** 実際には、これらの説明には内部メモ(PII マーカー、ストレージレイアウト)が含まれており、このエンドポイントは公開されています。
+
+##### Broker ベース URL の解決
+
+Context Brokerが出力するすべての自己参照 URL — ボキャブラリー IRI、カスタムデータモデルの `contextUrl`、および `/llms.txt` と `/openapi.json` の例 — は、1 つのリゾルバー(`resolveSelfBaseUrl`)から以下の順序で構築されます:
+
+| Priority | Source                                                                   | Notes                                                                                                                                                                                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | **Registered hostname of the deployment this request routed to** (#3190) | Used whenever hostname-based routing (#1291) landed the request on a per-hostname database. That database is only reachable under its own hostname, so a URL naming any other host would not resolve                                                                                                                                |
+| 2        | **`API_BASE_URL` environment variable**                                  | Injected at deploy time from the SAM template parameter **`ApiBaseUrl`** (`infrastructure/template.yaml` → the Lambda's `API_BASE_URL`), which the deploy workflow populates from SSM. Constant per deployment, so it applies to requests that land on the **default database** (`DEFAULT_DEPLOYMENT_HOSTNAMES` or an empty `Host`) |
+| 3        | Request **`Host`** header                                                | Used only when `API_BASE_URL` is unset. Scheme comes from `X-Forwarded-Proto` (loopback hosts default to `http`, others to `https`); API Gateway default URLs (`*.execute-api.*`) also get the stage path appended                                                                                                                  |
+| 4        | `http://{HOST_NAME}:{PORT}`                                              | Local development fallback when there is no request context                                                                                                                                                                                                                                                                         |
+
+**優先度 1 が存在する理由は、1 つのデプロイメントが複数のホスト名を提供し、それぞれが独自のデータベースを持つためです**(#1291)。デプロイ全体で単一の `ApiBaseUrl` は共有/デフォルトホストしか指定できないため、#3190 以前は専用インスタンス上で作成されたすべてのカスタムデータモデルが共有ホストを指す `contextUrl` を保存していました — そこにはそのコンテキストが存在せず、404 になります。したがって、リゾルバーは(生の `Host` ヘッダーではなく)デプロイメント行の**登録された**ホスト名を使用します。これにより、リクエストがどのようにContext Brokerに到達したかに関係なく、識別子が安定します。`API_BASE_URL` が、リクエストが通知すべきホストとは異なるホストを指定している場合、Context Brokerはホストペアごとに警告を 1 回ログに記録します(`BaseUrl`、`#3190`)ので、不一致が CloudWatch で確認できます。
+
+**デフォルトデータベースからボキャブラリー IRI を生成するすべてのデプロイメントで `ApiBaseUrl` を設定してください。** ボキャブラリー IRI は永続的な識別子です。優先度 3 では、値はリクエストが到着したホスト名に依存するため、複数のホスト名(apex + API Gateway デフォルト URL)でアクセス可能なContext Brokerは、同じ用語に対して異なる IRI を生成してしまいます。ワイルドカードのみのデプロイメントは、デフォルトで `ApiBaseUrl` を未設定のままにします(`.github/workflows/deploy-env.yml`)。ホスト名ごとのデプロイメントは優先度 1 でカバーされます。
+
+**既存のモデルは書き換えられません。** `contextUrl` は保存された値であるため、専用インスタンス上で #3190 以前に作成されたモデルは、共有ホストの URL を保持します。`propertyDetails` のみを指定した `PATCH /custom-data-models/{type}` では、そのホストは移行**されません**:
+
+| Stored state                           | What `propertyDetails` PATCH does to `contextUrl`                                                                                                            |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Has `contextId` (auto-generated)       | Updates the `@context` **body in place** at the existing URL (#2094). The stored `contextUrl` string is left unchanged — a wrong shared-host URL stays wrong |
+| Has `contextUrl` only (no `contextId`) | Leaves `contextUrl` alone (treated as manually set)                                                                                                          |
+| Neither                                | First-time auto-generation with the current request's base URL                                                                                               |
+
+同じ PATCH で新しい `contextUrl` を指定すると、管理されている `contextId` がクリアされ、自動生成されたコンテキストドキュメントが削除されるため、#3190 の安全な移行パスでは**ありません**。#3190 以前の専用インスタンスモデルの修復は、個別の運用移行です(#3190 のコード変更の範囲外)。
+
+ボキャブラリー IRI は**識別子**であるため、その場で書き換えられることはありません:モデルの `propertyDetails` が変更され、`@context` 本体がその場で更新される場合、そのモデルがすでに使用している名前空間が引き継がれます。したがって、#1984 以前に作成されたモデルは、元の(`https://example.com/vocab/...`)IRI を保持し、その下に書き込まれたエンティティとの自己整合性が保たれます。
+
+**自動生成された `contextUrl` 自体も安定しています(#2094)。** `propertyDetails` の変更がコンテキスト本体の更新をトリガーする場合、ドキュメントは既存の URL で書き換えられます — URL は変更されません。したがって、以前に配布された `contextUrl` 値は、モデル更新後も 404/504 ではなく解決され続けます。これは、GeonicDB がそのドキュメントを管理していないため、手動で指定された `contextUrl` 値には適用されません。
+
+### Catalog API
 
 | Endpoint                               | Method | Description         | Success | Error    | Pagination      |
 | -------------------------------------- | ------ | ------------------- | ------- | -------- | --------------- |
@@ -3034,15 +3478,6 @@ NGSI-LD レスポンスでは、カスタムデータモデルに `contextUrl` �
 | `/catalog/datasets`                    | GET    | List datasets       | 200     | 400, 401 | Yes (max: 1000) |
 | `/catalog/datasets/{datasetId}`        | GET    | Get dataset         | 200     | 401, 404 | -               |
 | `/catalog/datasets/{datasetId}/sample` | GET    | Get sample data     | 200     | 401, 404 | -               |
-
-### ベクタータイル API
-
-| Endpoint                                | Method | Description                     | Success | Error    |
-| --------------------------------------- | ------ | ------------------------------- | ------- | -------- |
-| `/v2/tiles`                             | GET    | Get TileJSON metadata (NGSIv2)  | 200     | 401      |
-| `/v2/tiles/{z}/{x}/{y}.geojson`         | GET    | Get GeoJSON tile (NGSIv2)       | 200     | 400, 401 |
-| `/ngsi-ld/v1/tiles`                     | GET    | Get TileJSON metadata (NGSI-LD) | 200     | 401      |
-| `/ngsi-ld/v1/tiles/{z}/{x}/{y}.geojson` | GET    | Get GeoJSON tile (NGSI-LD)      | 200     | 400, 401 |
 
 ### Event Streaming API
 

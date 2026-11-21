@@ -500,7 +500,7 @@ Manage context source registrations (`/ngsi-ld/v1/csourceRegistrations`). Alias:
 
 | Command | Description |
 |---------|-------------|
-| `geonic reg list` | List registrations |
+| `geonic reg list` | List registrations. **Breaking (#2304):** `GET /csourceRegistrations` now requires `type` / `attrs` / `q` / a geoquery; this command 400s until [geonicdb-cli#201](https://github.com/geolonia/geonicdb-cli/issues/201) adds those flags |
 | `geonic reg get <id>` | Get a registration |
 | `geonic reg create [json]` | Create a registration |
 | `geonic reg update <id> [json]` | Update a registration |
@@ -737,7 +737,7 @@ geonic admin api-keys update gdb_abc123 '{"name": "renamed-key", "isActive": fal
 | `name` | string | Yes | Key name (1–100 chars) |
 | `tenantId` | string | Yes (super_admin) | Target tenant ID. Required for super_admin. Optional for tenant_admin (defaults to their own tenant) |
 | `allowedOrigins` | string[] | Yes | CORS origins (min 1, max 20). Use `["*"]` for all |
-| `policyId` | string | No | Bind to an existing XACML policy (target bypassed). If omitted, authorization falls back to tenant policies, then role defaults (`api_key` default is Deny) |
+| `policyId` | string | No | Bind to an existing XACML policy (evaluated with its policy-level target and its rules). If omitted, authorization falls back to tenant policies, then role defaults (`api_key` default is Deny) |
 | `rateLimit` | object | No | `{ perMinute: number }` (1–1000, default: 60) |
 
 > **Note**: The plaintext API key is returned only once in the `key` field of the creation response. Store it securely.
@@ -795,7 +795,7 @@ Manage your own OAuth clients (`/me/oauth-clients`). Unlike `admin oauth-clients
 | Option | Description |
 |--------|-------------|
 | `--name <name>` | Client name |
-| `--policy <policyId>` | Bind to an existing XACML policy (target bypassed). If omitted, authorization falls back to tenant policies, then role defaults (`user` default is GET-only) |
+| `--policy <policyId>` | Bind to an existing XACML policy (evaluated with its policy-level target and its rules). If omitted, authorization falls back to tenant policies, then role defaults (`oauth_client` default is Deny) |
 | `--save` | Save credentials to config for automatic re-authentication |
 
 ```bash
@@ -813,7 +813,7 @@ When `--save` is used, the CLI performs a Client Credentials grant immediately a
 
 #### `me api-keys`
 
-Manage your own API keys (`/me/api-keys`). Unlike `admin api-keys`, this does not require admin privileges — any authenticated user can manage their own keys. Limited to 5 keys per user.
+Manage your own API keys (`/me/api-keys`). Unlike `admin api-keys`, this does not require admin privileges — any authenticated user can manage their own keys. Limited to 5 keys per user per tenant.
 
 | Command | Description |
 |---------|-------------|
