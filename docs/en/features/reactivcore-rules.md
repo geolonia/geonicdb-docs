@@ -47,6 +47,8 @@ Enable ReactiveCore Rules via environment variable (disabled by default).
 export RULES_ENABLED=true
 ```
 
+> **Note (#1304)**: ホスト名ルーティングされたデプロイメント（マルチサブドメイン構成の専用 DB）でもルールは実行されます。API 経由のエンティティ変更はリクエストスコープでイベントを発行し、発生元デプロイメントの情報（`deployment.hostname`）を運んで rules ワーカーが正しい DB のルールを評価・実行します（アクションによる派生エンティティも同じ DB に作成されます）。**制限**: デプロイメント DB への直接 DB 書き込み（API を経由しない変更）はルールをトリガーしません — change stream によるバックアップ監視はデフォルト DB のみです。
+
 ### Testing in a Local Development Environment
 
 Follow these steps to try ReactiveCore Rules in a local development environment.
@@ -202,7 +204,9 @@ Example response:
                             │
                             │ EntityService publishes to EventBridge
                             │ (#1119: Rule firing migrated from
-                            │  scheduled change-stream to EventBridge)
+                            │  scheduled change-stream to EventBridge;
+                            │  #1560: the CDC worker was removed, so
+                            │  EntityService is the single publisher)
                             │
 ┌───────────────────────────▼─────────────────────────────────┐
 │              Rule Processor Handler (Lambda)                 │
@@ -249,13 +253,20 @@ Example response:
 
 1. **Entity change detection**
    - On Lambda: `EntityService` publishes `EntityCreated/Updated/Deleted` to EventBridge directly. `RuleProcessorFunction` is invoked by an EventBridgeRule and constructs an `EntityChangeEvent`
-   - On local / standalone: `local-server.ts` tails the MongoDB Change Stream and constructs the same `EntityChangeEvent` in-process
-   - The legacy `ChangeStreamProcessorFunction` still calls `publishEntityChangeEvent()` to re-publish change-stream-derived events back onto the same EventBridge fan-out, so `RuleProcessorFunction`, `SubscriptionMatcherFunction`, and `WsBroadcastFunction` all receive and process those replayed events (rules and subscriptions are re-evaluated). It no longer invokes `RuleEngineService` directly itself, so the rule path is consolidated to a single EventBridge consumer (#1119)
+   - On local / standalone: `local-server.ts` tails the MongoDB Change Stream and constructs the same `EntityChangeEvent` in-process **for ReactiveCore Rules**. Subscription notifications use `EntityService` → `LocalEventBusPublisher` → `emitEntityChangeForSubscription` (#2337), the same rich payload (including `previousAttributes`) as the AWS EventBridge path. Change Stream is no longer the subscription source — physical deletes have no `fullDocument`, so that path set tenant to `'unknown'` and silently dropped `entityDeleted` / `attributeDeleted` notifications
+   - **#3827**: before rule evaluation, the shared consumer entrance drops **stale** events whose `(createdAt, version)` is older than the entity in DB. This stops an out-of-order older snapshot from driving actions (including write-back). Intermediate events may be omitted when delivery races; use Temporal for history. Legacy events without `version` are still processed (fail-open during migration)
+   - **#1560**: the legacy `ChangeStreamProcessorFunction` has been removed. It used to re-publish change-stream-derived events onto the same EventBridge fan-out, which would have made every `insert`/`update`/`delete` fire rules and subscriptions **twice** once `EntityService` started publishing directly (#738). In practice it had been failing 100% since 2026-03-08 (a resume token expired beyond the oplog window and the handler had no recovery path), so the duplicate never materialised — being broken was the only thing preventing it. On AWS, `EntityService` → `IEventPublisher` is now the single publisher; on local/standalone `LocalEventBusPublisher` is the subscription source for the default DB, and Change Stream remains rules-only so the two paths stay disjoint (#2337 / #1304). A regression guard (`tests/unit/infrastructure/single-entity-event-publisher.test.ts`) forbids a second EventBridge publisher from reappearing
 
 2. **Rule evaluation**
-   - Retrieves active rules for the tenant and servicePath
-   - Evaluates the conditions of each rule (AND-joined)
-   - Sorts matched rules in order of priority
+   - Retrieves active rules for the tenant and servicePath in **two bounded frames** (#3957):
+     - **Global frame** (`tenantId: null`): up to `RULE_ENGINE.MAX_GLOBAL_RULE_FETCH_PER_EVENT` / `MAX_GLOBAL_RULE_EVALUATIONS_PER_EVENT`
+     - **Tenant frame** (tenant-specific): up to `RULE_ENGINE.MAX_TENANT_RULE_FETCH_PER_EVENT` / `MAX_TENANT_RULE_EVALUATIONS_PER_EVENT`
+   - Within each frame, selection order is `priority` ascending, then `ruleId` ascending (deterministic tie-break)
+   - Rules beyond a frame's cap are **skipped with a warn** (fail-closed). Permanent skip of low-priority / high-`ruleId` rules is expected when a frame is oversubscribed — reduce active rules or **lower the numeric `priority`** (smaller = higher priority) of rules that must fire
+   - **#3957 / dual-write**: `hasActiveAppendToTemporalRule` (Entity API temporal dual-write skip) inspects only rules inside the same bounded frames. An `appendToTemporal` rule outside the cap does not suppress dual-write — otherwise neither the rule nor dual-write would record history
+   - A flood of tenant rules cannot starve the global frame (and vice versa); another tenant's event still loads that tenant's own frame independently
+   - Evaluates the conditions of each **selected** rule (AND-joined)
+   - Sorts matched rules by `priority`, then `ruleId`
 
 3. **Action execution**
    - Executes actions for each rule sequentially
@@ -323,6 +334,90 @@ interface Rule {
 
 Conditions determine whether a rule matches. Multiple conditions are AND-joined.
 
+### JSON-LD vocabulary (`@context`
+
+) — GeonicDB extension (#1973)
+
+`POST /rules` and `PATCH /rules/{ruleId}` accept an optional `@context` (in the request body, or
+as a JSON-LD `Link` header; the body wins when both are supplied). It declares **which vocabulary
+the rule's own condition names are written in**.
+
+Why it matters: NGSI-LD entities are stored under the *canonical* form of their attribute names and
+entity types (expanded through the writer's `@context`). A rule that spells the same IRI with a
+different term — e.g. `warmth` in the rule and `temperature` on the writer, both mapping to
+`https://example.org/vocab/temp` — would **silently never fire** without it. No error is raised;
+the rule simply does not match.
+
+```json
+{
+  "@context": { "warmth": "https://example.org/vocab/temp" },
+  "name": "High temperature warning",
+  "conditions": [{ "type": "change", "attributeName": "warmth" }],
+  "actions": [ /* ... */ ]
+}
+```
+
+What GeonicDB does with it:
+
+- On create/update, the canonical form of every condition's `attributeName`
+  (`value` / `pattern` / `change`) and `entityTypes` (`entityType`) is computed and stored alongside
+  the verbatim value, as `canonicalAttributeName` / `canonicalEntityTypes`. Nested `and` / `or` /
+  `not` trees are walked as well.
+- At evaluation time, matching uses **verbatim ∪ canonical** on both sides. A rule created without
+  `@context` gets no canonical form and behaves exactly as before — the change is a strict superset,
+  so **existing rules need no backfill**.
+- These two fields are **server-computed**. Any value a client sends for them is discarded and
+  recomputed.
+- **The `@context` itself is stored on the rule.** When a later update replaces `conditions`
+  without supplying an `@context`, the stored one is reused (`supplied ?? stored`). Without this,
+  `GET`ting a rule and `PATCH`ing it straight back — the `@context` is not part of the `GET`
+  response — would silently drop the canonical forms, and the rule would stop firing on
+  other-vocabulary entities with no error at all. It also means an entry point that has no notion
+  of `@context` (the MCP `config` tool) can update a rule without downgrading it.
+- Supplying an `@context` on `PATCH` replaces the stored one for the conditions you send with it.
+  This is decided by whether the request **declared** an `@context` at all, not by what it resolved
+  to — so declaring only the core context clears the stored vocabulary rather than silently losing
+  to it. That is the only way to move a rule back to core vocabulary.
+- `PATCH` applies `@context` to the `conditions` and/or `actions` you send with it. Sending `@context`
+  **without** either `conditions` or `actions` is rejected with `400` rather than silently ignored
+  (#2260 widened this from "without `conditions`" once `actions` gained its own canonical form below —
+  otherwise there was no way to redirect an action's vocabulary without also touching `conditions`).
+- When both a body `@context` and a `Link` header are present, **the body wins — including when
+  the body declares only the core context**. Precedence is decided by whether the body carries an
+  `@context` at all, not by whether it resolved to a non-core vocabulary.
+- **`400` failures while resolving the `@context` — and only those — are reported in this
+  endpoint's own error vocabulary** (`{"error": "BadRequest"}`), matching every other `400` from
+  `/rules`. Anything that is not a `400` keeps both its status **and** its NGSI-LD error
+  identifier: an unreachable `@context` returns `504` with
+  `{"error": "https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable"}`, and outbound rate
+  limiting returns `429`. Collapsing those into `400` would leave clients unable to tell "your
+  input is wrong" from "try again later".
+- The entity-level field names `"id"` and `"type"` (usable in `value` / `pattern` conditions) are
+  never canonicalized — they address the entity itself, not an attribute.
+- `celExpression` conditions are not rewritten: the expression is an opaque string, not a
+  structured attribute-name field.
+- **Actions are also canonicalized (#2260)**, using the same rule `@context` and the same
+  server-computed / verbatim-preserved pattern as conditions above: `updateAttribute` /
+  `deleteAttribute` `attributeName` (→ `canonicalAttributeName`), `createEntity` `entityType`
+  (→ `canonicalEntityType`) and the keys of its `attributes` object (→ `canonicalAttributeNames`,
+  a verbatim-key → canonical-key map holding only the keys that actually differ), and
+  `appendToTemporal` `attributes` (→ `canonicalAttributeNames`). Unlike condition matching, a write
+  needs a **single** stored form rather than a verbatim ∪ canonical union — a `createEntity` /
+  `updateAttribute` / `deleteAttribute` / `appendToTemporal` targeting an **NGSI-LD** entity uses the
+  canonical form when present, falling back to verbatim; a target on **NGSIv2** always uses verbatim,
+  because NGSIv2 has no `@context` concept and canonicalizing there would make the attribute
+  unreachable from the NGSIv2 API. Values containing a `${...}` template (e.g. `${entity.type}`) are
+  never folded — the template is expanded at action-execution time, and the expansion result is
+  already the trigger entity's stored (canonical) value, so folding the literal template string would
+  be meaningless. `sendNotification` / `webhook` carry no entity attribute names or types and are
+  unaffected; a `webhook` action's `body` is arbitrary JSON, not an entity attribute, so it is not
+  folded either. Because verbatim is preserved unchanged, a `GET /rules/{ruleId}` → unmodified
+  `PATCH` round-trip does not lose data, matching the round-trip guarantee conditions already had.
+
+ReactiveCore Rules is a GeonicDB extension, so `/rules` is not bound by the ETSI GS CIM 009
+clause 6.3.5 rule that ties the `@context` source to `Content-Type`; the body is accepted with the
+default `application/json` content type.
+
 ### Condition Types
 
 | Type | Description | Use Case |
@@ -341,6 +436,16 @@ Conditions determine whether a rule matches. Multiple conditions are AND-joined.
 ### 1. Value Condition
 
 Compares the value of an attribute. In addition to entity attribute names, the entity-level fields `"id"` and `"type"` can also be specified in `attributeName`.
+
+> **NGSI-LD multi-attribute (GeonicDB extension, #2785):** When an attribute has multiple
+> instances (`datasetId`), value / pattern conditions evaluate the **default instance**
+> selected by `resolveDefaultInstance` (no `datasetId`, otherwise the first instance).
+> This is GeonicDB rule-evaluation discipline — not identical to NGSI-LD `options=keyValues`,
+> which may represent every dataset (including `@none`) in a `dataset` structure.
+> Non-default instance updates still raise the change event and can satisfy `change`
+> conditions (name match), but `${attribute.<name>.value}` and CEL
+> `attribute.<name>.value` always read the default instance. Per-instance selectors
+> (e.g. `${attribute.x@datasetId}`) are out of scope.
 
 ```typescript
 interface ValueCondition {
@@ -469,6 +574,16 @@ interface EntityTypeCondition {
 }
 ```
 
+**型名の表記ゆれ (#2125)**: 照合は NGSI-LD core 語彙で正規化してから行われます。短縮名
+`TemperatureSensor` と、それが展開される `https://uri.etsi.org/ngsi-ld/default-context/TemperatureSensor`
+は**同一の型**として扱われ、どちらの表記で書いてもマッチします
+(ETSI GS CIM 009 clause 4.4 の `@vocab` フォールバック)。別の名前空間の同名 IRI
+(例 `https://example.org/vocab/TemperatureSensor`) は別の型であり、マッチしません。
+
+同じ正規化はループ検出 (action が trigger と同じ型のエンティティを作る自己発火の防止) にも
+適用されます。なお Rules API には `@context` の受け口が無いため、テナント固有の `@context` が
+定義する term (core 語彙にない写像) は解決されません (#1973)。
+
 ### 6. Event Type Condition
 
 Filters by the trigger event that produced the change. Maps the internal event names (`EntityCreated` / `EntityUpdated` / `EntityDeleted`) to the lowercase tokens `create` / `update` / `delete`.
@@ -531,15 +646,51 @@ interface CelExpressionCondition {
 }
 ```
 
+**Comprehension nesting limit (#3656)**: comprehension macros (`all` / `exists` / `exists_one` / `map` / `filter`) may be nested at most 2 levels deep (`RULE_ENGINE.CEL_MAX_COMPREHENSION_DEPTH`), because the iteration count multiplies per level and CEL evaluation is synchronous. Nesting is counted in the macro body only (the receiver is evaluated once). A variable bound with `cel.bind(v, value, expr)` counts the nesting depth of `value` at every reference, so the nesting limit cannot be bypassed with `cel.bind`.
+
+**Evaluation budget (#3958)**: independently of nesting depth, each **rule evaluation** shares a CEL cost budget (`RULE_ENGINE.CEL_EVALUATION_BUDGET_PER_RULE`, default 100,000). Charges include:
+
+- **1** per comprehension iteration (quantifier / map / filter loop step)
+- **input-size** of container operands for `==` / `!=` / `in` / `<` / `<=` / `>` / `>=` and for `+` concatenation (list / map / bytes / long strings; **nested containers are charged recursively** so wrapping a large list in an outer list cannot bypass the budget; scalars and short strings below `CEL_EVALUATION_STRING_COST_THRESHOLD` do not add size cost — iteration covers them; longer strings charge by character count, including ordered string compares that walk a long common prefix). Indexing (`[]`) is O(1) and is not size-charged
+- **string-scan / decode / parse** costs for size-dependent methods (`contains` / `startsWith` / `endsWith` / `indexOf` / `lastIndexOf` / `matches` / `split` / `join` / `lowerAscii` / `upperAscii` / `trim` / `size` / `substring` / bytes `at` / `json` / `hex` / `base64` / `string` / timestamp timezone methods such as `getHours(tz)`) and global functions (`size` / `bytes` / `string` / `double` / `int` / `uint` / `bool` / `duration` / `timestamp`), plus GeonicDB `within()` (polygon ring length is charged **before** GeoJSON validation so an unclosed ring whose exception is absorbed by `||` cannot bypass the budget)
+- **runtime context release**: after each evaluation, `cel.bind` / comprehension `OverlayContext` parent refs (`#parent` / `iterValue` / `accuValue`) are cleared so a cached closure cannot retain the last input
+- **Known limits (fail-closed)**: unequal-length list equality still charges `size(a)+size(b)` even though CEL can return false after a length check; depth-1 rules over attribute lists longer than the budget may stop firing; **temporal string args longer than `CEL_EVALUATION_TEMPORAL_PARSE_MAX_LENGTH` (64)** for `duration(string)` / `timestamp(string)` / timezone args to `getHours(tz)` (and related getters) force an immediate budget exceed **before** the underlying parser / `toLocaleString` runs (cel-js duration backtracking and invalid timezone IDs are otherwise super-linear and can be absorbed by `|| true`)
+
+Depth-2 pure double iteration is bounded near √100000 ≈ 315 elements. A depth-2 expression that compares large lists (e.g. L=315 with A/B of 50,000 elements) exceeds the budget via size charges even when iteration count alone would fit. When the budget is exceeded the condition is treated as **unevaluable** (same fail-closed latch as #3656): the rule does not fire, and a wrapping `not` cannot invert it into a fire. **Breaking change**: (1) depth-1 rules over large attribute lists (more than 100,000 elements) that previously evaluated may now skip; (2) rules that pass `duration` / `timestamp` / timezone strings longer than 64 characters (including pathological digit-only or junk timezone IDs) now skip at evaluation. Prefer filtering / paging attribute values, short Go-style durations (`"1h30m"`), ISO-8601 timestamps, and short IANA timezone IDs (`"UTC"`, `"Asia/Tokyo"`), or split work across rules, rather than relying on unbounded comprehensions or unbounded temporal strings.
+
+**Value growth limit (#3662)**: independently of nesting depth, CEL expressions are statically estimated as `size ≤ b + s·S + Σ e_k·E_k` (S = free inputs such as `attribute.*`, E_k = map iteration symbols). The only places cel-js can multiply input-dependent sizes are `map`/`filter` accumulation and `list.join(sep)`; those multipliers must be **input-independent**:
+
+- **`join(sep)`**: `sep` must be a constant (literals only). `xs.join(attribute.y.value)` is rejected.
+- **`map` transform**: the transform may depend only on its own iteration variable and literals. `xs.map(a, a + attribute.y.value)` is rejected. Predicate positions (`all` / `exists` / `filter` predicate / `map`'s optional predicate) may still reference free inputs.
+- **Field / index access** (`.k`, `[0]`): inherit the parent expression's size estimate (no coefficient reset). Chaining `{"k": v+v}.k` inside `cel.bind` therefore still doubles.
+- If the effective coefficient `s+Σe` exceeds `RULE_ENGINE.CEL_MAX_VALUE_GROWTH_FACTOR` (64) at any node, or a join/map multiplier is input-dependent, the expression is rejected. Adding a literal of 64 or more characters per element (e.g. `xs.map(a, a + "<64 chars>")`, coefficient `1+64`) exceeds the factor; 63 characters is the near-miss that still passes.
+- Empty `map` transforms (`""` / `[]` / `{}`) still count as element size ≥ 1 so a subsequent `join`/`map` cannot zero out the coefficient.
+- Bytes and numeric literals contribute their length/digit count to the constant term (so `string(b"…")` cannot smuggle a long constant past the factor).
+- List / map literals add container cost `CEL_VALUE_CONTAINER_WEIGHT + elementCount` (default weight 4; empty `[]` / `{}` count as weight). `timestamp` / `duration` use the same weight (V8 Date/object vs char size). Deep nesting of 13 singleton wrappers rejects; 12 is the near-miss. Chaining `.map(c, [c])` multiplies by (weight+2) each step (3 chains reject, 2 allow).
+- `string(<input-independent>)` and `now()` are estimated as at least 24 characters (int64/double / ISO-8601 upper bound).
+- Functions that return a fixed-size result (`size` / `int` / `double` / `getHours` / GeonicDB `distance` / `within` / `dayOfWeek`, etc.) are allowlisted as constant-size. Unknown function names are rejected (fail-closed).
+- **Known limits**: (1) coefficients are UTF-16 code-unit based; UTF-8 / `upperAscii` can inflate bytes by up to about 4×. (2) `string(<input-dependent number>)` can expand an int/double to ≤24 characters per element (e.g. `xs.map(a, string(a))` on int64 inputs).
+
+- Creating or updating a rule whose expression exceeds either the comprehension-depth or value-growth limit is rejected with `400`.
+- The evaluation budget (#3958) is **runtime-only** (attribute list lengths are unknown at create time): create/update still accept depth-2 expressions; oversized inputs skip at evaluation.
+- A rule that is **already stored** with an over-limit expression is not rejected at load time: when that condition is **evaluated**, the expression is skipped (treated as not matching), `unevaluableConditionEncountered` is set so a wrapping `not` cannot invert it into a fire, and a warning is logged. Re-save such rules with a flatter expression. The same unevaluable latch applies when the evaluation budget is exceeded (#3958).
+
+**`matches()` ReDoS guard (#3935)**: CEL `string.matches(string)` is guarded by the same `validateRegexPattern` / `compileStoredRegex` checks (#1948) plus a receiver length cap of `SECURITY.MAX_REGEX_INPUT_LENGTH` (1024). Patterns that form a degree-3+ overlapping-repeat chain via backreferences — e.g. `(.*)(.*)\1x`, `^(\d+)(\d+)\1$` — are rejected the same way as other ReDoS-prone patterns.
+
+- **Create / update**: a **literal** pattern that fails `validateRegexPattern` is rejected with `400`. Dynamic patterns (`x.matches(attribute.p.value)`) are accepted; the runtime layer guards them.
+- **Evaluation**: unsafe patterns or over-long receivers are treated as unevaluable. The rule sets `unevaluableConditionEncountered` so a wrapping `not` / an `or` sibling that would otherwise match **cannot** fire. Operators should watch for the warning `Rule contains an unevaluable condition` (and `CEL matches() rejected as unevaluable` with `reason`) and rewrite the expression to a safe literal or a `pattern` condition. Expressions that exceed the per-rule matches receiver budget (long text attributes inside comprehensions, many `||` matches) should be rewritten to a `pattern` condition or `startsWith`/`contains`, or the target list should be narrowed.
+- **Migration**: inspect stored `celExpression` rules for `matches(...)`. Replace unsafe literals with patterns that pass `validateRegexPattern` (expand backreferences into fixed-length / non-overlapping forms, or use a `pattern` condition). Re-save after editing; legacy unsafe literals will not fire (fail-closed) until fixed.
+- **Residual risk**: Degree-2 chains remain allowed per #3643 and are bounded per call by `MAX_REGEX_INPUT_LENGTH` (1024). To stop comprehensions / `||` chains from multiplying that cost, each **rule evaluation** has a cumulative matches receiver budget of `RULE_ENGINE.CEL_MATCHES_RECEIVER_BUDGET_PER_RULE` (2048 chars; an empty receiver counts as 1). Exceeding it makes the rule unevaluable (fail-closed, warn `CEL matches() rejected as unevaluable` with `reason: matches receiver budget exceeded`). Residual: one rule can still spend up to two 1024-character degree-2 matches per evaluation; the number of rules evaluated per event is not bounded by this guard.
+
 #### CEL Context Variables
 
 | Variable | Description | Example |
 |------|------|---|
 | `entity.id` | Entity ID | `"urn:ngsi-ld:Device:001"` |
 | `entity.type` | Entity type | `"Device"` |
-| `attribute.<name>.value` | Current attribute value | `attribute.temperature.value` → `35` |
+| `attribute.<name>.value` | Current attribute value (default instance for multi-attribute; GeonicDB extension, #2785) | `attribute.temperature.value` → `35` |
 | `attribute.<name>.type` | Current attribute type | `attribute.temperature.type` → `"Number"` |
-| `previous.attribute.<name>.value` | Pre-change attribute value | `previous.attribute.temperature.value` → `25` |
+| `previous.attribute.<name>.value` | Pre-change attribute value (default instance for multi-attribute; GeonicDB extension, #2785) | `previous.attribute.temperature.value` → `25` |
 | `previous.attribute.<name>.type` | Pre-change attribute type | `previous.attribute.temperature.type` → `"Number"` |
 
 `previous` semantics by event type:
@@ -796,8 +947,11 @@ interface CreateEntityAction {
   entityType: string;             // Supports template variables
   attributes: Record<string, unknown>;  // Supports template variables
   protocol?: 'ngsiv2' | 'ngsild';  // Target protocol (default: inherit from trigger)
-  servicePath?: string;              // Target servicePath for ngsiv2 (supports template variables)
-  scope?: string[];                  // Target scope for ngsild (supports template variables)
+  servicePath?: string;              // Target servicePath (supports ${...} templates; validated
+                           // against /^\/[\w/]*$/ at creation and again after substitution.
+                           // For ngsild targets it is forced to '/' unless set explicitly — #1605)
+  scope?: string[];                  // Target scope for ngsild (static values only — the API schema
+                                     // rejects `${...}` templates; see NgsiLdScopeStringSchema)
 }
 ```
 
@@ -843,6 +997,12 @@ interface UpdateAttributeAction {
   attributeName: string;
   value: unknown;          // Supports template variables
   protocol?: 'ngsiv2' | 'ngsild';  // Target protocol (default: inherit from trigger)
+  servicePath?: string;    // Target servicePath (supports ${...} templates; validated
+                           // against /^\/[\w/]*$/ at creation and again after substitution.
+                           // For ngsild targets it is forced to '/' unless set explicitly — #1605)
+  scope?: string[];        // Target scope for ngsild (static values only — schema rejects `${...}`).
+                           // Applied to the entity ONLY when explicitly set (never auto-derived);
+                           // an empty array is ignored rather than clearing the entity's scope
 }
 ```
 
@@ -857,6 +1017,24 @@ interface UpdateAttributeAction {
 }
 ```
 
+**Example**: Cross-protocol — update the NGSI-LD mirror entity created by an earlier `createEntity` action
+
+```json
+{
+  "type": "updateAttribute",
+  "entityId": "urn:ngsi-ld:Alert:${entity.id}",
+  "attributeName": "acknowledged",
+  "value": true,
+  "protocol": "ngsild"
+}
+```
+
+> **`servicePath`/`scope` resolution is shared with `createEntity` (#1606)**: when the action targets NGSI-LD and does not
+> explicitly set `servicePath`, the target `servicePath` is forced to `'/'` — same as `createEntity` (#1605), since that is
+> where the HTTP NGSI-LD API looks for entities. Without this, an `updateAttribute`/`deleteAttribute` action targeting an
+> NGSI-LD mirror created by this same rule engine would never find it (`NotFoundError`) because it would keep searching at
+> the *trigger's* servicePath. See "Automatic servicePath ↔ scope Mapping" below — the same table applies here.
+
 ### 3. Delete Attribute Action
 
 Deletes an attribute from an entity.
@@ -867,6 +1045,11 @@ interface DeleteAttributeAction {
   entityId: string;        // Supports template variables
   attributeName: string;
   protocol?: 'ngsiv2' | 'ngsild';  // Target protocol (default: inherit from trigger)
+  servicePath?: string;    // Target servicePath (supports ${...} templates; validated
+                           // against /^\/[\w/]*$/ at creation and again after substitution.
+                           // For ngsild targets it is forced to '/' unless set explicitly — #1605)
+  scope?: string[];        // Target scope for ngsild (static values only — schema rejects `${...}`; used only for
+                           // servicePath auto-mapping — deleteAttribute does not itself modify scope)
 }
 ```
 
@@ -969,6 +1152,10 @@ interface WebhookAction {
 }
 ```
 
+Outbound `webhook` calls use the same `pinnedRequest` transport as subscription notifications
+(#2932): DNS is pinned against rebinding, and **HTTP redirects are not followed** (`3xx` fails the
+action). Point `url` at the final endpoint.
+
 ### 6. Append to Temporal Action
 
 Automatically appends entity attribute data to the Temporal API (time-series database). Internally calls `TemporalService.recordEntityChange()` to record data in the Time Series Collection.
@@ -978,7 +1165,9 @@ Automatically appends entity attribute data to the Temporal API (time-series dat
 ```typescript
 interface AppendToTemporalAction {
   type: 'appendToTemporal';
-  attributes?: string[];  // List of attribute names to record (defaults to changedAttributes if omitted)
+  attributes?: string[];  // Attribute names to record. Omitted: prefer changedAttributeSelectors
+  // (instance-level diff) from the entity change event; legacy events without selectors
+  // fall back to changedAttributes (name-level = all instances of those attributes).
 }
 ```
 
@@ -1002,9 +1191,19 @@ interface AppendToTemporalAction {
 #### Behavior Details
 
 - When `attributes` is specified: Only the specified attributes are recorded to the Temporal API
-- When `attributes` is omitted: The `changedAttributes` (changed attributes) from the entity change event are recorded
+  - **Hybrid instance selection (#2818):** If a named attribute appears in the trigger's
+    `changedAttributeSelectors` (`{ name, datasetId? }`), only those instances are recorded
+    (diff). Names that are listed in `attributes` but **not** in the trigger diff are recorded
+    as a full-attribute snapshot (all instances — bare name selector).
+- When `attributes` is omitted: Prefer `changedAttributeSelectors` from the entity change event
+  (instance-level diff). Legacy events without selectors fall back to `changedAttributes`
+  (name-level = all instances of those attributes).
+- Temporal input is built from the event's uncollapsed `currentAttributes` (multi-attribute
+  arrays preserved). Rule condition evaluation still collapses to the default instance
+  (`resolveDefaultInstance`); that folded `context.entity` is **not** passed to temporal.
 - If an attribute has `observedAt` metadata, that value is used as the timestamp; otherwise the current time is used
 - Data is appended to the Time Series Collection (existing data is retained)
+- **Interaction with `TEMPORAL_ENTITY_DUAL_WRITE` (#2508 / #2527):** When this env flag is `true`, Entity API also dual-writes into Temporal Evolution (Core API create/update/replace/batch write paths **and delete paths** as deletion tombstones). **If the tenant has any enabled `appendToTemporal` rule, dual-write is skipped** (rule wins — including attribute subset / condition semantics). The check is coarse (tenant + servicePath; entity-type conditions on the rule are not evaluated for the skip decision). TTL expiry (GC) via EntityExpiryService is also dual-written as tombstones when the flag is on (#2780).
 
 #### Use Cases
 
@@ -1027,8 +1226,39 @@ GeonicDB enforces protocol isolation: NGSIv2 entities are only accessible via NG
 | Field | Actions | Type | Default |
 |---|---|---|---|
 | `protocol` | createEntity, updateAttribute, deleteAttribute | `'ngsiv2' \| 'ngsild'` | Inherited from trigger |
-| `servicePath` | createEntity | `string` | Inherited or auto-mapped |
-| `scope` | createEntity | `string[]` | Inherited or auto-mapped |
+| `servicePath` | createEntity, updateAttribute, deleteAttribute | `string` | Inherited/auto-mapped for ngsiv2 targets; **forced to `'/'` for ngsild targets unless explicitly set** (#1605) |
+| `scope` | createEntity (applied to the created entity); updateAttribute (**applied only when explicitly set on the action** — never auto-derived); deleteAttribute (used only for `servicePath` auto-mapping, never applied) | `string[]` | createEntity: inherited or auto-mapped / updateAttribute: explicit only |
+
+>
+
+### ⚠️ Security: cross-protocol placement changes the authorization boundary
+>
+> **NGSI-LD authorization is expressed by `scope`, not `servicePath`.** The NGSI-LD API pins
+> `resource.servicePath` to `'/'` (`policy.pip.ts`; see #964), so a policy that restricts a group by
+> `servicePath` **does not protect NGSI-LD entities** — including the mirrors these rules create.
+> Because a mirror created from a non-root NGSIv2 trigger now lands at `servicePath: '/'` (#1605 — it
+> has to, or the HTTP API cannot reach it at all), tenants that partition data by `servicePath` must
+> add **scope-based** policies to keep that data restricted. The engine logs
+> `metric: RuleCrossProtocolRelocation` (WARN) whenever it relocates a target from a non-root trigger
+> path, so the change is observable.
+>
+> **`scope` on `updateAttribute` is a replacement, and `scope` is an authorization attribute.**
+> `updateAttribute` therefore applies `scope` **only when the action sets it explicitly** — it is never
+> auto-derived from the trigger. Auto-deriving would let "update one attribute" silently reclassify a
+> pre-existing entity (e.g. an entity scoped `['/private/hr']` touched by a rule at `/foo` would become
+> `['/foo']`, after which `Deny` rules and row-level filters keyed on `/private/**` stop applying).
+> Unlike the HTTP path, the rules engine has no authorization checkpoint for a scope transition.
+>
+> **The rules engine acts with ambient authority** — it performs no XACML evaluation for the entities it
+> writes. A principal who can create rules can therefore reach any entity in the **same tenant**
+> (tenant isolation itself is never bypassable: `service` always comes from the trigger). Restrict
+> `POST /rules` accordingly. Engine-level per-entity authorization is tracked separately.
+>
+> **#1606**: `updateAttribute`/`deleteAttribute` resolve `servicePath`/`scope` through the exact same functions as
+> `createEntity` (no separate/duplicated logic). This matters because of #1605: an NGSI-LD entity created by this rule
+> engine always lives at `servicePath: '/'` unless the action explicitly overrode it — so a subsequent `updateAttribute`/
+> `deleteAttribute` targeting that entity must resolve to the same `'/'`, or it will silently fail to find it
+> (`NotFoundError`, logged with `metric: 'RuleActionFailure'` — see "Observability" below).
 
 ### Automatic servicePath ↔ scope Mapping
 
@@ -1036,11 +1266,20 @@ When crossing protocols, the hierarchy system is automatically mapped:
 
 | Direction | Condition | Mapping |
 |---|---|---|
-| NGSIv2 → NGSI-LD | `servicePath != '/'` | `scope = [servicePath]` |
+| NGSIv2 → NGSI-LD | trigger `servicePath != '/'` | `scope = [trigger.servicePath]`, target `servicePath = '/'` |
 | NGSI-LD → NGSIv2 | `scope` has elements | `servicePath = scope[0]` |
 | Root servicePath `'/'` | (always) | No scope generated |
 
 Explicit `servicePath` or `scope` on the action overrides the automatic mapping. Template variables (`${trigger.servicePath}`, `${trigger.scope}`) can be used for custom mapping logic.
+
+> **NGSI-LD entities are always created at `servicePath: '/'` unless the action explicitly overrides it (#1605).**
+> The NGSI-LD HTTP API has no concept of `Fiware-ServicePath` — it always reads/writes at the root path
+> (`tenant.middleware.ts`'s `apiType: 'ngsild'` handling, per #964: "servicePath and scope are independent
+> concepts"). Hierarchy for NGSI-LD entities is expressed exclusively through `scope`. If a
+> `protocol: "ngsild"` `createEntity` action sets a non-root `servicePath` explicitly, the resulting entity
+> becomes **unreachable from `GET`/`DELETE /ngsi-ld/v1/entities/{id}`** (which only reads `servicePath: '/'`)
+> even though it is fully visible internally (e.g. via MCP tools). Prefer letting `servicePath` default and
+> use `scope` (auto-mapped from the trigger's `servicePath`, or set explicitly) to carry hierarchy instead.
 
 ### Example: NGSIv2 Sensor → NGSI-LD Alert
 
@@ -1092,6 +1331,7 @@ Explicit `servicePath` or `scope` on the action overrides the automatic mapping.
 - **Multiple scopes**: When mapping scope → servicePath, only the first element (`scope[0]`) is used, since servicePath is a single string
 - **Root servicePath**: `'/'` is not mapped to scope (it has no semantic meaning in NGSI-LD)
 - **Backward compatible**: If `protocol` is omitted, the action inherits the trigger entity's protocol (existing behavior)
+- **NGSI-LD servicePath is forced to `'/'`**: For `protocol: "ngsild"` `createEntity` actions, `servicePath` defaults to `'/'` regardless of the trigger's servicePath — hierarchy must be expressed via `scope` instead. Explicitly setting a non-root `servicePath` on such an action is possible but makes the entity unreachable from the NGSI-LD HTTP API (#1605)
 
 ---
 
@@ -1109,7 +1349,7 @@ Written in the format `${path.to.value}`.
 |------|------|---|
 | `${entity.id}` | Entity ID | `"Sensor001"` |
 | `${entity.type}` | Entity type | `"TemperatureSensor"` |
-| `${attribute.<name>.value}` | Attribute value | `${attribute.temperature.value}` → `25.5` |
+| `${attribute.<name>.value}` | Attribute value (default instance for multi-attribute; GeonicDB extension, #2785) | `${attribute.temperature.value}` → `25.5` |
 | `${attribute.<name>.type}` | Attribute type | `${attribute.temperature.type}` → `"Number"` |
 | `${attribute.<name>.metadata.<key>.value}` | Metadata value | `${attribute.temperature.metadata.unit.value}` → `"Celsius"` |
 | `${trigger.protocol}` | Trigger entity's protocol | `"ngsiv2"` or `"ngsild"` |
@@ -1194,7 +1434,7 @@ GET /rules
 Authorization: Bearer <accessToken>
 ```
 
-**Authorization**: XACML policy-based (requires the `tenant_admin` role; `super_admin` cannot access `/rules*` endpoints when `AUTH_ENABLED=true`)
+**Authorization**: XACML policy-based (requires the `tenant_admin` role; `super_admin` cannot access `/rules*` endpoints while authentication is enabled (the default))
 
 **Query Parameters**
 
@@ -1202,7 +1442,7 @@ Authorization: Bearer <accessToken>
 |-----------|------|
 | `limit` | Number of results to retrieve (default: 20, max: 100) |
 | `offset` | Offset (default: 0) |
-| `servicePath` | Filter by service path |
+| `servicePath` | Filter by service path. Must match `/^\/[\w/]*$/` (a single, non-hierarchical path — see "servicePath syntax" below); `400 Bad Request` otherwise (#1607). **If omitted, defaults to the servicePath authorization was evaluated against** — the resolved `Fiware-ServicePath` (default `/`) — rather than matching every servicePath (#2259; see "servicePath default resolution" below) |
 | `isActive` | Filter by enabled/disabled (`true` / `false`) |
 
 **Response**: `200 OK`
@@ -1269,7 +1509,81 @@ Content-Type: application/json
 }
 ```
 
-**Response**: `201 Created`
+The rule's `servicePath` is taken from the `servicePath` query parameter or the `Fiware-ServicePath` header (query
+parameter takes precedence); defaults to `/` if neither is given.
+
+**Response**: `201 Created` / `400 Bad Request` if `servicePath` fails validation (see "servicePath syntax" below)
+
+#### servicePath syntax (#1607)
+
+A rule's `servicePath` MUST match `/^\/[\w/]*$/` — a leading `/` followed by any number of alphanumeric characters,
+underscores, and `/`. **Hyphens and other punctuation are not allowed**, and it must be a single, non-hierarchical path
+(no comma-separated multiple paths, no trailing `/#`). Both `POST /rules` and `GET /rules?servicePath=...` enforce this
+(via the same validation NGSIv2 data writes use, `parseServicePathHeader()`).
+
+This is stricter than the general NGSIv2 write-path validation in one respect: hierarchical `/#` is explicitly rejected
+even though `parseServicePathHeader()` would otherwise accept it as a literal path segment. A rule always matches
+exactly one `servicePath` — `rule.repository.ts`'s `findActiveRulesForTenant()` and the `listRules` filter both compare
+by **exact string equality**, never by prefix/hierarchy — so a `/#`-suffixed or comma-separated `servicePath` could
+never actually match any incoming entity change. Accepting it would silently produce a rule that can never fire
+(`POST /rules`) or a list filter that always returns empty (`GET /rules`), instead of failing loudly at creation time.
+
+**The rule's `servicePath` must exactly match the `Fiware-ServicePath` used by the NGSIv2 writes that are meant to
+trigger it.** For example, a rule created with `servicePath: "/sensors"` only fires for entity changes whose trigger
+event carries `servicePath: "/sensors"` — not `/sensors/indoor`, not `/`, and not omitted (which defaults to `/`).
+
+#### servicePath default resolution (#2259)
+
+`/rules` resolves the *effective* `servicePath` for a request the same way for authorization and for the actual
+operation — a **single** resolution point (`resolveRulesRequestServicePath`), not two independently-defaulted
+inputs. If the request declares a value (the `servicePath` query parameter), it is validated (see "servicePath
+syntax" above) and used for both. If it does not, both fall back to the servicePath resolved from
+`Fiware-ServicePath` (default `/`) — the same value the XACML policy engine evaluates the request against.
+
+**Breaking change**: before #2259, `GET /rules` with no `servicePath` query parameter returned rules from **every**
+servicePath, while authorization was still evaluated against the single `Fiware-ServicePath`-derived value —
+a `servicePath`-scoped Deny policy could be bypassed simply by omitting the query parameter. `GET /rules` now
+returns only the rules for that single resolved servicePath when the parameter is omitted. To see rules under a
+different servicePath, pass `?servicePath=...` (or the matching `Fiware-ServicePath` header) explicitly — that same
+value is what authorization evaluates too. `POST /rules` (which servicePath a new rule is stored under) keeps the
+same precedence it already had (query parameter, else header, else `/`), with one exception: an **explicitly empty**
+`?servicePath=` now means "the root path `/`" rather than "not supplied". Previously an empty value fell through to
+`Fiware-ServicePath`; it is now read the same way the list filter has always read it (#1607), because both sides go
+through one resolution point. Authorization is evaluated against that same `/`, so this does not split the two.
+
+#### by-id operations are authorized against the rule's stored servicePath (#2283)
+
+The resolution above covers the operations where the *client* supplies a servicePath (`GET /rules`, `POST /rules`).
+By-id operations — `GET`, `PATCH`, `DELETE /rules/{ruleId}` and `POST /rules/{ruleId}/activate|deactivate` — do not:
+the rule already exists, so its servicePath is whatever is **stored on the rule**.
+
+These operations are therefore authorized **twice**:
+
+1. path-level, against the servicePath resolved from the request (as before), and
+2. rule-level, against `rule.servicePath` read from the database, after the rule is loaded and before any write.
+
+Both must permit. A principal that is denied on `servicePath: /secret` can no longer read or modify a rule stored
+under `/secret` by sending `Fiware-ServicePath: /open` (or `?servicePath=/open`) — before #2283 the by-id lookup
+filtered on `ruleId` + `tenantId` only, so authorization evaluated a servicePath that had nothing to do with the
+rule being touched.
+
+The rule-level check lives in `RuleService`, so it applies identically to the HTTP API, the MCP `config` tool and
+the A2A `config` skill. `404` behaviour is unchanged: a rule that does not exist in the caller's tenant still
+returns `404`, and a rule that exists but is not permitted returns `403` — the by-id query itself is **not**
+filtered by servicePath, so clients do not need to match the header to fetch their own rules.
+
+> **Limitation — `servicePath`-scoped policies do not constrain the by-id routes.** `GET`/`PATCH`/`DELETE`
+> `/rules/{ruleId}` and the activate/deactivate routes look the rule up by `ruleId` (+ tenant) only; they never filter
+> by `servicePath`, while authorization for those routes is still evaluated against the servicePath the *request*
+> resolved to. A principal permitted on `/open` can therefore read or delete a rule stored under `/secret` by naming
+> its `ruleId`. This is a different root from the one fixed above — the rule's servicePath is a stored value, not a
+> client-supplied one, so closing it needs entity-level authorization (evaluate against the loaded rule's own
+> `servicePath`), the same shape as `checkEntityOwnership` for entities. Tracked in
+> [#2283](https://github.com/geolonia/geonicdb/issues/2283).
+
+The MCP `config` tool's `rules`/`list` action and the A2A `config` skill's `rules`/`list` action follow the same
+rule: an omitted `servicePath` argument defaults to the servicePath that call's authorization was evaluated
+against, rather than returning rules from every servicePath.
 
 ### Get Rule
 
@@ -1866,6 +2180,14 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
 - Preventing excessive Webhook invocations
 - Reducing load on external systems
 
+> **Cooldown is consumed regardless of action outcome (#1606)**: the cooldown/execution-window counters are updated
+> (`trackExecution()`) as soon as a rule is selected for execution, *before* its actions run. If every action in a rule
+> keeps failing (e.g. a misconfigured `entityId` template, or a cross-protocol target that doesn't exist), the rule
+> still burns its cooldown on every matching event — it does not retry sooner just because nothing actually happened.
+> There is currently no queryable execution history (success/failure per firing); use the `metric: 'RuleActionFailure'`
+> / `metric: 'RuleExecutionFailure'` structured log fields (see "Action Execution Errors" below) to detect a rule that
+> is silently failing over and over. A queryable history is tracked as a follow-up to #1606.
+
 ### Best Practices for Loop Prevention
 
 1. **Clearly distinguish entity types**: The action entity type exclusion feature is applied automatically
@@ -1899,6 +2221,10 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
 
 ## Limitations
 
+### Tenant deactivation (#3596)
+
+While a tenant is deactivated (`POST /admin/tenants/{tenantId}/deactivate` or `PATCH` with `isActive: false`), ReactiveCore Rules are **not evaluated** for that tenant — including `webhook`, `createEntity`, `updateAttribute`, `deleteAttribute`, `appendToTemporal`, and `sendNotification`. Rule documents keep their `isActive` / `status`; nothing is revoked. After `activate`, the next entity-change event resumes evaluation automatically. Other instances (and RuleProcessor Lambda containers) observe the change within `CACHE.TENANT_TTL_MS` (30s).
+
 ### Current Limitations
 
 1. **No transactions**: If an error occurs during execution of multiple actions, no rollback is performed
@@ -1926,6 +2252,7 @@ RULE_ENGINE.DEFAULT_COOLDOWN_SECONDS = 60;
 3. Are the conditions correctly matched (especially entity type)?
 4. Does the servicePath match?
 5. Is the Change Stream Handler running?
+6. Is the tenant active? (deactivated tenants skip all rule evaluation — #3596)
 
 **Debugging**:
 
@@ -1985,7 +2312,23 @@ A rule's actions may match the conditions of another rule, potentially causing a
 1. Does the entity ID exist (for updateAttribute, deleteAttribute)?
 2. Is the attribute name correct?
 3. Is the value type correct (e.g., not setting a string value on a numeric attribute)?
-4. Is the tenant and servicePath correct?
+4. Is the tenant and servicePath correct? For cross-protocol `updateAttribute`/`deleteAttribute` targeting NGSI-LD,
+   remember that the target `servicePath` is forced to `'/'` unless the action explicitly overrides it (#1605/#1606) —
+   see "Cross-Protocol Entity Creation" above.
+
+**Observability (#1606)**: action/rule execution failures are logged as structured errors (not swallowed silently) —
+a failure in one action does not stop other actions/rules from running, but each failure is logged with:
+
+- `logger.error('Failed to execute action', { ruleId, actionType, entityId, error, metric: 'RuleActionFailure' })` —
+  per-action failure (e.g. `NotFoundError` from a bad `servicePath` resolution). `entityId` here is the *raw*,
+  template-unexpanded action definition value; the resolved entityId and target `servicePath`/`protocol` are logged
+  separately from inside `executeUpdateAttributeAction`/`executeDeleteAttributeAction` (`logger.info('Updating entity
+  attribute', ...)` / `logger.info('Deleting entity attribute', ...)`) right before the mutating call.
+- `logger.error('Failed to execute rule actions', { ruleId, error, metric: 'RuleExecutionFailure' })` — rule-level
+  failure (e.g. an unexpected exception outside the per-action try/catch).
+
+Search logs for `metric: "RuleActionFailure"` or `metric: "RuleExecutionFailure"` to find rules that are failing.
+There is no dedicated rule-execution-history collection/API yet — this is log-based observability only.
 
 ---
 
